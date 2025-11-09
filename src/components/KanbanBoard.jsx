@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
-import { motion } from 'framer-motion'
-import { Trash2, CheckSquare } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Trash2, CheckSquare, Plus, MoreVertical } from 'lucide-react'
 import { Button } from './ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
 import useAppStore from '../stores/useAppStore'
@@ -146,9 +146,10 @@ const Column = ({ title, status, tasks, onTaskMove, onTaskDelete, onTaskClick, c
 }
 
 export default function KanbanBoard() {
-  const { tasks, moveTask, updateTask, deleteTask, clearTasks, addNotification } = useAppStore()
+  const { tasks, moveTask, updateTask, deleteTask, clearTasks, addTask, addNotification } = useAppStore()
   const [selectedTask, setSelectedTask] = useState(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isMenuOpen, setIsMenuOpen] = useState(false)
 
   const todoTasks = tasks.filter(task => task.status === 'todo' || !task.status)
   const inProgressTasks = tasks.filter(task => task.status === 'in-progress' || task.status === 'inprogress')
@@ -247,6 +248,18 @@ export default function KanbanBoard() {
     setSelectedTask(null)
   }
 
+  const handleCreateTask = () => {
+    // Create a blank task for the user to fill in
+    const newTask = {
+      title: '',
+      description: '',
+      status: 'todo',
+      priority: 'medium'
+    }
+    setSelectedTask(newTask)
+    setIsModalOpen(true)
+  }
+
   return (
     <>
     <motion.div
@@ -274,17 +287,75 @@ export default function KanbanBoard() {
                 </div>
               </div>
             </CardTitle>
-            {tasks.length > 0 && (
-              <Button
-                onClick={handleClearAll}
-                variant="outline"
-                size="sm"
-                className="flex items-center gap-2 hover:bg-red-50 hover:text-red-600 hover:border-red-300 transition-all"
-              >
-                <Trash2 className="h-4 w-4" />
-                Clear All
-              </Button>
-            )}
+
+            <div className="flex items-center gap-2">
+              {/* Add Task Button */}
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <Button
+                  onClick={handleCreateTask}
+                  variant="default"
+                  size="sm"
+                  className="flex items-center gap-2 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-md"
+                >
+                  <Plus className="h-4 w-4" />
+                  <span className="hidden sm:inline">Add Task</span>
+                </Button>
+              </motion.div>
+
+              {/* Menu Button */}
+              <div className="relative">
+                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                  <Button
+                    onClick={() => setIsMenuOpen(!isMenuOpen)}
+                    variant="outline"
+                    size="icon"
+                    className="h-9 w-9"
+                  >
+                    <MoreVertical className="h-4 w-4" />
+                  </Button>
+                </motion.div>
+
+                {/* Dropdown Menu */}
+                <AnimatePresence>
+                  {isMenuOpen && (
+                    <>
+                      {/* Backdrop to close menu */}
+                      <div
+                        className="fixed inset-0 z-40"
+                        onClick={() => setIsMenuOpen(false)}
+                      />
+
+                      {/* Menu */}
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                        transition={{ duration: 0.1 }}
+                        className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border-2 border-gray-200 dark:border-gray-700 overflow-hidden z-50"
+                      >
+                        {tasks.length > 0 && (
+                          <button
+                            onClick={() => {
+                              setIsMenuOpen(false)
+                              handleClearAll()
+                            }}
+                            className="w-full px-4 py-3 text-left text-sm hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 flex items-center gap-2 transition-colors"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            Clear All Tasks
+                          </button>
+                        )}
+                        {tasks.length === 0 && (
+                          <div className="px-4 py-3 text-sm text-muted-foreground text-center">
+                            No actions available
+                          </div>
+                        )}
+                      </motion.div>
+                    </>
+                  )}
+                </AnimatePresence>
+              </div>
+            </div>
           </div>
         </CardHeader>
         <CardContent className="p-6">
