@@ -1,0 +1,94 @@
+# Dependencies
+node_modules/
+server/node_modules/
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Build outputs
+dist/
+build/
+.vite/
+*.local
+
+# Environment variables (CRITICAL - contains API keys and secrets)
+.env
+.env.local
+.env.production
+.env.production.local
+.env.development.local
+.env.test.local
+.env.*.local
+
+# Storage directory (contains user data)
+storage/
+server/storage/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Editor directories
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+# Certificates and keys (CRITICAL - security)
+certs/
+*.pem
+*.key
+*.crt
+*.cert
+*.p12
+*.pfx
+
+# Docker
+.dockerignore
+docker-compose.override.yml
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+.parcel-cache/
+
+# Testing
+coverage/
+.nyc_output/
+*.test.local
+
+# Misc
+.eslintcache
+.stylelintcache
+
+# Development notes (exclude from GitHub)
+STORAGE.md
+DOCKER_README.md
+TASK_UPDATE_LOGGING.md
+CLOUDFLARED_CONFIG.md
+TODO_AUDIO_CHUNKING.md
+
+# Backup/old files
+*.old.js
+*.old.jsx
+*.backup
+*.bak

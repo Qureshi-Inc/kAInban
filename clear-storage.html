@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Clear Storage</title>
+</head>
+<body>
+    <h1>Clear Storage</h1>
+    <button onclick="clearAll()">Clear All Storage</button>
+    <div id="result"></div>
+
+    <script>
+        function clearAll() {
+            try {
+                // Clear localStorage
+                localStorage.clear();
+
+                // Clear sessionStorage
+                sessionStorage.clear();
+
+                // Clear IndexedDB
+                if (window.indexedDB) {
+                    indexedDB.deleteDatabase('AudioTaskManager');
+                }
+
+                document.getElementById('result').innerHTML = '<p style="color: green;">Storage cleared! Reload the main app.</p>';
+            } catch (error) {
+                document.getElementById('result').innerHTML = '<p style="color: red;">Error: ' + error.message + '</p>';
+            }
+        }
+    </script>
+</body>
+</html>

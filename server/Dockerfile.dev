@@ -1,0 +1,22 @@
+# API Development Dockerfile
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Install wget for healthcheck
+RUN apk add --no-cache wget
+
+# Copy package files
+COPY package*.json ./
+
+# Install all dependencies (including dev)
+RUN npm install
+
+# Create storage directory
+RUN mkdir -p /app/storage
+
+# Expose API port
+EXPOSE 3001
+
+# Start in dev mode with auto-reload
+CMD ["npm", "run", "dev"]

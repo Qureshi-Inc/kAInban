@@ -1,0 +1,140 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 98%;
+    --foreground: 240 10% 9%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 9%;
+    --primary: 214 100% 59%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 146 82% 46%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
+    --accent: 48 100% 67%;
+    --accent-foreground: 240 10% 9%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --ring: 214 100% 59%;
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 240 10% 9%;
+    --foreground: 0 0% 98%;
+    --card: 240 10% 12%;
+    --card-foreground: 0 0% 98%;
+    --popover: 240 10% 12%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 214 100% 59%;
+    --primary-foreground: 240 10% 9%;
+    --secondary: 146 82% 46%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+    --accent: 48 100% 67%;
+    --accent-foreground: 240 10% 9%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 214 100% 59%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+@layer components {
+  .mic-pulse {
+    @apply animate-pulse;
+    animation-duration: 1.5s;
+  }
+
+  .recording-visualizer {
+    background: linear-gradient(45deg, #4285f4, #34a853);
+    border-radius: 8px;
+  }
+
+  .kanban-column {
+    min-height: 200px;
+    @apply bg-muted/50 rounded-lg p-4;
+  }
+
+  .task-card {
+    @apply bg-card border border-border rounded-lg p-3 mb-3 shadow-sm cursor-grab;
+    transition: all 0.2s ease;
+  }
+
+  .task-card:hover {
+    @apply shadow-md transform -translate-y-1;
+  }
+
+  .task-card.dragging {
+    @apply opacity-50 rotate-2;
+  }
+
+  .priority-high {
+    @apply bg-destructive/10 text-destructive border-destructive/20;
+  }
+
+  .priority-medium {
+    @apply bg-accent/10 text-amber-700 border-accent/20;
+  }
+
+  .priority-low {
+    @apply bg-secondary/10 text-secondary border-secondary/20;
+  }
+
+  .glass-effect {
+    backdrop-filter: blur(10px);
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+}
+
+/* Touch-friendly improvements for mobile */
+@media (pointer: coarse) {
+  .task-card {
+    min-height: 60px;
+    padding: 16px;
+  }
+
+  button {
+    min-height: 48px;
+    min-width: 48px;
+  }
+}
+
+/* Smooth animations */
+.slide-in {
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}

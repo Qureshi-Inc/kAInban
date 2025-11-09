@@ -1,0 +1,35 @@
+# API Dockerfile
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Install build dependencies required for better-sqlite3
+RUN apk add --no-cache \
+    wget \
+    python3 \
+    make \
+    g++ \
+    gcc \
+    libc-dev
+
+# Copy server package files
+COPY server/package*.json ./
+
+# Install dependencies without install scripts
+RUN npm ci --only=production --ignore-scripts
+
+# Remove any cached builds and force rebuild from source for Alpine/musl
+RUN rm -rf node_modules/better-sqlite3/build node_modules/better-sqlite3/prebuilds && \
+    npm rebuild better-sqlite3 --build-from-source --verbose
+
+# Copy server code
+COPY server/ ./
+
+# Create storage directory
+RUN mkdir -p /app/storage
+
+# Expose API port
+EXPOSE 3001
+
+# Start server
+CMD ["npm", "start"]

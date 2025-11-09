@@ -1,0 +1,715 @@
+import React, { useRef, useEffect, useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Mic, Upload, Square, Pause, Play } from 'lucide-react'
+import { Button } from './ui/button'
+import { Card, CardContent } from './ui/card'
+import { formatTime } from '../lib/utils'
+import useAppStore from '../stores/useAppStore'
+import audioService from '../services/audioService'
+import openaiService from '../services/openaiService'
+
+export default function AudioControls() {
+  const fileInputRef = useRef(null)
+  const canvasRef = useRef(null)
+  const animationRef = useRef(null)
+  const timerRef = useRef(null)
+  const chunkInfoRef = useRef(null)
+  const [recordingTime, setRecordingTime] = useState(0)
+  const [chunkInfo, setChunkInfo] = useState(null)
+
+  const {
+    isRecording,
+    isPaused,
+    setRecording,
+    setPaused,
+    setRecordingModalOpen,
+    createMeeting,
+    addTask,
+    addNotification,
+    currentProject,
+    setUploadProgress,
+    resetUploadProgress
+  } = useAppStore()
+
+  // Timer and visualization effects
+  useEffect(() => {
+    if (isRecording) {
+      startTimer()
+      startVisualization()
+    } else {
+      stopTimer()
+      stopVisualization()
+      setRecordingTime(0)
+    }
+
+    return () => {
+      stopTimer()
+      stopVisualization()
+    }
+  }, [isRecording])
+
+  const startTimer = () => {
+    const startTime = Date.now()
+    timerRef.current = setInterval(() => {
+      const elapsed = Math.floor((Date.now() - startTime) / 1000)
+      setRecordingTime(elapsed)
+
+      // Update chunk info
+      const info = audioService.getCurrentChunkInfo()
+      if (info) {
+        setChunkInfo(info)
+      }
+    }, 1000)
+  }
+
+  const stopTimer = () => {
+    if (timerRef.current) {
+      clearInterval(timerRef.current)
+      timerRef.current = null
+    }
+    setChunkInfo(null)
+  }
+
+  const startVisualization = () => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+
+    const ctx = canvas.getContext('2d')
+    const analyser = audioService.analyser
+    let dataArray = null
+
+    if (analyser) {
+      const bufferLength = analyser.frequencyBinCount
+      dataArray = new Uint8Array(bufferLength)
+    }
+
+    const draw = () => {
+      const width = canvas.width
+      const height = canvas.height
+
+      if (!dataArray) {
+        // Draw a simple pulse animation
+        ctx.fillStyle = '#f8f9fa'
+        ctx.fillRect(0, 0, width, height)
+
+        const time = Date.now() * 0.005
+        const centerY = height / 2
+        const barCount = 32
+
+        for (let i = 0; i < barCount; i++) {
+          const x = (i / barCount) * width
+          const barHeight = Math.sin(time + i * 0.5) * 20 + 10
+          const gradient = ctx.createLinearGradient(0, centerY - barHeight, 0, centerY + barHeight)
+          gradient.addColorStop(0, '#4285f4')
+          gradient.addColorStop(1, '#34a853')
+
+          ctx.fillStyle = gradient
+          ctx.fillRect(x, centerY - barHeight, width / barCount - 2, barHeight * 2)
+        }
+      } else {
+        analyser.getByteFrequencyData(dataArray)
+
+        ctx.fillStyle = '#f8f9fa'
+        ctx.fillRect(0, 0, width, height)
+
+        const barWidth = (width / dataArray.length) * 2.5
+        let x = 0
+
+        for (let i = 0; i < dataArray.length; i++) {
+          const barHeight = (dataArray[i] / 255) * height * 0.8
+
+          const gradient = ctx.createLinearGradient(0, height - barHeight, 0, height)
+          gradient.addColorStop(0, '#4285f4')
+          gradient.addColorStop(1, '#34a853')
+
+          ctx.fillStyle = gradient
+          ctx.fillRect(x, height - barHeight, barWidth, barHeight)
+
+          x += barWidth + 1
+        }
+      }
+
+      if (isRecording) {
+        animationRef.current = requestAnimationFrame(draw)
+      }
+    }
+
+    draw()
+  }
+
+  const stopVisualization = () => {
+    if (animationRef.current) {
+      cancelAnimationFrame(animationRef.current)
+      animationRef.current = null
+    }
+  }
+
+  const handleStartRecording = async () => {
+    try {
+      await audioService.startRecording()
+      setRecording(true)
+      setPaused(false)
+    } catch (error) {
+      console.error('Recording error:', error)
+      addNotification({
+        type: 'error',
+        message: error.message || 'Failed to start recording'
+      })
+    }
+  }
+
+  const handlePauseRecording = () => {
+    try {
+      audioService.pauseRecording()
+      setPaused(true)
+    } catch (error) {
+      console.error('Pause recording error:', error)
+      addNotification({
+        type: 'error',
+        message: error.message || 'Failed to pause recording'
+      })
+    }
+  }
+
+  const handleResumeRecording = () => {
+    try {
+      audioService.resumeRecording()
+      setPaused(false)
+    } catch (error) {
+      console.error('Resume recording error:', error)
+      addNotification({
+        type: 'error',
+        message: error.message || 'Failed to resume recording'
+      })
+    }
+  }
+
+  const handleStopRecording = async () => {
+    try {
+      console.log('[AudioControls] Stopping recording...')
+      const result = await audioService.stopRecording()
+
+      // Check if this is a chunked recording
+      const isChunked = result.isChunked || false
+      const audioBlob = isChunked ? null : result
+
+      if (isChunked) {
+        console.log('[AudioControls] Chunked recording detected:', {
+          chunks: result.chunks.length,
+          totalSize: result.chunks.reduce((sum, chunk) => sum + chunk.size, 0)
+        })
+      } else {
+        console.log('[AudioControls] Single recording:', {
+          size: audioBlob.size,
+          type: audioBlob.type
+        })
+
+        if (audioBlob.size === 0) {
+          throw new Error('Recording failed: No audio data captured')
+        }
+      }
+
+      setRecording(false)
+      setPaused(false)
+      setRecordingModalOpen(false)
+
+      // Start progress tracking
+      setUploadProgress({
+        stage: 'converting',
+        percentage: 25,
+        message: 'Processing recording...'
+      })
+
+      console.log('[AudioControls] Starting transcription...')
+      console.log('[AudioControls] Current settings:', {
+        hasEndpoint: !!useAppStore.getState().settings.azureEndpoint,
+        hasApiKey: !!useAppStore.getState().settings.apiKey
+      })
+
+      // Transcribe the audio (handles both single and chunked)
+      let transcript = ''
+
+      if (isChunked) {
+        // Transcribe each chunk separately
+        console.log(`[AudioControls] Transcribing ${result.chunks.length} chunks...`)
+        const transcripts = []
+
+        for (let i = 0; i < result.chunks.length; i++) {
+          setUploadProgress({
+            stage: 'transcribing',
+            percentage: 25 + Math.floor((i / result.chunks.length) * 50),
+            message: `Transcribing part ${i + 1} of ${result.chunks.length}...`
+          })
+
+          console.log(`[AudioControls] Transcribing chunk ${i + 1}/${result.chunks.length}`)
+          const chunkTranscript = await openaiService.transcribeAudio(result.chunks[i])
+          transcripts.push(chunkTranscript)
+          console.log(`[AudioControls] Chunk ${i + 1} transcribed: ${chunkTranscript.length} chars`)
+        }
+
+        // Combine all transcripts
+        transcript = transcripts.join(' ')
+        console.log(`[AudioControls] Combined transcript: ${transcript.length} total chars`)
+      } else {
+        // Single chunk transcription
+        setUploadProgress({
+          stage: 'transcribing',
+          percentage: 50,
+          message: 'Transcribing audio with Azure AI...'
+        })
+
+        transcript = await openaiService.transcribeAudio(audioBlob)
+      }
+
+      console.log('[AudioControls] Transcript received:', {
+        length: transcript.length,
+        preview: transcript.substring(0, 100)
+      })
+
+      // Auto-generate summary from transcript
+      console.log('[AudioControls] Auto-generating summary...')
+      let generatedSummary = ''
+      try {
+        generatedSummary = await openaiService.generateSummary(transcript)
+        console.log('[AudioControls] Summary received:', generatedSummary?.length || 0, 'characters')
+
+        // Create meeting file
+        const meetingName = `Recording - ${new Date().toLocaleDateString()}`
+        await createMeeting(meetingName, transcript, generatedSummary)
+        console.log('[AudioControls] Meeting created:', meetingName)
+      } catch (summaryError) {
+        console.error('[AudioControls] Summary generation error:', summaryError)
+        addNotification({
+          type: 'error',
+          message: `Summary generation failed: ${summaryError.message}`
+        })
+        return // Exit if summary fails, since we need it for task extraction
+      }
+
+      // Auto-generate tasks from TRANSCRIPT (not summary) with existing context
+      console.log('[AudioControls] Auto-generating tasks from transcript...')
+      try {
+        setUploadProgress({
+          stage: 'extracting',
+          percentage: 75,
+          message: 'Extracting tasks from transcript...'
+        })
+
+        const { tasks: existingTasks, updateTask: storeUpdateTask } = useAppStore.getState()
+        const extractedTasks = await openaiService.extractTasks(transcript, existingTasks)
+        console.log('[AudioControls] Tasks extracted:', extractedTasks.length)
+
+        let newCount = 0
+        let updatedCount = 0
+
+        if (extractedTasks.length > 0) {
+          extractedTasks.forEach(task => {
+            if (task.matchId && task.matchId > 0) {
+              // Update existing task
+              const existingTask = existingTasks[task.matchId - 1]
+              if (existingTask) {
+                console.log('[AudioControls] Updating existing task:', existingTask.id)
+                const updatedDescription = existingTask.description +
+                  (task.updates ? `\n\n**Update**: ${task.updates}` : '')
+
+                storeUpdateTask(existingTask.id, {
+                  description: updatedDescription,
+                  status: task.newStatus || existingTask.status,
+                  priority: task.newPriority || existingTask.priority,
+                  assignee: task.assignee || existingTask.assignee
+                })
+                updatedCount++
+              }
+            } else {
+              // Create new task
+              console.log('[AudioControls] Adding task:', task)
+              addTask(task)
+              newCount++
+            }
+          })
+
+          const messages = []
+          if (newCount > 0) messages.push(`${newCount} new`)
+          if (updatedCount > 0) messages.push(`${updatedCount} updated`)
+
+          // Only show notification with final result
+          addNotification({
+            type: 'success',
+            message: `Tasks: ${messages.join(', ')}!`
+          })
+        } else {
+          console.log('[AudioControls] No actionable tasks found')
+        }
+
+        // Mark as complete
+        setUploadProgress({
+          stage: 'complete',
+          percentage: 100,
+          message: 'All done!'
+        })
+
+        // Auto-dismiss after 3 seconds
+        setTimeout(() => {
+          resetUploadProgress()
+        }, 3000)
+      } catch (taskError) {
+        console.error('[AudioControls] Task extraction error:', taskError)
+
+        // Show error in progress indicator
+        setUploadProgress({
+          stage: 'error',
+          percentage: 0,
+          message: 'Task extraction failed',
+          error: taskError.message || 'Failed to extract tasks'
+        })
+
+        addNotification({
+          type: 'error',
+          message: `Task extraction failed: ${taskError.message}`
+        })
+
+        // Auto-dismiss error after 5 seconds
+        setTimeout(() => {
+          resetUploadProgress()
+        }, 5000)
+      }
+    } catch (error) {
+      console.error('[AudioControls] Stop recording error:', {
+        message: error.message,
+        stack: error.stack,
+        error: error
+      })
+      setRecording(false)
+      setPaused(false)
+      setRecordingModalOpen(false)
+
+      // Show error in progress indicator
+      setUploadProgress({
+        stage: 'error',
+        percentage: 0,
+        message: 'Processing failed',
+        error: error.message || 'Failed to process recording'
+      })
+
+      addNotification({
+        type: 'error',
+        message: error.message || 'Failed to process recording'
+      })
+
+      // Auto-dismiss error after 5 seconds
+      setTimeout(() => {
+        resetUploadProgress()
+      }, 5000)
+    }
+  }
+
+  const handleFileUpload = async (event) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    try {
+      // Start progress tracking
+      setUploadProgress({
+        stage: 'uploading',
+        percentage: 0,
+        message: `Uploading ${file.name}...`
+      })
+
+      // Process the file (may include conversion)
+      setUploadProgress({
+        stage: 'converting',
+        percentage: 25,
+        message: 'Converting audio format...'
+      })
+
+      const processedFile = await audioService.processAudioFile(file)
+
+      // Transcribe with Azure
+      setUploadProgress({
+        stage: 'transcribing',
+        percentage: 50,
+        message: 'Transcribing audio with Azure AI...'
+      })
+
+      // Pass progress callback for chunked transcription
+      const transcript = await openaiService.transcribeAudio(processedFile, (progress) => {
+        setUploadProgress(progress)
+      })
+
+      // Auto-generate summary from transcript
+      console.log('[AudioControls] Auto-generating summary from uploaded file...')
+      let generatedSummary = ''
+      try {
+        generatedSummary = await openaiService.generateSummary(transcript)
+        console.log('[AudioControls] Summary received:', generatedSummary?.length || 0, 'characters')
+
+        // Create meeting file
+        const meetingName = `${file.name} - ${new Date().toLocaleDateString()}`
+        await createMeeting(meetingName, transcript, generatedSummary)
+        console.log('[AudioControls] Meeting created:', meetingName)
+      } catch (summaryError) {
+        console.error('[AudioControls] Summary generation error:', summaryError)
+        addNotification({
+          type: 'error',
+          message: `Summary generation failed: ${summaryError.message}`
+        })
+        // Continue even if summary fails, mark as complete
+        setUploadProgress({
+          stage: 'complete',
+          percentage: 100,
+          message: 'Transcription complete!'
+        })
+        setTimeout(() => {
+          resetUploadProgress()
+        }, 3000)
+        return
+      }
+
+      // Auto-generate tasks from TRANSCRIPT (not summary) with existing context
+      console.log('[AudioControls] Auto-generating tasks from transcript...')
+      try {
+        setUploadProgress({
+          stage: 'extracting',
+          percentage: 75,
+          message: 'Extracting tasks from transcript...'
+        })
+
+        const { tasks: existingTasks, updateTask: storeUpdateTask } = useAppStore.getState()
+        const extractedTasks = await openaiService.extractTasks(transcript, existingTasks)
+        console.log('[AudioControls] Tasks extracted:', extractedTasks.length)
+
+        let newCount = 0
+        let updatedCount = 0
+
+        if (extractedTasks.length > 0) {
+          extractedTasks.forEach(task => {
+            if (task.matchId && task.matchId > 0) {
+              // Update existing task
+              const existingTask = existingTasks[task.matchId - 1]
+              if (existingTask) {
+                console.log('[AudioControls] Updating existing task:', existingTask.id)
+                const updatedDescription = existingTask.description +
+                  (task.updates ? `\n\n**Update**: ${task.updates}` : '')
+
+                storeUpdateTask(existingTask.id, {
+                  description: updatedDescription,
+                  status: task.newStatus || existingTask.status,
+                  priority: task.newPriority || existingTask.priority,
+                  assignee: task.assignee || existingTask.assignee
+                })
+                updatedCount++
+              }
+            } else {
+              // Create new task
+              console.log('[AudioControls] Adding task:', task)
+              addTask(task)
+              newCount++
+            }
+          })
+
+          const messages = []
+          if (newCount > 0) messages.push(`${newCount} new`)
+          if (updatedCount > 0) messages.push(`${updatedCount} updated`)
+
+          // Only show final result notification
+          addNotification({
+            type: 'success',
+            message: `Tasks: ${messages.join(', ')}!`
+          })
+        }
+      } catch (taskError) {
+        console.error('[AudioControls] Task extraction error:', taskError)
+        addNotification({
+          type: 'error',
+          message: `Task extraction failed: ${taskError.message}`
+        })
+      }
+
+      // Mark as complete
+      setUploadProgress({
+        stage: 'complete',
+        percentage: 100,
+        message: 'All done!'
+      })
+
+      // Auto-dismiss after 3 seconds
+      setTimeout(() => {
+        resetUploadProgress()
+      }, 3000)
+    } catch (error) {
+      console.error('File upload error:', error)
+
+      // Show error in progress indicator
+      setUploadProgress({
+        stage: 'error',
+        percentage: 0,
+        message: 'Processing failed',
+        error: error.message || 'Failed to process audio file'
+      })
+
+      addNotification({
+        type: 'error',
+        message: error.message || 'Failed to process audio file'
+      })
+
+      // Auto-dismiss error after 5 seconds
+      setTimeout(() => {
+        resetUploadProgress()
+      }, 5000)
+    } finally {
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
+    }
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.3 }}
+    >
+      <Card>
+        <CardContent className="p-4 sm:p-6">
+          <div className="flex flex-col gap-4">
+            {/* Button controls - responsive layout */}
+            <div className="flex flex-col sm:flex-row gap-3 w-full">
+              <Button
+                onClick={isRecording ? handleStopRecording : handleStartRecording}
+                variant={isRecording ? "destructive" : "default"}
+                size="lg"
+                className="flex items-center justify-center gap-2 flex-1 sm:min-w-[160px] h-12 sm:h-10"
+                disabled={!currentProject}
+              >
+                {isRecording ? (
+                  <>
+                    <Square className="h-5 w-5" />
+                    <span className="text-sm sm:text-base">Stop Recording</span>
+                  </>
+                ) : (
+                  <>
+                    <Mic className="h-5 w-5" />
+                    <span className="text-sm sm:text-base">Start Recording</span>
+                  </>
+                )}
+              </Button>
+
+              {isRecording && (
+                <Button
+                  onClick={isPaused ? handleResumeRecording : handlePauseRecording}
+                  variant="secondary"
+                  size="lg"
+                  className="flex items-center justify-center gap-2 flex-1 sm:min-w-[160px] h-12 sm:h-10"
+                >
+                  {isPaused ? (
+                    <>
+                      <Play className="h-5 w-5" />
+                      <span className="text-sm sm:text-base">Resume</span>
+                    </>
+                  ) : (
+                    <>
+                      <Pause className="h-5 w-5" />
+                      <span className="text-sm sm:text-base">Pause</span>
+                    </>
+                  )}
+                </Button>
+              )}
+
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="audio/*,.m4a"
+                onChange={handleFileUpload}
+                className="hidden"
+              />
+
+              {!isRecording && (
+                <Button
+                  onClick={() => fileInputRef.current?.click()}
+                  variant="outline"
+                  size="lg"
+                  className="flex items-center justify-center gap-2 flex-1 sm:min-w-[160px] h-12 sm:h-10"
+                  disabled={!currentProject}
+                >
+                  <Upload className="h-5 w-5" />
+                  <span className="text-sm sm:text-base">Upload Audio</span>
+                </Button>
+              )}
+            </div>
+
+            {!currentProject && (
+              <p className="text-sm text-muted-foreground text-center">
+                Please create or select a project to start recording
+              </p>
+            )}
+
+            {/* Inline Recording Visualization */}
+            <AnimatePresence>
+              {isRecording && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.3 }}
+                  className="overflow-hidden"
+                >
+                  <div className="pt-4 space-y-4 border-t">
+                    {/* Audio Visualization */}
+                    <div className="recording-visualizer p-4 rounded-lg bg-gray-50 dark:bg-gray-900">
+                      <canvas
+                        ref={canvasRef}
+                        width={400}
+                        height={120}
+                        className="w-full h-[120px] rounded-md"
+                      />
+                    </div>
+
+                    {/* Recording Info */}
+                    <div className="text-center space-y-2">
+                      <motion.div
+                        initial={{ scale: 0.9 }}
+                        animate={{ scale: 1 }}
+                        className="text-2xl sm:text-3xl font-mono font-bold text-primary"
+                      >
+                        {formatTime(recordingTime)}
+                      </motion.div>
+
+                      <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                        <motion.div
+                          className={`w-2 h-2 rounded-full ${isPaused ? 'bg-yellow-500' : 'bg-red-500'}`}
+                          animate={isPaused ? {} : { opacity: [1, 0.3, 1] }}
+                          transition={isPaused ? {} : { duration: 1.5, repeat: Infinity }}
+                        />
+                        {isPaused ? 'Recording paused' : 'Recording in progress...'}
+                      </div>
+
+                      {/* Chunk Information */}
+                      {chunkInfo && chunkInfo.currentChunk > 1 && (
+                        <motion.div
+                          initial={{ opacity: 0, y: -10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800"
+                        >
+                          <div className="text-xs font-medium text-blue-900 dark:text-blue-100 mb-1">
+                            📦 Long Recording Detected
+                          </div>
+                          <div className="text-xs text-blue-700 dark:text-blue-300">
+                            Segment {chunkInfo.currentChunk} • Next split in {formatTime(chunkInfo.remainingInChunk)}
+                          </div>
+                          <div className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                            Recording will be automatically split every 10 minutes for optimal processing
+                          </div>
+                        </motion.div>
+                      )}
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </CardContent>
+      </Card>
+    </motion.div>
+  )
+}
