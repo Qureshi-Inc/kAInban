@@ -58,14 +58,38 @@ const useAppStore = create((set, get) => ({
 
       // Load projects
       const projects = await apiService.getAllProjects()
-      set({ projects })
-      console.log(`[Store] Loaded ${projects.length} projects from backend`)
+      
+      // For each project, if it doesn't have tasks populated, try to load them
+      const projectsWithTasks = await Promise.all(
+        projects.map(async (project) => {
+          // If the project already has tasks, use it as-is
+          if (project.tasks && project.tasks.length > 0) {
+            return project
+          }
+          // Otherwise, try to load the full project data including tasks
+          const fullProject = await apiService.getProject(project.id)
+          return fullProject || project
+        })
+      )
+      
+      set({ projects: projectsWithTasks })
+      console.log(`[Store] Loaded ${projectsWithTasks.length} projects from backend`)
 
       // Restore last selected project from localStorage
       const lastProjectId = localStorage.getItem('lastSelectedProject')
-      if (lastProjectId && projects.some(p => p.id === lastProjectId)) {
+      if (lastProjectId && projectsWithTasks.some(p => p.id === lastProjectId)) {
         console.log('[Store] Restoring last selected project:', lastProjectId)
-        await get().loadProject(lastProjectId)
+        // Use the already loaded project data
+        const project = projectsWithTasks.find(p => p.id === lastProjectId)
+        if (project) {
+          set({
+            currentProject: project,
+            tasks: project.tasks || [],
+            meetings: project.meetings || [],
+            selectedMeetingId: null
+          })
+          console.log('[Store] ✓ Project restored from initialization:', project.name)
+        }
       }
     } catch (error) {
       console.error('[Store] Initialization error:', error)
@@ -129,12 +153,16 @@ const useAppStore = create((set, get) => ({
       console.log('[Store] Tasks in project:', project.tasks?.length || 0)
       console.log('[Store] Project tasks:', project.tasks)
 
-      set({
+      set((state) => ({
         currentProject: project,
         tasks: project.tasks || [],
         meetings: project.meetings || [],
-        selectedMeetingId: null
-      })
+        selectedMeetingId: null,
+        // Update the projects array with the loaded project data including tasks
+        projects: state.projects.map(p =>
+          p.id === projectId ? { ...project, lastModified: project.lastModified || new Date().toISOString() } : p
+        )
+      }))
 
       // Save to localStorage for persistence across refreshes
       localStorage.setItem('lastSelectedProject', projectId)
