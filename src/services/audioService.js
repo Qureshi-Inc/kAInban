@@ -13,6 +13,9 @@ class AudioService {
     this.chunkDuration = 600 // 10 minutes in seconds
     this.chunkStartTime = null
     this.chunkTimer = null
+
+    // Callback for when a chunk is completed during recording
+    this.onChunkCompleteCallback = null
   }
 
   async requestMicrophonePermission() {
@@ -66,11 +69,12 @@ class AudioService {
       })
 
       // Check for MediaRecorder support and codec compatibility
+      // Prioritize WebM format which works reliably with complete files
       const mimeTypes = [
-        'audio/webm;codecs=opus',
+        'audio/webm;codecs=opus',      // Best - works with complete files
         'audio/webm',
-        'audio/mp4',
         'audio/ogg;codecs=opus',
+        'audio/mp4',                   // Avoid - MP4+Opus is invalid
         'audio/wav'
       ]
 
@@ -143,14 +147,92 @@ class AudioService {
   }
 
   rotateToNextChunk() {
-    console.log(`[AudioService] Rotating to chunk ${this.currentChunkIndex + 1} after ${this.chunkDuration}s`)
+    console.log(`[AudioService] === CHUNK ROTATION START ===`)
+    console.log(`[AudioService] Rotating from chunk ${this.currentChunkIndex} to ${this.currentChunkIndex + 1}`)
 
-    // Start a new chunk
-    this.currentChunkIndex++
-    this.recordingChunks[this.currentChunkIndex] = []
-    this.chunkStartTime = Date.now()
+    // Get reference to completed chunk data
+    const completedChunkIndex = this.currentChunkIndex
+    const completedChunkData = [...this.recordingChunks[completedChunkIndex]] // Copy array
 
-    console.log(`[AudioService] Now recording to chunk ${this.currentChunkIndex + 1}`)
+    console.log(`[AudioService] Completed chunk ${completedChunkIndex} has ${completedChunkData.length} fragments`)
+
+    // Store mimeType before stopping
+    const currentMimeType = this.mediaRecorder.mimeType
+    const currentStream = this.stream
+
+    // CRITICAL FIX: Stop MediaRecorder to finalize the WebM file properly
+    console.log('[AudioService] Stopping MediaRecorder to finalize chunk...')
+
+    // Set up onstop handler to create the chunk blob
+    this.mediaRecorder.onstop = () => {
+      console.log('[AudioService] MediaRecorder stopped, creating chunk blob...')
+
+      if (this.onChunkCompleteCallback && completedChunkData.length > 0) {
+        const chunkBlob = new Blob(completedChunkData, { type: currentMimeType })
+
+        console.log(`[AudioService] ✓ Chunk ${completedChunkIndex} finalized:`)
+        console.log(`[AudioService]   - Size: ${(chunkBlob.size / 1024 / 1024).toFixed(2)} MB`)
+        console.log(`[AudioService]   - Type: ${chunkBlob.type}`)
+        console.log(`[AudioService]   - Fragments: ${completedChunkData.length}`)
+        console.log(`[AudioService]   - First fragment: ${(completedChunkData[0]?.size / 1024).toFixed(2)} KB`)
+
+        // Trigger callback with completed chunk
+        this.onChunkCompleteCallback(chunkBlob, completedChunkIndex)
+      }
+
+      // Now prepare for next chunk
+      this.currentChunkIndex++
+      this.recordingChunks[this.currentChunkIndex] = []
+      this.chunkStartTime = Date.now()
+
+      console.log(`[AudioService] Starting NEW MediaRecorder for chunk ${this.currentChunkIndex}...`)
+
+      // Create NEW MediaRecorder - this ensures fresh WebM initialization segment
+      try {
+        this.mediaRecorder = new MediaRecorder(currentStream, {
+          mimeType: currentMimeType
+        })
+
+        // Reattach handlers
+        this.mediaRecorder.ondataavailable = (event) => {
+          if (event.data.size > 0) {
+            this.audioChunks.push(event.data)
+            this.recordingChunks[this.currentChunkIndex].push(event.data)
+          }
+        }
+
+        this.mediaRecorder.onerror = (error) => {
+          console.error('[AudioService] MediaRecorder error:', error)
+        }
+
+        // Start recording with 1-second timeslice
+        this.mediaRecorder.start(1000)
+        console.log(`[AudioService] ✓ MediaRecorder restarted for chunk ${this.currentChunkIndex}`)
+        console.log('[AudioService] === CHUNK ROTATION COMPLETE ===')
+      } catch (error) {
+        console.error('[AudioService] ✗ Failed to restart MediaRecorder:', error)
+      }
+    }
+
+    // Trigger the stop
+    this.mediaRecorder.stop()
+  }
+
+  /**
+   * Set callback to be triggered when a chunk completes during recording
+   * @param {Function} callback - Function(chunkBlob, chunkIndex) called when chunk completes
+   */
+  setOnChunkComplete(callback) {
+    this.onChunkCompleteCallback = callback
+    console.log('[AudioService] Chunk completion callback registered')
+  }
+
+  /**
+   * Clear the chunk completion callback
+   */
+  clearOnChunkComplete() {
+    this.onChunkCompleteCallback = null
+    console.log('[AudioService] Chunk completion callback cleared')
   }
 
   getCurrentChunkInfo() {

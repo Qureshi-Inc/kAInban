@@ -1,10 +1,10 @@
 import React, { useState } from 'react'
-import { motion } from 'framer-motion'
-import { Settings, Plus, Trash2 } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Settings, Plus, Trash2, MoreVertical } from 'lucide-react'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog'
 import useAppStore from '../stores/useAppStore'
 
 export default function Header() {
@@ -19,6 +19,7 @@ export default function Header() {
 
   const [isCreateProjectOpen, setIsCreateProjectOpen] = useState(false)
   const [newProjectName, setNewProjectName] = useState('')
+  const [isMenuOpen, setIsMenuOpen] = useState(false)
 
   const handleCreateProject = async () => {
     if (!newProjectName.trim()) {
@@ -45,20 +46,23 @@ export default function Header() {
   const handleProjectChange = (projectId) => {
     if (projectId === 'none') {
       clearSession()
+    } else if (projectId === 'create_new') {
+      setIsCreateProjectOpen(true)
     } else {
       loadProject(projectId)
     }
   }
 
-  const handleDeleteProject = (projectId, e) => {
-    e.stopPropagation()
-    const project = projects.find(p => p.id === projectId)
-    if (project && confirm(`Are you sure you want to delete "${project.name}"?`)) {
-      deleteProject(projectId)
+  const handleDeleteProject = () => {
+    if (!currentProject) return
+
+    if (confirm(`Are you sure you want to delete "${currentProject.name}"?`)) {
+      deleteProject(currentProject.id)
       addNotification({
         type: 'success',
-        message: `Project "${project.name}" deleted`
+        message: `Project "${currentProject.name}" deleted`
       })
+      setIsMenuOpen(false)
     }
   }
 
@@ -78,9 +82,14 @@ export default function Header() {
           🎤
         </motion.div>
         <div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
-            kAInban
-          </h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+              kAInban
+            </h1>
+            <span className="text-xs font-semibold text-muted-foreground/60 bg-muted px-2 py-0.5 rounded-md">
+              v1.9
+            </span>
+          </div>
           <p className="text-sm text-muted-foreground font-medium">Organize Tasks with AI</p>
         </div>
       </div>
@@ -95,6 +104,12 @@ export default function Header() {
               <SelectValue placeholder="Select Project" />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="create_new">
+                <div className="flex items-center gap-2 font-medium text-primary">
+                  <Plus className="h-4 w-4" />
+                  Create Project
+                </div>
+              </SelectItem>
               <SelectItem value="none">No Project</SelectItem>
               {projects.map((project) => (
                 <SelectItem key={project.id} value={project.id}>
@@ -104,23 +119,52 @@ export default function Header() {
             </SelectContent>
           </Select>
 
+          {/* Project Menu */}
           {currentProject && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => handleDeleteProject(currentProject.id, { stopPropagation: () => {} })}
-              title="Delete current project"
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
+            <div className="relative">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setIsMenuOpen(!isMenuOpen)}
+                title="Project options"
+              >
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+
+              {/* Dropdown Menu */}
+              <AnimatePresence>
+                {isMenuOpen && (
+                  <>
+                    {/* Backdrop */}
+                    <div
+                      className="fixed inset-0 z-40"
+                      onClick={() => setIsMenuOpen(false)}
+                    />
+
+                    {/* Menu */}
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-xl border-2 border-gray-200 dark:border-gray-700 overflow-hidden z-50"
+                    >
+                      <button
+                        onClick={handleDeleteProject}
+                        className="w-full px-4 py-3 text-left text-sm flex items-center gap-3 hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 transition-colors"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        Delete Project
+                      </button>
+                    </motion.div>
+                  </>
+                )}
+              </AnimatePresence>
+            </div>
           )}
 
+          {/* Create Project Dialog */}
           <Dialog open={isCreateProjectOpen} onOpenChange={setIsCreateProjectOpen}>
-            <DialogTrigger asChild>
-              <Button variant="outline" size="icon">
-                <Plus className="h-4 w-4" />
-              </Button>
-            </DialogTrigger>
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Create New Project</DialogTitle>

@@ -48,31 +48,50 @@ class OpenAIService {
 
       // Determine the correct filename and extension based on the blob type
       let filename = 'audio.webm'
+      let processedBlob = audioBlob
+
+      console.log('[OpenAI] Input blob type:', audioBlob.type || 'NO TYPE')
+      console.log('[OpenAI] Input blob size:', audioBlob.size, 'bytes')
+      console.log('[OpenAI] Input blob name:', audioBlob.name || 'NO NAME')
 
       // Check original filename if available (for uploaded files)
       if (audioBlob.name && audioBlob.name.toLowerCase().endsWith('.m4a')) {
         filename = 'audio.m4a'
-        console.log('[OpenAI] Detected .m4a file by name, using .m4a extension')
+        console.log('[OpenAI] Detected .m4a file by name')
       } else if (audioBlob.type.includes('m4a')) {
         filename = 'audio.m4a'
+        console.log('[OpenAI] Detected m4a by MIME type')
       } else if (audioBlob.type.includes('mp3')) {
         filename = 'audio.mp3'
+        console.log('[OpenAI] Detected mp3 by MIME type')
       } else if (audioBlob.type.includes('wav')) {
         filename = 'audio.wav'
+        console.log('[OpenAI] Detected wav by MIME type')
       } else if (audioBlob.type.includes('ogg')) {
         filename = 'audio.ogg'
+        console.log('[OpenAI] Detected ogg by MIME type')
       } else if (audioBlob.type.includes('mp4')) {
-        // Check if this is actually an m4a file that was converted to mp4 MIME
-        // M4A files have audio/mp4 MIME type, so we need to check the original name
         filename = 'audio.mp4'
+        console.log('[OpenAI] Detected mp4 by MIME type')
+        // Clean codec specifications from MP4 MIME type (e.g., "audio/mp4;codecs=opus" -> "audio/mp4")
+        // Azure rejects MP4 with codec specifications in MIME type
+        if (audioBlob.type !== 'audio/mp4') {
+          console.log('[OpenAI] Cleaning MP4 MIME type from:', audioBlob.type, 'to: audio/mp4')
+          processedBlob = new Blob([audioBlob], { type: 'audio/mp4' })
+        }
+      } else if (audioBlob.type.includes('webm') || !audioBlob.type || audioBlob.type === '') {
+        // Handle WebM or empty MIME type (default for recordings)
+        filename = 'audio.webm'
+        console.log('[OpenAI] Detected webm (or no type) - cleaning MIME type')
+        // Always create clean webm blob for recordings to ensure Azure accepts it
+        processedBlob = new Blob([audioBlob], { type: 'audio/webm' })
       }
 
-      console.log('[OpenAI] Using filename:', filename)
-      console.log('[OpenAI] Blob type:', audioBlob.type)
-      console.log('[OpenAI] Blob size:', audioBlob.size, 'bytes')
-      console.log('[OpenAI] Blob name property:', audioBlob.name)
+      console.log('[OpenAI] Final filename:', filename)
+      console.log('[OpenAI] Final blob type:', processedBlob.type)
+      console.log('[OpenAI] Final blob size:', processedBlob.size, 'bytes')
 
-      formData.append('file', audioBlob, filename)
+      formData.append('file', processedBlob, filename)
       formData.append('language', 'en')
       formData.append('response_format', 'json')
 

@@ -7,6 +7,7 @@ import { formatTime } from '../lib/utils'
 import useAppStore from '../stores/useAppStore'
 import audioService from '../services/audioService'
 import openaiService from '../services/openaiService'
+import transcriptionQueue from '../services/transcriptionQueue'
 
 export default function AudioControls() {
   const fileInputRef = useRef(null)
@@ -16,6 +17,11 @@ export default function AudioControls() {
   const chunkInfoRef = useRef(null)
   const [recordingTime, setRecordingTime] = useState(0)
   const [chunkInfo, setChunkInfo] = useState(null)
+  const [transcriptionStatus, setTranscriptionStatus] = useState({
+    transcribedChunks: 0,
+    totalChunks: 0,
+    processing: false
+  })
 
   const {
     isRecording,
@@ -146,6 +152,62 @@ export default function AudioControls() {
 
   const handleStartRecording = async () => {
     try {
+      // Reset transcription queue for new recording
+      transcriptionQueue.reset()
+      setTranscriptionStatus({
+        transcribedChunks: 0,
+        totalChunks: 0,
+        processing: false
+      })
+
+      // Set up transcription completion callback to update UI when transcription finishes
+      transcriptionQueue.setOnTranscriptionComplete((chunkIndex, transcript, status) => {
+        console.log(`[AudioControls] Chunk ${chunkIndex} transcription completed: ${transcript.length} chars`)
+        console.log(`[AudioControls] Updated status:`, status)
+
+        // Update UI with current status
+        setTranscriptionStatus(prevStatus => ({
+          transcribedChunks: status.transcribed,
+          totalChunks: Math.max(prevStatus.totalChunks, chunkIndex + 1),
+          processing: status.processing || status.queued > 0
+        }))
+      })
+
+      // Set up transcription error callback
+      transcriptionQueue.setOnTranscriptionError((chunkIndex, error, status) => {
+        console.error(`[AudioControls] Chunk ${chunkIndex} transcription failed:`, error)
+
+        // Update UI to show error
+        setTranscriptionStatus(prevStatus => ({
+          transcribedChunks: status.transcribed,
+          totalChunks: Math.max(prevStatus.totalChunks, chunkIndex + 1),
+          processing: status.processing || status.queued > 0
+        }))
+
+        // Show notification
+        addNotification({
+          type: 'error',
+          message: `Background transcription error for segment ${chunkIndex + 1}: ${error}`
+        })
+      })
+
+      // Set up chunk completion callback for background transcription
+      audioService.setOnChunkComplete(async (chunkBlob, chunkIndex) => {
+        console.log(`[AudioControls] Chunk ${chunkIndex} completed, queuing for background transcription`)
+
+        // Queue chunk for background transcription
+        await transcriptionQueue.enqueueChunk(chunkBlob, chunkIndex)
+
+        // Update total chunks immediately (transcribed count updates via completion callback)
+        setTranscriptionStatus(prevStatus => ({
+          ...prevStatus,
+          totalChunks: chunkIndex + 1,
+          processing: true
+        }))
+
+        console.log(`[AudioControls] Chunk ${chunkIndex} queued, total segments: ${chunkIndex + 1}`)
+      })
+
       await audioService.startRecording()
       setRecording(true)
       setPaused(false)
@@ -230,26 +292,48 @@ export default function AudioControls() {
       let transcript = ''
 
       if (isChunked) {
-        // Transcribe each chunk separately
-        console.log(`[AudioControls] Transcribing ${result.chunks.length} chunks...`)
-        const transcripts = []
+        console.log(`[AudioControls] Processing ${result.chunks.length} chunks...`)
 
-        for (let i = 0; i < result.chunks.length; i++) {
-          setUploadProgress({
-            stage: 'transcribing',
-            percentage: 25 + Math.floor((i / result.chunks.length) * 50),
-            message: `Transcribing part ${i + 1} of ${result.chunks.length}...`
-          })
+        // Get transcripts that were already processed in the background
+        const cachedTranscripts = transcriptionQueue.getAllTranscripts()
+        console.log(`[AudioControls] Found ${cachedTranscripts.length} cached transcripts from background processing`)
 
-          console.log(`[AudioControls] Transcribing chunk ${i + 1}/${result.chunks.length}`)
-          const chunkTranscript = await openaiService.transcribeAudio(result.chunks[i])
-          transcripts.push(chunkTranscript)
-          console.log(`[AudioControls] Chunk ${i + 1} transcribed: ${chunkTranscript.length} chars`)
+        // Array to store all transcripts
+        const transcripts = [...cachedTranscripts]
+
+        // Check if there are any remaining chunks that weren't transcribed yet
+        const remainingChunks = result.chunks.slice(cachedTranscripts.length)
+
+        if (remainingChunks.length > 0) {
+          console.log(`[AudioControls] Transcribing ${remainingChunks.length} remaining chunks...`)
+
+          for (let i = 0; i < remainingChunks.length; i++) {
+            const actualIndex = cachedTranscripts.length + i
+            const progressPercent = 25 + Math.floor(((actualIndex + 1) / result.chunks.length) * 50)
+            const progressMsg = `Transcribing final part ${actualIndex + 1} of ${result.chunks.length}...`
+
+            setUploadProgress({
+              stage: 'transcribing',
+              percentage: progressPercent,
+              message: progressMsg
+            })
+
+            console.log(`[AudioControls] Transcribing chunk ${actualIndex + 1}/${result.chunks.length}`)
+
+            // WebM chunks from recording can be sent directly to Azure Whisper
+            // No need to convert to WAV (Azure supports WebM)
+            console.log(`[AudioControls] Transcribing WebM chunk ${actualIndex + 1} directly...`)
+            const chunkTranscript = await openaiService.transcribeAudio(remainingChunks[i])
+            transcripts.push(chunkTranscript)
+            console.log(`[AudioControls] Chunk ${actualIndex + 1} transcribed: ${chunkTranscript.length} chars`)
+          }
+        } else {
+          console.log(`[AudioControls] All chunks were already transcribed in the background!`)
         }
 
         // Combine all transcripts
         transcript = transcripts.join(' ')
-        console.log(`[AudioControls] Combined transcript: ${transcript.length} total chars`)
+        console.log(`[AudioControls] Combined transcript: ${transcript.length} total chars (${cachedTranscripts.length} from cache, ${remainingChunks.length} newly transcribed)`)
       } else {
         // Single chunk transcription
         setUploadProgress({
@@ -467,6 +551,9 @@ export default function AudioControls() {
 
       // Auto-generate tasks from TRANSCRIPT (not summary) with existing context
       console.log('[AudioControls] Auto-generating tasks from transcript...')
+      let newCount = 0
+      let updatedCount = 0
+
       try {
         setUploadProgress({
           stage: 'extracting',
@@ -477,9 +564,6 @@ export default function AudioControls() {
         const { tasks: existingTasks, updateTask: storeUpdateTask } = useAppStore.getState()
         const extractedTasks = await openaiService.extractTasks(transcript, existingTasks)
         console.log('[AudioControls] Tasks extracted:', extractedTasks.length)
-
-        let newCount = 0
-        let updatedCount = 0
 
         if (extractedTasks.length > 0) {
           extractedTasks.forEach(task => {
@@ -519,6 +603,7 @@ export default function AudioControls() {
         }
       } catch (taskError) {
         console.error('[AudioControls] Task extraction error:', taskError)
+
         addNotification({
           type: 'error',
           message: `Task extraction failed: ${taskError.message}`
@@ -699,6 +784,26 @@ export default function AudioControls() {
                           </div>
                           <div className="text-xs text-blue-600 dark:text-blue-400 mt-1">
                             Recording will be automatically split every 10 minutes for optimal processing
+                          </div>
+                        </motion.div>
+                      )}
+
+                      {/* Real-time Transcription Status */}
+                      {transcriptionStatus.totalChunks > 0 && (
+                        <motion.div
+                          initial={{ opacity: 0, y: -10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="mt-3 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800"
+                        >
+                          <div className="text-xs font-medium text-green-900 dark:text-green-100 mb-1">
+                            ✓ Background Transcription Active
+                          </div>
+                          <div className="text-xs text-green-700 dark:text-green-300">
+                            {transcriptionStatus.transcribedChunks} of {transcriptionStatus.totalChunks} segments transcribed
+                            {transcriptionStatus.processing && ' (processing...)'}
+                          </div>
+                          <div className="text-xs text-green-600 dark:text-green-400 mt-1">
+                            Segments are being transcribed in the background to speed up final processing
                           </div>
                         </motion.div>
                       )}
