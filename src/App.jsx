@@ -14,6 +14,7 @@ import RecordingModal from './components/RecordingModal'
 import NotificationSystem from './components/NotificationSystem'
 import DebugPanel from './components/DebugPanel'
 import ProgressIndicator from './components/ProgressIndicator'
+import AnalyticsDashboard from './components/AnalyticsDashboard'
 
 function App() {
   const [loadError, setLoadError] = React.useState(null)
@@ -22,6 +23,7 @@ function App() {
   const uploadProgress = useAppStore((state) => state.uploadProgress)
   const resetUploadProgress = useAppStore((state) => state.resetUploadProgress)
   const initialize = useAppStore((state) => state.initialize)
+  const currentProject = useAppStore((state) => state.currentProject)
   const azureEndpoint = useAppStore((state) => state.settings.azureEndpoint)
   const apiKey = useAppStore((state) => state.settings.apiKey)
   const apiVersion = useAppStore((state) => state.settings.apiVersion)
@@ -150,21 +152,28 @@ function App() {
         >
           <Header />
 
-          <AudioControls />
+          {/* Show Analytics Dashboard when no project is selected */}
+          {!currentProject ? (
+            <AnalyticsDashboard />
+          ) : (
+            <>
+              <AudioControls />
 
-          <div className="space-y-8">
-            <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
-              <div className="xl:col-span-8">
-                <SummaryPanel />
+              <div className="space-y-8">
+                <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
+                  <div className="xl:col-span-8">
+                    <SummaryPanel />
+                  </div>
+
+                  <div className="xl:col-span-4">
+                    <MeetingFilesPanel />
+                  </div>
+                </div>
+
+                <KanbanBoard />
               </div>
-
-              <div className="xl:col-span-4">
-                <MeetingFilesPanel />
-              </div>
-            </div>
-
-            <KanbanBoard />
-          </div>
+            </>
+          )}
         </motion.div>
       </div>
 

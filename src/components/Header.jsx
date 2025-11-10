@@ -87,7 +87,7 @@ export default function Header() {
               kAInban
             </h1>
             <span className="text-xs font-semibold text-muted-foreground/60 bg-muted px-2 py-0.5 rounded-md">
-              v1.9
+              v2.4
             </span>
           </div>
           <p className="text-sm text-muted-foreground font-medium">Organize Tasks with AI</p>
@@ -110,7 +110,7 @@ export default function Header() {
                   Create Project
                 </div>
               </SelectItem>
-              <SelectItem value="none">No Project</SelectItem>
+              <SelectItem value="none">Dashboard</SelectItem>
               {projects.map((project) => (
                 <SelectItem key={project.id} value={project.id}>
                   {project.name}

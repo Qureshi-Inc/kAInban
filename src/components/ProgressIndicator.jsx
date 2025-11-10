@@ -31,7 +31,7 @@ const ProgressIndicator = ({ progress }) => {
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.9, y: 20 }}
         transition={{ type: "spring", duration: 0.5 }}
-        className="fixed bottom-6 right-6 z-50 max-w-sm w-full sm:w-96"
+        className="fixed bottom-6 z-50 left-0 right-0 mx-auto sm:left-auto sm:right-6 sm:mx-0 w-[calc(100%-3rem)] sm:w-96"
       >
         <motion.div
           className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden backdrop-blur-sm"

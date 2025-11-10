@@ -678,6 +678,108 @@ ${transcript}`
       throw error
     }
   }
+
+  async generateAnalyticsInsights(analytics) {
+    this.validateConfig()
+
+    if (!analytics || analytics.total === 0) {
+      throw new Error('No task data available for analysis')
+    }
+
+    try {
+      console.log('[OpenAI] Generating analytics insights...')
+      console.log('[OpenAI] Analytics data:', analytics)
+
+      const prompt = `You are an expert productivity analyst. Analyze the following task management data and provide actionable insights.
+
+TASK STATISTICS:
+- Total Tasks: ${analytics.total}
+- Completed: ${analytics.completed} (${analytics.completionRate}%)
+- In Progress: ${analytics.inProgress}
+- Blocked: ${analytics.blocked}
+- To Do: ${analytics.todo}
+- Overdue: ${analytics.overdue}
+
+PRIORITY DISTRIBUTION:
+- High Priority: ${analytics.highPriority}
+- Medium Priority: ${analytics.mediumPriority}
+- Low Priority: ${analytics.lowPriority}
+
+TASK DETAILS:
+${analytics.tasks.slice(0, 20).map((task, idx) =>
+  `${idx + 1}. "${task.title}" - Status: ${task.status}, Priority: ${task.priority}${task.dueDate ? `, Due: ${task.dueDate}` : ''}${task.assignee ? `, Assignee: ${task.assignee}` : ''}`
+).join('\n')}
+${analytics.tasks.length > 20 ? `\n...and ${analytics.tasks.length - 20} more tasks` : ''}
+
+Please provide:
+1. **Productivity Overview**: Brief assessment of overall task completion and workflow health
+2. **Key Patterns**: Identify any notable patterns in task distribution, priorities, or statuses
+3. **Bottleneck Analysis**: Analyze blocked tasks and potential workflow issues
+4. **Time Management**: Insights about overdue tasks and deadline management
+5. **Actionable Recommendations**: 3-5 specific, actionable steps to improve productivity
+
+Format your response in clear, concise paragraphs with section headings. Focus on insights that can drive action and improvement.`
+
+      const url = `${this.baseUrl}/openai/deployments/${this.gptDeployment}/chat/completions?api-version=${this.apiVersion}`
+
+      console.log('[OpenAI] Sending analytics request to:', url)
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'api-key': this.apiKey
+        },
+        body: JSON.stringify({
+          messages: [
+            {
+              role: 'system',
+              content: 'You are an expert productivity analyst who provides clear, actionable insights based on task management data. Your analysis is data-driven, practical, and focused on helping users improve their workflow.'
+            },
+            {
+              role: 'user',
+              content: prompt
+            }
+          ],
+          max_tokens: 1500,
+          temperature: 0.7
+        })
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('[OpenAI] Analytics error response:', errorText)
+        let errorMessage = `Analytics generation failed: ${response.status} ${response.statusText}`
+
+        try {
+          const errorData = JSON.parse(errorText)
+          if (errorData.error && errorData.error.message) {
+            errorMessage = errorData.error.message
+          }
+        } catch (e) {
+          if (errorText) {
+            errorMessage = errorText
+          }
+        }
+
+        throw new Error(errorMessage)
+      }
+
+      const result = await response.json()
+      const insights = result.choices?.[0]?.message?.content || 'Unable to generate insights'
+
+      console.log('[OpenAI] ✓ Analytics insights generated successfully')
+      console.log('[OpenAI] Insights length:', insights.length, 'characters')
+
+      return insights
+    } catch (error) {
+      console.error('[OpenAI] Analytics generation error:', error)
+      if (error.message.includes('fetch')) {
+        throw new Error('Network error: Unable to connect to Azure OpenAI. Please check your endpoint and internet connection.')
+      }
+      throw error
+    }
+  }
 }
 
 export default new OpenAIService()
