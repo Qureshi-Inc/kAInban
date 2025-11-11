@@ -18,7 +18,6 @@ import AnalyticsDashboard from './components/AnalyticsDashboard'
 import AuthPage from './components/AuthPage'
 
 function App() {
-  const [loadError, setLoadError] = React.useState(null)
   const [loading, setLoading] = React.useState(true)
   const user = useAppStore((state) => state.user)
   const authChecked = useAppStore((state) => state.authChecked)
@@ -117,6 +116,11 @@ function App() {
   }, [])
 
   useEffect(() => {
+    // Only configure OpenAI service if user is authenticated
+    if (!user) {
+      return
+    }
+
     try {
       console.log('[App] Configuring OpenAI service')
       // Configure OpenAI service with current settings
@@ -130,7 +134,7 @@ function App() {
     } catch (error) {
       console.error('[App] Error configuring OpenAI service:', error)
     }
-  }, [azureEndpoint, apiKey, apiVersion, whisperDeployment, gptDeployment])
+  }, [user, azureEndpoint, apiKey, apiVersion, whisperDeployment, gptDeployment])
 
   console.log('[App] Rendering...')
 
