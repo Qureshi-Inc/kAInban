@@ -4,10 +4,11 @@ import { BarChart3, TrendingUp, CheckCircle2, AlertCircle, Clock, Target, Sparkl
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
 import { Button } from './ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select'
+import ReactMarkdown from 'react-markdown'
 import useAppStore from '../stores/useAppStore'
 import openaiService from '../services/openaiService'
 
-const INSIGHTS_CACHE_KEY = 'analytics_insights_cache'
+const getInsightsCacheKey = (projectId) => `analytics_insights_cache_${projectId}`
 
 export default function AnalyticsDashboard() {
   const projects = useAppStore((state) => state.projects)
@@ -107,54 +108,60 @@ export default function AnalyticsDashboard() {
     return cachedMidnight >= currentMidnight
   }, [insightsCacheTime])
 
-  // Load cached insights from localStorage on mount
-  useEffect(() => {
+  // Load cached insights from localStorage when project changes
+  const loadCachedInsights = (projectId) => {
     try {
-      const cached = localStorage.getItem(INSIGHTS_CACHE_KEY)
+      const cacheKey = getInsightsCacheKey(projectId)
+      const cached = localStorage.getItem(cacheKey)
       if (cached) {
-        const { insights, timestamp, taskCount, projectId } = JSON.parse(cached)
+        const { insights, timestamp, taskCount } = JSON.parse(cached)
         const cachedMidnight = getMidnightDate(new Date(timestamp))
         const currentMidnight = getMidnightDate()
 
-        // Only use cache if it's from today and for the same project
-        if (cachedMidnight >= currentMidnight && projectId === selectedProjectId) {
-          console.log('[Analytics] Loading cached insights from localStorage')
+        // Only use cache if it's from today
+        if (cachedMidnight >= currentMidnight) {
+          console.log('[Analytics] Loading cached insights for project:', projectId)
           setAiInsights(insights)
           setInsightsCacheTime(timestamp)
           setLastTaskCount(taskCount)
+          return true // Successfully loaded from cache
         } else {
-          console.log('[Analytics] Cache expired or different project, will regenerate')
-          localStorage.removeItem(INSIGHTS_CACHE_KEY)
+          console.log('[Analytics] Cache expired for project:', projectId)
+          localStorage.removeItem(cacheKey)
         }
       }
     } catch (error) {
-      console.error('[Analytics] Failed to load cached insights:', error)
-      localStorage.removeItem(INSIGHTS_CACHE_KEY)
+      console.error('[Analytics] Failed to load cached insights for project:', projectId, error)
+      const cacheKey = getInsightsCacheKey(projectId)
+      localStorage.removeItem(cacheKey)
     }
-  }, []) // Only run on mount
+    return false // No valid cache found
+  }
 
-  // Auto-generate insights when tasks are available and cache is invalid
+  // Auto-generate insights when tasks are available and no valid cache exists
   useEffect(() => {
     const shouldGenerate =
       analytics.total > 0 && // Has tasks
       !loadingInsights && // Not already loading
-      (!insightsCacheValid || analytics.total !== lastTaskCount) // Cache invalid or tasks changed
+      !aiInsights && // No insights currently displayed
+      !insightsCacheValid // No valid cache
 
     if (shouldGenerate) {
-      console.log('[Analytics] Auto-generating insights (tasks:', analytics.total, ', last count:', lastTaskCount, ')')
+      console.log('[Analytics] Auto-generating insights for', analytics.total, 'tasks in project:', selectedProjectId)
       handleGenerateInsights()
     }
-  }, [analytics.total, selectedProjectId, insightsCacheValid])
+  }, [analytics.total, aiInsights, insightsCacheValid, loadingInsights])
 
   const handleGenerateInsights = async () => {
-    // Don't regenerate if already loading or if cache is still valid and task count hasn't changed
-    if (loadingInsights || (insightsCacheValid && analytics.total === lastTaskCount)) {
+    // Don't regenerate if already loading or if we have valid cached insights
+    if (loadingInsights || (insightsCacheValid && aiInsights)) {
+      console.log('[Analytics] Skipping generation - already have valid insights')
       return
     }
 
     setLoadingInsights(true)
     try {
-      console.log('[Analytics] Generating insights for', analytics.total, 'tasks')
+      console.log('[Analytics] Generating insights for', analytics.total, 'tasks in project:', selectedProjectId)
       const insights = await openaiService.generateAnalyticsInsights(analytics)
       const timestamp = Date.now()
 
@@ -162,15 +169,15 @@ export default function AnalyticsDashboard() {
       setInsightsCacheTime(timestamp)
       setLastTaskCount(analytics.total)
 
-      // Save to localStorage
+      // Save to project-specific localStorage
       try {
-        localStorage.setItem(INSIGHTS_CACHE_KEY, JSON.stringify({
+        const cacheKey = getInsightsCacheKey(selectedProjectId)
+        localStorage.setItem(cacheKey, JSON.stringify({
           insights,
           timestamp,
-          taskCount: analytics.total,
-          projectId: selectedProjectId
+          taskCount: analytics.total
         }))
-        console.log('[Analytics] Insights cached to localStorage')
+        console.log('[Analytics] Insights cached for project:', selectedProjectId)
       } catch (error) {
         console.error('[Analytics] Failed to cache insights:', error)
       }
@@ -182,31 +189,21 @@ export default function AnalyticsDashboard() {
     }
   }
 
-  // Clear cache when project selection changes
+  // Load cached insights when project changes
   useEffect(() => {
     console.log('[Analytics] Project selection changed to:', selectedProjectId)
+
+    // Reset state
     setAiInsights(null)
     setInsightsCacheTime(null)
     setLastTaskCount(0)
 
-    // Try to load cached insights for this project
-    try {
-      const cached = localStorage.getItem(INSIGHTS_CACHE_KEY)
-      if (cached) {
-        const { insights, timestamp, taskCount, projectId } = JSON.parse(cached)
-        const cachedMidnight = getMidnightDate(new Date(timestamp))
-        const currentMidnight = getMidnightDate()
-
-        // Only use cache if it's from today and for the selected project
-        if (cachedMidnight >= currentMidnight && projectId === selectedProjectId) {
-          console.log('[Analytics] Found cached insights for this project')
-          setAiInsights(insights)
-          setInsightsCacheTime(timestamp)
-          setLastTaskCount(taskCount)
-        }
-      }
-    } catch (error) {
-      console.error('[Analytics] Failed to load cached insights for project:', error)
+    // Try to load cached insights for this specific project
+    const foundCache = loadCachedInsights(selectedProjectId)
+    if (foundCache) {
+      console.log('[Analytics] Using cached insights for project:', selectedProjectId)
+    } else {
+      console.log('[Analytics] No valid cache found for project:', selectedProjectId)
     }
   }, [selectedProjectId])
 
@@ -261,13 +258,141 @@ export default function AnalyticsDashboard() {
         </div>
       </motion.div>
 
+      {/* AI Task Recommendations - Moved to Top */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+      >
+        <Card className="relative overflow-hidden bg-gradient-to-br from-blue-50/50 via-purple-50/30 to-pink-50/50 dark:from-blue-950/30 dark:via-purple-950/20 dark:to-pink-950/30 border-2 border-blue-200/30 dark:border-blue-800/30 shadow-lg">
+          {/* Animated background gradient */}
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 via-purple-500/5 to-pink-500/5 animate-pulse" />
+
+          <CardHeader className="relative bg-gradient-to-r from-blue-600/10 via-purple-600/10 to-pink-600/10 border-b border-blue-200/20 dark:border-blue-800/20">
+            <CardTitle className="flex items-center gap-3">
+              <motion.div
+                className="p-2 bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 rounded-xl shadow-lg"
+                whileHover={{ scale: 1.1, rotate: 5 }}
+                transition={{ type: "spring", stiffness: 400, damping: 10 }}
+              >
+                <Sparkles className="h-6 w-6 text-white" />
+              </motion.div>
+              <div>
+                <span className="text-xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+                  kAInban Recommendations
+                </span>
+                <p className="text-sm text-muted-foreground font-normal mt-1">
+                  Powered by intelligent task analysis
+                </p>
+              </div>
+            </CardTitle>
+          </CardHeader>
+
+          <CardContent className="relative p-6">
+            {analytics.total === 0 ? (
+              <div className="text-center py-12">
+                <motion.div
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ duration: 0.5 }}
+                >
+                  <div className="relative mb-6">
+                    <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-pink-500/20 rounded-full blur-xl" />
+                    <Sparkles className="relative h-16 w-16 mx-auto text-blue-500/40" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-muted-foreground mb-2">No Tasks to Analyze</h3>
+                  <p className="text-sm text-muted-foreground max-w-md mx-auto">
+                    Create some tasks in your projects to unlock personalized AI insights and productivity recommendations.
+                  </p>
+                </motion.div>
+              </div>
+            ) : loadingInsights && !aiInsights ? (
+              <div className="text-center py-12">
+                <motion.div
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ duration: 0.5 }}
+                >
+                  <div className="relative mb-6">
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+                      className="absolute inset-0 bg-gradient-to-r from-blue-500/30 via-purple-500/30 to-pink-500/30 rounded-full blur-xl"
+                    />
+                    <motion.div
+                      animate={{ rotate: -360 }}
+                      transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                    >
+                      <Sparkles className="relative h-16 w-16 mx-auto text-blue-500" />
+                    </motion.div>
+                  </div>
+                  <h3 className="text-lg font-semibold mb-2">Analyzing Your Tasks</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Our AI is reviewing your {analytics.total} tasks to generate personalized insights...
+                  </p>
+                </motion.div>
+              </div>
+            ) : aiInsights ? (
+              <div className="space-y-4">
+                <div className="prose prose-sm dark:prose-invert max-w-none">
+                  <div className="bg-white/60 dark:bg-gray-900/40 backdrop-blur-sm rounded-lg p-6 border border-white/20 dark:border-gray-800/20">
+                    <ReactMarkdown
+                      className="text-sm leading-relaxed"
+                      components={{
+                        h1: ({ children }) => (
+                          <h1 className="text-xl font-bold mb-4 text-blue-700 dark:text-blue-300">{children}</h1>
+                        ),
+                        h2: ({ children }) => (
+                          <h2 className="text-lg font-semibold mb-3 text-purple-700 dark:text-purple-300">{children}</h2>
+                        ),
+                        h3: ({ children }) => (
+                          <h3 className="text-base font-medium mb-2 text-pink-700 dark:text-pink-300">{children}</h3>
+                        ),
+                        p: ({ children }) => (
+                          <p className="mb-4 text-gray-700 dark:text-gray-300 leading-relaxed">{children}</p>
+                        ),
+                        strong: ({ children }) => (
+                          <strong className="font-semibold text-gray-900 dark:text-gray-100">{children}</strong>
+                        ),
+                        ul: ({ children }) => (
+                          <ul className="list-none space-y-2 mb-4">{children}</ul>
+                        ),
+                        li: ({ children }) => (
+                          <li className="flex items-start gap-2">
+                            <span className="text-blue-500 mt-1">•</span>
+                            <span>{children}</span>
+                          </li>
+                        )
+                      }}
+                    >
+                      {aiInsights}
+                    </ReactMarkdown>
+                  </div>
+                </div>
+
+                {insightsCacheValid && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="flex items-center justify-center gap-2 text-xs text-muted-foreground bg-white/30 dark:bg-gray-900/30 backdrop-blur-sm rounded-full px-4 py-2 border border-white/20 dark:border-gray-800/20"
+                  >
+                    <Sparkles className="h-3 w-3" />
+                    <span>Insights refresh daily at midnight or when you add new tasks</span>
+                  </motion.div>
+                )}
+              </div>
+            ) : null}
+          </CardContent>
+        </Card>
+      </motion.div>
+
       {/* Quick Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Completion Rate */}
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.1 }}
+          transition={{ delay: 0.2 }}
         >
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -298,7 +423,7 @@ export default function AnalyticsDashboard() {
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.2 }}
+          transition={{ delay: 0.3 }}
         >
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -318,7 +443,7 @@ export default function AnalyticsDashboard() {
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.3 }}
+          transition={{ delay: 0.4 }}
         >
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -340,7 +465,7 @@ export default function AnalyticsDashboard() {
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.4 }}
+          transition={{ delay: 0.5 }}
         >
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -363,7 +488,7 @@ export default function AnalyticsDashboard() {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.5 }}
+        transition={{ delay: 0.6 }}
       >
         <Card>
           <CardHeader>
@@ -406,7 +531,7 @@ export default function AnalyticsDashboard() {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.6 }}
+        transition={{ delay: 0.7 }}
       >
         <Card>
           <CardHeader>
@@ -439,60 +564,6 @@ export default function AnalyticsDashboard() {
         </Card>
       </motion.div>
 
-      {/* AI Insights */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.7 }}
-      >
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <Sparkles className="h-5 w-5" />
-              AI Task Recommendations
-            </CardTitle>
-            <Button
-              onClick={handleGenerateInsights}
-              disabled={loadingInsights || analytics.total === 0}
-              size="sm"
-              variant="outline"
-            >
-              {loadingInsights ? 'Generating...' : 'Refresh'}
-            </Button>
-          </CardHeader>
-          <CardContent>
-            {analytics.total === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <Sparkles className="h-12 w-12 mx-auto mb-4 opacity-30" />
-                <p>No tasks available for insights.</p>
-                <p className="text-sm mt-2">Create some tasks to get AI-powered recommendations!</p>
-              </div>
-            ) : loadingInsights && !aiInsights ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <motion.div
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                >
-                  <Sparkles className="h-12 w-12 mx-auto mb-4 text-blue-500" />
-                </motion.div>
-                <p>Analyzing your tasks...</p>
-                <p className="text-sm mt-2">Generating personalized insights</p>
-              </div>
-            ) : aiInsights ? (
-              <div className="prose prose-sm dark:prose-invert max-w-none">
-                <div className="whitespace-pre-wrap text-sm leading-relaxed">
-                  {aiInsights}
-                </div>
-                {insightsCacheValid && (
-                  <p className="text-xs text-muted-foreground mt-4 border-t pt-3">
-                    💡 Insights are refreshed daily at midnight or when you add new tasks.
-                  </p>
-                )}
-              </div>
-            ) : null}
-          </CardContent>
-        </Card>
-      </motion.div>
     </div>
   )
 }
