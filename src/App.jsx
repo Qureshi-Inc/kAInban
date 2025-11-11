@@ -15,10 +15,15 @@ import NotificationSystem from './components/NotificationSystem'
 import DebugPanel from './components/DebugPanel'
 import ProgressIndicator from './components/ProgressIndicator'
 import AnalyticsDashboard from './components/AnalyticsDashboard'
+import AuthPage from './components/AuthPage'
 
 function App() {
   const [loadError, setLoadError] = React.useState(null)
   const [loading, setLoading] = React.useState(true)
+  const user = useAppStore((state) => state.user)
+  const authChecked = useAppStore((state) => state.authChecked)
+  const checkAuth = useAppStore((state) => state.checkAuth)
+  const setUser = useAppStore((state) => state.setUser)
   const notifications = useAppStore((state) => state.notifications)
   const uploadProgress = useAppStore((state) => state.uploadProgress)
   const resetUploadProgress = useAppStore((state) => state.resetUploadProgress)
@@ -31,12 +36,26 @@ function App() {
   const gptDeployment = useAppStore((state) => state.settings.gptDeployment)
 
   useEffect(() => {
-    console.log('[App] Component mounted - initializing')
+    console.log('[App] Component mounted - checking authentication')
     console.log('[App] Window location:', window.location.href)
 
-    // Initialize from backend
-    initialize()
-      .then(() => {
+    // Check authentication first
+    checkAuth()
+      .then((authenticatedUser) => {
+        if (!authenticatedUser) {
+          console.log('[App] Not authenticated, showing login')
+          setLoading(false)
+          return
+        }
+
+        console.log('[App] Authenticated as:', authenticatedUser.email)
+
+        // Initialize from backend
+        return initialize()
+      })
+      .then((result) => {
+        if (result === undefined) return // User not authenticated, skip initialization
+
         console.log('[App] Backend initialization successful')
 
         // Check if settings are empty, if so, load from environment variables
@@ -85,7 +104,7 @@ function App() {
       })
       .catch(error => {
         console.error('[App] Initialization failed:', error)
-        setLoadError(error.message || 'Failed to connect to backend')
+        // Don't show error screen, just stop loading and show login
         setLoading(false)
       })
 
@@ -110,32 +129,45 @@ function App() {
 
   console.log('[App] Rendering...')
 
+  // Show auth page if not authenticated (even while checking)
+  if (!user) {
+    // Show minimal loading only on first mount
+    if (!authChecked) {
+      return (
+        <div className="min-h-screen bg-background flex items-center justify-center">
+          <div className="text-center p-8">
+            <div className="text-2xl mb-4">Loading...</div>
+          </div>
+        </div>
+      )
+    }
+    return (
+      <AuthPage
+        onAuthSuccess={(authenticatedUser) => {
+          console.log('[App] Authentication successful:', authenticatedUser.email)
+          setUser(authenticatedUser)
+          setLoading(true)
+          // Re-initialize app after login
+          initialize()
+            .then(() => {
+              console.log('[App] Post-login initialization complete')
+              setLoading(false)
+            })
+            .catch((error) => {
+              console.error('[App] Post-login initialization error:', error)
+              setLoading(false)
+            })
+        }}
+      />
+    )
+  }
+
+  // Show loading while initializing after login
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center p-8">
-          <div className="text-2xl mb-4">Loading...</div>
-          <div className="text-sm text-muted-foreground">Connecting to backend</div>
-        </div>
-      </div>
-    )
-  }
-
-  if (loadError) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-destructive/10 border border-destructive rounded-lg p-6">
-          <h2 className="text-xl font-bold text-destructive mb-4">Connection Error</h2>
-          <p className="text-sm mb-4">{loadError}</p>
-          <div className="text-xs bg-black/20 p-3 rounded mb-4 font-mono break-all">
-            Trying to connect to: /api/settings
-          </div>
-          <button
-            onClick={() => window.location.reload()}
-            className="w-full bg-primary text-primary-foreground px-4 py-2 rounded"
-          >
-            Retry
-          </button>
+          <div className="text-2xl mb-4">Loading your workspace...</div>
         </div>
       </div>
     )

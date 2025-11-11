@@ -1,0 +1,88 @@
+import React, { useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { LogOut, User as UserIcon, Shield } from 'lucide-react'
+import { Button } from './ui/button'
+import useAppStore from '../stores/useAppStore'
+
+export default function UserProfile() {
+  const user = useAppStore((state) => state.user)
+  const logout = useAppStore((state) => state.logout)
+  const [isOpen, setIsOpen] = useState(false)
+
+  if (!user) return null
+
+  const handleLogout = () => {
+    if (confirm('Are you sure you want to logout?')) {
+      logout()
+    }
+  }
+
+  return (
+    <div className="relative">
+      <Button
+        variant="ghost"
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center gap-2"
+      >
+        <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-medium">
+          {user.name?.charAt(0).toUpperCase() || user.email?.charAt(0).toUpperCase()}
+        </div>
+        <div className="hidden sm:block text-left">
+          <div className="text-sm font-medium">{user.name}</div>
+          <div className="text-xs text-muted-foreground">{user.email}</div>
+        </div>
+      </Button>
+
+      <AnimatePresence>
+        {isOpen && (
+          <>
+            {/* Backdrop */}
+            <div
+              className="fixed inset-0 z-40"
+              onClick={() => setIsOpen(false)}
+            />
+
+            {/* Dropdown Menu */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: -10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: -10 }}
+              transition={{ duration: 0.15 }}
+              className="absolute right-0 mt-2 w-64 bg-white dark:bg-gray-800 rounded-lg shadow-xl border-2 border-gray-200 dark:border-gray-700 overflow-hidden z-50"
+            >
+              {/* User Info */}
+              <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-lg">
+                    {user.name?.charAt(0).toUpperCase() || user.email?.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-semibold truncate">{user.name}</div>
+                    <div className="text-xs text-muted-foreground truncate">{user.email}</div>
+                  </div>
+                </div>
+                {user.role === 'admin' && (
+                  <div className="mt-2 flex items-center gap-1 text-xs text-primary">
+                    <Shield className="h-3 w-3" />
+                    <span className="font-medium">Administrator</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Menu Items */}
+              <div className="py-1">
+                <button
+                  onClick={handleLogout}
+                  className="w-full px-4 py-3 text-left text-sm flex items-center gap-3 hover:bg-gray-100 dark:hover:bg-gray-700 text-red-600 dark:text-red-400 transition-colors"
+                >
+                  <LogOut className="h-4 w-4" />
+                  Sign Out
+                </button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}

@@ -78,6 +78,26 @@ db.exec(`
 
 console.log('[Database] Tables created/verified')
 
+// Create users table with both local and OIDC auth support
+db.exec(`
+  CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    email TEXT UNIQUE,
+    email_verified INTEGER DEFAULT 0,
+    name TEXT,
+    picture TEXT,
+    role TEXT CHECK(role IN ('admin','member')) DEFAULT 'member',
+    auth_provider TEXT CHECK(auth_provider IN ('local','oidc')) DEFAULT 'local',
+    password_hash TEXT,
+    oidc_issuer TEXT,
+    oidc_sub TEXT,
+    active INTEGER DEFAULT 1,
+    last_login TEXT,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+  );
+`)
+
 // Migration: Add new columns if they don't exist
 try {
   // Check if due_date column exists in tasks table
@@ -107,19 +127,80 @@ try {
     db.exec('ALTER TABLE tasks ADD COLUMN comments TEXT')
   }
 
+  // Migrate existing OIDC users if any (from old schema)
+  try {
+    const oldUsersCheck = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='users_old'").get()
+    if (!oldUsersCheck) {
+      // Check if current users table has 'sub' column (old OIDC schema)
+      const userColumns = db.prepare("PRAGMA table_info(users)").all()
+      const hasSub = userColumns.some(col => col.name === 'sub')
+
+      if (hasSub && !userColumns.some(col => col.name === 'auth_provider')) {
+        console.log('[Database] Migrating old OIDC users to new schema')
+        // Rename old table, recreate with new schema, migrate data
+        db.exec('ALTER TABLE users RENAME TO users_old')
+        db.exec(`
+          CREATE TABLE users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            email TEXT UNIQUE,
+            email_verified INTEGER DEFAULT 0,
+            name TEXT,
+            picture TEXT,
+            role TEXT CHECK(role IN ('admin','member')) DEFAULT 'member',
+            auth_provider TEXT CHECK(auth_provider IN ('local','oidc')) DEFAULT 'local',
+            password_hash TEXT,
+            oidc_issuer TEXT,
+            oidc_sub TEXT,
+            active INTEGER DEFAULT 1,
+            last_login TEXT,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+          )
+        `)
+
+        // Migrate old OIDC users
+        db.exec(`
+          INSERT INTO users (email, name, picture, role, auth_provider, oidc_sub, oidc_issuer, last_login, created_at)
+          SELECT email, name, picture,
+                 CASE WHEN role = 'admin' THEN 'admin' ELSE 'member' END,
+                 'oidc', sub, 'https://login.qureshi.io',
+                 last_login, created_at
+          FROM users_old
+        `)
+
+        console.log('[Database] Old users migrated, cleaning up')
+        db.exec('DROP TABLE users_old')
+      }
+    }
+  } catch (migErr) {
+    console.log('[Database] User migration not needed or already completed')
+  }
+
+  // Create indexes after migration (ensuring columns exist)
+  try {
+    db.exec(`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_users_oidc ON users(oidc_issuer, oidc_sub) WHERE oidc_issuer IS NOT NULL AND oidc_sub IS NOT NULL;
+      CREATE INDEX IF NOT EXISTS idx_users_email ON users(email) WHERE email IS NOT NULL;
+      CREATE INDEX IF NOT EXISTS idx_users_active ON users(active);
+    `)
+    console.log('[Database] User indexes created')
+  } catch (indexErr) {
+    console.log('[Database] Index creation skipped or already exists')
+  }
+
   console.log('[Database] Migration completed successfully')
 } catch (migrationError) {
   console.error('[Database] Migration error:', migrationError)
 }
 
 // Settings operations
-export const getSettings = () => {
+export const getSettings = (userId) => {
   const stmt = db.prepare('SELECT * FROM settings WHERE user_id = ? LIMIT 1')
-  return stmt.get('default')
+  return stmt.get(userId)
 }
 
-export const saveSettings = (settings) => {
-  const existing = getSettings()
+export const saveSettings = (userId, settings) => {
+  const existing = getSettings(userId)
 
   if (existing) {
     const stmt = db.prepare(`
@@ -134,7 +215,7 @@ export const saveSettings = (settings) => {
       settings.apiVersion,
       settings.whisperDeployment,
       settings.gptDeployment,
-      'default'
+      userId
     )
   } else {
     const stmt = db.prepare(`
@@ -142,7 +223,7 @@ export const saveSettings = (settings) => {
       VALUES (?, ?, ?, ?, ?, ?)
     `)
     stmt.run(
-      'default',
+      userId,
       settings.azureEndpoint,
       settings.apiKey,
       settings.apiVersion,
@@ -153,9 +234,9 @@ export const saveSettings = (settings) => {
 }
 
 // Project operations
-export const getAllProjects = () => {
+export const getAllProjects = (userId) => {
   const stmt = db.prepare('SELECT * FROM projects WHERE user_id = ? ORDER BY updated_at DESC')
-  return stmt.all('default')
+  return stmt.all(userId)
 }
 
 export const getProject = (projectId) => {
@@ -201,22 +282,22 @@ export const getProject = (projectId) => {
   return project
 }
 
-export const saveProject = (project) => {
+export const saveProject = (userId, project) => {
   const existing = getProject(project.id)
 
   if (existing) {
     const stmt = db.prepare(`
       UPDATE projects
       SET name = ?, transcript = ?, summary = ?, updated_at = CURRENT_TIMESTAMP
-      WHERE id = ?
+      WHERE id = ? AND user_id = ?
     `)
-    stmt.run(project.name, project.transcript || '', project.summary || '', project.id)
+    stmt.run(project.name, project.transcript || '', project.summary || '', project.id, userId)
   } else {
     const stmt = db.prepare(`
       INSERT INTO projects (id, user_id, name, transcript, summary)
       VALUES (?, ?, ?, ?, ?)
     `)
-    stmt.run(project.id, 'default', project.name, project.transcript || '', project.summary || '')
+    stmt.run(project.id, userId, project.name, project.transcript || '', project.summary || '')
   }
 
   // Save tasks if provided
@@ -287,14 +368,14 @@ export const deleteTask = (taskId) => {
 }
 
 // Meeting operations
-export const saveMeeting = (meeting) => {
+export const saveMeeting = (userId, meeting) => {
   const stmt = db.prepare(`
     INSERT OR REPLACE INTO meetings (id, user_id, project_id, name, summary_file, transcript_file)
     VALUES (?, ?, ?, ?, ?, ?)
   `)
   stmt.run(
     meeting.id,
-    'default',
+    userId,
     meeting.projectId,
     meeting.name,
     meeting.summaryFile || null,
@@ -307,9 +388,9 @@ export const getMeeting = (meetingId) => {
   return stmt.get(meetingId)
 }
 
-export const getAllMeetings = () => {
+export const getAllMeetings = (userId) => {
   const stmt = db.prepare('SELECT * FROM meetings WHERE user_id = ? ORDER BY created_at DESC')
-  return stmt.all('default')
+  return stmt.all(userId)
 }
 
 export const deleteMeeting = (meetingId) => {
@@ -317,11 +398,134 @@ export const deleteMeeting = (meetingId) => {
   stmt.run(meetingId)
 }
 
+// User operations for local authentication
+export const getUserById = (userId) => {
+  const stmt = db.prepare('SELECT * FROM users WHERE id = ? AND active = 1')
+  return stmt.get(userId)
+}
+
+export const getUserByEmail = (email) => {
+  const stmt = db.prepare('SELECT * FROM users WHERE email = ? AND active = 1')
+  return stmt.get(email)
+}
+
+export const getUserByOIDC = (issuer, sub) => {
+  const stmt = db.prepare('SELECT * FROM users WHERE oidc_issuer = ? AND oidc_sub = ? AND active = 1')
+  return stmt.get(issuer, sub)
+}
+
+export const createUser = (userData) => {
+  const stmt = db.prepare(`
+    INSERT INTO users (
+      email, email_verified, name, picture, role, auth_provider,
+      password_hash, oidc_issuer, oidc_sub, last_login
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+  `)
+
+  const result = stmt.run(
+    userData.email || null,
+    userData.email_verified ? 1 : 0,
+    userData.name || null,
+    userData.picture || null,
+    userData.role || 'member',
+    userData.auth_provider || 'local',
+    userData.password_hash || null,
+    userData.oidc_issuer || null,
+    userData.oidc_sub || null
+  )
+
+  return getUserById(result.lastInsertRowid)
+}
+
+export const updateUser = (userId, updates) => {
+  const fields = []
+  const values = []
+
+  if (updates.email !== undefined) {
+    fields.push('email = ?')
+    values.push(updates.email)
+  }
+  if (updates.email_verified !== undefined) {
+    fields.push('email_verified = ?')
+    values.push(updates.email_verified ? 1 : 0)
+  }
+  if (updates.name !== undefined) {
+    fields.push('name = ?')
+    values.push(updates.name)
+  }
+  if (updates.picture !== undefined) {
+    fields.push('picture = ?')
+    values.push(updates.picture)
+  }
+  if (updates.role !== undefined) {
+    fields.push('role = ?')
+    values.push(updates.role)
+  }
+  if (updates.password_hash !== undefined) {
+    fields.push('password_hash = ?')
+    values.push(updates.password_hash)
+  }
+  if (updates.oidc_issuer !== undefined) {
+    fields.push('oidc_issuer = ?')
+    values.push(updates.oidc_issuer)
+  }
+  if (updates.oidc_sub !== undefined) {
+    fields.push('oidc_sub = ?')
+    values.push(updates.oidc_sub)
+  }
+  if (updates.active !== undefined) {
+    fields.push('active = ?')
+    values.push(updates.active ? 1 : 0)
+  }
+
+  if (fields.length === 0) return getUserById(userId)
+
+  fields.push('updated_at = CURRENT_TIMESTAMP')
+  values.push(userId)
+
+  const stmt = db.prepare(`UPDATE users SET ${fields.join(', ')} WHERE id = ?`)
+  stmt.run(...values)
+
+  return getUserById(userId)
+}
+
+export const updateUserLogin = (userId) => {
+  const stmt = db.prepare('UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = ?')
+  stmt.run(userId)
+}
+
+export const getAllUsers = () => {
+  const stmt = db.prepare('SELECT * FROM users ORDER BY created_at DESC')
+  return stmt.all()
+}
+
+export const deleteUser = (userId) => {
+  // Check if this is the last admin
+  const adminCount = db.prepare("SELECT COUNT(*) as count FROM users WHERE role = 'admin' AND active = 1").get()
+  const user = getUserById(userId)
+
+  if (user && user.role === 'admin' && adminCount.count === 1) {
+    throw new Error('Cannot delete the last admin user')
+  }
+
+  const stmt = db.prepare('UPDATE users SET active = 0, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
+  stmt.run(userId)
+  return true
+}
+
+// Check if any users exist (for first-run setup)
+export const hasUsers = () => {
+  const stmt = db.prepare('SELECT COUNT(*) as count FROM users WHERE active = 1')
+  const result = stmt.get()
+  return result.count > 0
+}
+
 // Export all data
-export const exportAll = () => {
+export const exportAll = (userId) => {
   return {
-    settings: getSettings(),
-    projects: getAllProjects().map(p => getProject(p.id))
+    settings: getSettings(userId),
+    projects: getAllProjects(userId).map(p => getProject(p.id))
   }
 }
 

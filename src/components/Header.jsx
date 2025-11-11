@@ -5,6 +5,7 @@ import { Button } from './ui/button'
 import { Input } from './ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog'
+import UserProfile from './UserProfile'
 import useAppStore from '../stores/useAppStore'
 
 export default function Header() {
@@ -87,7 +88,7 @@ export default function Header() {
               kAInban
             </h1>
             <span className="text-xs font-semibold text-muted-foreground/60 bg-muted px-2 py-0.5 rounded-md">
-              v2.7
+              v2.8
             </span>
           </div>
           <p className="text-sm text-muted-foreground font-medium">Organize Tasks with AI</p>
@@ -199,6 +200,8 @@ export default function Header() {
         >
           <Settings className="h-4 w-4" />
         </Button>
+
+        <UserProfile />
       </div>
     </motion.header>
   )

@@ -26,7 +26,15 @@ export default defineConfig({
       VitePWA({
         registerType: 'autoUpdate',
         workbox: {
-          globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}']
+          globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+          // Exclude API calls from service worker caching
+          navigateFallbackDenylist: [/^\/api/],
+          runtimeCaching: [
+            {
+              urlPattern: /^https:\/\/.*\/api\/.*/,
+              handler: 'NetworkOnly'
+            }
+          ]
         },
         manifest: {
           name: 'Audio Task Manager',

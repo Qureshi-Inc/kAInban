@@ -3,6 +3,10 @@ import { generateId } from '@/lib/utils'
 import apiService from '@/services/apiService'
 
 const useAppStore = create((set, get) => ({
+  // Authentication
+  user: null,
+  authChecked: false,
+
   // Settings
   settings: {
     azureEndpoint: '',
@@ -42,6 +46,34 @@ const useAppStore = create((set, get) => ({
     error: null
   },
 
+  // Authentication Actions
+  checkAuth: async () => {
+    try {
+      const user = await apiService.getCurrentUser()
+      set({ user, authChecked: true })
+      console.log('[Store] Auth check complete:', user ? user.email : 'not authenticated')
+      return user
+    } catch (error) {
+      console.error('[Store] Auth check error:', error)
+      set({ user: null, authChecked: true })
+      return null
+    }
+  },
+
+  setUser: (user) => {
+    set({ user })
+  },
+
+  logout: async () => {
+    try {
+      await apiService.logout()
+      set({ user: null, currentProject: null, projects: [], tasks: [], meetings: [] })
+      console.log('[Store] Logged out successfully')
+    } catch (error) {
+      console.error('[Store] Logout error:', error)
+    }
+  },
+
   // Initialize - Load data from backend
   initialize: async () => {
     console.log('[Store] Initializing from backend...')
@@ -58,7 +90,7 @@ const useAppStore = create((set, get) => ({
 
       // Load projects
       const projects = await apiService.getAllProjects()
-      
+
       // For each project, if it doesn't have tasks populated, try to load them
       const projectsWithTasks = await Promise.all(
         projects.map(async (project) => {
@@ -67,11 +99,16 @@ const useAppStore = create((set, get) => ({
             return project
           }
           // Otherwise, try to load the full project data including tasks
-          const fullProject = await apiService.getProject(project.id)
-          return fullProject || project
+          try {
+            const fullProject = await apiService.getProject(project.id)
+            return fullProject || project
+          } catch (error) {
+            console.error('[Store] Error loading project details for', project.id, error)
+            return project
+          }
         })
       )
-      
+
       set({ projects: projectsWithTasks })
       console.log(`[Store] Loaded ${projectsWithTasks.length} projects from backend`)
 
@@ -91,8 +128,11 @@ const useAppStore = create((set, get) => ({
           console.log('[Store] ✓ Project restored from initialization:', project.name)
         }
       }
+
+      console.log('[Store] ✓ Initialization complete')
     } catch (error) {
       console.error('[Store] Initialization error:', error)
+      console.error('[Store] Error stack:', error.stack)
       set({ settingsLoaded: true })
       throw error
     }

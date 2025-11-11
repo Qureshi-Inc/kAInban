@@ -1,14 +1,22 @@
 import express from 'express'
 import cors from 'cors'
 import morgan from 'morgan'
+import session from 'express-session'
+import connectSqlite3 from 'connect-sqlite3'
+import rateLimit from 'express-rate-limit'
 import fs from 'fs'
 import path from 'path'
 import * as db from './database.js'
+import * as localAuth from './localAuth.js'
 
 const app = express()
 const PORT = process.env.PORT || 3001
 const STORAGE_DIR = process.env.STORAGE_DIR || './storage'
 const MEETINGS_DIR = path.join(STORAGE_DIR, 'meetings')
+const SQLiteStore = connectSqlite3(session)
+
+// Trust proxy (nginx reverse proxy)
+app.set('trust proxy', 1)
 
 // Middleware
 app.use(cors({
@@ -27,15 +35,136 @@ app.use(express.json({ limit: '100mb' }))  // Increased from 50mb to 100mb
 app.use(express.urlencoded({ limit: '100mb', extended: true }))  // Added for form data
 app.use(morgan('dev'))
 
+// Session middleware
+app.use(session({
+  store: new SQLiteStore({
+    db: 'sessions.db',
+    dir: STORAGE_DIR
+  }),
+  secret: process.env.SESSION_SECRET || 'change-this-secret-in-production',
+  resave: false,
+  saveUninitialized: false,
+  name: 'notes.sid',
+  cookie: {
+    secure: 'auto', // Auto-detect based on X-Forwarded-Proto header
+    httpOnly: true,
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+    sameSite: 'lax', // Changed back to lax for same-site
+    path: '/'
+  },
+  rolling: true,
+  proxy: true
+}))
+
+// Rate limiting for auth endpoints
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // 5 requests per window
+  message: { error: 'Too many authentication attempts, please try again later' },
+  standardHeaders: true,
+  legacyHeaders: false
+})
+
 // Health check
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', database: 'connected' })
 })
 
-// Settings endpoints
-app.get('/api/settings', (req, res) => {
+// Authentication endpoints
+app.post('/api/auth/register', authLimiter, async (req, res) => {
   try {
-    const settings = db.getSettings()
+    const { email, password, name } = req.body
+
+    // Register user
+    const user = await localAuth.registerUser({ email, password, name })
+
+    // Create session
+    req.session.user = localAuth.formatUserForSession(user)
+
+    // Explicitly save session
+    req.session.save((err) => {
+      if (err) {
+        console.error('[Auth] Session save error:', err)
+        return res.status(500).json({ error: 'Failed to create session' })
+      }
+      console.log('[Auth] User registered and logged in:', user.email)
+      console.log('[Auth] Session ID:', req.sessionID)
+      res.json({
+        success: true,
+        user: req.session.user
+      })
+    })
+  } catch (error) {
+    console.error('[Auth] Registration error:', error.message)
+    res.status(400).json({ error: error.message })
+  }
+})
+
+app.post('/api/auth/login', authLimiter, async (req, res) => {
+  try {
+    const { email, password } = req.body
+
+    // Authenticate user
+    const user = await localAuth.authenticateUser(email, password)
+
+    // Create session
+    req.session.user = localAuth.formatUserForSession(user)
+
+    // Explicitly save session
+    req.session.save((err) => {
+      if (err) {
+        console.error('[Auth] Session save error:', err)
+        return res.status(500).json({ error: 'Failed to create session' })
+      }
+      console.log('[Auth] User logged in:', user.email)
+      console.log('[Auth] Session ID:', req.sessionID)
+      res.json({
+        success: true,
+        user: req.session.user
+      })
+    })
+  } catch (error) {
+    console.error('[Auth] Login error:', error.message)
+    res.status(401).json({ error: error.message })
+  }
+})
+
+app.post('/api/auth/logout', (req, res) => {
+  const userEmail = req.session?.user?.email
+  req.session.destroy((err) => {
+    if (err) {
+      console.error('[Auth] Logout error:', err)
+      return res.status(500).json({ error: 'Failed to logout' })
+    }
+    res.clearCookie('notes.sid') // Match the custom session cookie name
+    console.log('[Auth] User logged out:', userEmail)
+    res.json({ success: true })
+  })
+})
+
+app.get('/api/auth/me', (req, res) => {
+  console.log('[Auth] /me called - Session ID:', req.sessionID)
+  console.log('[Auth] /me called - Session user:', req.session?.user?.email || 'none')
+  console.log('[Auth] /me called - Cookie header:', req.headers.cookie ? 'present' : 'missing')
+
+  if (!req.session?.user) {
+    return res.status(401).json({ error: 'Not authenticated' })
+  }
+  res.json({ user: req.session.user })
+})
+
+app.get('/api/auth/status', (req, res) => {
+  res.json({
+    authenticated: !!req.session?.user,
+    hasUsers: db.hasUsers()
+  })
+})
+
+// Settings endpoints
+app.get('/api/settings', localAuth.requireAuth, (req, res) => {
+  try {
+    const userId = req.session.user.id
+    const settings = db.getSettings(userId)
 
     // If no settings in database, return environment variables
     if (!settings || !settings.azure_endpoint) {
@@ -63,10 +192,11 @@ app.get('/api/settings', (req, res) => {
   }
 })
 
-app.post('/api/settings', (req, res) => {
+app.post('/api/settings', localAuth.requireAuth, (req, res) => {
   try {
-    db.saveSettings(req.body)
-    console.log('[Settings] Saved successfully')
+    const userId = req.session.user.id
+    db.saveSettings(userId, req.body)
+    console.log('[Settings] Saved successfully for user:', userId)
     res.json({ success: true })
   } catch (error) {
     console.error('[Settings] Save error:', error)
@@ -75,9 +205,10 @@ app.post('/api/settings', (req, res) => {
 })
 
 // Project endpoints
-app.get('/api/projects', (req, res) => {
+app.get('/api/projects', localAuth.requireAuth, (req, res) => {
   try {
-    const projects = db.getAllProjects().map(p => ({
+    const userId = req.session.user.id
+    const projects = db.getAllProjects(userId).map(p => ({
       id: p.id,
       name: p.name,
       createdAt: p.created_at,
@@ -90,12 +221,25 @@ app.get('/api/projects', (req, res) => {
   }
 })
 
-app.get('/api/projects/:id', (req, res) => {
+app.get('/api/projects/:id', localAuth.requireAuth, (req, res) => {
   try {
     const project = db.getProject(req.params.id)
     if (!project) {
       return res.status(404).json({ error: 'Project not found' })
     }
+
+    // Debug logging for ownership check
+    console.log('[Projects] Ownership check:')
+    console.log('  project.user_id:', project.user_id, typeof project.user_id)
+    console.log('  req.session.user.id:', req.session.user.id, typeof req.session.user.id)
+    console.log('  Strict match (===):', project.user_id === req.session.user.id)
+    console.log('  Loose match (==):', project.user_id == req.session.user.id)
+
+    // Use loose equality to handle potential type mismatch
+    if (project.user_id != req.session.user.id) {
+      return res.status(403).json({ error: 'Access denied' })
+    }
+
     res.json({
       id: project.id,
       name: project.name,
@@ -112,10 +256,11 @@ app.get('/api/projects/:id', (req, res) => {
   }
 })
 
-app.post('/api/projects', (req, res) => {
+app.post('/api/projects', localAuth.requireAuth, (req, res) => {
   try {
-    db.saveProject(req.body)
-    console.log('[Projects] Saved:', req.body.name)
+    const userId = req.session.user.id
+    db.saveProject(userId, req.body)
+    console.log('[Projects] Saved:', req.body.name, 'for user:', userId)
     res.json({ success: true, id: req.body.id })
   } catch (error) {
     console.error('[Projects] Save error:', error)
@@ -123,8 +268,18 @@ app.post('/api/projects', (req, res) => {
   }
 })
 
-app.delete('/api/projects/:id', (req, res) => {
+app.delete('/api/projects/:id', localAuth.requireAuth, (req, res) => {
   try {
+    // Verify project belongs to user before deleting
+    const project = db.getProject(req.params.id)
+    if (!project) {
+      return res.status(404).json({ error: 'Project not found' })
+    }
+    // Use loose equality to handle potential type mismatch
+    if (project.user_id != req.session.user.id) {
+      return res.status(403).json({ error: 'Access denied' })
+    }
+
     db.deleteProject(req.params.id)
     console.log('[Projects] Deleted:', req.params.id)
     res.json({ success: true })
@@ -135,9 +290,10 @@ app.delete('/api/projects/:id', (req, res) => {
 })
 
 // Export all data
-app.get('/api/export', (req, res) => {
+app.get('/api/export', localAuth.requireAuth, (req, res) => {
   try {
-    const data = db.exportAll()
+    const userId = req.session.user.id
+    const data = db.exportAll(userId)
     res.json(data)
   } catch (error) {
     console.error('[Export] Error:', error)
@@ -146,7 +302,7 @@ app.get('/api/export', (req, res) => {
 })
 
 // Meeting endpoints
-app.post('/api/meetings', (req, res) => {
+app.post('/api/meetings', localAuth.requireAuth, (req, res) => {
   try {
     const { id, name, summary, transcript, createdAt, projectId } = req.body
 
@@ -188,7 +344,8 @@ ${summary}
     }
 
     // Save to database
-    db.saveMeeting({
+    const userId = req.session.user.id
+    db.saveMeeting(userId, {
       id,
       projectId,
       name,
@@ -207,8 +364,18 @@ ${summary}
   }
 })
 
-app.get('/api/meetings/:id/summary', (req, res) => {
+app.get('/api/meetings/:id/summary', localAuth.requireAuth, (req, res) => {
   try {
+    // Verify meeting belongs to user
+    const meeting = db.getMeeting(req.params.id)
+    if (!meeting) {
+      return res.status(404).json({ error: 'Meeting not found' })
+    }
+    // Use loose equality to handle potential type mismatch
+    if (meeting.user_id != req.session.user.id) {
+      return res.status(403).json({ error: 'Access denied' })
+    }
+
     const summaryFileName = `meeting-${req.params.id}-summary.md`
     const summaryFilePath = path.join(MEETINGS_DIR, summaryFileName)
 
@@ -224,20 +391,29 @@ app.get('/api/meetings/:id/summary', (req, res) => {
   }
 })
 
-app.delete('/api/meetings/:id', (req, res) => {
+app.delete('/api/meetings/:id', localAuth.requireAuth, (req, res) => {
   try {
     const id = req.params.id
 
     // Get meeting info from database first
     const meeting = db.getMeeting(id)
 
+    if (!meeting) {
+      return res.status(404).json({ error: 'Meeting not found' })
+    }
+
+    // Verify meeting belongs to user (use loose equality)
+    if (meeting.user_id != req.session.user.id) {
+      return res.status(403).json({ error: 'Access denied' })
+    }
+
     // Delete files if they exist
-    if (meeting && meeting.summary_file && fs.existsSync(meeting.summary_file)) {
+    if (meeting.summary_file && fs.existsSync(meeting.summary_file)) {
       fs.unlinkSync(meeting.summary_file)
       console.log('[Meetings] Deleted summary file:', meeting.summary_file)
     }
 
-    if (meeting && meeting.transcript_file && fs.existsSync(meeting.transcript_file)) {
+    if (meeting.transcript_file && fs.existsSync(meeting.transcript_file)) {
       fs.unlinkSync(meeting.transcript_file)
       console.log('[Meetings] Deleted transcript file:', meeting.transcript_file)
     }

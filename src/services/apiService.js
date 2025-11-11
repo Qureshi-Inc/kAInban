@@ -2,10 +2,101 @@
 const API_URL = '/api'
 
 class ApiService {
+  // Authentication
+  async getAuthStatus() {
+    try {
+      const response = await fetch(`${API_URL}/auth/status`, {
+        credentials: 'include'
+      })
+      if (!response.ok) throw new Error('Failed to get auth status')
+      return await response.json()
+    } catch (error) {
+      console.error('[API] Get auth status error:', error)
+      return { authenticated: false, hasUsers: true }
+    }
+  }
+
+  async getCurrentUser() {
+    try {
+      const response = await fetch(`${API_URL}/auth/me`, {
+        credentials: 'include'
+      })
+      if (!response.ok) {
+        if (response.status === 401) return null
+        throw new Error('Failed to get current user')
+      }
+      const data = await response.json()
+      return data.user
+    } catch (error) {
+      console.error('[API] Get current user error:', error)
+      return null
+    }
+  }
+
+  async register(name, email, password) {
+    try {
+      const response = await fetch(`${API_URL}/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ name, email, password })
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Registration failed')
+      }
+
+      return data
+    } catch (error) {
+      console.error('[API] Register error:', error)
+      throw error
+    }
+  }
+
+  async login(email, password) {
+    try {
+      const response = await fetch(`${API_URL}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ email, password })
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Login failed')
+      }
+
+      return data
+    } catch (error) {
+      console.error('[API] Login error:', error)
+      throw error
+    }
+  }
+
+  async logout() {
+    try {
+      const response = await fetch(`${API_URL}/auth/logout`, {
+        method: 'POST',
+        credentials: 'include'
+      })
+      if (!response.ok) throw new Error('Logout failed')
+      return true
+    } catch (error) {
+      console.error('[API] Logout error:', error)
+      return false
+    }
+  }
+
   // Settings
   async getSettings() {
     try {
-      const response = await fetch(`${API_URL}/settings`)
+      const response = await fetch(`${API_URL}/settings`, {
+        credentials: 'include'
+      })
       if (!response.ok) throw new Error('Failed to get settings')
       return await response.json()
     } catch (error) {
@@ -19,6 +110,7 @@ class ApiService {
       const response = await fetch(`${API_URL}/settings`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify(settings)
       })
       if (!response.ok) throw new Error('Failed to save settings')
@@ -32,7 +124,9 @@ class ApiService {
   // Projects
   async getAllProjects() {
     try {
-      const response = await fetch(`${API_URL}/projects`)
+      const response = await fetch(`${API_URL}/projects`, {
+        credentials: 'include'
+      })
       if (!response.ok) throw new Error('Failed to get projects')
       return await response.json()
     } catch (error) {
@@ -43,7 +137,9 @@ class ApiService {
 
   async getProject(projectId) {
     try {
-      const response = await fetch(`${API_URL}/projects/${projectId}`)
+      const response = await fetch(`${API_URL}/projects/${projectId}`, {
+        credentials: 'include'
+      })
       if (!response.ok) throw new Error('Failed to get project')
       return await response.json()
     } catch (error) {
@@ -66,6 +162,7 @@ class ApiService {
       const response = await fetch(`${API_URL}/projects`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify(projectData)
       })
 
@@ -89,7 +186,8 @@ class ApiService {
   async deleteProject(projectId) {
     try {
       const response = await fetch(`${API_URL}/projects/${projectId}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        credentials: 'include'
       })
       if (!response.ok) throw new Error('Failed to delete project')
       return true
