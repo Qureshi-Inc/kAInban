@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Settings, Plus, Trash2, MoreVertical } from 'lucide-react'
+import { Plus, Trash2, MoreVertical } from 'lucide-react'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select'
@@ -14,7 +14,6 @@ export default function Header() {
   const createProject = useAppStore((state) => state.createProject)
   const loadProject = useAppStore((state) => state.loadProject)
   const deleteProject = useAppStore((state) => state.deleteProject)
-  const setSettingsOpen = useAppStore((state) => state.setSettingsOpen)
   const addNotification = useAppStore((state) => state.addNotification)
   const clearSession = useAppStore((state) => state.clearSession)
 
@@ -192,14 +191,6 @@ export default function Header() {
             </DialogContent>
           </Dialog>
         </div>
-
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={() => setSettingsOpen(true)}
-        >
-          <Settings className="h-4 w-4" />
-        </Button>
 
         <UserProfile />
       </div>

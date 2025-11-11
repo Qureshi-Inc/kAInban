@@ -1,12 +1,13 @@
 import React, { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { LogOut, User as UserIcon, Shield } from 'lucide-react'
+import { LogOut, User as UserIcon, Shield, Settings } from 'lucide-react'
 import { Button } from './ui/button'
 import useAppStore from '../stores/useAppStore'
 
 export default function UserProfile() {
   const user = useAppStore((state) => state.user)
   const logout = useAppStore((state) => state.logout)
+  const setSettingsOpen = useAppStore((state) => state.setSettingsOpen)
   const [isOpen, setIsOpen] = useState(false)
 
   if (!user) return null
@@ -71,6 +72,16 @@ export default function UserProfile() {
 
               {/* Menu Items */}
               <div className="py-1">
+                <button
+                  onClick={() => {
+                    setSettingsOpen(true)
+                    setIsOpen(false)
+                  }}
+                  className="w-full px-4 py-3 text-left text-sm flex items-center gap-3 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                >
+                  <Settings className="h-4 w-4" />
+                  Settings
+                </button>
                 <button
                   onClick={handleLogout}
                   className="w-full px-4 py-3 text-left text-sm flex items-center gap-3 hover:bg-gray-100 dark:hover:bg-gray-700 text-red-600 dark:text-red-400 transition-colors"
