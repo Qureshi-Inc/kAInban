@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react'
-import { Settings, User, Bot, KeyRound } from 'lucide-react'
+import { Settings, User, Bot, KeyRound, Users } from 'lucide-react'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from './ui/tabs'
 import useAppStore from '../stores/useAppStore'
 import apiService from '../services/apiService'
+import UserManagement from './UserManagement'
 
 export default function SettingsDialog() {
   const isSettingsOpen = useAppStore((state) => state.isSettingsOpen)
@@ -206,7 +207,7 @@ export default function SettingsDialog() {
         </DialogHeader>
 
         <Tabs defaultValue="general" className="w-full">
-          <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-3' : 'grid-cols-1'}`}>
+          <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-4' : 'grid-cols-1'}`}>
             <TabsTrigger value="general">
               <User className="h-4 w-4 mr-2" />
               General
@@ -220,6 +221,10 @@ export default function SettingsDialog() {
                 <TabsTrigger value="auth">
                   <KeyRound className="h-4 w-4 mr-2" />
                   Authentication
+                </TabsTrigger>
+                <TabsTrigger value="users">
+                  <Users className="h-4 w-4 mr-2" />
+                  Users
                 </TabsTrigger>
               </>
             )}
@@ -504,6 +509,13 @@ export default function SettingsDialog() {
               <div className="text-xs text-muted-foreground">
                 * Required fields when PocketID authentication is enabled
               </div>
+            </TabsContent>
+          )}
+
+          {/* Users Tab (Admin Only) */}
+          {isAdmin && (
+            <TabsContent value="users" className="space-y-4">
+              <UserManagement />
             </TabsContent>
           )}
         </Tabs>

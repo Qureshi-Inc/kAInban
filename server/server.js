@@ -371,6 +371,60 @@ app.post('/api/settings', localAuth.requireAuth, (req, res) => {
   }
 })
 
+// User management endpoints (admin only)
+app.get('/api/users', localAuth.requireAuth, (req, res) => {
+  try {
+    // Only admins can view users
+    if (req.session.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Admin access required' })
+    }
+
+    const users = db.getAllUsers()
+
+    // Format users for frontend (don't send password hashes or secrets)
+    const formattedUsers = users.map(user => ({
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      picture: user.picture,
+      role: user.role,
+      auth_provider: user.auth_provider,
+      email_verified: user.email_verified === 1,
+      active: user.active === 1,
+      last_login: user.last_login,
+      created_at: user.created_at,
+      oidc_issuer: user.oidc_issuer
+    }))
+
+    res.json(formattedUsers)
+  } catch (error) {
+    console.error('[Users] List error:', error)
+    res.status(500).json({ error: 'Failed to get users' })
+  }
+})
+
+app.delete('/api/users/:id', localAuth.requireAuth, (req, res) => {
+  try {
+    // Only admins can delete users
+    if (req.session.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Admin access required' })
+    }
+
+    const userId = parseInt(req.params.id)
+
+    // Can't delete yourself
+    if (userId === req.session.user.id) {
+      return res.status(400).json({ error: 'Cannot delete your own account' })
+    }
+
+    db.deleteUser(userId)
+    res.json({ success: true })
+  } catch (error) {
+    console.error('[Users] Delete error:', error)
+    res.status(400).json({ error: error.message })
+  }
+})
+
 // Project endpoints
 app.get('/api/projects', localAuth.requireAuth, (req, res) => {
   try {
