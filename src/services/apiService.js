@@ -18,14 +18,24 @@ class ApiService {
 
   async getCurrentUser() {
     try {
+      console.log('[API] Fetching current user from /auth/me...')
       const response = await fetch(`${API_URL}/auth/me`, {
-        credentials: 'include'
+        credentials: 'include',
+        headers: {
+          'Accept': 'application/json'
+        }
       })
+      console.log('[API] /auth/me response status:', response.status)
+      
       if (!response.ok) {
-        if (response.status === 401) return null
+        if (response.status === 401) {
+          console.log('[API] User not authenticated (401)')
+          return null
+        }
         throw new Error('Failed to get current user')
       }
       const data = await response.json()
+      console.log('[API] Current user retrieved:', data.user?.email)
       return data.user
     } catch (error) {
       console.error('[API] Get current user error:', error)

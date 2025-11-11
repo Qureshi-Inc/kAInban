@@ -39,9 +39,12 @@ function App() {
     console.log('[App] Component mounted - checking authentication')
     console.log('[App] Window location:', window.location.href)
 
-    // Check authentication first
-    checkAuth()
-      .then((authenticatedUser) => {
+    // Check authentication and initialize in parallel
+    const initApp = async () => {
+      try {
+        // Check authentication first
+        const authenticatedUser = await checkAuth()
+        
         if (!authenticatedUser) {
           console.log('[App] Not authenticated, showing login')
           setLoading(false)
@@ -51,10 +54,10 @@ function App() {
         console.log('[App] Authenticated as:', authenticatedUser.email)
 
         // Initialize from backend
-        return initialize()
-      })
-      .then((result) => {
-        if (result === undefined) return // User not authenticated, skip initialization
+        const result = await initialize()
+        if (result === undefined) {
+          console.log('[App] Initialization returned undefined')
+        }
 
         console.log('[App] Backend initialization successful')
 
@@ -101,12 +104,14 @@ function App() {
         }
 
         setLoading(false)
-      })
-      .catch(error => {
+      } catch (error) {
         console.error('[App] Initialization failed:', error)
         // Don't show error screen, just stop loading and show login
         setLoading(false)
-      })
+      }
+    }
+
+    initApp()
 
     return () => console.log('[App] Component unmounting')
   }, [])

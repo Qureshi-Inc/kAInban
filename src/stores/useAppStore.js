@@ -48,6 +48,7 @@ const useAppStore = create((set, get) => ({
 
   // Authentication Actions
   checkAuth: async () => {
+    console.log('[Store] Starting auth check...')
     try {
       const user = await apiService.getCurrentUser()
       set({ user, authChecked: true })
@@ -55,6 +56,7 @@ const useAppStore = create((set, get) => ({
       return user
     } catch (error) {
       console.error('[Store] Auth check error:', error)
+      // Make sure we always set authChecked to true even on error
       set({ user: null, authChecked: true })
       return null
     }
