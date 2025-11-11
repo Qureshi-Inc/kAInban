@@ -87,7 +87,7 @@ export default function Header() {
               kAInban
             </h1>
             <span className="text-xs font-semibold text-muted-foreground/60 bg-muted px-2 py-0.5 rounded-md">
-              v2.4
+              v2.7
             </span>
           </div>
           <p className="text-sm text-muted-foreground font-medium">Organize Tasks with AI</p>

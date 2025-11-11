@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Mic, Upload, Square, Pause, Play } from 'lucide-react'
+import { Mic, Upload, Square, Pause, Play, FileText } from 'lucide-react'
 import { Button } from './ui/button'
 import { Card, CardContent } from './ui/card'
 import { formatTime } from '../lib/utils'
@@ -8,6 +8,7 @@ import useAppStore from '../stores/useAppStore'
 import audioService from '../services/audioService'
 import openaiService from '../services/openaiService'
 import transcriptionQueue from '../services/transcriptionQueue'
+import PasteTextModal from './PasteTextModal'
 
 export default function AudioControls() {
   const fileInputRef = useRef(null)
@@ -17,6 +18,7 @@ export default function AudioControls() {
   const chunkInfoRef = useRef(null)
   const [recordingTime, setRecordingTime] = useState(0)
   const [chunkInfo, setChunkInfo] = useState(null)
+  const [isPasteTextOpen, setIsPasteTextOpen] = useState(false)
   const [transcriptionStatus, setTranscriptionStatus] = useState({
     transcribedChunks: 0,
     totalChunks: 0,
@@ -710,18 +712,36 @@ export default function AudioControls() {
               />
 
               {!isRecording && (
-                <Button
-                  onClick={() => fileInputRef.current?.click()}
-                  variant="outline"
-                  size="lg"
-                  className="flex items-center justify-center gap-2 flex-1 sm:min-w-[160px] h-12 sm:h-10"
-                  disabled={!currentProject}
-                >
-                  <Upload className="h-5 w-5" />
-                  <span className="text-sm sm:text-base">Upload Audio</span>
-                </Button>
+                <>
+                  <Button
+                    onClick={() => fileInputRef.current?.click()}
+                    variant="outline"
+                    size="lg"
+                    className="flex items-center justify-center gap-2 flex-1 sm:min-w-[160px] h-12 sm:h-10"
+                    disabled={!currentProject}
+                  >
+                    <Upload className="h-5 w-5" />
+                    <span className="text-sm sm:text-base">Upload Audio</span>
+                  </Button>
+
+                  <Button
+                    onClick={() => setIsPasteTextOpen(true)}
+                    variant="outline"
+                    size="lg"
+                    className="flex items-center justify-center gap-2 flex-1 sm:min-w-[160px] h-12 sm:h-10"
+                    disabled={!currentProject}
+                  >
+                    <FileText className="h-5 w-5" />
+                    <span className="text-sm sm:text-base">Paste Text</span>
+                  </Button>
+                </>
               )}
             </div>
+
+            <PasteTextModal
+              open={isPasteTextOpen}
+              onOpenChange={setIsPasteTextOpen}
+            />
 
             {!currentProject && (
               <p className="text-sm text-muted-foreground text-center">
