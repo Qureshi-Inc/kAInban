@@ -116,18 +116,26 @@ const useAppStore = create((set, get) => ({
 
       // Restore last selected project from localStorage
       const lastProjectId = localStorage.getItem('lastSelectedProject')
+      const lastMeetingId = localStorage.getItem('lastSelectedMeeting')
       if (lastProjectId && projectsWithTasks.some(p => p.id === lastProjectId)) {
         console.log('[Store] Restoring last selected project:', lastProjectId)
         // Use the already loaded project data
         const project = projectsWithTasks.find(p => p.id === lastProjectId)
         if (project) {
+          // Check if the last selected meeting still exists in this project
+          const meetingExists = project.meetings && project.meetings.some(m => m.id === lastMeetingId)
+          const selectedMeetingId = meetingExists ? lastMeetingId : null
+
           set({
             currentProject: project,
             tasks: project.tasks || [],
             meetings: project.meetings || [],
-            selectedMeetingId: null
+            selectedMeetingId: selectedMeetingId
           })
           console.log('[Store] ✓ Project restored from initialization:', project.name)
+          if (selectedMeetingId) {
+            console.log('[Store] ✓ Meeting restored:', selectedMeetingId)
+          }
         }
       }
 
@@ -208,6 +216,8 @@ const useAppStore = create((set, get) => ({
 
       // Save to localStorage for persistence across refreshes
       localStorage.setItem('lastSelectedProject', projectId)
+      // Clear last selected meeting when switching projects
+      localStorage.removeItem('lastSelectedMeeting')
       console.log('[Store] Saved project selection to localStorage')
 
       console.log('[Store] Project state updated')
@@ -325,6 +335,15 @@ const useAppStore = create((set, get) => ({
   selectMeeting: (meetingId) => {
     console.log('[Store] Selecting meeting:', meetingId)
     set({ selectedMeetingId: meetingId })
+
+    // Save to localStorage for persistence across refreshes
+    if (meetingId) {
+      localStorage.setItem('lastSelectedMeeting', meetingId)
+      console.log('[Store] Saved meeting selection to localStorage')
+    } else {
+      localStorage.removeItem('lastSelectedMeeting')
+      console.log('[Store] Cleared meeting selection from localStorage')
+    }
   },
 
   deleteMeeting: async (meetingId) => {
@@ -351,6 +370,12 @@ const useAppStore = create((set, get) => ({
       meetings: state.meetings.filter(m => m.id !== meetingId),
       selectedMeetingId: wasSelected ? null : state.selectedMeetingId
     }))
+
+    // Clear from localStorage if this was the selected meeting
+    if (wasSelected) {
+      localStorage.removeItem('lastSelectedMeeting')
+      console.log('[Store] Cleared meeting selection from localStorage')
+    }
 
     get().updateCurrentProject()
   },
@@ -482,7 +507,8 @@ const useAppStore = create((set, get) => ({
   // Clear current session
   clearSession: () => {
     localStorage.removeItem('lastSelectedProject')
-    console.log('[Store] Cleared project selection from localStorage')
+    localStorage.removeItem('lastSelectedMeeting')
+    console.log('[Store] Cleared project and meeting selection from localStorage')
 
     set({
       currentProject: null,
