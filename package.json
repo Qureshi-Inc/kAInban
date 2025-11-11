@@ -1,7 +1,7 @@
 {
   "name": "kainban",
   "private": true,
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "kAInban - Organize Notes with AI",
   "type": "module",
   "scripts": {

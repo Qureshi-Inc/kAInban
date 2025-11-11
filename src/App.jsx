@@ -140,12 +140,76 @@ function App() {
 
   // Show auth page if not authenticated (even while checking)
   if (!user) {
-    // Show minimal loading only on first mount
+    // Show modern loading screen on first mount
     if (!authChecked) {
       return (
-        <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 flex items-center justify-center">
           <div className="text-center p-8">
-            <div className="text-2xl mb-4">Loading...</div>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.5 }}
+              className="space-y-6"
+            >
+              {/* Modern logo animation */}
+              <div className="relative">
+                <motion.div
+                  className="w-20 h-20 rounded-2xl bg-gradient-to-br from-primary via-primary/90 to-primary/80 flex items-center justify-center text-white text-3xl shadow-2xl mx-auto"
+                  animate={{
+                    rotate: [0, 360],
+                    scale: [1, 1.1, 1]
+                  }}
+                  transition={{
+                    duration: 2,
+                    repeat: Infinity,
+                    ease: "easeInOut"
+                  }}
+                >
+                  🎤
+                </motion.div>
+
+                {/* Pulse rings */}
+                <motion.div
+                  className="absolute inset-0 w-20 h-20 rounded-2xl border-2 border-primary/30 mx-auto"
+                  animate={{
+                    scale: [1, 1.5, 1],
+                    opacity: [0.5, 0, 0.5]
+                  }}
+                  transition={{
+                    duration: 2,
+                    repeat: Infinity,
+                    ease: "easeInOut"
+                  }}
+                />
+              </div>
+
+              {/* Loading text */}
+              <div className="space-y-2">
+                <h2 className="text-2xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+                  kAInban
+                </h2>
+                <motion.p
+                  className="text-muted-foreground"
+                  animate={{ opacity: [0.5, 1, 0.5] }}
+                  transition={{ duration: 1.5, repeat: Infinity }}
+                >
+                  Initializing your workspace...
+                </motion.p>
+              </div>
+
+              {/* Loading bar */}
+              <div className="w-48 h-1 bg-muted rounded-full overflow-hidden mx-auto">
+                <motion.div
+                  className="h-full bg-gradient-to-r from-primary via-secondary to-primary"
+                  animate={{ x: [-192, 192] }}
+                  transition={{
+                    duration: 1.5,
+                    repeat: Infinity,
+                    ease: "easeInOut"
+                  }}
+                />
+              </div>
+            </motion.div>
           </div>
         </div>
       )
@@ -174,9 +238,40 @@ function App() {
   // Show loading while initializing after login
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 flex items-center justify-center">
         <div className="text-center p-8">
-          <div className="text-2xl mb-4">Loading your workspace...</div>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="space-y-6"
+          >
+            {/* Skeleton loading for workspace */}
+            <div className="space-y-4">
+              <div className="w-16 h-16 bg-gradient-to-br from-primary/20 to-primary/10 rounded-xl mx-auto animate-pulse" />
+              <div className="space-y-2">
+                <div className="h-6 w-32 bg-muted animate-pulse rounded mx-auto" />
+                <div className="h-4 w-48 bg-muted/60 animate-pulse rounded mx-auto" />
+              </div>
+            </div>
+
+            {/* Workspace skeleton */}
+            <div className="w-80 max-w-full space-y-3">
+              <div className="h-12 bg-muted animate-pulse rounded-lg" />
+              <div className="grid grid-cols-3 gap-2">
+                <div className="h-20 bg-muted/60 animate-pulse rounded" />
+                <div className="h-20 bg-muted/60 animate-pulse rounded" />
+                <div className="h-20 bg-muted/60 animate-pulse rounded" />
+              </div>
+            </div>
+
+            <motion.p
+              className="text-sm text-muted-foreground"
+              animate={{ opacity: [0.5, 1, 0.5] }}
+              transition={{ duration: 2, repeat: Infinity }}
+            >
+              Setting up your workspace...
+            </motion.p>
+          </motion.div>
         </div>
       </div>
     )
@@ -184,24 +279,117 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
-      <div className="w-full px-6 py-6 max-w-[1920px] mx-auto">
+      {/* Modern glassmorphism navbar */}
+      <div className="sticky top-0 z-50 backdrop-blur-xl bg-background/80 border-b border-border/50">
+        <div className="w-full px-6 py-4 max-w-[1920px] mx-auto">
+          <Header />
+        </div>
+      </div>
+
+      {/* Main content area */}
+      <div className="w-full px-6 py-8 max-w-[1920px] mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
+          transition={{ duration: 0.6, ease: "easeOut" }}
           className="space-y-8"
         >
-          <Header />
-
           {/* Show Analytics Dashboard when no project is selected */}
           {!currentProject ? (
-            <AnalyticsDashboard />
-          ) : (
-            <>
-              <AudioControls />
+            <div className="space-y-6">
+              {/* Breadcrumb for context */}
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.1 }}
+                className="flex items-center gap-2 text-sm text-muted-foreground"
+              >
+                <span className="font-medium">Dashboard</span>
+                <span className="text-xs">•</span>
+                <span>Overview & Analytics</span>
+              </motion.div>
 
-              <div className="space-y-8">
-                <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
+              <AnalyticsDashboard />
+            </div>
+          ) : (
+            <div className="space-y-8">
+              {/* Project breadcrumb and context */}
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.1 }}
+                className="space-y-4"
+              >
+                {/* Breadcrumb navigation */}
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <span
+                    className="hover:text-foreground cursor-pointer transition-colors"
+                    onClick={() => clearSession()}
+                  >
+                    Dashboard
+                  </span>
+                  <span className="text-xs">→</span>
+                  <span className="font-medium text-foreground">{currentProject.name}</span>
+                  <span className="text-xs">•</span>
+                  <span className="px-2 py-1 bg-primary/10 text-primary text-xs rounded-full">
+                    {currentProject.tasks?.length || 0} tasks
+                  </span>
+                </div>
+
+                {/* Project header card */}
+                <div className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-xl p-6 shadow-sm">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h2 className="text-2xl font-bold text-foreground mb-2">
+                        {currentProject.name}
+                      </h2>
+                      <p className="text-muted-foreground">
+                        Audio transcription and task management workspace
+                      </p>
+                    </div>
+
+                    {/* Quick stats */}
+                    <div className="flex items-center gap-4">
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-primary">
+                          {currentProject.tasks?.filter(t => t.status === 'done').length || 0}
+                        </div>
+                        <div className="text-xs text-muted-foreground">Completed</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-secondary">
+                          {currentProject.tasks?.filter(t => t.status === 'in-progress').length || 0}
+                        </div>
+                        <div className="text-xs text-muted-foreground">In Progress</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-accent">
+                          {currentProject.meetings?.length || 0}
+                        </div>
+                        <div className="text-xs text-muted-foreground">Recordings</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+
+              {/* Audio controls with modern styling */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+              >
+                <AudioControls />
+              </motion.div>
+
+              {/* Content grid with improved spacing */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+                className="space-y-8"
+              >
+                <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
                   <div className="xl:col-span-8">
                     <SummaryPanel />
                   </div>
@@ -212,8 +400,8 @@ function App() {
                 </div>
 
                 <KanbanBoard />
-              </div>
-            </>
+              </motion.div>
+            </div>
           )}
         </motion.div>
       </div>

@@ -4,48 +4,80 @@
 
 @layer base {
   :root {
-    --background: 0 0% 98%;
-    --foreground: 240 10% 9%;
+    /* Light theme - Enhanced with better contrast */
+    --background: 0 0% 99%;
+    --foreground: 240 10% 4%;
     --card: 0 0% 100%;
-    --card-foreground: 240 10% 9%;
+    --card-foreground: 240 10% 4%;
     --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 9%;
-    --primary: 214 100% 59%;
+    --popover-foreground: 240 10% 4%;
+    --primary: 214 95% 54%;
     --primary-foreground: 0 0% 98%;
-    --secondary: 146 82% 46%;
+    --secondary: 146 85% 47%;
     --secondary-foreground: 0 0% 98%;
-    --muted: 240 4.8% 95.9%;
-    --muted-foreground: 240 3.8% 46.1%;
-    --accent: 48 100% 67%;
-    --accent-foreground: 240 10% 9%;
-    --destructive: 0 84% 60%;
+    --muted: 240 6% 94%;
+    --muted-foreground: 240 4% 46%;
+    --accent: 45 93% 58%;
+    --accent-foreground: 240 10% 4%;
+    --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 98%;
-    --border: 240 5.9% 90%;
-    --input: 240 5.9% 90%;
-    --ring: 214 100% 59%;
-    --radius: 0.5rem;
+    --border: 240 6% 88%;
+    --input: 240 6% 88%;
+    --ring: 214 95% 54%;
+    --radius: 0.75rem;
+
+    /* New semantic colors for modern UI */
+    --success: 142 71% 45%;
+    --success-foreground: 0 0% 98%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 98%;
+    --info: 199 89% 48%;
+    --info-foreground: 0 0% 98%;
+
+    /* Enhanced shadows */
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
   }
 
   .dark {
-    --background: 240 10% 9%;
+    /* Dark theme - Enhanced with better contrast and modern colors */
+    --background: 240 10% 4%;
     --foreground: 0 0% 98%;
-    --card: 240 10% 12%;
+    --card: 240 10% 8%;
     --card-foreground: 0 0% 98%;
-    --popover: 240 10% 12%;
+    --popover: 240 10% 8%;
     --popover-foreground: 0 0% 98%;
-    --primary: 214 100% 59%;
-    --primary-foreground: 240 10% 9%;
-    --secondary: 146 82% 46%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 240 3.7% 15.9%;
-    --muted-foreground: 240 5% 64.9%;
-    --accent: 48 100% 67%;
-    --accent-foreground: 240 10% 9%;
-    --destructive: 0 62.8% 30.6%;
+    --primary: 214 100% 64%;
+    --primary-foreground: 240 10% 4%;
+    --secondary: 146 85% 52%;
+    --secondary-foreground: 240 10% 4%;
+    --muted: 240 4% 16%;
+    --muted-foreground: 240 5% 65%;
+    --accent: 45 93% 63%;
+    --accent-foreground: 240 10% 4%;
+    --destructive: 0 72% 56%;
     --destructive-foreground: 0 0% 98%;
-    --border: 240 3.7% 15.9%;
-    --input: 240 3.7% 15.9%;
-    --ring: 214 100% 59%;
+    --border: 240 4% 18%;
+    --input: 240 4% 18%;
+    --ring: 214 100% 64%;
+
+    /* Dark theme semantic colors */
+    --success: 142 71% 50%;
+    --success-foreground: 240 10% 4%;
+    --warning: 38 92% 55%;
+    --warning-foreground: 240 10% 4%;
+    --info: 199 89% 53%;
+    --info-foreground: 240 10% 4%;
+
+    /* Dark theme shadows */
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
+    --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.4), 0 1px 2px -1px rgb(0 0 0 / 0.4);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.4), 0 2px 4px -2px rgb(0 0 0 / 0.4);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.4), 0 4px 6px -4px rgb(0 0 0 / 0.4);
+    --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.4), 0 8px 10px -6px rgb(0 0 0 / 0.4);
   }
 }
 
@@ -53,79 +85,229 @@
   * {
     @apply border-border;
   }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
   body {
     @apply bg-background text-foreground;
-    font-feature-settings: "rlig" 1, "calt" 1;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    font-feature-settings: "rlig" 1, "calt" 1, "kern" 1;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    line-height: 1.6;
+    font-weight: 400;
+  }
+
+  /* Improved focus styles for accessibility */
+  *:focus-visible {
+    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+  }
+
+  /* Better button focus */
+  button:focus-visible,
+  [role="button"]:focus-visible {
+    @apply outline-none ring-2 ring-primary ring-offset-2 ring-offset-background;
+  }
+
+  /* Improved scroll bars */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-muted/30;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-muted-foreground/20 rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-muted-foreground/30;
   }
 }
 
 @layer components {
+  /* Modern glassmorphism effects */
+  .glass-subtle {
+    @apply backdrop-blur-sm bg-card/50 border border-border/50;
+  }
+
+  .glass-medium {
+    @apply backdrop-blur-md bg-card/70 border border-border/60;
+  }
+
+  .glass-strong {
+    @apply backdrop-blur-xl bg-card/80 border border-border/70;
+  }
+
+  /* Enhanced recording animations */
   .mic-pulse {
     @apply animate-pulse;
-    animation-duration: 1.5s;
+    animation-duration: 1.8s;
+    animation-timing-function: ease-in-out;
   }
 
   .recording-visualizer {
-    background: linear-gradient(45deg, #4285f4, #34a853);
-    border-radius: 8px;
+    background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--secondary)));
+    border-radius: 12px;
+    box-shadow: var(--shadow-lg);
   }
 
+  /* Modern kanban styling */
   .kanban-column {
-    min-height: 200px;
-    @apply bg-muted/50 rounded-lg p-4;
+    min-height: 240px;
+    @apply bg-muted/30 backdrop-blur-sm rounded-xl p-5 border border-border/40;
+    transition: all 0.3s ease;
   }
 
+  .kanban-column:hover {
+    @apply bg-muted/40 border-border/60;
+  }
+
+  /* Enhanced task cards */
   .task-card {
-    @apply bg-card border border-border rounded-lg p-3 mb-3 shadow-sm cursor-grab;
-    transition: all 0.2s ease;
+    @apply bg-card/80 backdrop-blur-sm border border-border/60 rounded-xl p-4 mb-4 cursor-grab;
+    box-shadow: var(--shadow-sm);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .task-card:hover {
-    @apply shadow-md transform -translate-y-1;
+    @apply -translate-y-1 border-border/80;
+    box-shadow: var(--shadow-md);
   }
 
   .task-card.dragging {
-    @apply opacity-50 rotate-2;
+    @apply opacity-60 rotate-1 scale-105;
+    box-shadow: var(--shadow-lg);
   }
 
+  /* Modern priority styling */
   .priority-high {
-    @apply bg-destructive/10 text-destructive border-destructive/20;
+    @apply bg-destructive/8 text-destructive border-l-4 border-l-destructive/60;
   }
 
   .priority-medium {
-    @apply bg-accent/10 text-amber-700 border-accent/20;
+    @apply bg-warning/8 text-orange-700 dark:text-orange-300 border-l-4 border-l-warning/60;
   }
 
   .priority-low {
-    @apply bg-secondary/10 text-secondary border-secondary/20;
+    @apply bg-success/8 text-success border-l-4 border-l-success/60;
   }
 
-  .glass-effect {
-    backdrop-filter: blur(10px);
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+  /* Status indicators */
+  .status-todo {
+    @apply bg-muted/60 text-muted-foreground;
+  }
+
+  .status-in-progress {
+    @apply bg-info/10 text-info border border-info/20;
+  }
+
+  .status-done {
+    @apply bg-success/10 text-success border border-success/20;
+  }
+
+  .status-blocked {
+    @apply bg-destructive/10 text-destructive border border-destructive/20;
+  }
+
+  /* Modern form elements */
+  .form-section {
+    @apply space-y-6 p-6 bg-card/50 backdrop-blur-sm rounded-xl border border-border/50;
+  }
+
+  /* Improved animations */
+  .fade-in {
+    animation: fadeIn 0.5s ease-out forwards;
+  }
+
+  .slide-up {
+    animation: slideUp 0.4s ease-out forwards;
+  }
+
+  .scale-in {
+    animation: scaleIn 0.3s ease-out forwards;
+  }
+
+  /* Loading states */
+  .skeleton {
+    @apply animate-pulse bg-muted/60 rounded;
+  }
+
+  .skeleton-text {
+    @apply skeleton h-4 w-full;
+  }
+
+  .skeleton-title {
+    @apply skeleton h-6 w-3/4;
+  }
+
+  .skeleton-avatar {
+    @apply skeleton h-10 w-10 rounded-full;
   }
 }
 
-/* Touch-friendly improvements for mobile */
+/* Enhanced mobile experience */
 @media (pointer: coarse) {
   .task-card {
-    min-height: 60px;
-    padding: 16px;
+    min-height: 72px;
+    padding: 20px;
+    @apply rounded-2xl;
   }
 
-  button {
+  button, [role="button"] {
     min-height: 48px;
     min-width: 48px;
+    @apply touch-manipulation;
+  }
+
+  /* Larger touch targets for mobile */
+  .mobile-touch {
+    @apply p-4 min-h-[48px] min-w-[48px];
+  }
+
+  /* Better mobile typography */
+  h1 { @apply text-2xl; }
+  h2 { @apply text-xl; }
+  h3 { @apply text-lg; }
+}
+
+/* Enhanced animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
-/* Smooth animations */
-.slide-in {
-  animation: slideIn 0.3s ease-out;
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 @keyframes slideIn {
@@ -137,4 +319,44 @@
     transform: translateX(0);
     opacity: 1;
   }
+}
+
+/* Accessibility improvements */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .task-card {
+    @apply border-2 border-foreground/20;
+  }
+
+  .glass-subtle,
+  .glass-medium,
+  .glass-strong {
+    @apply bg-card border-2 border-border;
+    backdrop-filter: none;
+  }
+}
+
+/* Dark mode specific improvements */
+.dark .recording-visualizer {
+  background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--secondary)));
+  box-shadow: 0 8px 32px hsl(var(--primary) / 0.3);
+}
+
+.dark .task-card {
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.3);
+}
+
+.dark .task-card:hover {
+  box-shadow: 0 4px 12px rgb(0 0 0 / 0.4);
 }
