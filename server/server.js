@@ -8,6 +8,7 @@ import fs from 'fs'
 import path from 'path'
 import * as db from './database.js'
 import * as localAuth from './localAuth.js'
+import * as oidcAuth from './oidcAuth.js'
 
 const app = express()
 const PORT = process.env.PORT || 3001
@@ -74,6 +75,15 @@ app.get('/health', (req, res) => {
 app.post('/api/auth/register', authLimiter, async (req, res) => {
   try {
     const { email, password, name } = req.body
+
+    // Check if registration is allowed
+    const isFirstUser = !db.hasUsers()
+    const allowRegistration = process.env.ALLOW_REGISTRATION === 'true' || process.env.ALLOW_REGISTRATION === '1'
+
+    // Allow registration if it's the first user (admin setup) or if registration is enabled
+    if (!isFirstUser && !allowRegistration) {
+      return res.status(403).json({ error: 'Registration is currently disabled' })
+    }
 
     // Register user
     const user = await localAuth.registerUser({ email, password, name })
@@ -154,10 +164,153 @@ app.get('/api/auth/me', (req, res) => {
 })
 
 app.get('/api/auth/status', (req, res) => {
+  const allowRegistration = process.env.ALLOW_REGISTRATION === 'true' || process.env.ALLOW_REGISTRATION === '1'
+  const hasUsers = db.hasUsers()
+
   res.json({
     authenticated: !!req.session?.user,
-    hasUsers: db.hasUsers()
+    hasUsers: hasUsers,
+    allowRegistration: allowRegistration || !hasUsers // Always allow registration for first user
   })
+})
+
+// OIDC Authentication endpoints
+app.get('/api/auth/oidc/config', localAuth.requireAuth, (req, res) => {
+  // Only admins can check OIDC config
+  if (req.session.user.role !== 'admin') {
+    return res.status(403).json({ error: 'Admin access required' })
+  }
+
+  const settings = db.getSettings(req.session.user.id)
+  const enabled = oidcAuth.isOIDCEnabled(settings)
+
+  res.json({
+    enabled,
+    issuer: settings?.oidc_issuer || 'https://pocketid.app'
+  })
+})
+
+app.get('/api/auth/oidc/status', (req, res) => {
+  // Check if OIDC is enabled (read from admin's settings)
+  // For now, check if any admin has OIDC enabled
+  const allUsers = db.getAllUsers()
+  const adminUser = allUsers.find(u => u.role === 'admin' && u.active === 1)
+
+  if (!adminUser) {
+    return res.json({ enabled: false })
+  }
+
+  const adminSettings = db.getSettings(adminUser.id)
+  const enabled = oidcAuth.isOIDCEnabled(adminSettings)
+
+  res.json({
+    enabled,
+    issuer: adminSettings?.oidc_issuer || 'https://pocketid.app'
+  })
+})
+
+app.get('/api/auth/oidc/login', async (req, res) => {
+  try {
+    // Get admin settings to check if OIDC is enabled
+    const allUsers = db.getAllUsers()
+    const adminUser = allUsers.find(u => u.role === 'admin' && u.active === 1)
+
+    if (!adminUser) {
+      return res.status(400).json({ error: 'OIDC not configured' })
+    }
+
+    const settings = db.getSettings(adminUser.id)
+
+    if (!oidcAuth.isOIDCEnabled(settings)) {
+      return res.status(400).json({ error: 'OIDC is not enabled' })
+    }
+
+    // Initialize OIDC client
+    await oidcAuth.initializeOIDC({
+      oidcEnabled: settings.oidc_enabled,
+      oidcClientId: settings.oidc_client_id,
+      oidcClientSecret: settings.oidc_client_secret,
+      oidcIssuer: settings.oidc_issuer,
+      oidcCallbackUrl: settings.oidc_callback_url
+    })
+
+    // Generate authorization URL
+    const { authUrl, codeVerifier, state } = oidcAuth.getAuthorizationUrl(settings)
+
+    // Store code verifier and state in session
+    req.session.oidcCodeVerifier = codeVerifier
+    req.session.oidcState = state
+
+    req.session.save((err) => {
+      if (err) {
+        console.error('[OIDC] Session save error:', err)
+        return res.status(500).json({ error: 'Failed to create OIDC session' })
+      }
+      res.json({ authUrl })
+    })
+  } catch (error) {
+    console.error('[OIDC] Login error:', error)
+    res.status(500).json({ error: 'Failed to initiate OIDC login' })
+  }
+})
+
+app.get('/api/auth/oidc/callback', async (req, res) => {
+  try {
+    const codeVerifier = req.session.oidcCodeVerifier
+    const state = req.session.oidcState
+
+    if (!codeVerifier || !state) {
+      return res.status(400).json({ error: 'Invalid OIDC session' })
+    }
+
+    // Get admin settings
+    const allUsers = db.getAllUsers()
+    const adminUser = allUsers.find(u => u.role === 'admin' && u.active === 1)
+
+    if (!adminUser) {
+      return res.status(400).json({ error: 'OIDC not configured' })
+    }
+
+    const settings = db.getSettings(adminUser.id)
+
+    // Re-initialize OIDC client (in case it wasn't kept in memory)
+    await oidcAuth.initializeOIDC({
+      oidcEnabled: settings.oidc_enabled,
+      oidcClientId: settings.oidc_client_id,
+      oidcClientSecret: settings.oidc_client_secret,
+      oidcIssuer: settings.oidc_issuer,
+      oidcCallbackUrl: settings.oidc_callback_url
+    })
+
+    // Handle callback
+    const callbackUrl = req.protocol + '://' + req.get('host') + req.originalUrl
+    const { userinfo } = await oidcAuth.handleCallback(callbackUrl, codeVerifier, state)
+
+    // Find or create user
+    const user = oidcAuth.findOrCreateOIDCUser(userinfo, settings.oidc_issuer)
+
+    // Create session
+    req.session.user = oidcAuth.formatUserForSession(user)
+    delete req.session.oidcCodeVerifier
+    delete req.session.oidcState
+
+    req.session.save((err) => {
+      if (err) {
+        console.error('[OIDC] Session save error:', err)
+        return res.status(500).json({ error: 'Failed to create session' })
+      }
+
+      console.log('[OIDC] User logged in:', user.email)
+
+      // Redirect to frontend with success
+      const frontendUrl = process.env.APP_URL || 'https://notes.rodeomasjid.org'
+      res.redirect(`${frontendUrl}?oidc_success=true`)
+    })
+  } catch (error) {
+    console.error('[OIDC] Callback error:', error)
+    const frontendUrl = process.env.APP_URL || 'https://notes.rodeomasjid.org'
+    res.redirect(`${frontendUrl}?oidc_error=${encodeURIComponent(error.message)}`)
+  }
 })
 
 // Settings endpoints
@@ -169,22 +322,36 @@ app.get('/api/settings', localAuth.requireAuth, (req, res) => {
     // If no settings in database, return environment variables
     if (!settings || !settings.azure_endpoint) {
       console.log('[Settings] No database settings, loading from environment variables')
+      const enableOidc = process.env.ENABLE_OIDC === 'true' || process.env.ENABLE_OIDC === '1'
+      console.log('[Settings] ENABLE_OIDC env:', process.env.ENABLE_OIDC, '-> enabled:', enableOidc)
+      console.log('[Settings] POCKET_ID_CLIENT_ID env:', process.env.POCKET_ID_CLIENT_ID)
       return res.json({
         azureEndpoint: process.env.AZURE_OPENAI_ENDPOINT || '',
         apiKey: process.env.AZURE_OPENAI_API_KEY || '',
         apiVersion: process.env.AZURE_OPENAI_API_VERSION || '2024-02-01',
         whisperDeployment: process.env.AZURE_OPENAI_WHISPER_DEPLOYMENT || 'whisper',
-        gptDeployment: process.env.AZURE_OPENAI_GPT_DEPLOYMENT || 'gpt-4'
+        gptDeployment: process.env.AZURE_OPENAI_GPT_DEPLOYMENT || 'gpt-4',
+        oidcEnabled: enableOidc,
+        oidcClientId: process.env.POCKET_ID_CLIENT_ID || '',
+        oidcClientSecret: process.env.POCKET_ID_CLIENT_SECRET || '',
+        oidcIssuer: process.env.POCKET_ID_ISSUER || 'https://pocketid.app',
+        oidcCallbackUrl: ''
       })
     }
 
-    // Return database settings
+    // Return database settings with environment variable fallbacks
+    console.log('[Settings] Database settings found, oidc_enabled:', settings.oidc_enabled)
     res.json({
       azureEndpoint: settings.azure_endpoint || '',
       apiKey: settings.api_key || '',
       apiVersion: settings.api_version || '2024-02-01',
       whisperDeployment: settings.whisper_deployment || 'whisper-1',
-      gptDeployment: settings.gpt_deployment || 'gpt-4'
+      gptDeployment: settings.gpt_deployment || 'gpt-4',
+      oidcEnabled: settings.oidc_enabled === 1,
+      oidcClientId: settings.oidc_client_id || process.env.POCKET_ID_CLIENT_ID || '',
+      oidcClientSecret: settings.oidc_client_secret || process.env.POCKET_ID_CLIENT_SECRET || '',
+      oidcIssuer: settings.oidc_issuer || process.env.POCKET_ID_ISSUER || 'https://pocketid.app',
+      oidcCallbackUrl: settings.oidc_callback_url || ''
     })
   } catch (error) {
     console.error('[Settings] Get error:', error)

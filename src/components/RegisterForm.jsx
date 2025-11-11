@@ -1,8 +1,9 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
-import { Mail, Lock, User, Loader2, Check, X } from 'lucide-react'
+import { Mail, Lock, User, Loader2, Check, X, KeyRound } from 'lucide-react'
+import apiService from '../services/apiService'
 
 export default function RegisterForm({ onRegister, onSwitchToLogin, error, isFirstUser }) {
   const [name, setName] = useState('')
@@ -10,6 +11,15 @@ export default function RegisterForm({ onRegister, onSwitchToLogin, error, isFir
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [loading, setLoading] = useState(false)
+  const [oidcLoading, setOidcLoading] = useState(false)
+  const [oidcEnabled, setOidcEnabled] = useState(false)
+
+  useEffect(() => {
+    // Check if OIDC is enabled
+    apiService.getOIDCStatus().then(status => {
+      setOidcEnabled(status.enabled)
+    })
+  }, [])
 
   const passwordValidation = {
     minLength: password.length >= 8,
@@ -37,6 +47,18 @@ export default function RegisterForm({ onRegister, onSwitchToLogin, error, isFir
       await onRegister(name, email, password)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleOIDCLogin = async () => {
+    setOidcLoading(true)
+    try {
+      const authUrl = await apiService.initiateOIDCLogin()
+      // Redirect to OIDC provider
+      window.location.href = authUrl
+    } catch (error) {
+      console.error('[RegisterForm] OIDC login error:', error)
+      setOidcLoading(false)
     }
   }
 
@@ -186,7 +208,7 @@ export default function RegisterForm({ onRegister, onSwitchToLogin, error, isFir
         <Button
           type="submit"
           className="w-full"
-          disabled={loading || !isValid}
+          disabled={loading || oidcLoading || !isValid}
         >
           {loading ? (
             <>
@@ -198,6 +220,41 @@ export default function RegisterForm({ onRegister, onSwitchToLogin, error, isFir
           )}
         </Button>
       </form>
+
+      {!isFirstUser && oidcEnabled && (
+        <>
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-300 dark:border-gray-600" />
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-2 bg-white dark:bg-gray-800 text-muted-foreground">
+                Or continue with
+              </span>
+            </div>
+          </div>
+
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full"
+            onClick={handleOIDCLogin}
+            disabled={loading || oidcLoading}
+          >
+            {oidcLoading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Connecting to PocketID...
+              </>
+            ) : (
+              <>
+                <KeyRound className="mr-2 h-4 w-4" />
+                Sign up with PocketID
+              </>
+            )}
+          </Button>
+        </>
+      )}
 
       {!isFirstUser && (
         <div className="mt-6 text-center">

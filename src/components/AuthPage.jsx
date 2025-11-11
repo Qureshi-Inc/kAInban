@@ -8,6 +8,7 @@ export default function AuthPage({ onAuthSuccess }) {
   const [mode, setMode] = useState('login') // 'login' or 'register'
   const [error, setError] = useState('')
   const [isFirstUser, setIsFirstUser] = useState(false)
+  const [allowRegistration, setAllowRegistration] = useState(false)
   const [checking, setChecking] = useState(true)
 
   useEffect(() => {
@@ -19,6 +20,7 @@ export default function AuthPage({ onAuthSuccess }) {
     try {
       const status = await apiService.getAuthStatus()
       setIsFirstUser(!status.hasUsers)
+      setAllowRegistration(status.allowRegistration)
       if (!status.hasUsers) {
         setMode('register')
       }
@@ -75,10 +77,10 @@ export default function AuthPage({ onAuthSuccess }) {
       {mode === 'login' && !isFirstUser ? (
         <LoginForm
           onLogin={handleLogin}
-          onSwitchToRegister={() => {
+          onSwitchToRegister={allowRegistration ? () => {
             setMode('register')
             setError('')
-          }}
+          } : null}
           error={error}
         />
       ) : (

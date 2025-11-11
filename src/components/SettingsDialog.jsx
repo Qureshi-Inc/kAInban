@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Settings, User, Bot } from 'lucide-react'
+import { Settings, User, Bot, KeyRound } from 'lucide-react'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog'
@@ -21,7 +21,12 @@ export default function SettingsDialog() {
     apiKey: '',
     apiVersion: '2024-02-01',
     whisperDeployment: 'whisper-1',
-    gptDeployment: 'gpt-4'
+    gptDeployment: 'gpt-4',
+    oidcEnabled: false,
+    oidcClientId: '',
+    oidcClientSecret: '',
+    oidcIssuer: 'https://pocketid.app',
+    oidcCallbackUrl: ''
   })
 
   const [userFormData, setUserFormData] = useState({
@@ -43,7 +48,12 @@ export default function SettingsDialog() {
         apiKey: settings.apiKey || '',
         apiVersion: settings.apiVersion || '2024-02-01',
         whisperDeployment: settings.whisperDeployment || 'whisper-1',
-        gptDeployment: settings.gptDeployment || 'gpt-4'
+        gptDeployment: settings.gptDeployment || 'gpt-4',
+        oidcEnabled: settings.oidcEnabled || false,
+        oidcClientId: settings.oidcClientId || '',
+        oidcClientSecret: settings.oidcClientSecret || '',
+        oidcIssuer: settings.oidcIssuer || 'https://pocketid.app',
+        oidcCallbackUrl: settings.oidcCallbackUrl || ''
       })
       setUserFormData({
         name: user?.name || '',
@@ -196,16 +206,22 @@ export default function SettingsDialog() {
         </DialogHeader>
 
         <Tabs defaultValue="general" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-3' : 'grid-cols-1'}`}>
             <TabsTrigger value="general">
               <User className="h-4 w-4 mr-2" />
               General
             </TabsTrigger>
             {isAdmin && (
-              <TabsTrigger value="ai">
-                <Bot className="h-4 w-4 mr-2" />
-                AI Settings
-              </TabsTrigger>
+              <>
+                <TabsTrigger value="ai">
+                  <Bot className="h-4 w-4 mr-2" />
+                  AI Settings
+                </TabsTrigger>
+                <TabsTrigger value="auth">
+                  <KeyRound className="h-4 w-4 mr-2" />
+                  Authentication
+                </TabsTrigger>
+              </>
             )}
           </TabsList>
 
@@ -365,6 +381,128 @@ export default function SettingsDialog() {
 
               <div className="text-xs text-muted-foreground">
                 * Required fields. Use "Test Connection" to verify your Azure OpenAI setup.
+              </div>
+            </TabsContent>
+          )}
+
+          {/* Authentication Tab (Admin Only) */}
+          {isAdmin && (
+            <TabsContent value="auth" className="space-y-4">
+              <div className="space-y-2 mb-4">
+                <h3 className="text-lg font-semibold">PocketID Authentication (OIDC)</h3>
+                <p className="text-sm text-muted-foreground">
+                  Configure OpenID Connect authentication to allow users to sign in with PocketID
+                </p>
+              </div>
+
+              <div className="space-y-4 p-4 bg-muted/30 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="oidcEnabled"
+                    checked={aiFormData.oidcEnabled}
+                    onChange={(e) => handleAiInputChange('oidcEnabled', e.target.checked)}
+                    className="w-4 h-4 text-primary bg-gray-100 border-gray-300 rounded focus:ring-primary focus:ring-2"
+                  />
+                  <label htmlFor="oidcEnabled" className="text-sm font-medium cursor-pointer">
+                    Enable PocketID Authentication
+                  </label>
+                </div>
+                <p className="text-xs text-muted-foreground ml-6">
+                  When enabled, users will see a "Sign in with PocketID" button on the login page
+                </p>
+              </div>
+
+              {aiFormData.oidcEnabled && (
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">
+                      OIDC Issuer URL
+                    </label>
+                    <Input
+                      type="url"
+                      placeholder="https://pocketid.app"
+                      value={aiFormData.oidcIssuer}
+                      onChange={(e) => handleAiInputChange('oidcIssuer', e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      The URL of your OpenID Connect provider (default: https://pocketid.app)
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">
+                      Client ID *
+                    </label>
+                    <Input
+                      placeholder="Your PocketID Client ID"
+                      value={aiFormData.oidcClientId}
+                      onChange={(e) => handleAiInputChange('oidcClientId', e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      The client ID provided by PocketID for your application
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">
+                      Client Secret *
+                    </label>
+                    <Input
+                      type="password"
+                      placeholder="Your PocketID Client Secret"
+                      value={aiFormData.oidcClientSecret}
+                      onChange={(e) => handleAiInputChange('oidcClientSecret', e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      The client secret provided by PocketID (keep this secure)
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">
+                      Callback URL *
+                    </label>
+                    <Input
+                      type="url"
+                      placeholder="https://notes.rodeomasjid.org/api/auth/oidc/callback"
+                      value={aiFormData.oidcCallbackUrl}
+                      onChange={(e) => handleAiInputChange('oidcCallbackUrl', e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      This must exactly match the callback URL registered in PocketID
+                    </p>
+                  </div>
+
+                  <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                    <h4 className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-2">
+                      Setup Instructions
+                    </h4>
+                    <ol className="text-xs text-blue-800 dark:text-blue-200 space-y-1 list-decimal list-inside">
+                      <li>Create an application in PocketID</li>
+                      <li>Set the callback URL to: <code className="bg-blue-100 dark:bg-blue-950 px-1 py-0.5 rounded">https://notes.rodeomasjid.org/api/auth/oidc/callback</code></li>
+                      <li>Copy the Client ID and Client Secret from PocketID</li>
+                      <li>Paste them in the fields above</li>
+                      <li>Enable PocketID Authentication and save</li>
+                    </ol>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex justify-end gap-2 pt-4">
+                <Button
+                  variant="outline"
+                  onClick={() => setSettingsOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button onClick={handleSaveAiSettings}>
+                  Save Authentication Settings
+                </Button>
+              </div>
+
+              <div className="text-xs text-muted-foreground">
+                * Required fields when PocketID authentication is enabled
               </div>
             </TabsContent>
           )}

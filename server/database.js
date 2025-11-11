@@ -127,6 +127,39 @@ try {
     db.exec('ALTER TABLE tasks ADD COLUMN comments TEXT')
   }
 
+  // Add OIDC configuration columns to settings table
+  const settingsColumns = db.prepare("PRAGMA table_info(settings)").all()
+  const hasOidcEnabled = settingsColumns.some(col => col.name === 'oidc_enabled')
+  const hasOidcClientId = settingsColumns.some(col => col.name === 'oidc_client_id')
+  const hasOidcClientSecret = settingsColumns.some(col => col.name === 'oidc_client_secret')
+  const hasOidcIssuer = settingsColumns.some(col => col.name === 'oidc_issuer')
+  const hasOidcCallbackUrl = settingsColumns.some(col => col.name === 'oidc_callback_url')
+
+  if (!hasOidcEnabled) {
+    console.log('[Database] Adding oidc_enabled column to settings table')
+    db.exec('ALTER TABLE settings ADD COLUMN oidc_enabled INTEGER DEFAULT 0')
+  }
+
+  if (!hasOidcClientId) {
+    console.log('[Database] Adding oidc_client_id column to settings table')
+    db.exec('ALTER TABLE settings ADD COLUMN oidc_client_id TEXT')
+  }
+
+  if (!hasOidcClientSecret) {
+    console.log('[Database] Adding oidc_client_secret column to settings table')
+    db.exec('ALTER TABLE settings ADD COLUMN oidc_client_secret TEXT')
+  }
+
+  if (!hasOidcIssuer) {
+    console.log('[Database] Adding oidc_issuer column to settings table')
+    db.exec("ALTER TABLE settings ADD COLUMN oidc_issuer TEXT DEFAULT 'https://pocketid.app'")
+  }
+
+  if (!hasOidcCallbackUrl) {
+    console.log('[Database] Adding oidc_callback_url column to settings table')
+    db.exec('ALTER TABLE settings ADD COLUMN oidc_callback_url TEXT')
+  }
+
   // Migrate existing OIDC users if any (from old schema)
   try {
     const oldUsersCheck = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='users_old'").get()
@@ -196,17 +229,40 @@ try {
 // Settings operations
 export const getSettings = (userId) => {
   const stmt = db.prepare('SELECT * FROM settings WHERE user_id = ? LIMIT 1')
-  return stmt.get(userId)
+  const settings = stmt.get(userId)
+
+  // If no settings exist, return defaults from environment variables
+  if (!settings) {
+    const enableOidc = process.env.ENABLE_OIDC === 'true' || process.env.ENABLE_OIDC === '1'
+    return {
+      user_id: userId,
+      oidc_issuer: process.env.POCKET_ID_ISSUER || 'https://pocketid.app',
+      oidc_client_id: process.env.POCKET_ID_CLIENT_ID || '',
+      oidc_client_secret: process.env.POCKET_ID_CLIENT_SECRET || '',
+      oidc_enabled: enableOidc ? 1 : 0,
+      oidc_callback_url: ''
+    }
+  }
+
+  return settings
 }
 
 export const saveSettings = (userId, settings) => {
   const existing = getSettings(userId)
 
-  if (existing) {
+  // Use environment variables as fallback for OIDC settings
+  const oidcIssuer = settings.oidcIssuer || process.env.POCKET_ID_ISSUER || 'https://pocketid.app'
+  const oidcClientId = settings.oidcClientId || process.env.POCKET_ID_CLIENT_ID || null
+  const oidcClientSecret = settings.oidcClientSecret || process.env.POCKET_ID_CLIENT_SECRET || null
+
+  if (existing && existing.id) {
     const stmt = db.prepare(`
       UPDATE settings
       SET azure_endpoint = ?, api_key = ?, api_version = ?,
-          whisper_deployment = ?, gpt_deployment = ?, updated_at = CURRENT_TIMESTAMP
+          whisper_deployment = ?, gpt_deployment = ?,
+          oidc_enabled = ?, oidc_client_id = ?, oidc_client_secret = ?,
+          oidc_issuer = ?, oidc_callback_url = ?,
+          updated_at = CURRENT_TIMESTAMP
       WHERE user_id = ?
     `)
     stmt.run(
@@ -215,12 +271,17 @@ export const saveSettings = (userId, settings) => {
       settings.apiVersion,
       settings.whisperDeployment,
       settings.gptDeployment,
+      settings.oidcEnabled ? 1 : 0,
+      oidcClientId,
+      oidcClientSecret,
+      oidcIssuer,
+      settings.oidcCallbackUrl || null,
       userId
     )
   } else {
     const stmt = db.prepare(`
-      INSERT INTO settings (user_id, azure_endpoint, api_key, api_version, whisper_deployment, gpt_deployment)
-      VALUES (?, ?, ?, ?, ?, ?)
+      INSERT INTO settings (user_id, azure_endpoint, api_key, api_version, whisper_deployment, gpt_deployment, oidc_enabled, oidc_client_id, oidc_client_secret, oidc_issuer, oidc_callback_url)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `)
     stmt.run(
       userId,
@@ -228,7 +289,12 @@ export const saveSettings = (userId, settings) => {
       settings.apiKey,
       settings.apiVersion,
       settings.whisperDeployment,
-      settings.gptDeployment
+      settings.gptDeployment,
+      settings.oidcEnabled ? 1 : 0,
+      oidcClientId,
+      oidcClientSecret,
+      oidcIssuer,
+      settings.oidcCallbackUrl || null
     )
   }
 }

@@ -1,13 +1,23 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
-import { Mail, Lock, Loader2 } from 'lucide-react'
+import { Mail, Lock, Loader2, KeyRound } from 'lucide-react'
+import apiService from '../services/apiService'
 
 export default function LoginForm({ onLogin, onSwitchToRegister, error }) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
+  const [oidcLoading, setOidcLoading] = useState(false)
+  const [oidcEnabled, setOidcEnabled] = useState(false)
+
+  useEffect(() => {
+    // Check if OIDC is enabled
+    apiService.getOIDCStatus().then(status => {
+      setOidcEnabled(status.enabled)
+    })
+  }, [])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -16,6 +26,18 @@ export default function LoginForm({ onLogin, onSwitchToRegister, error }) {
       await onLogin(email, password)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleOIDCLogin = async () => {
+    setOidcLoading(true)
+    try {
+      const authUrl = await apiService.initiateOIDCLogin()
+      // Redirect to OIDC provider
+      window.location.href = authUrl
+    } catch (error) {
+      console.error('[LoginForm] OIDC login error:', error)
+      setOidcLoading(false)
     }
   }
 
@@ -90,7 +112,7 @@ export default function LoginForm({ onLogin, onSwitchToRegister, error }) {
         <Button
           type="submit"
           className="w-full"
-          disabled={loading}
+          disabled={loading || oidcLoading}
         >
           {loading ? (
             <>
@@ -103,18 +125,55 @@ export default function LoginForm({ onLogin, onSwitchToRegister, error }) {
         </Button>
       </form>
 
-      <div className="mt-6 text-center">
-        <p className="text-sm text-muted-foreground">
-          Don't have an account?{' '}
-          <button
-            onClick={onSwitchToRegister}
-            className="text-primary hover:underline font-medium"
-            disabled={loading}
+      {oidcEnabled && (
+        <>
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-300 dark:border-gray-600" />
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-2 bg-white dark:bg-gray-800 text-muted-foreground">
+                Or continue with
+              </span>
+            </div>
+          </div>
+
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full"
+            onClick={handleOIDCLogin}
+            disabled={loading || oidcLoading}
           >
-            Create one
-          </button>
-        </p>
-      </div>
+            {oidcLoading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Connecting to PocketID...
+              </>
+            ) : (
+              <>
+                <KeyRound className="mr-2 h-4 w-4" />
+                Sign in with PocketID
+              </>
+            )}
+          </Button>
+        </>
+      )}
+
+      {onSwitchToRegister && (
+        <div className="mt-6 text-center">
+          <p className="text-sm text-muted-foreground">
+            Don't have an account?{' '}
+            <button
+              onClick={onSwitchToRegister}
+              className="text-primary hover:underline font-medium"
+              disabled={loading}
+            >
+              Create one
+            </button>
+          </p>
+        </div>
+      )}
     </motion.div>
   )
 }

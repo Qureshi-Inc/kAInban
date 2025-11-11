@@ -101,6 +101,36 @@ class ApiService {
     }
   }
 
+  async getOIDCStatus() {
+    try {
+      const response = await fetch(`${API_URL}/auth/oidc/status`, {
+        credentials: 'include'
+      })
+      if (!response.ok) throw new Error('Failed to get OIDC status')
+      return await response.json()
+    } catch (error) {
+      console.error('[API] Get OIDC status error:', error)
+      return { enabled: false }
+    }
+  }
+
+  async initiateOIDCLogin() {
+    try {
+      const response = await fetch(`${API_URL}/auth/oidc/login`, {
+        credentials: 'include'
+      })
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data.error || 'Failed to initiate OIDC login')
+      }
+      const data = await response.json()
+      return data.authUrl
+    } catch (error) {
+      console.error('[API] OIDC login error:', error)
+      throw error
+    }
+  }
+
   // Settings
   async getSettings() {
     try {
