@@ -687,42 +687,76 @@ ${transcript}`
     }
 
     try {
-      console.log('[OpenAI] Generating analytics insights...')
-      console.log('[OpenAI] Analytics data:', analytics)
+      console.log('[OpenAI] Generating task insights...')
+      console.log('[OpenAI] Task count:', analytics.total)
 
-      const prompt = `You are an expert productivity analyst. Analyze the following task management data and provide actionable insights.
+      // Calculate days until due for each task
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
 
-TASK STATISTICS:
-- Total Tasks: ${analytics.total}
-- Completed: ${analytics.completed} (${analytics.completionRate}%)
-- In Progress: ${analytics.inProgress}
-- Blocked: ${analytics.blocked}
-- To Do: ${analytics.todo}
-- Overdue: ${analytics.overdue}
+      const tasksWithContext = analytics.tasks.map(task => {
+        let dueContext = ''
+        if (task.dueDate) {
+          const dueDate = new Date(task.dueDate)
+          const daysDiff = Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24))
+          if (daysDiff < 0) {
+            dueContext = ` (OVERDUE by ${Math.abs(daysDiff)} days)`
+          } else if (daysDiff === 0) {
+            dueContext = ' (DUE TODAY)'
+          } else if (daysDiff <= 7) {
+            dueContext = ` (Due in ${daysDiff} days)`
+          } else {
+            dueContext = ` (Due: ${task.dueDate})`
+          }
+        }
+        return { ...task, dueContext }
+      })
 
-PRIORITY DISTRIBUTION:
-- High Priority: ${analytics.highPriority}
-- Medium Priority: ${analytics.mediumPriority}
-- Low Priority: ${analytics.lowPriority}
+      // Separate tasks by urgency/status for better analysis
+      const urgentTasks = tasksWithContext.filter(t =>
+        t.status !== 'done' && (
+          t.dueContext.includes('OVERDUE') ||
+          t.dueContext.includes('DUE TODAY') ||
+          t.priority === 'high'
+        )
+      )
+      const lowEffortTasks = tasksWithContext.filter(t =>
+        t.status !== 'done' && t.priority === 'low'
+      )
+      const activeTasks = tasksWithContext.filter(t =>
+        t.status === 'in-progress' || t.status === 'todo'
+      )
 
-TASK DETAILS:
-${analytics.tasks.slice(0, 20).map((task, idx) =>
-  `${idx + 1}. "${task.title}" - Status: ${task.status}, Priority: ${task.priority}${task.dueDate ? `, Due: ${task.dueDate}` : ''}${task.assignee ? `, Assignee: ${task.assignee}` : ''}`
+      const prompt = `You are a productivity coach reviewing someone's task list. Provide brief, actionable insights to help them prioritize their work.
+
+CURRENT TASKS:
+${tasksWithContext.slice(0, 25).map((task, idx) =>
+  `${idx + 1}. "${task.title}" - Status: ${task.status}, Priority: ${task.priority}${task.dueContext}${task.description ? ` - ${task.description.substring(0, 100)}` : ''}`
 ).join('\n')}
-${analytics.tasks.length > 20 ? `\n...and ${analytics.tasks.length - 20} more tasks` : ''}
+${tasksWithContext.length > 25 ? `\n...and ${tasksWithContext.length - 25} more tasks` : ''}
 
-Please provide:
-1. **Productivity Overview**: Brief assessment of overall task completion and workflow health
-2. **Key Patterns**: Identify any notable patterns in task distribution, priorities, or statuses
-3. **Bottleneck Analysis**: Analyze blocked tasks and potential workflow issues
-4. **Time Management**: Insights about overdue tasks and deadline management
-5. **Actionable Recommendations**: 3-5 specific, actionable steps to improve productivity
+CONTEXT:
+- ${urgentTasks.length} urgent/overdue tasks
+- ${activeTasks.length} active tasks (in-progress or todo)
+- ${lowEffortTasks.length} low priority tasks
+- ${analytics.blocked} blocked tasks
 
-Format your response in clear, concise paragraphs with section headings. Focus on insights that can drive action and improvement.`
+Provide 3 short, focused insights:
+
+**🎯 What you should focus on this week:**
+[1-2 sentences highlighting the most important/urgent tasks to tackle, referencing specific task titles]
+
+**✅ Something low effort you can take off your list:**
+[1-2 sentences identifying a quick win - a low priority or simple task they can complete easily to build momentum]
+
+**⚠️ What's really urgent and needs to be addressed:**
+[1-2 sentences calling out overdue items or high-priority tasks that need immediate attention]
+
+Keep each insight concise and reference specific task titles. Be encouraging but direct.`
 
       const url = `${this.baseUrl}/openai/deployments/${this.gptDeployment}/chat/completions?api-version=${this.apiVersion}`
 
-      console.log('[OpenAI] Sending analytics request to:', url)
+      console.log('[OpenAI] Sending insights request to:', url)
 
       const response = await fetch(url, {
         method: 'POST',
@@ -734,22 +768,22 @@ Format your response in clear, concise paragraphs with section headings. Focus o
           messages: [
             {
               role: 'system',
-              content: 'You are an expert productivity analyst who provides clear, actionable insights based on task management data. Your analysis is data-driven, practical, and focused on helping users improve their workflow.'
+              content: 'You are a helpful productivity coach who provides brief, actionable insights. You reference specific tasks by their titles and keep your advice concise and practical.'
             },
             {
               role: 'user',
               content: prompt
             }
           ],
-          max_tokens: 1500,
+          max_tokens: 800,
           temperature: 0.7
         })
       })
 
       if (!response.ok) {
         const errorText = await response.text()
-        console.error('[OpenAI] Analytics error response:', errorText)
-        let errorMessage = `Analytics generation failed: ${response.status} ${response.statusText}`
+        console.error('[OpenAI] Insights error response:', errorText)
+        let errorMessage = `Insights generation failed: ${response.status} ${response.statusText}`
 
         try {
           const errorData = JSON.parse(errorText)
@@ -768,12 +802,12 @@ Format your response in clear, concise paragraphs with section headings. Focus o
       const result = await response.json()
       const insights = result.choices?.[0]?.message?.content || 'Unable to generate insights'
 
-      console.log('[OpenAI] ✓ Analytics insights generated successfully')
+      console.log('[OpenAI] ✓ Task insights generated successfully')
       console.log('[OpenAI] Insights length:', insights.length, 'characters')
 
       return insights
     } catch (error) {
-      console.error('[OpenAI] Analytics generation error:', error)
+      console.error('[OpenAI] Insights generation error:', error)
       if (error.message.includes('fetch')) {
         throw new Error('Network error: Unable to connect to Azure OpenAI. Please check your endpoint and internet connection.')
       }

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { BarChart3, TrendingUp, CheckCircle2, AlertCircle, Clock, Target, Sparkles } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
@@ -6,6 +6,8 @@ import { Button } from './ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select'
 import useAppStore from '../stores/useAppStore'
 import openaiService from '../services/openaiService'
+
+const INSIGHTS_CACHE_KEY = 'analytics_insights_cache'
 
 export default function AnalyticsDashboard() {
   const projects = useAppStore((state) => state.projects)
@@ -20,6 +22,7 @@ export default function AnalyticsDashboard() {
   const [aiInsights, setAiInsights] = useState(null)
   const [loadingInsights, setLoadingInsights] = useState(false)
   const [insightsCacheTime, setInsightsCacheTime] = useState(null)
+  const [lastTaskCount, setLastTaskCount] = useState(0)
 
   // Calculate analytics based on selected project
   const analytics = useMemo(() => {
@@ -88,24 +91,89 @@ export default function AnalyticsDashboard() {
     }
   }, [projects, selectedProjectId, projectsVersion])
 
-  // Check if insights cache is still valid (1 hour)
+  // Helper function to get date at midnight
+  const getMidnightDate = (date = new Date()) => {
+    const midnight = new Date(date)
+    midnight.setHours(0, 0, 0, 0)
+    return midnight.getTime()
+  }
+
+  // Check if insights cache is still valid (expires at midnight)
   const insightsCacheValid = useMemo(() => {
     if (!insightsCacheTime) return false
-    const oneHour = 60 * 60 * 1000
-    return (Date.now() - insightsCacheTime) < oneHour
+    const cachedMidnight = getMidnightDate(new Date(insightsCacheTime))
+    const currentMidnight = getMidnightDate()
+    // Cache is valid if it's from today (after current midnight)
+    return cachedMidnight >= currentMidnight
   }, [insightsCacheTime])
 
+  // Load cached insights from localStorage on mount
+  useEffect(() => {
+    try {
+      const cached = localStorage.getItem(INSIGHTS_CACHE_KEY)
+      if (cached) {
+        const { insights, timestamp, taskCount, projectId } = JSON.parse(cached)
+        const cachedMidnight = getMidnightDate(new Date(timestamp))
+        const currentMidnight = getMidnightDate()
+
+        // Only use cache if it's from today and for the same project
+        if (cachedMidnight >= currentMidnight && projectId === selectedProjectId) {
+          console.log('[Analytics] Loading cached insights from localStorage')
+          setAiInsights(insights)
+          setInsightsCacheTime(timestamp)
+          setLastTaskCount(taskCount)
+        } else {
+          console.log('[Analytics] Cache expired or different project, will regenerate')
+          localStorage.removeItem(INSIGHTS_CACHE_KEY)
+        }
+      }
+    } catch (error) {
+      console.error('[Analytics] Failed to load cached insights:', error)
+      localStorage.removeItem(INSIGHTS_CACHE_KEY)
+    }
+  }, []) // Only run on mount
+
+  // Auto-generate insights when tasks are available and cache is invalid
+  useEffect(() => {
+    const shouldGenerate =
+      analytics.total > 0 && // Has tasks
+      !loadingInsights && // Not already loading
+      (!insightsCacheValid || analytics.total !== lastTaskCount) // Cache invalid or tasks changed
+
+    if (shouldGenerate) {
+      console.log('[Analytics] Auto-generating insights (tasks:', analytics.total, ', last count:', lastTaskCount, ')')
+      handleGenerateInsights()
+    }
+  }, [analytics.total, selectedProjectId, insightsCacheValid])
+
   const handleGenerateInsights = async () => {
-    // Check cache first
-    if (insightsCacheValid && aiInsights) {
-      return // Use cached insights
+    // Don't regenerate if already loading or if cache is still valid and task count hasn't changed
+    if (loadingInsights || (insightsCacheValid && analytics.total === lastTaskCount)) {
+      return
     }
 
     setLoadingInsights(true)
     try {
+      console.log('[Analytics] Generating insights for', analytics.total, 'tasks')
       const insights = await openaiService.generateAnalyticsInsights(analytics)
+      const timestamp = Date.now()
+
       setAiInsights(insights)
-      setInsightsCacheTime(Date.now())
+      setInsightsCacheTime(timestamp)
+      setLastTaskCount(analytics.total)
+
+      // Save to localStorage
+      try {
+        localStorage.setItem(INSIGHTS_CACHE_KEY, JSON.stringify({
+          insights,
+          timestamp,
+          taskCount: analytics.total,
+          projectId: selectedProjectId
+        }))
+        console.log('[Analytics] Insights cached to localStorage')
+      } catch (error) {
+        console.error('[Analytics] Failed to cache insights:', error)
+      }
     } catch (error) {
       console.error('[Analytics] Failed to generate insights:', error)
       setAiInsights('Failed to generate insights. Please check your Azure OpenAI configuration and try again.')
@@ -113,6 +181,34 @@ export default function AnalyticsDashboard() {
       setLoadingInsights(false)
     }
   }
+
+  // Clear cache when project selection changes
+  useEffect(() => {
+    console.log('[Analytics] Project selection changed to:', selectedProjectId)
+    setAiInsights(null)
+    setInsightsCacheTime(null)
+    setLastTaskCount(0)
+
+    // Try to load cached insights for this project
+    try {
+      const cached = localStorage.getItem(INSIGHTS_CACHE_KEY)
+      if (cached) {
+        const { insights, timestamp, taskCount, projectId } = JSON.parse(cached)
+        const cachedMidnight = getMidnightDate(new Date(timestamp))
+        const currentMidnight = getMidnightDate()
+
+        // Only use cache if it's from today and for the selected project
+        if (cachedMidnight >= currentMidnight && projectId === selectedProjectId) {
+          console.log('[Analytics] Found cached insights for this project')
+          setAiInsights(insights)
+          setInsightsCacheTime(timestamp)
+          setLastTaskCount(taskCount)
+        }
+      }
+    } catch (error) {
+      console.error('[Analytics] Failed to load cached insights for project:', error)
+    }
+  }, [selectedProjectId])
 
   return (
     <div className="space-y-6 pb-8">
@@ -353,21 +449,34 @@ export default function AnalyticsDashboard() {
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="flex items-center gap-2">
               <Sparkles className="h-5 w-5" />
-              AI-Powered Insights
+              AI Task Recommendations
             </CardTitle>
             <Button
               onClick={handleGenerateInsights}
               disabled={loadingInsights || analytics.total === 0}
               size="sm"
+              variant="outline"
             >
-              {loadingInsights ? 'Generating...' : insightsCacheValid ? 'Refresh Insights' : 'Generate Insights'}
+              {loadingInsights ? 'Generating...' : 'Refresh'}
             </Button>
           </CardHeader>
           <CardContent>
             {analytics.total === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
-                <p>No tasks available for analysis.</p>
-                <p className="text-sm mt-2">Create some tasks to see AI-powered insights!</p>
+                <Sparkles className="h-12 w-12 mx-auto mb-4 opacity-30" />
+                <p>No tasks available for insights.</p>
+                <p className="text-sm mt-2">Create some tasks to get AI-powered recommendations!</p>
+              </div>
+            ) : loadingInsights && !aiInsights ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                >
+                  <Sparkles className="h-12 w-12 mx-auto mb-4 text-blue-500" />
+                </motion.div>
+                <p>Analyzing your tasks...</p>
+                <p className="text-sm mt-2">Generating personalized insights</p>
               </div>
             ) : aiInsights ? (
               <div className="prose prose-sm dark:prose-invert max-w-none">
@@ -375,20 +484,12 @@ export default function AnalyticsDashboard() {
                   {aiInsights}
                 </div>
                 {insightsCacheValid && (
-                  <p className="text-xs text-muted-foreground mt-4">
-                    Insights cached for 1 hour. Click "Refresh Insights" to regenerate.
+                  <p className="text-xs text-muted-foreground mt-4 border-t pt-3">
+                    💡 Insights are refreshed daily at midnight or when you add new tasks.
                   </p>
                 )}
               </div>
-            ) : (
-              <div className="text-center py-8 text-muted-foreground">
-                <Sparkles className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>Click "Generate Insights" to get AI-powered analysis of your tasks.</p>
-                <p className="text-sm mt-2">
-                  Get productivity patterns, bottleneck identification, and actionable recommendations.
-                </p>
-              </div>
-            )}
+            ) : null}
           </CardContent>
         </Card>
       </motion.div>
