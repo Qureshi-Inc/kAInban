@@ -48,7 +48,7 @@ const TaskCard = ({ task, onStatusChange, onDelete, onClick }) => {
         ease: "easeOut",
         scale: { type: "spring", stiffness: 300, damping: 25 }
       }}
-      className={`group task-card bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-xl p-4 mb-3 shadow-lg hover:shadow-2xl cursor-grab active:cursor-grabbing backdrop-blur-sm transition-all duration-300 hover:border-primary/40 hover:bg-gradient-to-br hover:from-gray-50/50 hover:to-white dark:hover:from-gray-700/50 dark:hover:to-gray-800 ${getDragStyles()}`}
+      className={`group task-card bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-xl p-1 sm:p-4 mb-3 shadow-lg hover:shadow-2xl cursor-grab active:cursor-grabbing backdrop-blur-sm transition-all duration-300 hover:border-primary/40 hover:bg-gradient-to-br hover:from-gray-50/50 hover:to-white dark:hover:from-gray-700/50 dark:hover:to-gray-800 ${getDragStyles()}`}
       style={{
         transformOrigin: 'center center',
         transformStyle: 'preserve-3d'
@@ -673,7 +673,7 @@ export default function KanbanBoard() {
           </div>
         </CardHeader>
         <CardContent className="p-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-4 lg:gap-6">
             <Column
               title="📋 To Do"
               status="todo"

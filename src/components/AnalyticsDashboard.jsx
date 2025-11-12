@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react'
-import { motion } from 'framer-motion'
-import { BarChart3, TrendingUp, CheckCircle2, AlertCircle, Clock, Target, Sparkles } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { BarChart3, TrendingUp, CheckCircle2, AlertCircle, Clock, Target, Sparkles, Filter } from 'lucide-react'
 import { Swiper, SwiperSlide } from 'swiper/react'
 import { Navigation, Pagination, Autoplay, EffectFade } from 'swiper/modules'
 import 'swiper/css'
@@ -10,7 +10,6 @@ import 'swiper/css/autoplay'
 import 'swiper/css/effect-fade'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
 import { Button } from './ui/button'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select'
 import ReactMarkdown from 'react-markdown'
 import useAppStore from '../stores/useAppStore'
 import openaiService from '../services/openaiService'
@@ -27,6 +26,7 @@ export default function AnalyticsDashboard() {
   )
 
   const [selectedProjectId, setSelectedProjectId] = useState('all') // 'all' or specific project ID
+  const [isFilterOpen, setIsFilterOpen] = useState(false)
   const [aiInsights, setAiInsights] = useState(null)
   const [loadingInsights, setLoadingInsights] = useState(false)
   const [insightsCacheTime, setInsightsCacheTime] = useState(null)
@@ -275,6 +275,20 @@ export default function AnalyticsDashboard() {
     }
   }, [selectedProjectId])
 
+  // Close filter dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (isFilterOpen && !event.target.closest('.analytics-filter-dropdown')) {
+        setIsFilterOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [isFilterOpen])
+
   return (
     <>
       {/* Custom Swiper styles */}
@@ -303,48 +317,99 @@ export default function AnalyticsDashboard() {
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
+        className="flex flex-row items-start justify-between gap-2"
       >
-        <div>
-          <h2 className="text-3xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+        <div className="flex-1 min-w-0 pr-2">
+          <h2 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
             Analytics Dashboard
           </h2>
-          <p className="text-sm text-muted-foreground mt-1">
+          <p className="text-xs sm:text-sm text-muted-foreground mt-1 truncate">
             {selectedProjectId === 'all'
-              ? `Showing analytics across ${projects.length} projects`
-              : `Showing analytics for ${projects.find(p => p.id === selectedProjectId)?.name || 'selected project'}`}
+              ? `${projects.length} projects`
+              : projects.find(p => p.id === selectedProjectId)?.name || 'Selected project'}
           </p>
         </div>
 
-        {/* Project Selector */}
-        <div className="w-full sm:w-64">
-          <Select value={selectedProjectId} onValueChange={setSelectedProjectId}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select scope" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">
-                <div className="font-medium">All Projects</div>
-              </SelectItem>
-              {projects.length > 0 && (
-                <>
-                  <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
-                    Individual Projects
-                  </div>
-                  {projects.map((project) => (
-                    <SelectItem key={project.id} value={project.id}>
-                      <div className="flex items-center justify-between gap-2">
-                        <span>{project.name}</span>
-                        <span className="text-xs text-muted-foreground">
-                          ({project.tasks?.length || 0} tasks)
-                        </span>
+        {/* Project Filter */}
+        <div className="relative analytics-filter-dropdown">
+          <Button
+            variant="outline"
+            onClick={() => setIsFilterOpen(!isFilterOpen)}
+            className="flex items-center gap-1 px-2 sm:px-3"
+            size="sm"
+          >
+            <Filter className="h-4 w-4 flex-shrink-0" />
+            <span className="hidden sm:inline text-xs sm:text-sm truncate max-w-24 sm:max-w-none">
+              {selectedProjectId === 'all'
+                ? 'All Projects'
+                : projects.find(p => p.id === selectedProjectId)?.name || 'Selected'}
+            </span>
+          </Button>
+
+          <AnimatePresence>
+            {isFilterOpen && (
+              <>
+                {/* Backdrop */}
+                <div
+                  className="fixed inset-0 z-40"
+                  onClick={() => setIsFilterOpen(false)}
+                />
+
+                {/* Dropdown */}
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                  transition={{ duration: 0.15 }}
+                  className="absolute right-0 mt-2 w-72 bg-white dark:bg-gray-800 rounded-lg shadow-xl border-2 border-gray-200 dark:border-gray-700 overflow-hidden z-50"
+                >
+                  {/* All Projects Option */}
+                  <button
+                    onClick={() => {
+                      setSelectedProjectId('all')
+                      setIsFilterOpen(false)
+                    }}
+                    className={`w-full px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors border-b border-gray-100 dark:border-gray-700 ${
+                      selectedProjectId === 'all' ? 'bg-primary/10 text-primary font-medium' : ''
+                    }`}
+                  >
+                    <div className="font-medium">All Projects</div>
+                    <div className="text-xs text-muted-foreground mt-1">
+                      View analytics across all {projects.length} projects
+                    </div>
+                  </button>
+
+                  {/* Individual Projects */}
+                  {projects.length > 0 && (
+                    <>
+                      <div className="px-4 py-2 text-xs font-semibold text-muted-foreground bg-gray-50 dark:bg-gray-700/50">
+                        Individual Projects
                       </div>
-                    </SelectItem>
-                  ))}
-                </>
-              )}
-            </SelectContent>
-          </Select>
+                      {projects.map((project) => (
+                        <button
+                          key={project.id}
+                          onClick={() => {
+                            setSelectedProjectId(project.id)
+                            setIsFilterOpen(false)
+                          }}
+                          className={`w-full px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${
+                            selectedProjectId === project.id ? 'bg-primary/10 text-primary font-medium' : ''
+                          }`}
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="font-medium truncate">{project.name}</span>
+                            <span className="text-xs text-muted-foreground flex-shrink-0">
+                              {project.tasks?.length || 0} tasks
+                            </span>
+                          </div>
+                        </button>
+                      ))}
+                    </>
+                  )}
+                </motion.div>
+              </>
+            )}
+          </AnimatePresence>
         </div>
       </motion.div>
 
