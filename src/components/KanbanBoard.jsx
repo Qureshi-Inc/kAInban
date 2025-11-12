@@ -146,7 +146,7 @@ const Column = ({ title, status, tasks, onTaskMove, onTaskDelete, onTaskClick, c
 }
 
 export default function KanbanBoard() {
-  const { tasks, moveTask, updateTask, deleteTask, clearTasks, addTask, addNotification } = useAppStore()
+  const { tasks, moveTask, updateTask, deleteTask, clearTasks, addTask, addNotification, addAiDiscoveredLinks } = useAppStore()
   const [selectedTask, setSelectedTask] = useState(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -188,23 +188,25 @@ export default function KanbanBoard() {
         if (relatedIndices.length > 0) {
           console.log('[Kanban] Found related tasks:', relatedIndices)
           const otherTasks = tasks.filter(t => t.id !== taskId)
-          let updatedCount = 0
+          const relatedTaskIds = []
 
           relatedIndices.forEach(index => {
             if (index >= 0 && index < otherTasks.length) {
               const relatedTask = otherTasks[index]
               if (relatedTask.status !== 'done') {
-                updateTask(relatedTask.id, { status: 'done' })
-                updatedCount++
-                console.log('[Kanban] Auto-completed related task:', relatedTask.title)
+                relatedTaskIds.push(relatedTask.id)
+                console.log('[Kanban] AI discovered related task:', relatedTask.title)
               }
             }
           })
 
-          if (updatedCount > 0) {
+          if (relatedTaskIds.length > 0) {
+            // Add AI discovered links instead of immediately completing tasks
+            addAiDiscoveredLinks(taskId, relatedTaskIds)
+
             addNotification({
-              type: 'success',
-              message: `Completed "${task.title}" and ${updatedCount} related task${updatedCount > 1 ? 's' : ''}!`
+              type: 'info',
+              message: `Completed "${task.title}". AI found ${relatedTaskIds.length} related task${relatedTaskIds.length > 1 ? 's' : ''} - review in task details to accept or reject.`
             })
           }
         }

@@ -88,7 +88,7 @@ export default function MeetingFilesPanel() {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-8 w-8 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-50 dark:hover:bg-red-900/20"
+                      className="h-8 w-8 flex-shrink-0 opacity-60 hover:opacity-100 transition-opacity hover:bg-red-50 dark:hover:bg-red-900/20"
                       onClick={(e) => handleDeleteMeeting(meeting.id, e)}
                     >
                       <Trash2 className="h-4 w-4 text-muted-foreground hover:text-destructive" />

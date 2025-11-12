@@ -1,6 +1,13 @@
 import React, { useState, useMemo, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { BarChart3, TrendingUp, CheckCircle2, AlertCircle, Clock, Target, Sparkles } from 'lucide-react'
+import { Swiper, SwiperSlide } from 'swiper/react'
+import { Navigation, Pagination, Autoplay, EffectFade } from 'swiper/modules'
+import 'swiper/css'
+import 'swiper/css/navigation'
+import 'swiper/css/pagination'
+import 'swiper/css/autoplay'
+import 'swiper/css/effect-fade'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
 import { Button } from './ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select'
@@ -138,6 +145,67 @@ export default function AnalyticsDashboard() {
     return false // No valid cache found
   }
 
+
+  // Parse AI insights into carousel items
+  const parseInsightsIntoCarousel = (insights) => {
+    if (!insights) return []
+
+    // Split by the ** markers and filter out empty parts
+    const parts = insights.split('**').filter(part => part.trim())
+    const carouselItems = []
+
+    // Process parts in pairs (title, content)
+    for (let i = 0; i < parts.length; i += 2) {
+      if (parts[i + 1]) {
+        const rawTitle = parts[i].trim()
+        const content = parts[i + 1].trim()
+
+        // Extract emoji and clean title, then map to icons
+        const emojiMatch = rawTitle.match(/[🎯✅⚠️💡⭐]/)?.[0] || '💡'
+        const cleanTitle = rawTitle.replace(/[🎯✅⚠️💡⭐]/g, '').trim().replace(/^:/, '').trim()
+
+        // Map emojis to Lucide icons
+        let iconComponent = Target // default
+        let iconColor = 'text-blue-500'
+
+        if (emojiMatch === '🎯' || cleanTitle.toLowerCase().includes('focus')) {
+          iconComponent = Target
+          iconColor = 'text-blue-500'
+        } else if (emojiMatch === '✅' || cleanTitle.toLowerCase().includes('low effort') || cleanTitle.toLowerCase().includes('take off')) {
+          iconComponent = CheckCircle2
+          iconColor = 'text-green-500'
+        } else if (emojiMatch === '⚠️' || cleanTitle.toLowerCase().includes('urgent') || cleanTitle.toLowerCase().includes('really urgent')) {
+          iconComponent = AlertCircle
+          iconColor = 'text-red-500'
+        }
+
+        if (cleanTitle && content) {
+          carouselItems.push({
+            emoji: emojiMatch,
+            iconComponent: iconComponent,
+            iconColor: iconColor,
+            title: cleanTitle,
+            content: content
+          })
+        }
+      }
+    }
+
+    // If parsing failed, create a fallback item
+    if (carouselItems.length === 0) {
+      carouselItems.push({
+        emoji: '💡',
+        iconComponent: Target,
+        iconColor: 'text-blue-500',
+        title: 'AI Recommendations',
+        content: insights
+      })
+    }
+
+    return carouselItems
+  }
+
+
   // Auto-generate insights when tasks are available and no valid cache exists
   useEffect(() => {
     const shouldGenerate =
@@ -208,8 +276,30 @@ export default function AnalyticsDashboard() {
   }, [selectedProjectId])
 
   return (
-    <div className="space-y-6 pb-8">
-      {/* Header */}
+    <>
+      {/* Custom Swiper styles */}
+      <style jsx global>{`
+        .insights-swiper .swiper-pagination {
+          bottom: -20px !important;
+          position: relative !important;
+        }
+        .insights-swiper .swiper-pagination-bullet {
+          width: 4px !important;
+          height: 4px !important;
+          background: rgb(156 163 175) !important;
+          opacity: 1 !important;
+          margin: 0 2px !important;
+        }
+        .insights-swiper .swiper-pagination-bullet-active {
+          background: rgb(147 51 234) !important;
+        }
+        .dark .insights-swiper .swiper-pagination-bullet {
+          background: rgb(75 85 99) !important;
+        }
+      `}</style>
+
+      <div className="space-y-6 pb-8">
+        {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -333,55 +423,84 @@ export default function AnalyticsDashboard() {
                 </motion.div>
               </div>
             ) : aiInsights ? (
-              <div className="space-y-4">
-                <div className="prose prose-sm dark:prose-invert max-w-none">
-                  <div className="bg-white/60 dark:bg-gray-900/40 backdrop-blur-sm rounded-lg p-6 border border-white/20 dark:border-gray-800/20">
-                    <ReactMarkdown
-                      className="text-sm leading-relaxed"
-                      components={{
-                        h1: ({ children }) => (
-                          <h1 className="text-xl font-bold mb-4 text-blue-700 dark:text-blue-300">{children}</h1>
-                        ),
-                        h2: ({ children }) => (
-                          <h2 className="text-lg font-semibold mb-3 text-purple-700 dark:text-purple-300">{children}</h2>
-                        ),
-                        h3: ({ children }) => (
-                          <h3 className="text-base font-medium mb-2 text-pink-700 dark:text-pink-300">{children}</h3>
-                        ),
-                        p: ({ children }) => (
-                          <p className="mb-4 text-gray-700 dark:text-gray-300 leading-relaxed">{children}</p>
-                        ),
-                        strong: ({ children }) => (
-                          <strong className="font-semibold text-gray-900 dark:text-gray-100">{children}</strong>
-                        ),
-                        ul: ({ children }) => (
-                          <ul className="list-none space-y-2 mb-4">{children}</ul>
-                        ),
-                        li: ({ children }) => (
-                          <li className="flex items-start gap-2">
-                            <span className="text-blue-500 mt-1">•</span>
-                            <span>{children}</span>
-                          </li>
-                        )
+              (() => {
+                const carouselItems = parseInsightsIntoCarousel(aiInsights)
+
+                return (
+                  <div className="space-y-4 pb-6">
+                    {/* SwiperJS Carousel */}
+                    <Swiper
+                      modules={[Navigation, Pagination, Autoplay, EffectFade]}
+                      spaceBetween={20}
+                      slidesPerView={1}
+                      autoplay={{
+                        delay: 4000,
+                        disableOnInteraction: false,
+                        pauseOnMouseEnter: true
+                      }}
+                      pagination={{
+                        clickable: false,
+                        bulletClass: 'swiper-pagination-bullet !w-1 !h-1 !bg-purple-500',
+                        bulletActiveClass: 'swiper-pagination-bullet-active !bg-purple-600'
+                      }}
+                      effect="fade"
+                      fadeEffect={{
+                        crossFade: true
+                      }}
+                      loop={carouselItems.length > 1}
+                      className="insights-swiper"
+                      style={{
+                        '--swiper-pagination-bottom': '0px',
+                        '--swiper-pagination-bullet-size': '4px',
+                        '--swiper-pagination-bullet-horizontal-gap': '2px'
                       }}
                     >
-                      {aiInsights}
-                    </ReactMarkdown>
+                      {carouselItems.map((item, index) => (
+                        <SwiperSlide key={index}>
+                          <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ duration: 0.3 }}
+                            className="bg-white/60 dark:bg-gray-900/40 backdrop-blur-sm rounded-lg p-6 border border-white/20 dark:border-gray-800/20"
+                          >
+                            <div className="flex items-start gap-4">
+                              <div className="flex-shrink-0">
+                                <div className={`p-2 rounded-full bg-white/50 dark:bg-gray-800/50 ${item.iconColor}`}>
+                                  <item.iconComponent className="h-6 w-6" />
+                                </div>
+                              </div>
+                              <div className="flex-1">
+                                <h3 className="text-lg font-semibold mb-3 text-purple-700 dark:text-purple-300">
+                                  {item.title}
+                                </h3>
+                                <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
+                                  {item.content}
+                                </p>
+                              </div>
+                            </div>
+                          </motion.div>
+                        </SwiperSlide>
+                      ))}
+                    </Swiper>
                   </div>
-                </div>
-
-                {insightsCacheValid && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="flex items-center justify-center gap-2 text-xs text-muted-foreground bg-white/30 dark:bg-gray-900/30 backdrop-blur-sm rounded-full px-4 py-2 border border-white/20 dark:border-gray-800/20"
-                  >
-                    <Sparkles className="h-3 w-3" />
-                    <span>Insights refresh daily at midnight or when you add new tasks</span>
-                  </motion.div>
-                )}
+                )
+              })()
+            ) : (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground">No insights available yet.</p>
               </div>
-            ) : null}
+            )}
+
+            {insightsCacheValid && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex items-center justify-center gap-2 text-xs text-muted-foreground bg-white/30 dark:bg-gray-900/30 backdrop-blur-sm rounded-full px-4 py-2 border border-white/20 dark:border-gray-800/20"
+              >
+                <Sparkles className="h-3 w-3" />
+                <span>Insights refresh daily at midnight or when you add new tasks</span>
+              </motion.div>
+            )}
           </CardContent>
         </Card>
       </motion.div>
@@ -564,6 +683,7 @@ export default function AnalyticsDashboard() {
         </Card>
       </motion.div>
 
-    </div>
+      </div>
+    </>
   )
 }

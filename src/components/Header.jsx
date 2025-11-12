@@ -91,19 +91,25 @@ export default function Header() {
       {/* Brand and logo */}
       <div className="flex items-center gap-4">
         <motion.div
-          className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary via-primary/90 to-primary/80 flex items-center justify-center text-white font-bold text-xl shadow-md"
+          className="w-10 h-10 flex items-center justify-center cursor-pointer"
           whileHover={{ scale: 1.05 }}
           transition={{ type: "spring", stiffness: 400, damping: 20 }}
+          onClick={() => clearSession()}
+          title="Go to Dashboard"
         >
-          🎤
+          <img src="/icon-192.png" alt="kAInban" className="w-10 h-10 object-contain" />
         </motion.div>
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent">
+            <h1
+              className="text-2xl font-bold bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent cursor-pointer hover:opacity-80 transition-opacity"
+              onClick={() => clearSession()}
+              title="Go to Dashboard"
+            >
               kAInban
             </h1>
             <span className="text-xs font-medium text-muted-foreground bg-muted/50 px-2 py-1 rounded-md">
-              v1.0.1
+              v1.1.1
             </span>
           </div>
           <p className="text-sm text-muted-foreground">AI-powered task management</p>
@@ -137,7 +143,6 @@ export default function Header() {
               </SelectItem>
               <SelectItem value="none">
                 <div className="flex items-center gap-2">
-                  <Home className="h-4 w-4" />
                   Dashboard Overview
                 </div>
               </SelectItem>
@@ -149,11 +154,7 @@ export default function Header() {
                   {projects.map((project) => (
                     <SelectItem key={project.id} value={project.id}>
                       <div className="flex items-center gap-2">
-                        <Folder className="h-4 w-4 text-muted-foreground" />
                         <span>{project.name}</span>
-                        <span className="ml-auto text-xs text-muted-foreground">
-                          {project.tasks?.length || 0} tasks
-                        </span>
                       </div>
                     </SelectItem>
                   ))}

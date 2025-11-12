@@ -323,8 +323,11 @@ function App() {
                 {/* Breadcrumb navigation */}
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <span
-                    className="hover:text-foreground cursor-pointer transition-colors"
-                    onClick={() => clearSession()}
+                    className="hover:text-foreground cursor-pointer transition-colors font-medium"
+                    onClick={() => {
+                      const { clearSession } = useAppStore.getState()
+                      clearSession()
+                    }}
                   >
                     Dashboard
                   </span>
@@ -336,41 +339,6 @@ function App() {
                   </span>
                 </div>
 
-                {/* Project header card */}
-                <div className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-xl p-6 shadow-sm">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h2 className="text-2xl font-bold text-foreground mb-2">
-                        {currentProject.name}
-                      </h2>
-                      <p className="text-muted-foreground">
-                        Audio transcription and task management workspace
-                      </p>
-                    </div>
-
-                    {/* Quick stats */}
-                    <div className="flex items-center gap-4">
-                      <div className="text-center">
-                        <div className="text-2xl font-bold text-primary">
-                          {currentProject.tasks?.filter(t => t.status === 'done').length || 0}
-                        </div>
-                        <div className="text-xs text-muted-foreground">Completed</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-2xl font-bold text-secondary">
-                          {currentProject.tasks?.filter(t => t.status === 'in-progress').length || 0}
-                        </div>
-                        <div className="text-xs text-muted-foreground">In Progress</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-2xl font-bold text-accent">
-                          {currentProject.meetings?.length || 0}
-                        </div>
-                        <div className="text-xs text-muted-foreground">Recordings</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
               </motion.div>
 
               {/* Audio controls with modern styling */}
@@ -421,6 +389,17 @@ function App() {
 
       {/* Debug panel for mobile development */}
       {import.meta.env.DEV && <DebugPanel />}
+
+      {/* Footer */}
+      <footer className="mt-16 py-8 border-t border-border/50 bg-card/30 backdrop-blur-sm">
+        <div className="text-center">
+          <p className="text-sm text-muted-foreground">
+            Built with <span className="text-red-500">♥</span> by{' '}
+            <span className="font-medium text-foreground">InterestingSoup</span>{' '}
+            <span className="text-xs opacity-70">2025</span>
+          </p>
+        </div>
+      </footer>
     </div>
   )
 }

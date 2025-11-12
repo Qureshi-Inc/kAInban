@@ -25,8 +25,10 @@ export default function UserProfile() {
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center gap-2"
       >
-        <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-medium">
-          {user.name?.charAt(0).toUpperCase() || user.email?.charAt(0).toUpperCase()}
+        <div className="relative">
+          <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-medium text-sm border-2 border-primary/20">
+            {user.name?.charAt(0).toUpperCase() || user.email?.charAt(0).toUpperCase()}
+          </div>
         </div>
         <div className="hidden sm:block text-left">
           <div className="text-sm font-medium">{user.name}</div>

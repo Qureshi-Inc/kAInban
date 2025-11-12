@@ -191,35 +191,30 @@ app.get('/api/auth/oidc/config', localAuth.requireAuth, (req, res) => {
 })
 
 app.get('/api/auth/oidc/status', (req, res) => {
-  // Check if OIDC is enabled (read from admin's settings)
-  // For now, check if any admin has OIDC enabled
-  const allUsers = db.getAllUsers()
-  const adminUser = allUsers.find(u => u.role === 'admin' && u.active === 1)
+  // Check if OIDC is enabled (read from system-wide settings)
+  const systemSettings = db.getSystemSettings()
 
-  if (!adminUser) {
-    return res.json({ enabled: false })
-  }
+  console.log('[OIDC Status] System settings:', {
+    oidc_enabled: systemSettings?.oidc_enabled,
+    has_client_id: !!systemSettings?.oidc_client_id,
+    has_client_secret: !!systemSettings?.oidc_client_secret,
+    has_issuer: !!systemSettings?.oidc_issuer,
+    has_callback_url: !!systemSettings?.oidc_callback_url
+  })
 
-  const adminSettings = db.getSettings(adminUser.id)
-  const enabled = oidcAuth.isOIDCEnabled(adminSettings)
+  const enabled = oidcAuth.isOIDCEnabled(systemSettings)
+  console.log('[OIDC Status] isOIDCEnabled result:', enabled)
 
   res.json({
     enabled,
-    issuer: adminSettings?.oidc_issuer || 'https://pocketid.app'
+    issuer: systemSettings?.oidc_issuer || 'https://pocketid.app'
   })
 })
 
 app.get('/api/auth/oidc/login', async (req, res) => {
   try {
-    // Get admin settings to check if OIDC is enabled
-    const allUsers = db.getAllUsers()
-    const adminUser = allUsers.find(u => u.role === 'admin' && u.active === 1)
-
-    if (!adminUser) {
-      return res.status(400).json({ error: 'OIDC not configured' })
-    }
-
-    const settings = db.getSettings(adminUser.id)
+    // Get system settings to check if OIDC is enabled
+    const settings = db.getSystemSettings()
 
     if (!oidcAuth.isOIDCEnabled(settings)) {
       return res.status(400).json({ error: 'OIDC is not enabled' })

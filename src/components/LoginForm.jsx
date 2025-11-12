@@ -50,14 +50,14 @@ export default function LoginForm({ onLogin, onSwitchToRegister, error }) {
     >
       <div className="text-center mb-8">
         <motion.div
-          className="w-16 h-16 mx-auto rounded-xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center text-white font-bold text-3xl shadow-lg ring-2 ring-primary/20 mb-4"
+          className="w-16 h-16 mx-auto flex items-center justify-center mb-4"
           whileHover={{ scale: 1.1, rotate: 10 }}
           transition={{ type: "spring", stiffness: 400, damping: 10 }}
         >
-          🎤
+          <img src="/icon-192.png" alt="kAInban" className="w-16 h-16 object-contain" />
         </motion.div>
         <h2 className="text-3xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
-          Welcome Back
+          kAInban Login
         </h2>
         <p className="text-muted-foreground mt-2">Sign in to your account</p>
       </div>

@@ -1,7 +1,7 @@
 {
   "name": "kainban",
   "private": true,
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "kAInban - Organize Notes with AI",
   "type": "module",
   "scripts": {
@@ -23,6 +23,7 @@
     "react-beautiful-dnd": "^13.1.1",
     "react-dom": "^18.2.0",
     "react-markdown": "^10.1.0",
+    "swiper": "^12.0.3",
     "tailwind-merge": "^2.0.0",
     "tailwindcss-animate": "^1.0.7",
     "zustand": "^4.4.6"

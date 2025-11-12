@@ -230,7 +230,22 @@ const useAppStore = create((set, get) => ({
 
   updateCurrentProject: async () => {
     const { currentProject, tasks, meetings } = get()
-    if (!currentProject) return
+    if (!currentProject) {
+      console.warn('[Store] updateCurrentProject: No current project to update')
+      return
+    }
+
+    console.log('[Store] updateCurrentProject: Starting update for project:', currentProject.name)
+    console.log('[Store] updateCurrentProject: Project has', tasks.length, 'tasks')
+
+    // Log some task details to verify linked tasks are included
+    const tasksWithLinks = tasks.filter(t => t.linkedTasks && t.linkedTasks.length > 0)
+    console.log('[Store] updateCurrentProject: Tasks with links:', tasksWithLinks.length)
+    if (tasksWithLinks.length > 0) {
+      tasksWithLinks.forEach(task => {
+        console.log(`[Store] updateCurrentProject: Task "${task.title}" linked to: ${task.linkedTasks.join(', ')}`)
+      })
+    }
 
     const updatedProject = {
       ...currentProject,
@@ -247,8 +262,19 @@ const useAppStore = create((set, get) => ({
     }))
 
     // Save to backend
-    await apiService.saveProject(updatedProject)
-    console.log('[Store] Project updated in backend')
+    try {
+      console.log('[Store] updateCurrentProject: Calling apiService.saveProject...')
+      const success = await apiService.saveProject(updatedProject)
+      if (success) {
+        console.log('[Store] ✓ Project updated in backend successfully')
+      } else {
+        console.error('[Store] ✗ Project update failed - apiService returned false')
+        throw new Error('API service returned false')
+      }
+    } catch (error) {
+      console.error('[Store] ✗ Project update failed:', error)
+      throw error // Re-throw so the caller can handle it
+    }
   },
 
   deleteProject: async (projectId) => {
@@ -398,6 +424,10 @@ const useAppStore = create((set, get) => ({
       createdAt: new Date().toISOString(),
       dueDate: task.dueDate || null,
       projectId: get().currentProject?.id || null,
+      linkedTasks: task.linkedTasks || [], // Manual user-created links - auto-complete
+      aiCreatedLinks: task.aiCreatedLinks || [], // AI links from transcript analysis - need user review
+      aiDiscoveredLinks: task.aiDiscoveredLinks || [], // AI links from completion - need user review
+      rejectedAiLinks: task.rejectedAiLinks || [], // User rejected AI suggestions
       ...task
     }
 
@@ -446,6 +476,22 @@ const useAppStore = create((set, get) => ({
     console.log('[Store] Tasks count after update:', get().tasks.length)
     console.log('[Store] Task still exists:', !!taskAfter)
 
+    // Handle linked task status synchronization
+    if (updates.status && updates.status === 'done' && taskBefore.linkedTasks && taskBefore.linkedTasks.length > 0) {
+      console.log('[Store] ✓ Task marked as done - checking linked tasks for auto-completion')
+
+      taskBefore.linkedTasks.forEach(linkedTaskId => {
+        const linkedTask = get().tasks.find(t => t.id === linkedTaskId)
+        if (linkedTask && linkedTask.status !== 'done') {
+          console.log(`[Store] ✓ Auto-completing linked task: ${linkedTask.title}`)
+          // Use setTimeout to avoid infinite recursion and allow the current update to complete
+          setTimeout(() => {
+            get().updateTask(linkedTaskId, { status: 'done' })
+          }, 0)
+        }
+      })
+    }
+
     get().updateCurrentProject()
   },
 
@@ -474,6 +520,125 @@ const useAppStore = create((set, get) => ({
   clearTasks: () => {
     set({ tasks: [] })
     get().updateCurrentProject()
+  },
+
+  // Linked Tasks Actions
+  linkTasks: (taskId, linkedTaskIds) => {
+    // Update the main task with linked task IDs
+    get().updateTask(taskId, { linkedTasks: linkedTaskIds })
+
+    // Also update each linked task to include this task in their linkedTasks array
+    linkedTaskIds.forEach(linkedTaskId => {
+      const linkedTask = get().tasks.find(t => t.id === linkedTaskId)
+      if (linkedTask) {
+        const updatedLinkedTasks = [...(linkedTask.linkedTasks || []), taskId]
+        // Remove duplicates
+        const uniqueLinkedTasks = [...new Set(updatedLinkedTasks)]
+        get().updateTask(linkedTaskId, { linkedTasks: uniqueLinkedTasks })
+      }
+    })
+
+    console.log('[Store] ✓ Tasks linked successfully')
+  },
+
+  unlinkTasks: (taskId, taskToUnlinkId) => {
+    // Remove the link from the main task
+    const mainTask = get().tasks.find(t => t.id === taskId)
+    if (mainTask && mainTask.linkedTasks) {
+      const updatedLinkedTasks = mainTask.linkedTasks.filter(id => id !== taskToUnlinkId)
+      get().updateTask(taskId, { linkedTasks: updatedLinkedTasks })
+    }
+
+    // Remove the reverse link from the other task
+    const otherTask = get().tasks.find(t => t.id === taskToUnlinkId)
+    if (otherTask && otherTask.linkedTasks) {
+      const updatedLinkedTasks = otherTask.linkedTasks.filter(id => id !== taskId)
+      get().updateTask(taskToUnlinkId, { linkedTasks: updatedLinkedTasks })
+    }
+
+    console.log('[Store] ✓ Tasks unlinked successfully')
+  },
+
+  getLinkedTasks: (taskId) => {
+    const task = get().tasks.find(t => t.id === taskId)
+    if (!task || !task.linkedTasks) return []
+
+    return get().tasks.filter(t => task.linkedTasks.includes(t.id))
+  },
+
+  // AI Link Management
+  acceptAiSuggestion: (taskId, suggestionId, suggestionType) => {
+    const task = get().tasks.find(t => t.id === taskId)
+    if (!task) return
+
+    // Move AI suggestion to manual links
+    const updatedLinkedTasks = [...(task.linkedTasks || []), suggestionId]
+    const uniqueLinkedTasks = [...new Set(updatedLinkedTasks)]
+
+    // Remove from AI suggestions
+    let updatedAiCreatedLinks = task.aiCreatedLinks || []
+    let updatedAiDiscoveredLinks = task.aiDiscoveredLinks || []
+
+    if (suggestionType === 'created') {
+      updatedAiCreatedLinks = updatedAiCreatedLinks.filter(id => id !== suggestionId)
+    } else if (suggestionType === 'discovered') {
+      updatedAiDiscoveredLinks = updatedAiDiscoveredLinks.filter(id => id !== suggestionId)
+    }
+
+    get().updateTask(taskId, {
+      linkedTasks: uniqueLinkedTasks,
+      aiCreatedLinks: updatedAiCreatedLinks,
+      aiDiscoveredLinks: updatedAiDiscoveredLinks
+    })
+
+    console.log('[Store] ✓ AI suggestion accepted and promoted to manual link')
+  },
+
+  rejectAiSuggestion: (taskId, suggestionId, suggestionType) => {
+    const task = get().tasks.find(t => t.id === taskId)
+    if (!task) return
+
+    // Add to rejected list
+    const updatedRejectedAiLinks = [...(task.rejectedAiLinks || []), suggestionId]
+    const uniqueRejectedLinks = [...new Set(updatedRejectedAiLinks)]
+
+    // Remove from AI suggestions
+    let updatedAiCreatedLinks = task.aiCreatedLinks || []
+    let updatedAiDiscoveredLinks = task.aiDiscoveredLinks || []
+
+    if (suggestionType === 'created') {
+      updatedAiCreatedLinks = updatedAiCreatedLinks.filter(id => id !== suggestionId)
+    } else if (suggestionType === 'discovered') {
+      updatedAiDiscoveredLinks = updatedAiDiscoveredLinks.filter(id => id !== suggestionId)
+    }
+
+    get().updateTask(taskId, {
+      aiCreatedLinks: updatedAiCreatedLinks,
+      aiDiscoveredLinks: updatedAiDiscoveredLinks,
+      rejectedAiLinks: uniqueRejectedLinks
+    })
+
+    console.log('[Store] ✓ AI suggestion rejected')
+  },
+
+  // Add AI discovered links (called from KanbanBoard when task completed)
+  addAiDiscoveredLinks: (taskId, discoveredTaskIds) => {
+    const task = get().tasks.find(t => t.id === taskId)
+    if (!task || !discoveredTaskIds.length) return
+
+    // Filter out already linked or rejected suggestions
+    const newDiscoveredLinks = discoveredTaskIds.filter(id =>
+      !task.linkedTasks.includes(id) &&
+      !task.aiCreatedLinks.includes(id) &&
+      !task.aiDiscoveredLinks.includes(id) &&
+      !task.rejectedAiLinks.includes(id)
+    )
+
+    if (newDiscoveredLinks.length > 0) {
+      const updatedAiDiscoveredLinks = [...(task.aiDiscoveredLinks || []), ...newDiscoveredLinks]
+      get().updateTask(taskId, { aiDiscoveredLinks: updatedAiDiscoveredLinks })
+      console.log(`[Store] ✓ Added ${newDiscoveredLinks.length} AI discovered links to task`)
+    }
   },
 
   // Summary Actions

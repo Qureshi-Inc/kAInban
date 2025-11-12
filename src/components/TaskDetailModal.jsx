@@ -10,14 +10,20 @@ import {
   Trash2,
   MessageSquare,
   Clock,
-  Flag
+  Flag,
+  Link,
+  ChevronDown,
+  Sparkles,
+  Check,
+  Brain,
+  Search
 } from 'lucide-react'
 import { Button } from './ui/button'
 import { Card } from './ui/card'
 import useAppStore from '../stores/useAppStore'
 
 export default function TaskDetailModal({ task, isOpen, onClose }) {
-  const { updateTask, deleteTask, addNotification } = useAppStore()
+  const { updateTask, deleteTask, addNotification, tasks, linkTasks, unlinkTasks, getLinkedTasks, acceptAiSuggestion, rejectAiSuggestion, updateCurrentProject } = useAppStore()
 
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
@@ -29,6 +35,11 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
   const [newSubtask, setNewSubtask] = useState('')
   const [comments, setComments] = useState([])
   const [newComment, setNewComment] = useState('')
+  const [linkedTasks, setLinkedTasks] = useState([])
+  const [aiCreatedLinks, setAiCreatedLinks] = useState([])
+  const [aiDiscoveredLinks, setAiDiscoveredLinks] = useState([])
+  const [showLinkedTasksDropdown, setShowLinkedTasksDropdown] = useState(false)
+  const [linkSearchQuery, setLinkSearchQuery] = useState('')
 
   // Parse description for bullet points and convert to subtasks
   const parseSubtasksFromDescription = (description) => {
@@ -60,6 +71,21 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
   }
 
   // Initialize form from task
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (showLinkedTasksDropdown && !event.target.closest('.task-link-dropdown')) {
+        setShowLinkedTasksDropdown(false)
+        setLinkSearchQuery('') // Clear search when closing
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [showLinkedTasksDropdown])
+
   useEffect(() => {
     if (task) {
       setTitle(task.title || '')
@@ -85,10 +111,13 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
       }
 
       setComments(task.comments || [])
+      setLinkedTasks(task.linkedTasks || [])
+      setAiCreatedLinks(task.aiCreatedLinks || [])
+      setAiDiscoveredLinks(task.aiDiscoveredLinks || [])
     }
   }, [task])
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!task) return
 
     const updates = {
@@ -99,10 +128,29 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
       dueDate,
       assignee,
       subtasks,
-      comments
+      comments,
+      linkedTasks,
+      aiCreatedLinks,
+      aiDiscoveredLinks
     }
 
     updateTask(task.id, updates)
+
+    // Force save to backend
+    setTimeout(async () => {
+      try {
+        console.log('[TaskDetailModal] Attempting to save task to backend...')
+        await updateCurrentProject()
+        console.log('[TaskDetailModal] ✓ Task saved to backend successfully')
+      } catch (error) {
+        console.error('[TaskDetailModal] ✗ Failed to save task to backend:', error)
+        addNotification({
+          type: 'error',
+          message: 'Failed to save to backend. Changes may be lost on refresh.'
+        })
+      }
+    }, 100)
+
     addNotification({
       type: 'success',
       message: 'Task updated successfully!'
@@ -158,6 +206,137 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
 
     setComments([...comments, comment])
     setNewComment('')
+  }
+
+  const handleLinkTask = (taskToLinkId) => {
+    console.log('[TaskDetailModal] handleLinkTask called with:', taskToLinkId)
+    console.log('[TaskDetailModal] Current task:', task?.id, task?.title)
+    console.log('[TaskDetailModal] Current linkedTasks:', linkedTasks)
+
+    if (!linkedTasks.includes(taskToLinkId)) {
+      const updatedLinkedTasks = [...linkedTasks, taskToLinkId]
+      setLinkedTasks(updatedLinkedTasks)
+      console.log('[TaskDetailModal] Updated linkedTasks:', updatedLinkedTasks)
+
+      // Use bidirectional linking function and save to backend
+      if (task) {
+        console.log('[TaskDetailModal] Creating bidirectional link...')
+        linkTasks(task.id, updatedLinkedTasks)
+
+        // Force save to backend
+        setTimeout(async () => {
+          try {
+            console.log('[TaskDetailModal] Attempting to save project to backend...')
+            await updateCurrentProject()
+            console.log('[TaskDetailModal] ✓ Project saved to backend successfully')
+          } catch (error) {
+            console.error('[TaskDetailModal] ✗ Failed to save project to backend:', error)
+            addNotification({
+              type: 'error',
+              message: 'Failed to save to backend. Changes may be lost on refresh.'
+            })
+          }
+        }, 100)
+
+        addNotification({
+          type: 'success',
+          message: 'Task linked successfully!'
+        })
+        console.log('[TaskDetailModal] Bidirectional link created successfully')
+      } else {
+        console.error('[TaskDetailModal] No task to update!')
+      }
+    } else {
+      console.log('[TaskDetailModal] Task already linked, skipping')
+    }
+    setShowLinkedTasksDropdown(false)
+    setLinkSearchQuery('') // Clear search when closing
+  }
+
+  const handleUnlinkTask = (taskToUnlinkId) => {
+    console.log('[TaskDetailModal] Unlinking task:', taskToUnlinkId)
+    const updatedLinkedTasks = linkedTasks.filter(id => id !== taskToUnlinkId)
+    setLinkedTasks(updatedLinkedTasks)
+
+    // Use bidirectional unlinking function and save to backend
+    if (task) {
+      unlinkTasks(task.id, taskToUnlinkId)
+
+      // Force save to backend
+      setTimeout(async () => {
+        try {
+          console.log('[TaskDetailModal] Attempting to save project to backend after unlink...')
+          await updateCurrentProject()
+          console.log('[TaskDetailModal] ✓ Project saved to backend after unlink')
+        } catch (error) {
+          console.error('[TaskDetailModal] ✗ Failed to save project to backend after unlink:', error)
+          addNotification({
+            type: 'error',
+            message: 'Failed to save to backend. Changes may be lost on refresh.'
+          })
+        }
+      }, 100)
+
+      addNotification({
+        type: 'success',
+        message: 'Task unlinked successfully!'
+      })
+    }
+  }
+
+  // Get available tasks for linking (exclude current task and already linked tasks)
+  const getAvailableTasksForLinking = () => {
+    if (!task) return []
+    let availableTasks = tasks.filter(t =>
+      t.id !== task.id &&
+      !linkedTasks.includes(t.id) &&
+      !aiCreatedLinks.includes(t.id) &&
+      !aiDiscoveredLinks.includes(t.id)
+    )
+
+    // Filter by search query if provided
+    if (linkSearchQuery.trim()) {
+      const query = linkSearchQuery.toLowerCase().trim()
+      availableTasks = availableTasks.filter(t =>
+        t.title.toLowerCase().includes(query) ||
+        (t.description && t.description.toLowerCase().includes(query))
+      )
+    }
+
+    return availableTasks
+  }
+
+  const handleAcceptAiSuggestion = (suggestionId, suggestionType) => {
+    acceptAiSuggestion(task.id, suggestionId, suggestionType)
+
+    // Update local state
+    setLinkedTasks([...linkedTasks, suggestionId])
+    if (suggestionType === 'created') {
+      setAiCreatedLinks(aiCreatedLinks.filter(id => id !== suggestionId))
+    } else if (suggestionType === 'discovered') {
+      setAiDiscoveredLinks(aiDiscoveredLinks.filter(id => id !== suggestionId))
+    }
+
+    addNotification({
+      type: 'success',
+      message: 'AI suggestion accepted and added to linked tasks'
+    })
+  }
+
+  const handleRejectAiSuggestion = (suggestionId, suggestionType) => {
+    rejectAiSuggestion(task.id, suggestionId, suggestionType)
+
+    // Update local state
+    if (suggestionType === 'created') {
+      setAiCreatedLinks(aiCreatedLinks.filter(id => id !== suggestionId))
+    } else if (suggestionType === 'discovered') {
+      setAiDiscoveredLinks(aiDiscoveredLinks.filter(id => id !== suggestionId))
+    }
+
+    addNotification({
+      type: 'info',
+      message: 'AI suggestion rejected'
+    })
   }
 
   const getPriorityColor = (priority) => {
@@ -317,6 +496,258 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                   placeholder="Enter name..."
                   className="w-full px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700"
                 />
+              </div>
+            </div>
+
+            {/* Task Relationships */}
+            <div>
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3 block flex items-center gap-2">
+                <Link className="h-4 w-4" />
+                Task Relationships ({linkedTasks.length + aiCreatedLinks.length + aiDiscoveredLinks.length})
+              </label>
+
+              <div className="space-y-4">
+                {/* Manual Linked Tasks */}
+                {linkedTasks.length > 0 && (
+                  <div>
+                    <h4 className="text-xs font-semibold text-blue-600 dark:text-blue-400 mb-2 flex items-center gap-1">
+                      <Link className="h-3 w-3" />
+                      Manual Links ({linkedTasks.length}) - Auto-complete
+                    </h4>
+                    <div className="space-y-1">
+                      {linkedTasks.map(linkedTaskId => {
+                        const linkedTask = tasks.find(t => t.id === linkedTaskId)
+                        if (!linkedTask) return null
+
+                        return (
+                          <div key={linkedTaskId} className="flex items-center justify-between p-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md">
+                            <div className="flex items-center gap-2 flex-1 min-w-0">
+                              <div className={`w-2 h-2 rounded-full ${
+                                linkedTask.status === 'done' ? 'bg-green-500' :
+                                linkedTask.status === 'in-progress' ? 'bg-blue-500' :
+                                linkedTask.status === 'blocked' ? 'bg-red-500' :
+                                'bg-gray-400'
+                              }`} />
+                              <span className="text-sm truncate">{linkedTask.title}</span>
+                              <span className={`text-xs px-1.5 py-0.5 rounded ${
+                                linkedTask.priority === 'high' ? 'bg-red-100 text-red-600' :
+                                linkedTask.priority === 'medium' ? 'bg-yellow-100 text-yellow-600' :
+                                'bg-blue-100 text-blue-600'
+                              }`}>
+                                {linkedTask.priority}
+                              </span>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleUnlinkTask(linkedTaskId)}
+                              className="h-6 w-6 p-0 hover:bg-red-100 text-red-500"
+                            >
+                              <X className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* AI Created Links */}
+                {aiCreatedLinks.length > 0 && (
+                  <div>
+                    <h4 className="text-xs font-semibold text-purple-600 dark:text-purple-400 mb-2 flex items-center gap-1">
+                      <Brain className="h-3 w-3" />
+                      AI Created Links ({aiCreatedLinks.length}) - From transcript analysis
+                    </h4>
+                    <div className="space-y-1">
+                      {aiCreatedLinks.map(aiLinkId => {
+                        const aiLinkedTask = tasks.find(t => t.id === aiLinkId)
+                        if (!aiLinkedTask) return null
+
+                        return (
+                          <div key={aiLinkId} className="flex items-center justify-between p-2 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-md">
+                            <div className="flex items-center gap-2 flex-1 min-w-0">
+                              <div className={`w-2 h-2 rounded-full ${
+                                aiLinkedTask.status === 'done' ? 'bg-green-500' :
+                                aiLinkedTask.status === 'in-progress' ? 'bg-blue-500' :
+                                aiLinkedTask.status === 'blocked' ? 'bg-red-500' :
+                                'bg-gray-400'
+                              }`} />
+                              <span className="text-sm truncate">{aiLinkedTask.title}</span>
+                              <span className={`text-xs px-1.5 py-0.5 rounded ${
+                                aiLinkedTask.priority === 'high' ? 'bg-red-100 text-red-600' :
+                                aiLinkedTask.priority === 'medium' ? 'bg-yellow-100 text-yellow-600' :
+                                'bg-blue-100 text-blue-600'
+                              }`}>
+                                {aiLinkedTask.priority}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleAcceptAiSuggestion(aiLinkId, 'created')}
+                                className="h-6 w-6 p-0 hover:bg-green-100 text-green-600"
+                                title="Accept and promote to manual link"
+                              >
+                                <Check className="h-3 w-3" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleRejectAiSuggestion(aiLinkId, 'created')}
+                                className="h-6 w-6 p-0 hover:bg-red-100 text-red-500"
+                                title="Reject AI suggestion"
+                              >
+                                <X className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* AI Discovered Links */}
+                {aiDiscoveredLinks.length > 0 && (
+                  <div>
+                    <h4 className="text-xs font-semibold text-amber-600 dark:text-amber-400 mb-2 flex items-center gap-1">
+                      <Sparkles className="h-3 w-3" />
+                      AI Discovered Links ({aiDiscoveredLinks.length}) - Found when completing tasks
+                    </h4>
+                    <div className="space-y-1">
+                      {aiDiscoveredLinks.map(aiDiscoveredId => {
+                        const aiDiscoveredTask = tasks.find(t => t.id === aiDiscoveredId)
+                        if (!aiDiscoveredTask) return null
+
+                        return (
+                          <div key={aiDiscoveredId} className="flex items-center justify-between p-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-md">
+                            <div className="flex items-center gap-2 flex-1 min-w-0">
+                              <div className={`w-2 h-2 rounded-full ${
+                                aiDiscoveredTask.status === 'done' ? 'bg-green-500' :
+                                aiDiscoveredTask.status === 'in-progress' ? 'bg-blue-500' :
+                                aiDiscoveredTask.status === 'blocked' ? 'bg-red-500' :
+                                'bg-gray-400'
+                              }`} />
+                              <span className="text-sm truncate">{aiDiscoveredTask.title}</span>
+                              <span className={`text-xs px-1.5 py-0.5 rounded ${
+                                aiDiscoveredTask.priority === 'high' ? 'bg-red-100 text-red-600' :
+                                aiDiscoveredTask.priority === 'medium' ? 'bg-yellow-100 text-yellow-600' :
+                                'bg-blue-100 text-blue-600'
+                              }`}>
+                                {aiDiscoveredTask.priority}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleAcceptAiSuggestion(aiDiscoveredId, 'discovered')}
+                                className="h-6 w-6 p-0 hover:bg-green-100 text-green-600"
+                                title="Accept and promote to manual link"
+                              >
+                                <Check className="h-3 w-3" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleRejectAiSuggestion(aiDiscoveredId, 'discovered')}
+                                className="h-6 w-6 p-0 hover:bg-red-100 text-red-500"
+                                title="Reject AI suggestion"
+                              >
+                                <X className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Add Manual Link Dropdown */}
+                <div>
+                  <h4 className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-2">Add Manual Link</h4>
+                  <div className="relative">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowLinkedTasksDropdown(!showLinkedTasksDropdown)}
+                      className="w-full justify-between"
+                      disabled={getAvailableTasksForLinking().length === 0}
+                    >
+                      <span className="flex items-center gap-2">
+                        <Plus className="h-4 w-4" />
+                        {getAvailableTasksForLinking().length === 0 ? 'No tasks available to link' : 'Link a task'}
+                      </span>
+                      <ChevronDown className="h-4 w-4" />
+                    </Button>
+
+                    {showLinkedTasksDropdown && (
+                      <div className="task-link-dropdown absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg max-h-64 overflow-hidden">
+                        {/* Search Input */}
+                        <div className="p-3 border-b border-gray-200 dark:border-gray-700">
+                          <div className="relative">
+                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                            <input
+                              type="text"
+                              value={linkSearchQuery}
+                              onChange={(e) => setLinkSearchQuery(e.target.value)}
+                              placeholder="Search tasks..."
+                              className="w-full pl-10 pr-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-primary/50"
+                              autoFocus
+                              onClick={(e) => e.stopPropagation()}
+                            />
+                          </div>
+                        </div>
+
+                        {/* Task List */}
+                        <div className="max-h-48 overflow-y-auto">
+                          {getAvailableTasksForLinking().length > 0 ? (
+                            getAvailableTasksForLinking().map(availableTask => (
+                              <button
+                                key={availableTask.id}
+                                onClick={(e) => {
+                                  e.preventDefault()
+                                  e.stopPropagation()
+                                  console.log('[TaskDetailModal] Linking task:', availableTask.id, availableTask.title)
+                                  handleLinkTask(availableTask.id)
+                                }}
+                                className="w-full text-left px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2 border-b border-gray-100 dark:border-gray-700 last:border-b-0 cursor-pointer"
+                              >
+                                <div className={`w-2 h-2 rounded-full ${
+                                  availableTask.status === 'done' ? 'bg-green-500' :
+                                  availableTask.status === 'in-progress' ? 'bg-blue-500' :
+                                  availableTask.status === 'blocked' ? 'bg-red-500' :
+                                  'bg-gray-400'
+                                }`} />
+                                <div className="flex-1 min-w-0">
+                                  <div className="text-sm font-medium truncate">{availableTask.title}</div>
+                                  <div className="text-xs text-gray-500 truncate">{availableTask.description || 'No description'}</div>
+                                </div>
+                                <span className={`text-xs px-1.5 py-0.5 rounded ${
+                                  availableTask.priority === 'high' ? 'bg-red-100 text-red-600' :
+                                  availableTask.priority === 'medium' ? 'bg-yellow-100 text-yellow-600' :
+                                  'bg-blue-100 text-blue-600'
+                                }`}>
+                                  {availableTask.priority}
+                                </span>
+                              </button>
+                            ))
+                          ) : (
+                            <div className="px-3 py-6 text-center text-sm text-gray-500">
+                              {linkSearchQuery.trim() ?
+                                `No tasks found matching "${linkSearchQuery}"` :
+                                'No tasks available to link'
+                              }
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
 

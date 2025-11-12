@@ -38,7 +38,23 @@ export default function UserManagement() {
   }
 
   const handleDeleteUser = async (userId, userName) => {
-    if (!confirm(`Are you sure you want to delete user "${userName}"? This action cannot be undone.`)) {
+    const warningMessage = `⚠️  PERMANENT DELETION WARNING ⚠️
+
+Are you sure you want to delete user "${userName}"?
+
+This will PERMANENTLY DELETE ALL of their data:
+• All projects created by this user
+• All tasks within those projects
+• All audio recordings and transcriptions
+• All meeting summaries and notes
+• All personal settings and preferences
+
+This action cannot be undone and the user's PocketID account will remain intact (they can create a new account if needed).
+
+Type "DELETE" to confirm:`
+
+    const userInput = prompt(warningMessage)
+    if (userInput !== 'DELETE') {
       return
     }
 

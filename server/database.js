@@ -106,6 +106,10 @@ try {
   const hasAssignee = taskColumns.some(col => col.name === 'assignee')
   const hasSubtasks = taskColumns.some(col => col.name === 'subtasks')
   const hasComments = taskColumns.some(col => col.name === 'comments')
+  const hasLinkedTasks = taskColumns.some(col => col.name === 'linked_tasks')
+  const hasAiCreatedLinks = taskColumns.some(col => col.name === 'ai_created_links')
+  const hasAiDiscoveredLinks = taskColumns.some(col => col.name === 'ai_discovered_links')
+  const hasRejectedAiLinks = taskColumns.some(col => col.name === 'rejected_ai_links')
 
   if (!hasDueDate) {
     console.log('[Database] Adding due_date column to tasks table')
@@ -125,6 +129,26 @@ try {
   if (!hasComments) {
     console.log('[Database] Adding comments column to tasks table')
     db.exec('ALTER TABLE tasks ADD COLUMN comments TEXT')
+  }
+
+  if (!hasLinkedTasks) {
+    console.log('[Database] Adding linked_tasks column to tasks table')
+    db.exec('ALTER TABLE tasks ADD COLUMN linked_tasks TEXT')
+  }
+
+  if (!hasAiCreatedLinks) {
+    console.log('[Database] Adding ai_created_links column to tasks table')
+    db.exec('ALTER TABLE tasks ADD COLUMN ai_created_links TEXT')
+  }
+
+  if (!hasAiDiscoveredLinks) {
+    console.log('[Database] Adding ai_discovered_links column to tasks table')
+    db.exec('ALTER TABLE tasks ADD COLUMN ai_discovered_links TEXT')
+  }
+
+  if (!hasRejectedAiLinks) {
+    console.log('[Database] Adding rejected_ai_links column to tasks table')
+    db.exec('ALTER TABLE tasks ADD COLUMN rejected_ai_links TEXT')
   }
 
   // Add OIDC configuration columns to settings table
@@ -227,24 +251,62 @@ try {
 }
 
 // Settings operations
-export const getSettings = (userId) => {
+// Get system-wide settings (OIDC settings are shared across all admins)
+export const getSystemSettings = () => {
   const stmt = db.prepare('SELECT * FROM settings WHERE user_id = ? LIMIT 1')
-  const settings = stmt.get(userId)
+  const settings = stmt.get('system')
 
-  // If no settings exist, return defaults from environment variables
+  // If no system settings exist, return defaults from environment variables
   if (!settings) {
     const enableOidc = process.env.ENABLE_OIDC === 'true' || process.env.ENABLE_OIDC === '1'
     return {
-      user_id: userId,
+      user_id: 'system',
       oidc_issuer: process.env.POCKET_ID_ISSUER || 'https://pocketid.app',
       oidc_client_id: process.env.POCKET_ID_CLIENT_ID || '',
       oidc_client_secret: process.env.POCKET_ID_CLIENT_SECRET || '',
       oidc_enabled: enableOidc ? 1 : 0,
-      oidc_callback_url: ''
+      oidc_callback_url: process.env.POCKET_ID_CALLBACK_URL || ''
     }
   }
 
   return settings
+}
+
+// Legacy function for user-specific settings (AI settings only now)
+export const getSettings = (userId) => {
+  const stmt = db.prepare('SELECT * FROM settings WHERE user_id = ? LIMIT 1')
+  const settings = stmt.get(userId)
+
+  // Get system-wide OIDC settings
+  const systemSettings = getSystemSettings()
+
+  // If no user settings exist, return defaults with system OIDC settings
+  if (!settings) {
+    return {
+      user_id: userId,
+      azure_endpoint: '',
+      api_key: '',
+      api_version: '2024-02-01',
+      whisper_deployment: 'whisper',
+      gpt_deployment: 'gpt-4',
+      // OIDC settings come from system settings
+      oidc_issuer: systemSettings.oidc_issuer,
+      oidc_client_id: systemSettings.oidc_client_id,
+      oidc_client_secret: systemSettings.oidc_client_secret,
+      oidc_enabled: systemSettings.oidc_enabled,
+      oidc_callback_url: systemSettings.oidc_callback_url
+    }
+  }
+
+  // Merge user settings with system OIDC settings
+  return {
+    ...settings,
+    oidc_issuer: systemSettings.oidc_issuer,
+    oidc_client_id: systemSettings.oidc_client_id,
+    oidc_client_secret: systemSettings.oidc_client_secret,
+    oidc_enabled: systemSettings.oidc_enabled,
+    oidc_callback_url: systemSettings.oidc_callback_url
+  }
 }
 
 export const saveSettings = (userId, settings) => {
@@ -299,6 +361,42 @@ export const saveSettings = (userId, settings) => {
   }
 }
 
+// Save system-wide settings (OIDC settings are shared across all admins)
+export const saveSystemSettings = (settings) => {
+  const existing = getSystemSettings()
+
+  if (existing && existing.id) {
+    const stmt = db.prepare(`
+      UPDATE settings
+      SET oidc_enabled = ?, oidc_client_id = ?, oidc_client_secret = ?,
+          oidc_issuer = ?, oidc_callback_url = ?,
+          updated_at = CURRENT_TIMESTAMP
+      WHERE user_id = ?
+    `)
+    stmt.run(
+      settings.oidcEnabled ? 1 : 0,
+      settings.oidcClientId,
+      settings.oidcClientSecret,
+      settings.oidcIssuer,
+      settings.oidcCallbackUrl,
+      'system'
+    )
+  } else {
+    const stmt = db.prepare(`
+      INSERT INTO settings (user_id, oidc_enabled, oidc_client_id, oidc_client_secret, oidc_issuer, oidc_callback_url)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `)
+    stmt.run(
+      'system',
+      settings.oidcEnabled ? 1 : 0,
+      settings.oidcClientId,
+      settings.oidcClientSecret,
+      settings.oidcIssuer,
+      settings.oidcCallbackUrl
+    )
+  }
+}
+
 // Project operations
 export const getAllProjects = (userId) => {
   const stmt = db.prepare('SELECT * FROM projects WHERE user_id = ? ORDER BY updated_at DESC')
@@ -325,6 +423,10 @@ export const getProject = (projectId) => {
       assignee: task.assignee || null,
       subtasks: task.subtasks ? JSON.parse(task.subtasks) : [],
       comments: task.comments ? JSON.parse(task.comments) : [],
+      linkedTasks: task.linked_tasks ? JSON.parse(task.linked_tasks) : [],
+      aiCreatedLinks: task.ai_created_links ? JSON.parse(task.ai_created_links) : [],
+      aiDiscoveredLinks: task.ai_discovered_links ? JSON.parse(task.ai_discovered_links) : [],
+      rejectedAiLinks: task.rejected_ai_links ? JSON.parse(task.rejected_ai_links) : [],
       createdAt: task.created_at,
       projectId: task.project_id
     }))
@@ -375,12 +477,15 @@ export const saveProject = (userId, project) => {
     deleteStmt.run(project.id)
 
     const insertStmt = db.prepare(`
-      INSERT INTO tasks (id, project_id, title, description, status, priority, due_date, assignee, subtasks, comments)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO tasks (id, project_id, title, description, status, priority, due_date, assignee, subtasks, comments, linked_tasks, ai_created_links, ai_discovered_links, rejected_ai_links)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `)
 
     for (const task of project.tasks) {
       console.log('[Database] Saving task:', task.title)
+      if (task.linkedTasks && task.linkedTasks.length > 0) {
+        console.log('[Database] Task has linked tasks:', task.linkedTasks.join(', '))
+      }
       insertStmt.run(
         task.id,
         project.id,
@@ -391,7 +496,11 @@ export const saveProject = (userId, project) => {
         task.dueDate || null,
         task.assignee || null,
         JSON.stringify(task.subtasks || []),
-        JSON.stringify(task.comments || [])
+        JSON.stringify(task.comments || []),
+        JSON.stringify(task.linkedTasks || []),
+        JSON.stringify(task.aiCreatedLinks || []),
+        JSON.stringify(task.aiDiscoveredLinks || []),
+        JSON.stringify(task.rejectedAiLinks || [])
       )
     }
 
@@ -411,8 +520,8 @@ export const deleteProject = (projectId) => {
 // Task operations
 export const saveTask = (task) => {
   const stmt = db.prepare(`
-    INSERT OR REPLACE INTO tasks (id, project_id, title, description, status, priority, due_date, assignee, subtasks, comments)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT OR REPLACE INTO tasks (id, project_id, title, description, status, priority, due_date, assignee, subtasks, comments, linked_tasks, ai_created_links, ai_discovered_links, rejected_ai_links)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `)
   stmt.run(
     task.id,
@@ -424,7 +533,11 @@ export const saveTask = (task) => {
     task.dueDate || null,
     task.assignee || null,
     JSON.stringify(task.subtasks || []),
-    JSON.stringify(task.comments || [])
+    JSON.stringify(task.comments || []),
+    JSON.stringify(task.linkedTasks || []),
+    JSON.stringify(task.aiCreatedLinks || []),
+    JSON.stringify(task.aiDiscoveredLinks || []),
+    JSON.stringify(task.rejectedAiLinks || [])
   )
 }
 
@@ -575,9 +688,51 @@ export const deleteUser = (userId) => {
     throw new Error('Cannot delete the last admin user')
   }
 
-  const stmt = db.prepare('UPDATE users SET active = 0, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
-  stmt.run(userId)
-  return true
+  try {
+    // Start transaction for complete data removal
+    db.transaction(() => {
+      console.log(`[Database] Deleting all data for user ${userId}`)
+
+      // Get user's project IDs to delete associated tasks and meetings
+      const userProjects = db.prepare('SELECT id FROM projects WHERE user_id = ?').all(userId)
+      const projectIds = userProjects.map(p => p.id)
+
+      if (projectIds.length > 0) {
+        // Delete tasks for all user's projects
+        const deleteTasksStmt = db.prepare(`DELETE FROM tasks WHERE project_id IN (${projectIds.map(() => '?').join(',')})`)
+        const tasksDeleted = deleteTasksStmt.run(...projectIds).changes
+        console.log(`[Database] Deleted ${tasksDeleted} tasks for user ${userId}`)
+      }
+
+      // Delete user's meetings
+      const deleteMeetingsStmt = db.prepare('DELETE FROM meetings WHERE user_id = ?')
+      const meetingsDeleted = deleteMeetingsStmt.run(userId).changes
+      console.log(`[Database] Deleted ${meetingsDeleted} meetings for user ${userId}`)
+
+      // Delete user's projects
+      const deleteProjectsStmt = db.prepare('DELETE FROM projects WHERE user_id = ?')
+      const projectsDeleted = deleteProjectsStmt.run(userId).changes
+      console.log(`[Database] Deleted ${projectsDeleted} projects for user ${userId}`)
+
+      // Delete user's settings
+      const deleteSettingsStmt = db.prepare('DELETE FROM settings WHERE user_id = ?')
+      const settingsDeleted = deleteSettingsStmt.run(userId).changes
+      console.log(`[Database] Deleted ${settingsDeleted} settings for user ${userId}`)
+
+      // Finally delete the user
+      const deleteUserStmt = db.prepare('DELETE FROM users WHERE id = ?')
+      const userDeleted = deleteUserStmt.run(userId).changes
+      console.log(`[Database] Deleted user ${userId} (${userDeleted} rows)`)
+
+    })()
+
+    console.log(`[Database] Successfully deleted user ${userId} and all associated data`)
+    return true
+
+  } catch (error) {
+    console.error(`[Database] Error deleting user ${userId}:`, error)
+    throw new Error(`Failed to delete user: ${error.message}`)
+  }
 }
 
 // Check if any users exist (for first-run setup)

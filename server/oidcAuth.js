@@ -52,7 +52,7 @@ export function getAuthorizationUrl(settings) {
   const state = generators.state()
 
   const authUrl = oidcClient.authorizationUrl({
-    scope: 'openid email profile',
+    scope: 'openid email profile groups',
     code_challenge: codeChallenge,
     code_challenge_method: 'S256',
     state: state
@@ -81,6 +81,13 @@ export async function handleCallback(callbackUrl, storedCodeVerifier, storedStat
     )
 
     const userinfo = await oidcClient.userinfo(tokenSet.access_token)
+
+    // Enhanced logging for debugging group issues
+    console.log('[OIDC] Full userinfo received:', JSON.stringify(userinfo, null, 2))
+    console.log('[OIDC] Available userinfo keys:', Object.keys(userinfo))
+    console.log('[OIDC] Groups in userinfo:', userinfo.groups)
+    console.log('[OIDC] Roles in userinfo:', userinfo.roles)
+    console.log('[OIDC] Role in userinfo:', userinfo.role)
 
     return {
       tokenSet,
@@ -127,6 +134,7 @@ export function findOrCreateOIDCUser(userinfo, issuer) {
     // Only allow users in 'admin' or 'user' groups
     const hasAccess = groups.includes('admin') || groups.includes('user')
     if (!hasAccess && db.hasUsers()) {
+      console.log('[OIDC] Access denied - Required groups: [admin, user], User groups:', groups)
       throw new Error('Access denied: User must be in admin or user group')
     }
 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { FileText, Sparkles } from 'lucide-react'
+import { FileText, Download, Share2, Copy } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import { Button } from './ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
@@ -49,6 +49,93 @@ export default function SummaryPanel() {
 
     loadSummary()
   }, [selectedMeeting?.id])
+
+  const handleExportSummary = () => {
+    if (!summary || !summary.trim()) {
+      addNotification({
+        type: 'error',
+        message: 'No summary available to export'
+      })
+      return
+    }
+
+    const meetingName = selectedMeeting?.name || 'Meeting Summary'
+    const timestamp = new Date().toLocaleString()
+    const content = `# ${meetingName}\n\nGenerated: ${timestamp}\n\n---\n\n${summary}`
+
+    const blob = new Blob([content], { type: 'text/markdown' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `${meetingName.replace(/[^a-zA-Z0-9]/g, '_')}_summary.md`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+
+    addNotification({
+      type: 'success',
+      message: 'Summary exported successfully'
+    })
+  }
+
+  const handleCopySummary = async () => {
+    if (!summary || !summary.trim()) {
+      addNotification({
+        type: 'error',
+        message: 'No summary available to copy'
+      })
+      return
+    }
+
+    try {
+      await navigator.clipboard.writeText(summary)
+      addNotification({
+        type: 'success',
+        message: 'Summary copied to clipboard'
+      })
+    } catch (error) {
+      console.error('[SummaryPanel] Copy failed:', error)
+      addNotification({
+        type: 'error',
+        message: 'Failed to copy summary'
+      })
+    }
+  }
+
+  const handleShareSummary = async () => {
+    if (!summary || !summary.trim()) {
+      addNotification({
+        type: 'error',
+        message: 'No summary available to share'
+      })
+      return
+    }
+
+    const meetingName = selectedMeeting?.name || 'Meeting Summary'
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: meetingName,
+          text: summary,
+        })
+        addNotification({
+          type: 'success',
+          message: 'Summary shared successfully'
+        })
+      } catch (error) {
+        if (error.name !== 'AbortError') {
+          console.error('[SummaryPanel] Share failed:', error)
+          // Fallback to copy
+          handleCopySummary()
+        }
+      }
+    } else {
+      // Fallback to copy if Web Share API not available
+      handleCopySummary()
+    }
+  }
 
   const handleGenerateTasks = async () => {
     console.log('[SummaryPanel] Generate Tasks clicked')
@@ -152,16 +239,38 @@ export default function SummaryPanel() {
               </motion.div>
               <span className="text-xl font-bold">Meeting Summary</span>
             </CardTitle>
-            <Button
-              onClick={handleGenerateTasks}
-              disabled={!selectedMeeting?.transcript || !selectedMeeting?.transcript.trim() || loading}
-              variant="outline"
-              size="sm"
-              className="flex items-center gap-2 hover:bg-gradient-to-r hover:from-purple-50 hover:to-blue-50 hover:border-purple-300 transition-all font-semibold"
-            >
-              <Sparkles className="h-4 w-4" />
-              Generate Tasks
-            </Button>
+
+            {summary && summary.trim() && (
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleCopySummary}
+                  className="h-8 px-2 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                  title="Copy to clipboard"
+                >
+                  <Copy className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleShareSummary}
+                  className="h-8 px-2 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                  title="Share summary"
+                >
+                  <Share2 className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleExportSummary}
+                  className="h-8 px-2 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                  title="Export as markdown file"
+                >
+                  <Download className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
           </div>
         </CardHeader>
         <CardContent className="p-6">
