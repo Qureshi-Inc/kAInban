@@ -73,7 +73,7 @@ const TaskCard = ({ task, onStatusChange, onDelete, onClick }) => {
   )
 }
 
-const Column = ({ title, status, tasks, onTaskMove, onTaskDelete, onTaskClick, count, columnColor }) => {
+const Column = ({ title, status, tasks, onTaskMove, onTaskDelete, onTaskClick, count, columnColor, allTasks }) => {
   const handleDragOver = (e) => {
     e.preventDefault()
   }
@@ -81,7 +81,14 @@ const Column = ({ title, status, tasks, onTaskMove, onTaskDelete, onTaskClick, c
   const handleDrop = (e) => {
     e.preventDefault()
     const taskId = e.dataTransfer.getData('text/plain')
-    onTaskMove(taskId, status)
+
+    // Find the task to check its current status
+    const task = allTasks.find(t => t.id === taskId)
+
+    // Only move if the task is being moved to a different column
+    if (task && task.status !== status) {
+      onTaskMove(taskId, status)
+    }
   }
 
   const getColumnStyle = () => {
@@ -114,7 +121,7 @@ const Column = ({ title, status, tasks, onTaskMove, onTaskDelete, onTaskClick, c
         </CardTitle>
       </CardHeader>
       <CardContent
-        className="pt-0 group"
+        className="pt-0"
         onDragOver={handleDragOver}
         onDrop={handleDrop}
       >
@@ -151,34 +158,97 @@ export default function KanbanBoard() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isMenuOpen, setIsMenuOpen] = useState(false)
 
+  // Add CSS for drag and drop visual feedback
+  React.useEffect(() => {
+
+    const style = document.createElement('style')
+    style.textContent = `
+      .drag-over {
+        background: rgba(59, 130, 246, 0.08) !important;
+        border-color: rgba(59, 130, 246, 0.4) !important;
+        transform: scale(1.02) !important;
+        box-shadow: 0 20px 40px rgba(59, 130, 246, 0.15) !important;
+      }
+
+      .drag-over .space-y-2 {
+        background: rgba(59, 130, 246, 0.04);
+        border: 2px dashed rgba(59, 130, 246, 0.4);
+        border-radius: 12px;
+        transition: all 0.2s ease;
+      }
+
+      .task-card {
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        will-change: transform;
+      }
+
+      .task-card:hover:not(.dragging) {
+        cursor: grab;
+        transform: translateY(-4px) scale(1.02);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+      }
+
+      .task-card:active {
+        cursor: grabbing;
+      }
+
+      .task-card.dragging {
+        pointer-events: none;
+        z-index: 1000;
+        transform: rotate(5deg) scale(1.05);
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+      }
+
+      /* Ensure drop zones can receive events */
+      .kanban-column .pt-0 {
+        pointer-events: auto !important;
+      }
+
+      .kanban-column .space-y-2 {
+        pointer-events: auto !important;
+      }
+
+      /* Smooth column transitions */
+      .kanban-column {
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      /* Dark mode drag feedback */
+      .dark .drag-over {
+        background: rgba(59, 130, 246, 0.15) !important;
+        border-color: rgba(59, 130, 246, 0.5) !important;
+      }
+
+      .dark .drag-over .space-y-2 {
+        background: rgba(59, 130, 246, 0.08);
+        border-color: rgba(59, 130, 246, 0.5);
+      }
+    `
+    document.head.appendChild(style)
+
+    return () => {
+      document.head.removeChild(style)
+    }
+  }, [])
+
   const todoTasks = tasks.filter(task => task.status === 'todo' || !task.status)
   const inProgressTasks = tasks.filter(task => task.status === 'in-progress' || task.status === 'inprogress')
   const blockedTasks = tasks.filter(task => task.status === 'blocked' || task.status === 'on-hold') // Include legacy on-hold
   const doneTasks = tasks.filter(task => task.status === 'done')
 
-  // Log task distribution for debugging
-  console.log('[Kanban] Total tasks:', tasks.length)
-  console.log('[Kanban] Tasks by status:', {
-    todo: todoTasks.length,
-    'in-progress': inProgressTasks.length,
-    blocked: blockedTasks.length,
-    done: doneTasks.length
-  })
-  if (tasks.length > 0) {
-    console.log('[Kanban] All task statuses:', tasks.map(t => ({ title: t.title, status: t.status })))
-  }
 
   const handleTaskMove = async (taskId, newStatus) => {
     const task = tasks.find(t => t.id === taskId)
     if (!task) return
 
+    const previousStatus = task.status
+
     // Move the task first
     moveTask(taskId, newStatus)
 
-    // If task is moved to 'done', check for related tasks to update
-    if (newStatus === 'done') {
+    // Only trigger completion logic if task is NEWLY completed (not already done)
+    if (newStatus === 'done' && previousStatus !== 'done') {
       try {
-        console.log('[Kanban] Task completed, checking for related tasks...')
         const relatedIndices = await openaiService.findRelatedTasks(
           tasks.filter(t => t.id !== taskId), // Exclude the completed task
           task.title,
@@ -186,7 +256,6 @@ export default function KanbanBoard() {
         )
 
         if (relatedIndices.length > 0) {
-          console.log('[Kanban] Found related tasks:', relatedIndices)
           const otherTasks = tasks.filter(t => t.id !== taskId)
           const relatedTaskIds = []
 
@@ -195,7 +264,6 @@ export default function KanbanBoard() {
               const relatedTask = otherTasks[index]
               if (relatedTask.status !== 'done') {
                 relatedTaskIds.push(relatedTask.id)
-                console.log('[Kanban] AI discovered related task:', relatedTask.title)
               }
             }
           })
@@ -211,7 +279,6 @@ export default function KanbanBoard() {
           }
         }
       } catch (error) {
-        console.warn('[Kanban] Failed to check related tasks:', error)
         // Continue normally, don't block the user
       }
     }
@@ -370,6 +437,7 @@ export default function KanbanBoard() {
               onTaskMove={handleTaskMove}
               onTaskDelete={handleTaskDelete}
               onTaskClick={handleTaskClick}
+              allTasks={tasks}
             />
             <Column
               title="⚡ In Progress"
@@ -379,6 +447,7 @@ export default function KanbanBoard() {
               onTaskMove={handleTaskMove}
               onTaskDelete={handleTaskDelete}
               onTaskClick={handleTaskClick}
+              allTasks={tasks}
             />
             <Column
               title="✅ Done"
@@ -388,6 +457,7 @@ export default function KanbanBoard() {
               onTaskMove={handleTaskMove}
               onTaskDelete={handleTaskDelete}
               onTaskClick={handleTaskClick}
+              allTasks={tasks}
             />
             <Column
               title="🚫 Blocked"
@@ -397,6 +467,7 @@ export default function KanbanBoard() {
               onTaskMove={handleTaskMove}
               onTaskDelete={handleTaskDelete}
               onTaskClick={handleTaskClick}
+              allTasks={tasks}
             />
           </div>
         </CardContent>
