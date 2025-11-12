@@ -8,6 +8,8 @@ import openaiService from '../services/openaiService'
 import TaskDetailModal from './TaskDetailModal'
 
 const TaskCard = ({ task, onStatusChange, onDelete, onClick }) => {
+  const [isDragging, setIsDragging] = React.useState(false)
+
   const getPriorityColor = (priority) => {
     switch (priority) {
       case 'high': return 'border-red-400 bg-gradient-to-br from-red-50 to-red-100 text-red-900 shadow-red-100'
@@ -17,21 +19,55 @@ const TaskCard = ({ task, onStatusChange, onDelete, onClick }) => {
     }
   }
 
+  const getDragStyles = () => {
+    if (isDragging) {
+      return 'scale-105 rotate-3 shadow-2xl ring-2 ring-primary/50 ring-offset-2 ring-offset-white dark:ring-offset-gray-900 bg-gradient-to-br from-primary/5 to-primary/10 border-primary/60'
+    }
+    return ''
+  }
+
   return (
     <motion.div
       layout
       initial={{ opacity: 0, scale: 0.9, y: 20 }}
-      animate={{ opacity: 1, scale: 1, y: 0 }}
+      animate={{
+        opacity: isDragging ? 0.8 : 1,
+        scale: 1,
+        y: 0,
+        rotateZ: isDragging ? 3 : 0
+      }}
       exit={{ opacity: 0, scale: 0.9, y: -20 }}
-      whileHover={{ scale: 1.03, y: -6 }}
+      whileHover={{
+        scale: isDragging ? 1.05 : 1.02,
+        y: isDragging ? 0 : -4,
+        rotateZ: isDragging ? 3 : 0
+      }}
       whileTap={{ scale: 0.98 }}
-      transition={{ duration: 0.2, ease: "easeOut" }}
-      className="group task-card bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-xl p-4 mb-3 shadow-md hover:shadow-2xl cursor-pointer backdrop-blur-sm transition-all hover:border-primary/50"
+      transition={{
+        duration: 0.2,
+        ease: "easeOut",
+        scale: { type: "spring", stiffness: 300, damping: 25 }
+      }}
+      className={`group task-card bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-xl p-4 mb-3 shadow-lg hover:shadow-2xl cursor-grab active:cursor-grabbing backdrop-blur-sm transition-all duration-300 hover:border-primary/40 hover:bg-gradient-to-br hover:from-gray-50/50 hover:to-white dark:hover:from-gray-700/50 dark:hover:to-gray-800 ${getDragStyles()}`}
+      style={{
+        transformOrigin: 'center center',
+        transformStyle: 'preserve-3d'
+      }}
+      data-task-id={task.id}
       draggable
       onDragStart={(e) => {
         e.dataTransfer.setData('text/plain', task.id)
+        e.dataTransfer.effectAllowed = 'move'
+        setIsDragging(true)
       }}
-      onClick={() => onClick(task)}
+      onDragEnd={() => {
+        setIsDragging(false)
+      }}
+      onClick={(e) => {
+        if (!isDragging) {
+          onClick(task)
+        }
+      }}
     >
       <div className="flex justify-between items-start mb-3">
         <h4 className="font-bold text-sm line-clamp-2 flex-1 pr-2 text-gray-900 dark:text-gray-100">{task.title}</h4>
@@ -73,22 +109,63 @@ const TaskCard = ({ task, onStatusChange, onDelete, onClick }) => {
   )
 }
 
-const Column = ({ title, status, tasks, onTaskMove, onTaskDelete, onTaskClick, count, columnColor, allTasks }) => {
+const Column = ({ title, status, tasks, onTaskMove, onTaskReorder, onTaskDelete, onTaskClick, count, columnColor, allTasks }) => {
+  const [isDragOver, setIsDragOver] = React.useState(false)
+
   const handleDragOver = (e) => {
     e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+    setIsDragOver(true)
+  }
+
+  const handleDragLeave = (e) => {
+    e.preventDefault()
+    // Only remove hover state if we're actually leaving the drop zone
+    if (!e.currentTarget.contains(e.relatedTarget)) {
+      setIsDragOver(false)
+    }
   }
 
   const handleDrop = (e) => {
     e.preventDefault()
-    const taskId = e.dataTransfer.getData('text/plain')
+    setIsDragOver(false)
 
-    // Find the task to check its current status
+    const taskId = e.dataTransfer.getData('text/plain')
     const task = allTasks.find(t => t.id === taskId)
 
-    // Only move if the task is being moved to a different column
-    if (task && task.status !== status) {
+    if (!task) return
+
+    // If moving to a different column, just change status
+    if (task.status !== status) {
       onTaskMove(taskId, status)
+    } else {
+      // Same column - handle reordering
+      const dropTarget = e.target.closest('.task-card')
+      if (dropTarget && dropTarget !== e.target.closest(`[data-task-id="${taskId}"]`)) {
+        const targetTaskId = dropTarget.getAttribute('data-task-id')
+        if (targetTaskId) {
+          onTaskReorder(taskId, targetTaskId, status)
+        }
+      }
     }
+  }
+
+  const getDropZoneStyles = () => {
+    if (isDragOver) {
+      switch (status) {
+        case 'todo':
+          return 'ring-2 ring-slate-400/50 ring-offset-2 bg-gradient-to-b from-slate-50/80 to-slate-100/50 border-slate-400/60 transform scale-[1.02]'
+        case 'in-progress':
+          return 'ring-2 ring-blue-400/50 ring-offset-2 bg-gradient-to-b from-blue-50/80 to-blue-100/50 border-blue-400/60 transform scale-[1.02]'
+        case 'done':
+          return 'ring-2 ring-green-400/50 ring-offset-2 bg-gradient-to-b from-green-50/80 to-green-100/50 border-green-400/60 transform scale-[1.02]'
+        case 'blocked':
+          return 'ring-2 ring-red-400/50 ring-offset-2 bg-gradient-to-b from-red-50/80 to-red-100/50 border-red-400/60 transform scale-[1.02]'
+        default:
+          return 'ring-2 ring-primary/50 ring-offset-2 bg-gradient-to-b from-primary/5 to-primary/10 border-primary/60 transform scale-[1.02]'
+      }
+    }
+    return ''
   }
 
   const getColumnStyle = () => {
@@ -107,7 +184,10 @@ const Column = ({ title, status, tasks, onTaskMove, onTaskDelete, onTaskClick, c
   }
 
   return (
-    <Card className={`kanban-column min-h-[500px] transition-all duration-300 hover:shadow-2xl hover:scale-[1.02] ${getColumnStyle()}`}>
+    <Card
+      className={`kanban-column min-h-[500px] transition-all duration-300 hover:shadow-xl ${getColumnStyle()} ${getDropZoneStyles()} ${isDragOver ? 'drag-over' : ''}`}
+      data-status={status}
+    >
       <CardHeader className="pb-4 sticky top-0 bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm z-10 border-b border-gray-200/50 dark:border-gray-700/50">
         <CardTitle className="flex items-center justify-between text-base">
           <span className="font-bold text-lg">{title}</span>
@@ -121,8 +201,9 @@ const Column = ({ title, status, tasks, onTaskMove, onTaskDelete, onTaskClick, c
         </CardTitle>
       </CardHeader>
       <CardContent
-        className="pt-0"
+        className="pt-0 transition-all duration-200"
         onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
         onDrop={handleDrop}
       >
         <div className="space-y-2 min-h-[400px] p-2">
@@ -139,11 +220,34 @@ const Column = ({ title, status, tasks, onTaskMove, onTaskDelete, onTaskClick, c
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="flex flex-col items-center justify-center h-[400px] text-muted-foreground"
+              className={`empty-drop-zone flex flex-col items-center justify-center h-[400px] text-muted-foreground ${isDragOver ? 'drag-over' : ''}`}
             >
-              <div className="text-6xl mb-4 opacity-20">📋</div>
-              <p className="text-sm italic font-medium">Drop tasks here</p>
-              <p className="text-xs mt-1 opacity-60">Drag and drop to organize</p>
+              <motion.div
+                className="text-6xl mb-4 opacity-30"
+                animate={{
+                  scale: isDragOver ? 1.1 : 1,
+                  opacity: isDragOver ? 0.6 : 0.3
+                }}
+                transition={{ duration: 0.2 }}
+              >
+                📋
+              </motion.div>
+              <motion.p
+                className="text-sm italic font-medium"
+                animate={{
+                  opacity: isDragOver ? 0.8 : 0.7
+                }}
+              >
+                {isDragOver ? 'Release to add task' : 'Drop tasks here'}
+              </motion.p>
+              <motion.p
+                className="text-xs mt-1 opacity-50"
+                animate={{
+                  opacity: isDragOver ? 0.6 : 0.4
+                }}
+              >
+                {isDragOver ? '✨ Perfect!' : 'Drag and drop to organize'}
+              </motion.p>
             </motion.div>
           )}
         </div>
@@ -153,7 +257,7 @@ const Column = ({ title, status, tasks, onTaskMove, onTaskDelete, onTaskClick, c
 }
 
 export default function KanbanBoard() {
-  const { tasks, moveTask, updateTask, deleteTask, clearTasks, addTask, addNotification, addAiDiscoveredLinks } = useAppStore()
+  const { tasks, moveTask, updateTask, deleteTask, clearTasks, addTask, addNotification, addAiDiscoveredLinks, reorderTask } = useAppStore()
   const [selectedTask, setSelectedTask] = useState(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -163,65 +267,169 @@ export default function KanbanBoard() {
 
     const style = document.createElement('style')
     style.textContent = `
-      .drag-over {
-        background: rgba(59, 130, 246, 0.08) !important;
-        border-color: rgba(59, 130, 246, 0.4) !important;
-        transform: scale(1.02) !important;
-        box-shadow: 0 20px 40px rgba(59, 130, 246, 0.15) !important;
-      }
-
-      .drag-over .space-y-2 {
-        background: rgba(59, 130, 246, 0.04);
-        border: 2px dashed rgba(59, 130, 246, 0.4);
-        border-radius: 12px;
-        transition: all 0.2s ease;
-      }
-
+      /* Enhanced task card styles */
       .task-card {
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        will-change: transform;
+        will-change: transform, box-shadow, border-color;
+        position: relative;
+        isolation: isolate;
       }
 
-      .task-card:hover:not(.dragging) {
-        cursor: grab;
-        transform: translateY(-4px) scale(1.02);
-        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+      .task-card::before {
+        content: '';
+        position: absolute;
+        inset: -2px;
+        border-radius: inherit;
+        padding: 2px;
+        background: linear-gradient(145deg, transparent, rgba(59, 130, 246, 0.1), transparent);
+        mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+        mask-composite: xor;
+        opacity: 0;
+        transition: opacity 0.3s ease;
       }
 
-      .task-card:active {
-        cursor: grabbing;
+      .task-card:hover::before {
+        opacity: 1;
       }
 
+      /* Dragging state styles */
       .task-card.dragging {
-        pointer-events: none;
         z-index: 1000;
-        transform: rotate(5deg) scale(1.05);
-        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+        pointer-events: none;
+        position: relative;
       }
 
-      /* Ensure drop zones can receive events */
-      .kanban-column .pt-0 {
-        pointer-events: auto !important;
+      .task-card.dragging::after {
+        content: '';
+        position: absolute;
+        inset: -4px;
+        border-radius: inherit;
+        background: linear-gradient(145deg,
+          rgba(59, 130, 246, 0.2),
+          rgba(139, 92, 246, 0.2),
+          rgba(59, 130, 246, 0.2)
+        );
+        animation: drag-glow 2s ease-in-out infinite;
+        z-index: -1;
       }
 
-      .kanban-column .space-y-2 {
-        pointer-events: auto !important;
+      @keyframes drag-glow {
+        0%, 100% {
+          opacity: 0.6;
+          filter: blur(8px);
+        }
+        50% {
+          opacity: 1;
+          filter: blur(12px);
+        }
       }
 
-      /* Smooth column transitions */
+      /* Column drop zone styles */
       .kanban-column {
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        overflow: visible;
       }
 
-      /* Dark mode drag feedback */
-      .dark .drag-over {
-        background: rgba(59, 130, 246, 0.15) !important;
-        border-color: rgba(59, 130, 246, 0.5) !important;
+      .kanban-column::before {
+        content: '';
+        position: absolute;
+        inset: -4px;
+        border-radius: inherit;
+        background: linear-gradient(145deg, transparent 0%, var(--drop-glow, transparent) 50%, transparent 100%);
+        opacity: 0;
+        transition: all 0.3s ease;
+        z-index: -1;
+        filter: blur(8px);
       }
 
-      .dark .drag-over .space-y-2 {
-        background: rgba(59, 130, 246, 0.08);
-        border-color: rgba(59, 130, 246, 0.5);
+      .kanban-column.drag-over::before {
+        opacity: 1;
+      }
+
+      /* Column-specific drop glow colors */
+      .kanban-column[data-status="todo"]::before {
+        --drop-glow: rgba(100, 116, 139, 0.3);
+      }
+
+      .kanban-column[data-status="in-progress"]::before {
+        --drop-glow: rgba(59, 130, 246, 0.3);
+      }
+
+      .kanban-column[data-status="done"]::before {
+        --drop-glow: rgba(34, 197, 94, 0.3);
+      }
+
+      .kanban-column[data-status="blocked"]::before {
+        --drop-glow: rgba(239, 68, 68, 0.3);
+      }
+
+      /* Empty drop zone styling */
+      .empty-drop-zone {
+        border: 2px dashed rgba(156, 163, 175, 0.4);
+        border-radius: 12px;
+        transition: all 0.3s ease;
+        position: relative;
+        background: linear-gradient(145deg,
+          rgba(249, 250, 251, 0.5),
+          rgba(243, 244, 246, 0.3)
+        );
+      }
+
+      .empty-drop-zone.drag-over {
+        border-color: rgba(59, 130, 246, 0.6);
+        background: linear-gradient(145deg,
+          rgba(59, 130, 246, 0.05),
+          rgba(59, 130, 246, 0.02)
+        );
+        transform: scale(1.01);
+      }
+
+      .empty-drop-zone::before {
+        content: '';
+        position: absolute;
+        inset: -2px;
+        border-radius: inherit;
+        background: linear-gradient(45deg,
+          rgba(59, 130, 246, 0.1),
+          transparent,
+          rgba(59, 130, 246, 0.1)
+        );
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        z-index: -1;
+        filter: blur(4px);
+      }
+
+      .empty-drop-zone.drag-over::before {
+        opacity: 1;
+      }
+
+      /* Smooth animations for all interactive elements */
+      .task-card, .kanban-column, .empty-drop-zone {
+        transform-origin: center;
+        backface-visibility: hidden;
+        -webkit-backface-visibility: hidden;
+      }
+
+      /* Dark mode enhancements */
+      .dark .task-card::before {
+        background: linear-gradient(145deg, transparent, rgba(59, 130, 246, 0.2), transparent);
+      }
+
+      .dark .empty-drop-zone {
+        background: linear-gradient(145deg,
+          rgba(17, 24, 39, 0.5),
+          rgba(31, 41, 55, 0.3)
+        );
+        border-color: rgba(75, 85, 99, 0.4);
+      }
+
+      .dark .empty-drop-zone.drag-over {
+        background: linear-gradient(145deg,
+          rgba(59, 130, 246, 0.1),
+          rgba(59, 130, 246, 0.05)
+        );
       }
     `
     document.head.appendChild(style)
@@ -231,11 +439,48 @@ export default function KanbanBoard() {
     }
   }, [])
 
-  const todoTasks = tasks.filter(task => task.status === 'todo' || !task.status)
-  const inProgressTasks = tasks.filter(task => task.status === 'in-progress' || task.status === 'inprogress')
-  const blockedTasks = tasks.filter(task => task.status === 'blocked' || task.status === 'on-hold') // Include legacy on-hold
-  const doneTasks = tasks.filter(task => task.status === 'done')
+  const sortTasksByOrder = (tasks) => {
+    return tasks.sort((a, b) => {
+      // If both have order, sort by order
+      if (a.order && b.order) return a.order - b.order
+      // If only one has order, prioritize it
+      if (a.order && !b.order) return -1
+      if (!a.order && b.order) return 1
+      // If neither has order, sort by creation time
+      return new Date(a.createdAt) - new Date(b.createdAt)
+    })
+  }
 
+  const todoTasks = sortTasksByOrder(tasks.filter(task => task.status === 'todo' || !task.status))
+  const inProgressTasks = sortTasksByOrder(tasks.filter(task => task.status === 'in-progress' || task.status === 'inprogress'))
+  const blockedTasks = sortTasksByOrder(tasks.filter(task => task.status === 'blocked' || task.status === 'on-hold')) // Include legacy on-hold
+  const doneTasks = sortTasksByOrder(tasks.filter(task => task.status === 'done'))
+
+
+  const handleTaskReorder = (draggedTaskId, targetTaskId, status) => {
+    // Get current tasks in this column
+    const columnTasks = tasks.filter(t => t.status === status)
+    const draggedIndex = columnTasks.findIndex(t => t.id === draggedTaskId)
+    const targetIndex = columnTasks.findIndex(t => t.id === targetTaskId)
+
+    if (draggedIndex === -1 || targetIndex === -1) return
+
+    // Create new order
+    const reorderedTasks = [...columnTasks]
+    const [draggedTask] = reorderedTasks.splice(draggedIndex, 1)
+    reorderedTasks.splice(targetIndex, 0, draggedTask)
+
+    // Update the order timestamps to preserve the new order
+    const updatedTasks = reorderedTasks.map((task, index) => ({
+      ...task,
+      order: Date.now() + index // Use timestamp + index for ordering
+    }))
+
+    // Update all tasks in the store
+    updatedTasks.forEach(task => {
+      updateTask(task.id, { order: task.order })
+    })
+  }
 
   const handleTaskMove = async (taskId, newStatus) => {
     const task = tasks.find(t => t.id === taskId)
@@ -435,6 +680,7 @@ export default function KanbanBoard() {
               tasks={todoTasks}
               count={todoTasks.length}
               onTaskMove={handleTaskMove}
+              onTaskReorder={handleTaskReorder}
               onTaskDelete={handleTaskDelete}
               onTaskClick={handleTaskClick}
               allTasks={tasks}
@@ -445,6 +691,7 @@ export default function KanbanBoard() {
               tasks={inProgressTasks}
               count={inProgressTasks.length}
               onTaskMove={handleTaskMove}
+              onTaskReorder={handleTaskReorder}
               onTaskDelete={handleTaskDelete}
               onTaskClick={handleTaskClick}
               allTasks={tasks}
@@ -455,6 +702,7 @@ export default function KanbanBoard() {
               tasks={doneTasks}
               count={doneTasks.length}
               onTaskMove={handleTaskMove}
+              onTaskReorder={handleTaskReorder}
               onTaskDelete={handleTaskDelete}
               onTaskClick={handleTaskClick}
               allTasks={tasks}
@@ -465,6 +713,7 @@ export default function KanbanBoard() {
               tasks={blockedTasks}
               count={blockedTasks.length}
               onTaskMove={handleTaskMove}
+              onTaskReorder={handleTaskReorder}
               onTaskDelete={handleTaskDelete}
               onTaskClick={handleTaskClick}
               allTasks={tasks}
