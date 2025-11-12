@@ -65,7 +65,6 @@ export default function DebugPanel() {
               if (rawData) {
                 try {
                   const parsed = JSON.parse(rawData)
-                  console.log('[Debug] Parsed storage:', parsed)
                 } catch (e) {
                   console.error('[Debug] Parse error:', e)
                 }

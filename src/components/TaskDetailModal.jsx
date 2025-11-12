@@ -139,9 +139,7 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
     // Force save to backend
     setTimeout(async () => {
       try {
-        console.log('[TaskDetailModal] Attempting to save task to backend...')
         await updateCurrentProject()
-        console.log('[TaskDetailModal] ✓ Task saved to backend successfully')
       } catch (error) {
         console.error('[TaskDetailModal] ✗ Failed to save task to backend:', error)
         addNotification({
@@ -209,26 +207,19 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
   }
 
   const handleLinkTask = (taskToLinkId) => {
-    console.log('[TaskDetailModal] handleLinkTask called with:', taskToLinkId)
-    console.log('[TaskDetailModal] Current task:', task?.id, task?.title)
-    console.log('[TaskDetailModal] Current linkedTasks:', linkedTasks)
 
     if (!linkedTasks.includes(taskToLinkId)) {
       const updatedLinkedTasks = [...linkedTasks, taskToLinkId]
       setLinkedTasks(updatedLinkedTasks)
-      console.log('[TaskDetailModal] Updated linkedTasks:', updatedLinkedTasks)
 
       // Use bidirectional linking function and save to backend
       if (task) {
-        console.log('[TaskDetailModal] Creating bidirectional link...')
         linkTasks(task.id, updatedLinkedTasks)
 
         // Force save to backend
         setTimeout(async () => {
           try {
-            console.log('[TaskDetailModal] Attempting to save project to backend...')
             await updateCurrentProject()
-            console.log('[TaskDetailModal] ✓ Project saved to backend successfully')
           } catch (error) {
             console.error('[TaskDetailModal] ✗ Failed to save project to backend:', error)
             addNotification({
@@ -242,19 +233,16 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
           type: 'success',
           message: 'Task linked successfully!'
         })
-        console.log('[TaskDetailModal] Bidirectional link created successfully')
       } else {
         console.error('[TaskDetailModal] No task to update!')
       }
     } else {
-      console.log('[TaskDetailModal] Task already linked, skipping')
     }
     setShowLinkedTasksDropdown(false)
     setLinkSearchQuery('') // Clear search when closing
   }
 
   const handleUnlinkTask = (taskToUnlinkId) => {
-    console.log('[TaskDetailModal] Unlinking task:', taskToUnlinkId)
     const updatedLinkedTasks = linkedTasks.filter(id => id !== taskToUnlinkId)
     setLinkedTasks(updatedLinkedTasks)
 
@@ -265,9 +253,7 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
       // Force save to backend
       setTimeout(async () => {
         try {
-          console.log('[TaskDetailModal] Attempting to save project to backend after unlink...')
           await updateCurrentProject()
-          console.log('[TaskDetailModal] ✓ Project saved to backend after unlink')
         } catch (error) {
           console.error('[TaskDetailModal] ✗ Failed to save project to backend after unlink:', error)
           addNotification({
@@ -711,7 +697,6 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                                 onClick={(e) => {
                                   e.preventDefault()
                                   e.stopPropagation()
-                                  console.log('[TaskDetailModal] Linking task:', availableTask.id, availableTask.title)
                                   handleLinkTask(availableTask.id)
                                 }}
                                 className="w-full text-left px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2 border-b border-gray-100 dark:border-gray-700 last:border-b-0 cursor-pointer"

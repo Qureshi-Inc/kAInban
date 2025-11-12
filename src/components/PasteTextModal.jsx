@@ -37,7 +37,6 @@ export default function PasteTextModal({ open, onOpenChange }) {
     setIsProcessing(true)
 
     try {
-      console.log('[PasteText] Processing transcript:', transcript.length, 'characters')
 
       // Generate summary and extract tasks from the pasted text
       addNotification({
@@ -49,7 +48,6 @@ export default function PasteTextModal({ open, onOpenChange }) {
       console.log('[PasteText] Summary generated:', summary)
 
       const tasks = await openaiService.extractTasks(transcript)
-      console.log('[PasteText] Tasks extracted:', tasks.length)
 
       // Create a meeting with the transcript and summary
       const meetingName = `Pasted Text - ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`

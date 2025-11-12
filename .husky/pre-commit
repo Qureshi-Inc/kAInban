@@ -1,0 +1,19 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+echo "Running pre-commit checks..."
+
+# Run lint-staged
+npx lint-staged
+
+# Run type checking if TypeScript is configured
+if [ -f "tsconfig.json" ]; then
+  echo "Running type check..."
+  npm run type-check
+fi
+
+# Run tests
+echo "Running tests..."
+npm run test:run
+
+echo "Pre-commit checks completed successfully!"

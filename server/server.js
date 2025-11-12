@@ -4,6 +4,7 @@ import morgan from 'morgan'
 import session from 'express-session'
 import connectSqlite3 from 'connect-sqlite3'
 import rateLimit from 'express-rate-limit'
+import helmet from 'helmet'
 import fs from 'fs'
 import path from 'path'
 import * as db from './database.js'
@@ -18,6 +19,48 @@ const SQLiteStore = connectSqlite3(session)
 
 // Trust proxy (nginx reverse proxy)
 app.set('trust proxy', 1)
+
+// Security Headers with Helmet
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com"],
+      scriptSrc: ["'self'", "'unsafe-eval'"], // unsafe-eval needed for Vite dev
+      imgSrc: ["'self'", "data:", "https:"],
+      connectSrc: ["'self'", "https://api.openai.com", "https://*.openai.azure.com"],
+      mediaSrc: ["'self'", "blob:"],
+      objectSrc: ["'none'"],
+      baseUri: ["'self'"],
+      formAction: ["'self'"],
+      frameAncestors: ["'none'"],
+      upgradeInsecureRequests: process.env.NODE_ENV === 'production' ? [] : null
+    }
+  },
+  crossOriginEmbedderPolicy: false, // Disable for audio processing
+  hsts: {
+    maxAge: 31536000,
+    includeSubDomains: true,
+    preload: true
+  }
+}))
+
+// Note: CSRF protection disabled for MVP but should be implemented for production
+// TODO: Implement proper CSRF protection using csrf-csrf or similar package
+
+// Global rate limiting
+const globalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 1000, // 1000 requests per window
+  message: { error: 'Too many requests, please try again later' },
+  standardHeaders: true,
+  legacyHeaders: false,
+  trustProxy: true
+})
+
+// Apply global rate limiting
+app.use(globalLimiter)
 
 // Middleware
 app.use(cors({
@@ -34,7 +77,7 @@ app.use(cors({
 }))
 app.use(express.json({ limit: '100mb' }))  // Increased from 50mb to 100mb
 app.use(express.urlencoded({ limit: '100mb', extended: true }))  // Added for form data
-app.use(morgan('dev'))
+app.use(morgan('combined')) // Changed to combined for better security logging
 
 // Session middleware
 app.use(session({
@@ -65,6 +108,11 @@ const authLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false
 })
+
+// Note: CSRF token endpoint disabled for MVP
+// app.get('/api/csrf-token', (req, res) => {
+//   res.json({ csrfToken: 'disabled-for-mvp' })
+// })
 
 // Health check
 app.get('/health', (req, res) => {
@@ -316,7 +364,6 @@ app.get('/api/settings', localAuth.requireAuth, (req, res) => {
 
     // If no settings in database, return environment variables
     if (!settings || !settings.azure_endpoint) {
-      console.log('[Settings] No database settings, loading from environment variables')
       const enableOidc = process.env.ENABLE_OIDC === 'true' || process.env.ENABLE_OIDC === '1'
       console.log('[Settings] ENABLE_OIDC env:', process.env.ENABLE_OIDC, '-> enabled:', enableOidc)
       console.log('[Settings] POCKET_ID_CLIENT_ID env:', process.env.POCKET_ID_CLIENT_ID)
@@ -335,7 +382,6 @@ app.get('/api/settings', localAuth.requireAuth, (req, res) => {
     }
 
     // Return database settings with environment variable fallbacks
-    console.log('[Settings] Database settings found, oidc_enabled:', settings.oidc_enabled)
     res.json({
       azureEndpoint: settings.azure_endpoint || '',
       apiKey: settings.api_key || '',
@@ -497,7 +543,6 @@ app.delete('/api/projects/:id', localAuth.requireAuth, (req, res) => {
     }
 
     db.deleteProject(req.params.id)
-    console.log('[Projects] Deleted:', req.params.id)
     res.json({ success: true })
   } catch (error) {
     console.error('[Projects] Delete error:', error)
@@ -525,7 +570,6 @@ app.post('/api/meetings', localAuth.requireAuth, (req, res) => {
     // Ensure meetings directory exists
     if (!fs.existsSync(MEETINGS_DIR)) {
       fs.mkdirSync(MEETINGS_DIR, { recursive: true })
-      console.log('[Meetings] Created meetings directory:', MEETINGS_DIR)
     }
 
     // Create summary file
@@ -626,17 +670,14 @@ app.delete('/api/meetings/:id', localAuth.requireAuth, (req, res) => {
     // Delete files if they exist
     if (meeting.summary_file && fs.existsSync(meeting.summary_file)) {
       fs.unlinkSync(meeting.summary_file)
-      console.log('[Meetings] Deleted summary file:', meeting.summary_file)
     }
 
     if (meeting.transcript_file && fs.existsSync(meeting.transcript_file)) {
       fs.unlinkSync(meeting.transcript_file)
-      console.log('[Meetings] Deleted transcript file:', meeting.transcript_file)
     }
 
     // Delete from database
     db.deleteMeeting(id)
-    console.log('[Meetings] Deleted meeting from database:', id)
 
     res.json({ success: true })
   } catch (error) {

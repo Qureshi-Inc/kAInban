@@ -34,30 +34,21 @@ export default function AnalyticsDashboard() {
 
   // Calculate analytics based on selected project
   const analytics = useMemo(() => {
-    console.log('[AnalyticsDashboard] Recalculating analytics...')
-    console.log('[AnalyticsDashboard] Projects:', projects.length)
-    console.log('[AnalyticsDashboard] Selected Project ID:', selectedProjectId)
-    console.log('[AnalyticsDashboard] Projects version:', projectsVersion)
-
     let allTasks = []
 
     if (selectedProjectId === 'all') {
       // Get all tasks from all projects
       projects.forEach(project => {
         if (project.tasks && project.tasks.length > 0) {
-          console.log(`[AnalyticsDashboard] Project "${project.name}" has ${project.tasks.length} tasks`)
           allTasks = [...allTasks, ...project.tasks]
         }
       })
-      console.log('[AnalyticsDashboard] Total tasks across all projects:', allTasks.length)
     } else {
       // Get tasks from specific selected project
       const selectedProject = projects.find(p => p.id === selectedProjectId)
       if (selectedProject && selectedProject.tasks) {
         allTasks = selectedProject.tasks
-        console.log(`[AnalyticsDashboard] Selected project "${selectedProject.name}" has ${allTasks.length} tasks`)
       } else {
-        console.log('[AnalyticsDashboard] Selected project not found or has no tasks')
       }
     }
 
@@ -82,7 +73,6 @@ export default function AnalyticsDashboard() {
 
     const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0
 
-    console.log('[AnalyticsDashboard] Analytics calculated:', { total, completed, inProgress, blocked, todo })
 
     return {
       total,
@@ -127,13 +117,11 @@ export default function AnalyticsDashboard() {
 
         // Only use cache if it's from today
         if (cachedMidnight >= currentMidnight) {
-          console.log('[Analytics] Loading cached insights for project:', projectId)
           setAiInsights(insights)
           setInsightsCacheTime(timestamp)
           setLastTaskCount(taskCount)
           return true // Successfully loaded from cache
         } else {
-          console.log('[Analytics] Cache expired for project:', projectId)
           localStorage.removeItem(cacheKey)
         }
       }
@@ -215,7 +203,6 @@ export default function AnalyticsDashboard() {
       !insightsCacheValid // No valid cache
 
     if (shouldGenerate) {
-      console.log('[Analytics] Auto-generating insights for', analytics.total, 'tasks in project:', selectedProjectId)
       handleGenerateInsights()
     }
   }, [analytics.total, aiInsights, insightsCacheValid, loadingInsights])
@@ -223,13 +210,11 @@ export default function AnalyticsDashboard() {
   const handleGenerateInsights = async () => {
     // Don't regenerate if already loading or if we have valid cached insights
     if (loadingInsights || (insightsCacheValid && aiInsights)) {
-      console.log('[Analytics] Skipping generation - already have valid insights')
       return
     }
 
     setLoadingInsights(true)
     try {
-      console.log('[Analytics] Generating insights for', analytics.total, 'tasks in project:', selectedProjectId)
       const insights = await openaiService.generateAnalyticsInsights(analytics)
       const timestamp = Date.now()
 
@@ -245,7 +230,6 @@ export default function AnalyticsDashboard() {
           timestamp,
           taskCount: analytics.total
         }))
-        console.log('[Analytics] Insights cached for project:', selectedProjectId)
       } catch (error) {
         console.error('[Analytics] Failed to cache insights:', error)
       }
@@ -259,7 +243,6 @@ export default function AnalyticsDashboard() {
 
   // Load cached insights when project changes
   useEffect(() => {
-    console.log('[Analytics] Project selection changed to:', selectedProjectId)
 
     // Reset state
     setAiInsights(null)
@@ -269,9 +252,7 @@ export default function AnalyticsDashboard() {
     // Try to load cached insights for this specific project
     const foundCache = loadCachedInsights(selectedProjectId)
     if (foundCache) {
-      console.log('[Analytics] Using cached insights for project:', selectedProjectId)
     } else {
-      console.log('[Analytics] No valid cache found for project:', selectedProjectId)
     }
   }, [selectedProjectId])
 

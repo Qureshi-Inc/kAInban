@@ -76,7 +76,6 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_meetings_user ON meetings(user_id);
 `)
 
-console.log('[Database] Tables created/verified')
 
 // Create users table with both local and OIDC auth support
 db.exec(`
@@ -112,42 +111,34 @@ try {
   const hasRejectedAiLinks = taskColumns.some(col => col.name === 'rejected_ai_links')
 
   if (!hasDueDate) {
-    console.log('[Database] Adding due_date column to tasks table')
     db.exec('ALTER TABLE tasks ADD COLUMN due_date DATE')
   }
 
   if (!hasAssignee) {
-    console.log('[Database] Adding assignee column to tasks table')
     db.exec('ALTER TABLE tasks ADD COLUMN assignee TEXT')
   }
 
   if (!hasSubtasks) {
-    console.log('[Database] Adding subtasks column to tasks table')
     db.exec('ALTER TABLE tasks ADD COLUMN subtasks TEXT')
   }
 
   if (!hasComments) {
-    console.log('[Database] Adding comments column to tasks table')
     db.exec('ALTER TABLE tasks ADD COLUMN comments TEXT')
   }
 
   if (!hasLinkedTasks) {
-    console.log('[Database] Adding linked_tasks column to tasks table')
     db.exec('ALTER TABLE tasks ADD COLUMN linked_tasks TEXT')
   }
 
   if (!hasAiCreatedLinks) {
-    console.log('[Database] Adding ai_created_links column to tasks table')
     db.exec('ALTER TABLE tasks ADD COLUMN ai_created_links TEXT')
   }
 
   if (!hasAiDiscoveredLinks) {
-    console.log('[Database] Adding ai_discovered_links column to tasks table')
     db.exec('ALTER TABLE tasks ADD COLUMN ai_discovered_links TEXT')
   }
 
   if (!hasRejectedAiLinks) {
-    console.log('[Database] Adding rejected_ai_links column to tasks table')
     db.exec('ALTER TABLE tasks ADD COLUMN rejected_ai_links TEXT')
   }
 
@@ -160,27 +151,22 @@ try {
   const hasOidcCallbackUrl = settingsColumns.some(col => col.name === 'oidc_callback_url')
 
   if (!hasOidcEnabled) {
-    console.log('[Database] Adding oidc_enabled column to settings table')
     db.exec('ALTER TABLE settings ADD COLUMN oidc_enabled INTEGER DEFAULT 0')
   }
 
   if (!hasOidcClientId) {
-    console.log('[Database] Adding oidc_client_id column to settings table')
     db.exec('ALTER TABLE settings ADD COLUMN oidc_client_id TEXT')
   }
 
   if (!hasOidcClientSecret) {
-    console.log('[Database] Adding oidc_client_secret column to settings table')
     db.exec('ALTER TABLE settings ADD COLUMN oidc_client_secret TEXT')
   }
 
   if (!hasOidcIssuer) {
-    console.log('[Database] Adding oidc_issuer column to settings table')
     db.exec("ALTER TABLE settings ADD COLUMN oidc_issuer TEXT DEFAULT 'https://pocketid.app'")
   }
 
   if (!hasOidcCallbackUrl) {
-    console.log('[Database] Adding oidc_callback_url column to settings table')
     db.exec('ALTER TABLE settings ADD COLUMN oidc_callback_url TEXT')
   }
 
@@ -193,7 +179,6 @@ try {
       const hasSub = userColumns.some(col => col.name === 'sub')
 
       if (hasSub && !userColumns.some(col => col.name === 'auth_provider')) {
-        console.log('[Database] Migrating old OIDC users to new schema')
         // Rename old table, recreate with new schema, migrate data
         db.exec('ALTER TABLE users RENAME TO users_old')
         db.exec(`
@@ -225,7 +210,6 @@ try {
           FROM users_old
         `)
 
-        console.log('[Database] Old users migrated, cleaning up')
         db.exec('DROP TABLE users_old')
       }
     }
@@ -240,9 +224,7 @@ try {
       CREATE INDEX IF NOT EXISTS idx_users_email ON users(email) WHERE email IS NOT NULL;
       CREATE INDEX IF NOT EXISTS idx_users_active ON users(active);
     `)
-    console.log('[Database] User indexes created')
   } catch (indexErr) {
-    console.log('[Database] Index creation skipped or already exists')
   }
 
   console.log('[Database] Migration completed successfully')
@@ -470,7 +452,6 @@ export const saveProject = (userId, project) => {
 
   // Save tasks if provided
   if (project.tasks && Array.isArray(project.tasks)) {
-    console.log('[Database] Saving', project.tasks.length, 'tasks for project', project.id)
 
     // Delete existing tasks and insert new ones
     const deleteStmt = db.prepare('DELETE FROM tasks WHERE project_id = ?')
@@ -482,9 +463,7 @@ export const saveProject = (userId, project) => {
     `)
 
     for (const task of project.tasks) {
-      console.log('[Database] Saving task:', task.title)
       if (task.linkedTasks && task.linkedTasks.length > 0) {
-        console.log('[Database] Task has linked tasks:', task.linkedTasks.join(', '))
       }
       insertStmt.run(
         task.id,
@@ -504,9 +483,7 @@ export const saveProject = (userId, project) => {
       )
     }
 
-    console.log('[Database] ✓ All tasks saved successfully')
   } else {
-    console.log('[Database] No tasks to save for project', project.id)
   }
 
   // Note: Meetings are saved separately via /api/meetings endpoint
@@ -701,32 +678,26 @@ export const deleteUser = (userId) => {
         // Delete tasks for all user's projects
         const deleteTasksStmt = db.prepare(`DELETE FROM tasks WHERE project_id IN (${projectIds.map(() => '?').join(',')})`)
         const tasksDeleted = deleteTasksStmt.run(...projectIds).changes
-        console.log(`[Database] Deleted ${tasksDeleted} tasks for user ${userId}`)
       }
 
       // Delete user's meetings
       const deleteMeetingsStmt = db.prepare('DELETE FROM meetings WHERE user_id = ?')
       const meetingsDeleted = deleteMeetingsStmt.run(userId).changes
-      console.log(`[Database] Deleted ${meetingsDeleted} meetings for user ${userId}`)
 
       // Delete user's projects
       const deleteProjectsStmt = db.prepare('DELETE FROM projects WHERE user_id = ?')
       const projectsDeleted = deleteProjectsStmt.run(userId).changes
-      console.log(`[Database] Deleted ${projectsDeleted} projects for user ${userId}`)
 
       // Delete user's settings
       const deleteSettingsStmt = db.prepare('DELETE FROM settings WHERE user_id = ?')
       const settingsDeleted = deleteSettingsStmt.run(userId).changes
-      console.log(`[Database] Deleted ${settingsDeleted} settings for user ${userId}`)
 
       // Finally delete the user
       const deleteUserStmt = db.prepare('DELETE FROM users WHERE id = ?')
       const userDeleted = deleteUserStmt.run(userId).changes
-      console.log(`[Database] Deleted user ${userId} (${userDeleted} rows)`)
 
     })()
 
-    console.log(`[Database] Successfully deleted user ${userId} and all associated data`)
     return true
 
   } catch (error) {

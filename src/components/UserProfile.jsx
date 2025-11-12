@@ -26,7 +26,7 @@ export default function UserProfile() {
         className="flex items-center gap-2"
       >
         <div className="relative">
-          <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-medium text-sm border-2 border-primary/20">
+          <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-medium text-sm border-2 border-black">
             {user.name?.charAt(0).toUpperCase() || user.email?.charAt(0).toUpperCase()}
           </div>
         </div>
@@ -56,7 +56,7 @@ export default function UserProfile() {
               {/* User Info */}
               <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-lg">
+                  <div className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-lg border-2 border-black">
                     {user.name?.charAt(0).toUpperCase() || user.email?.charAt(0).toUpperCase()}
                   </div>
                   <div className="flex-1 min-w-0">

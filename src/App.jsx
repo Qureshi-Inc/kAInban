@@ -35,9 +35,6 @@ function App() {
   const gptDeployment = useAppStore((state) => state.settings.gptDeployment)
 
   useEffect(() => {
-    console.log('[App] Component mounted - checking authentication')
-    console.log('[App] Window location:', window.location.href)
-
     // Check authentication and initialize in parallel
     const initApp = async () => {
       try {
@@ -45,40 +42,21 @@ function App() {
         const authenticatedUser = await checkAuth()
         
         if (!authenticatedUser) {
-          console.log('[App] Not authenticated, showing login')
           setLoading(false)
           return
         }
 
-        console.log('[App] Authenticated as:', authenticatedUser.email)
-
         // Initialize from backend
         const result = await initialize()
         if (result === undefined) {
-          console.log('[App] Initialization returned undefined')
-        }
 
-        console.log('[App] Backend initialization successful')
+        }
 
         // Check if settings are empty, if so, load from environment variables
         const { settings, updateSettings } = useAppStore.getState()
 
-        console.log('[App] Current database settings:', {
-          hasEndpoint: !!settings.azureEndpoint,
-          hasApiKey: !!settings.apiKey,
-          endpoint: settings.azureEndpoint?.substring(0, 40),
-        })
-
-        console.log('[App] Environment variables:', {
-          ENDPOINT: import.meta.env.VITE_AZURE_OPENAI_ENDPOINT?.substring(0, 40),
-          HAS_KEY: !!import.meta.env.VITE_AZURE_OPENAI_API_KEY,
-          VERSION: import.meta.env.VITE_AZURE_OPENAI_API_VERSION,
-          WHISPER: import.meta.env.VITE_AZURE_OPENAI_WHISPER_DEPLOYMENT,
-          GPT: import.meta.env.VITE_AZURE_OPENAI_GPT_DEPLOYMENT
-        })
 
         if (!settings.azureEndpoint || !settings.apiKey) {
-          console.log('[App] No settings in database, loading from .env file')
 
           const envSettings = {
             azureEndpoint: import.meta.env.VITE_AZURE_OPENAI_ENDPOINT || '',
@@ -97,9 +75,8 @@ function App() {
 
           // Update settings with environment variables
           updateSettings(envSettings)
-          console.log('[App] Settings updated with .env values')
+
         } else {
-          console.log('[App] Using existing database settings')
         }
 
         setLoading(false)
@@ -112,7 +89,7 @@ function App() {
 
     initApp()
 
-    return () => console.log('[App] Component unmounting')
+    return () => {}
   }, [])
 
   useEffect(() => {
@@ -122,7 +99,7 @@ function App() {
     }
 
     try {
-      console.log('[App] Configuring OpenAI service')
+
       // Configure OpenAI service with current settings
       openaiService.configure({
         azureEndpoint,
@@ -135,8 +112,6 @@ function App() {
       console.error('[App] Error configuring OpenAI service:', error)
     }
   }, [user, azureEndpoint, apiKey, apiVersion, whisperDeployment, gptDeployment])
-
-  console.log('[App] Rendering...')
 
   // Show auth page if not authenticated (even while checking)
   if (!user) {
@@ -217,13 +192,12 @@ function App() {
     return (
       <AuthPage
         onAuthSuccess={(authenticatedUser) => {
-          console.log('[App] Authentication successful:', authenticatedUser.email)
           setUser(authenticatedUser)
           setLoading(true)
           // Re-initialize app after login
           initialize()
             .then(() => {
-              console.log('[App] Post-login initialization complete')
+
               setLoading(false)
             })
             .catch((error) => {

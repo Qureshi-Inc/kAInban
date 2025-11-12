@@ -165,7 +165,6 @@ export default function AudioControls() {
       // Set up transcription completion callback to update UI when transcription finishes
       transcriptionQueue.setOnTranscriptionComplete((chunkIndex, transcript, status) => {
         console.log(`[AudioControls] Chunk ${chunkIndex} transcription completed: ${transcript.length} chars`)
-        console.log(`[AudioControls] Updated status:`, status)
 
         // Update UI with current status
         setTranscriptionStatus(prevStatus => ({
@@ -284,7 +283,6 @@ export default function AudioControls() {
         message: 'Processing recording...'
       })
 
-      console.log('[AudioControls] Starting transcription...')
       console.log('[AudioControls] Current settings:', {
         hasEndpoint: !!useAppStore.getState().settings.azureEndpoint,
         hasApiKey: !!useAppStore.getState().settings.apiKey
@@ -294,11 +292,9 @@ export default function AudioControls() {
       let transcript = ''
 
       if (isChunked) {
-        console.log(`[AudioControls] Processing ${result.chunks.length} chunks...`)
 
         // Get transcripts that were already processed in the background
         const cachedTranscripts = transcriptionQueue.getAllTranscripts()
-        console.log(`[AudioControls] Found ${cachedTranscripts.length} cached transcripts from background processing`)
 
         // Array to store all transcripts
         const transcripts = [...cachedTranscripts]
@@ -335,7 +331,6 @@ export default function AudioControls() {
 
         // Combine all transcripts
         transcript = transcripts.join(' ')
-        console.log(`[AudioControls] Combined transcript: ${transcript.length} total chars (${cachedTranscripts.length} from cache, ${remainingChunks.length} newly transcribed)`)
       } else {
         // Single chunk transcription
         setUploadProgress({
@@ -362,7 +357,6 @@ export default function AudioControls() {
         // Create meeting file
         const meetingName = `Recording - ${new Date().toLocaleDateString()}`
         await createMeeting(meetingName, transcript, generatedSummary)
-        console.log('[AudioControls] Meeting created:', meetingName)
       } catch (summaryError) {
         console.error('[AudioControls] Summary generation error:', summaryError)
         addNotification({
@@ -373,7 +367,6 @@ export default function AudioControls() {
       }
 
       // Auto-generate tasks from TRANSCRIPT (not summary) with existing context
-      console.log('[AudioControls] Auto-generating tasks from transcript...')
       try {
         setUploadProgress({
           stage: 'extracting',
@@ -383,7 +376,6 @@ export default function AudioControls() {
 
         const { tasks: existingTasks, updateTask: storeUpdateTask } = useAppStore.getState()
         const extractedTasks = await openaiService.extractTasks(transcript, existingTasks)
-        console.log('[AudioControls] Tasks extracted:', extractedTasks.length)
 
         let newCount = 0
         let updatedCount = 0
@@ -394,7 +386,6 @@ export default function AudioControls() {
               // Update existing task
               const existingTask = existingTasks[task.matchId - 1]
               if (existingTask) {
-                console.log('[AudioControls] Updating existing task:', existingTask.id)
                 const updatedDescription = existingTask.description +
                   (task.updates ? `\n\n**Update**: ${task.updates}` : '')
 
@@ -408,7 +399,6 @@ export default function AudioControls() {
               }
             } else {
               // Create new task
-              console.log('[AudioControls] Adding task:', task)
               addTask(task)
               newCount++
             }
@@ -424,7 +414,6 @@ export default function AudioControls() {
             message: `Tasks: ${messages.join(', ')}!`
           })
         } else {
-          console.log('[AudioControls] No actionable tasks found')
         }
 
         // Mark as complete
@@ -523,7 +512,6 @@ export default function AudioControls() {
       })
 
       // Auto-generate summary from transcript
-      console.log('[AudioControls] Auto-generating summary from uploaded file...')
       let generatedSummary = ''
       try {
         generatedSummary = await openaiService.generateSummary(transcript)
@@ -532,7 +520,6 @@ export default function AudioControls() {
         // Create meeting file
         const meetingName = `${file.name} - ${new Date().toLocaleDateString()}`
         await createMeeting(meetingName, transcript, generatedSummary)
-        console.log('[AudioControls] Meeting created:', meetingName)
       } catch (summaryError) {
         console.error('[AudioControls] Summary generation error:', summaryError)
         addNotification({
@@ -552,7 +539,6 @@ export default function AudioControls() {
       }
 
       // Auto-generate tasks from TRANSCRIPT (not summary) with existing context
-      console.log('[AudioControls] Auto-generating tasks from transcript...')
       let newCount = 0
       let updatedCount = 0
 
@@ -565,7 +551,6 @@ export default function AudioControls() {
 
         const { tasks: existingTasks, updateTask: storeUpdateTask } = useAppStore.getState()
         const extractedTasks = await openaiService.extractTasks(transcript, existingTasks)
-        console.log('[AudioControls] Tasks extracted:', extractedTasks.length)
 
         if (extractedTasks.length > 0) {
           extractedTasks.forEach(task => {
@@ -573,7 +558,6 @@ export default function AudioControls() {
               // Update existing task
               const existingTask = existingTasks[task.matchId - 1]
               if (existingTask) {
-                console.log('[AudioControls] Updating existing task:', existingTask.id)
                 const updatedDescription = existingTask.description +
                   (task.updates ? `\n\n**Update**: ${task.updates}` : '')
 
@@ -587,7 +571,6 @@ export default function AudioControls() {
               }
             } else {
               // Create new task
-              console.log('[AudioControls] Adding task:', task)
               addTask(task)
               newCount++
             }

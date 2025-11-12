@@ -138,7 +138,6 @@ export default function SummaryPanel() {
   }
 
   const handleGenerateTasks = async () => {
-    console.log('[SummaryPanel] Generate Tasks clicked')
 
     // IMPORTANT: Use transcript (not summary) for accurate task extraction
     const transcript = selectedMeeting?.transcript
@@ -155,7 +154,6 @@ export default function SummaryPanel() {
     }
 
     try {
-      console.log('[SummaryPanel] Starting task extraction from TRANSCRIPT (not summary)...')
       addNotification({
         type: 'info',
         message: 'Extracting tasks from transcript using specialized AI agent...'
@@ -163,10 +161,8 @@ export default function SummaryPanel() {
 
       const { tasks: existingTasks, updateTask: storeUpdateTask } = useAppStore.getState()
       const extractedTasks = await openaiService.extractTasks(transcript, existingTasks)
-      console.log('[SummaryPanel] Tasks extracted:', extractedTasks.length)
 
       if (extractedTasks.length === 0) {
-        console.log('[SummaryPanel] No actionable tasks found')
         addNotification({
           type: 'info',
           message: 'No actionable tasks found in the summary'
@@ -183,7 +179,6 @@ export default function SummaryPanel() {
           // Update existing task
           const existingTask = existingTasks[task.matchId - 1]
           if (existingTask) {
-            console.log('[SummaryPanel] Updating existing task:', existingTask.id)
             const updatedDescription = existingTask.description +
               (task.updates ? `\n\n**Update**: ${task.updates}` : '')
 
@@ -197,7 +192,6 @@ export default function SummaryPanel() {
           }
         } else {
           // Create new task
-          console.log('[SummaryPanel] Adding task:', task)
           addTask(task)
           newCount++
         }

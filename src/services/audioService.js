@@ -148,13 +148,11 @@ class AudioService {
 
   rotateToNextChunk() {
     console.log(`[AudioService] === CHUNK ROTATION START ===`)
-    console.log(`[AudioService] Rotating from chunk ${this.currentChunkIndex} to ${this.currentChunkIndex + 1}`)
 
     // Get reference to completed chunk data
     const completedChunkIndex = this.currentChunkIndex
     const completedChunkData = [...this.recordingChunks[completedChunkIndex]] // Copy array
 
-    console.log(`[AudioService] Completed chunk ${completedChunkIndex} has ${completedChunkData.length} fragments`)
 
     // Store mimeType before stopping
     const currentMimeType = this.mediaRecorder.mimeType
@@ -170,7 +168,6 @@ class AudioService {
       if (this.onChunkCompleteCallback && completedChunkData.length > 0) {
         const chunkBlob = new Blob(completedChunkData, { type: currentMimeType })
 
-        console.log(`[AudioService] ✓ Chunk ${completedChunkIndex} finalized:`)
         console.log(`[AudioService]   - Size: ${(chunkBlob.size / 1024 / 1024).toFixed(2)} MB`)
         console.log(`[AudioService]   - Type: ${chunkBlob.type}`)
         console.log(`[AudioService]   - Fragments: ${completedChunkData.length}`)
@@ -185,7 +182,6 @@ class AudioService {
       this.recordingChunks[this.currentChunkIndex] = []
       this.chunkStartTime = Date.now()
 
-      console.log(`[AudioService] Starting NEW MediaRecorder for chunk ${this.currentChunkIndex}...`)
 
       // Create NEW MediaRecorder - this ensures fresh WebM initialization segment
       try {
@@ -207,7 +203,6 @@ class AudioService {
 
         // Start recording with 1-second timeslice
         this.mediaRecorder.start(1000)
-        console.log(`[AudioService] ✓ MediaRecorder restarted for chunk ${this.currentChunkIndex}`)
         console.log('[AudioService] === CHUNK ROTATION COMPLETE ===')
       } catch (error) {
         console.error('[AudioService] ✗ Failed to restart MediaRecorder:', error)
@@ -427,7 +422,6 @@ class AudioService {
       // Step 1: Read file as array buffer
       let arrayBuffer = await file.arrayBuffer()
       const arrayBufferSize = (arrayBuffer.byteLength / 1024 / 1024).toFixed(2)
-      console.log('[AudioService] Step 1: Loaded arrayBuffer:', arrayBufferSize, 'MB')
 
       // Create audio context
       const audioContext = new (window.AudioContext || window.webkitAudioContext)()
@@ -442,7 +436,6 @@ class AudioService {
 
       // ✅ MEMORY OPTIMIZATION: Release arrayBuffer immediately after decoding
       arrayBuffer = null
-      console.log('[AudioService] ✓ Released arrayBuffer from memory')
 
       // Step 3: Resample to 16kHz mono to reduce file size (voice quality is still excellent)
       console.log('[AudioService] Step 3: Resampling to 16kHz mono...')
@@ -451,7 +444,6 @@ class AudioService {
 
       // ✅ MEMORY OPTIMIZATION: Release original audioBuffer after resampling
       audioBuffer = null
-      console.log('[AudioService] ✓ Released original audioBuffer from memory')
 
       // Step 4: Convert to WAV format
       console.log('[AudioService] Step 4: Converting to WAV...')
@@ -582,7 +574,6 @@ class AudioService {
         throw new Error('Please select a valid audio file (mp3, mp4, m4a, wav, webm, ogg, flac)')
       }
 
-      console.log('[AudioService] ✓ File type validated')
 
       // Azure OpenAI Whisper has a hard limit of 25MB
       const maxSize = 25 * 1024 * 1024 // 25MB
@@ -625,7 +616,6 @@ class AudioService {
         } else {
           // ✅ MEMORY OPTIMIZATION: File under 25MB doesn't need chunking, release buffer
           audioBuffer = null
-          console.log('[AudioService] ✓ File <25MB, released buffer from memory')
         }
       } else {
         // For non-m4a files, check size directly
@@ -635,7 +625,6 @@ class AudioService {
         }
       }
 
-      console.log('[AudioService] ✓ File size validated')
       console.log('[AudioService] ✓ File validated successfully')
       console.log('[AudioService] ===== FILE UPLOAD COMPLETE =====')
       return processedFile

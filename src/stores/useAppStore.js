@@ -48,11 +48,9 @@ const useAppStore = create((set, get) => ({
 
   // Authentication Actions
   checkAuth: async () => {
-    console.log('[Store] Starting auth check...')
     try {
       const user = await apiService.getCurrentUser()
       set({ user, authChecked: true })
-      console.log('[Store] Auth check complete:', user ? user.email : 'not authenticated')
       return user
     } catch (error) {
       console.error('[Store] Auth check error:', error)
@@ -70,7 +68,6 @@ const useAppStore = create((set, get) => ({
     try {
       await apiService.logout()
       set({ user: null, currentProject: null, projects: [], tasks: [], meetings: [] })
-      console.log('[Store] Logged out successfully')
     } catch (error) {
       console.error('[Store] Logout error:', error)
     }
@@ -78,14 +75,12 @@ const useAppStore = create((set, get) => ({
 
   // Initialize - Load data from backend
   initialize: async () => {
-    console.log('[Store] Initializing from backend...')
 
     try {
       // Load settings
       const settings = await apiService.getSettings()
       if (settings) {
         set({ settings, settingsLoaded: true })
-        console.log('[Store] Settings loaded from backend')
       } else {
         set({ settingsLoaded: true })
       }
@@ -112,13 +107,11 @@ const useAppStore = create((set, get) => ({
       )
 
       set({ projects: projectsWithTasks })
-      console.log(`[Store] Loaded ${projectsWithTasks.length} projects from backend`)
 
       // Restore last selected project from localStorage
       const lastProjectId = localStorage.getItem('lastSelectedProject')
       const lastMeetingId = localStorage.getItem('lastSelectedMeeting')
       if (lastProjectId && projectsWithTasks.some(p => p.id === lastProjectId)) {
-        console.log('[Store] Restoring last selected project:', lastProjectId)
         // Use the already loaded project data
         const project = projectsWithTasks.find(p => p.id === lastProjectId)
         if (project) {
@@ -132,14 +125,11 @@ const useAppStore = create((set, get) => ({
             meetings: project.meetings || [],
             selectedMeetingId: selectedMeetingId
           })
-          console.log('[Store] ✓ Project restored from initialization:', project.name)
           if (selectedMeetingId) {
-            console.log('[Store] ✓ Meeting restored:', selectedMeetingId)
           }
         }
       }
 
-      console.log('[Store] ✓ Initialization complete')
     } catch (error) {
       console.error('[Store] Initialization error:', error)
       console.error('[Store] Error stack:', error.stack)
@@ -155,7 +145,6 @@ const useAppStore = create((set, get) => ({
 
     // Save to backend
     await apiService.saveSettings(settings)
-    console.log('[Store] Settings saved to backend')
   },
 
   // Project Actions
@@ -170,7 +159,6 @@ const useAppStore = create((set, get) => ({
       summary: ''
     }
 
-    console.log('[Store] Creating project:', project.name)
     set((state) => ({
       projects: [...state.projects, project],
       currentProject: project,
@@ -181,26 +169,20 @@ const useAppStore = create((set, get) => ({
 
     // Save to localStorage for persistence
     localStorage.setItem('lastSelectedProject', project.id)
-    console.log('[Store] Saved new project selection to localStorage')
 
     // Save to backend
     await apiService.saveProject(project)
-    console.log('[Store] Project saved to backend')
 
     return project
   },
 
   loadProject: async (projectId) => {
-    console.log('[Store] ===== LOADING PROJECT =====')
     console.log('[Store] Project ID:', projectId)
-    console.log('[Store] Current tasks before load:', get().tasks.length)
 
     const project = await apiService.getProject(projectId)
 
     if (project) {
-      console.log('[Store] Project data received from backend')
       console.log('[Store] Project name:', project.name)
-      console.log('[Store] Tasks in project:', project.tasks?.length || 0)
       console.log('[Store] Project tasks:', project.tasks)
 
       set((state) => ({
@@ -218,11 +200,7 @@ const useAppStore = create((set, get) => ({
       localStorage.setItem('lastSelectedProject', projectId)
       // Clear last selected meeting when switching projects
       localStorage.removeItem('lastSelectedMeeting')
-      console.log('[Store] Saved project selection to localStorage')
 
-      console.log('[Store] Project state updated')
-      console.log('[Store] Current tasks after load:', get().tasks.length)
-      console.log('[Store] ✓ Project loaded:', project.name)
     } else {
       console.error('[Store] ✗ Project not found:', projectId)
     }
@@ -235,15 +213,11 @@ const useAppStore = create((set, get) => ({
       return
     }
 
-    console.log('[Store] updateCurrentProject: Starting update for project:', currentProject.name)
-    console.log('[Store] updateCurrentProject: Project has', tasks.length, 'tasks')
 
     // Log some task details to verify linked tasks are included
     const tasksWithLinks = tasks.filter(t => t.linkedTasks && t.linkedTasks.length > 0)
-    console.log('[Store] updateCurrentProject: Tasks with links:', tasksWithLinks.length)
     if (tasksWithLinks.length > 0) {
       tasksWithLinks.forEach(task => {
-        console.log(`[Store] updateCurrentProject: Task "${task.title}" linked to: ${task.linkedTasks.join(', ')}`)
       })
     }
 
@@ -263,10 +237,8 @@ const useAppStore = create((set, get) => ({
 
     // Save to backend
     try {
-      console.log('[Store] updateCurrentProject: Calling apiService.saveProject...')
       const success = await apiService.saveProject(updatedProject)
       if (success) {
-        console.log('[Store] ✓ Project updated in backend successfully')
       } else {
         console.error('[Store] ✗ Project update failed - apiService returned false')
         throw new Error('API service returned false')
@@ -291,12 +263,10 @@ const useAppStore = create((set, get) => ({
     // Clear localStorage if this was the current project
     if (wasCurrentProject) {
       localStorage.removeItem('lastSelectedProject')
-      console.log('[Store] Cleared project selection from localStorage')
     }
 
     // Delete from backend
     await apiService.deleteProject(projectId)
-    console.log('[Store] Project deleted from backend')
   },
 
   // Recording Actions
@@ -317,7 +287,6 @@ const useAppStore = create((set, get) => ({
       summaryFile: null // Will store the file path on backend
     }
 
-    console.log('[Store] Creating meeting:', meeting.name)
 
     try {
       // Save summary as file to backend
@@ -343,7 +312,6 @@ const useAppStore = create((set, get) => ({
       const savedMeeting = await response.json()
       meeting.summaryFile = savedMeeting.summaryFile // Get file path from backend
 
-      console.log('[Store] Meeting saved to backend:', meeting.name)
     } catch (error) {
       console.error('[Store] Failed to save meeting to backend:', error)
       // Continue with local storage for now
@@ -359,21 +327,17 @@ const useAppStore = create((set, get) => ({
   },
 
   selectMeeting: (meetingId) => {
-    console.log('[Store] Selecting meeting:', meetingId)
     set({ selectedMeetingId: meetingId })
 
     // Save to localStorage for persistence across refreshes
     if (meetingId) {
       localStorage.setItem('lastSelectedMeeting', meetingId)
-      console.log('[Store] Saved meeting selection to localStorage')
     } else {
       localStorage.removeItem('lastSelectedMeeting')
-      console.log('[Store] Cleared meeting selection from localStorage')
     }
   },
 
   deleteMeeting: async (meetingId) => {
-    console.log('[Store] Deleting meeting:', meetingId)
     const wasSelected = get().selectedMeetingId === meetingId
 
     try {
@@ -386,7 +350,6 @@ const useAppStore = create((set, get) => ({
         throw new Error('Failed to delete meeting from backend')
       }
 
-      console.log('[Store] Meeting deleted from backend:', meetingId)
     } catch (error) {
       console.error('[Store] Failed to delete meeting from backend:', error)
       // Continue with local deletion even if backend fails
@@ -400,7 +363,6 @@ const useAppStore = create((set, get) => ({
     // Clear from localStorage if this was the selected meeting
     if (wasSelected) {
       localStorage.removeItem('lastSelectedMeeting')
-      console.log('[Store] Cleared meeting selection from localStorage')
     }
 
     get().updateCurrentProject()
@@ -431,17 +393,12 @@ const useAppStore = create((set, get) => ({
       ...task
     }
 
-    console.log('[Store] ⊕ ADDING NEW TASK')
     console.log('[Store] Task ID:', newTask.id)
-    console.log('[Store] Title:', newTask.title)
     console.log('[Store] Status:', newTask.status)
-    console.log('[Store] Priority:', newTask.priority)
     console.log('[Store] Tasks before add:', get().tasks.length)
 
     set((state) => ({ tasks: [...state.tasks, newTask] }))
 
-    console.log('[Store] Tasks after add:', get().tasks.length)
-    console.log('[Store] ✓ Task added successfully')
 
     get().updateCurrentProject()
     return newTask
@@ -455,12 +412,8 @@ const useAppStore = create((set, get) => ({
       return
     }
 
-    console.log('[Store] ✎ UPDATING TASK')
     console.log('[Store] Task ID:', taskId)
-    console.log('[Store] Task title:', taskBefore.title)
-    console.log('[Store] Current status:', taskBefore.status)
     console.log('[Store] New updates:', updates)
-    console.log('[Store] Tasks count before update:', get().tasks.length)
 
     set((state) => ({
       tasks: state.tasks.map(task =>
@@ -470,20 +423,15 @@ const useAppStore = create((set, get) => ({
 
     const taskAfter = get().tasks.find(t => t.id === taskId)
 
-    console.log('[Store] ✓ Task updated successfully')
-    console.log('[Store] New status:', taskAfter.status)
     console.log('[Store] New priority:', taskAfter.priority)
-    console.log('[Store] Tasks count after update:', get().tasks.length)
     console.log('[Store] Task still exists:', !!taskAfter)
 
     // Handle linked task status synchronization
     if (updates.status && updates.status === 'done' && taskBefore.linkedTasks && taskBefore.linkedTasks.length > 0) {
-      console.log('[Store] ✓ Task marked as done - checking linked tasks for auto-completion')
 
       taskBefore.linkedTasks.forEach(linkedTaskId => {
         const linkedTask = get().tasks.find(t => t.id === linkedTaskId)
         if (linkedTask && linkedTask.status !== 'done') {
-          console.log(`[Store] ✓ Auto-completing linked task: ${linkedTask.title}`)
           // Use setTimeout to avoid infinite recursion and allow the current update to complete
           setTimeout(() => {
             get().updateTask(linkedTaskId, { status: 'done' })
@@ -498,17 +446,12 @@ const useAppStore = create((set, get) => ({
   deleteTask: (taskId) => {
     const taskToDelete = get().tasks.find(t => t.id === taskId)
 
-    console.log('[Store] ✗ DELETING TASK (Manual)')
-    console.log('[Store] Task ID:', taskId)
     console.log('[Store] Task title:', taskToDelete?.title || 'Unknown')
-    console.log('[Store] Tasks count before delete:', get().tasks.length)
 
     set((state) => ({
       tasks: state.tasks.filter(task => task.id !== taskId)
     }))
 
-    console.log('[Store] Tasks count after delete:', get().tasks.length)
-    console.log('[Store] ✓ Task deleted')
 
     get().updateCurrentProject()
   },
@@ -538,7 +481,6 @@ const useAppStore = create((set, get) => ({
       }
     })
 
-    console.log('[Store] ✓ Tasks linked successfully')
   },
 
   unlinkTasks: (taskId, taskToUnlinkId) => {
@@ -556,7 +498,6 @@ const useAppStore = create((set, get) => ({
       get().updateTask(taskToUnlinkId, { linkedTasks: updatedLinkedTasks })
     }
 
-    console.log('[Store] ✓ Tasks unlinked successfully')
   },
 
   getLinkedTasks: (taskId) => {
@@ -591,7 +532,6 @@ const useAppStore = create((set, get) => ({
       aiDiscoveredLinks: updatedAiDiscoveredLinks
     })
 
-    console.log('[Store] ✓ AI suggestion accepted and promoted to manual link')
   },
 
   rejectAiSuggestion: (taskId, suggestionId, suggestionType) => {
@@ -618,7 +558,6 @@ const useAppStore = create((set, get) => ({
       rejectedAiLinks: uniqueRejectedLinks
     })
 
-    console.log('[Store] ✓ AI suggestion rejected')
   },
 
   // Add AI discovered links (called from KanbanBoard when task completed)
@@ -637,7 +576,6 @@ const useAppStore = create((set, get) => ({
     if (newDiscoveredLinks.length > 0) {
       const updatedAiDiscoveredLinks = [...(task.aiDiscoveredLinks || []), ...newDiscoveredLinks]
       get().updateTask(taskId, { aiDiscoveredLinks: updatedAiDiscoveredLinks })
-      console.log(`[Store] ✓ Added ${newDiscoveredLinks.length} AI discovered links to task`)
     }
   },
 
@@ -673,7 +611,6 @@ const useAppStore = create((set, get) => ({
   clearSession: () => {
     localStorage.removeItem('lastSelectedProject')
     localStorage.removeItem('lastSelectedMeeting')
-    console.log('[Store] Cleared project and meeting selection from localStorage')
 
     set({
       currentProject: null,

@@ -174,8 +174,6 @@ export default function RecordingModal() {
 
         const { tasks: existingTasks, addTask, updateTask } = useAppStore.getState()
 
-        console.log('[TaskUpdate] ===== TASK EXTRACTION START =====')
-        console.log('[TaskUpdate] Existing tasks count:', existingTasks.length)
         console.log('[TaskUpdate] Existing tasks:', existingTasks.map(t => ({
           id: t.id,
           title: t.title,
@@ -185,25 +183,18 @@ export default function RecordingModal() {
 
         const extractedTasks = await openaiService.extractTasks(transcript, existingTasks)
 
-        console.log('[TaskUpdate] Extracted tasks from AI:', extractedTasks)
-        console.log('[TaskUpdate] AI returned', extractedTasks.length, 'task(s)')
 
         let newCount = 0
         let updatedCount = 0
 
         extractedTasks.forEach((task, index) => {
-          console.log(`[TaskUpdate] Processing task ${index + 1}/${extractedTasks.length}:`, task)
 
           if (task.matchId && task.matchId > 0) {
             // Update existing task
             const existingTask = existingTasks[task.matchId - 1]
 
             if (existingTask) {
-              console.log('[TaskUpdate] ✓ MATCHED existing task')
-              console.log('[TaskUpdate] Existing task ID:', existingTask.id)
               console.log('[TaskUpdate] Existing task title:', existingTask.title)
-              console.log('[TaskUpdate] Current status:', existingTask.status)
-              console.log('[TaskUpdate] Current description:', existingTask.description)
 
               const updatedDescription = existingTask.description +
                 (task.updates ? `\n\n**Update**: ${task.updates}` : '')
@@ -219,7 +210,6 @@ export default function RecordingModal() {
 
               updateTask(existingTask.id, updates)
 
-              console.log('[TaskUpdate] ✓ Task updated successfully')
               console.log('[TaskUpdate] New status:', updates.status)
               console.log('[TaskUpdate] New priority:', updates.priority)
 
@@ -229,22 +219,16 @@ export default function RecordingModal() {
             }
           } else {
             // Create new task
-            console.log('[TaskUpdate] ⊕ CREATING NEW task')
             console.log('[TaskUpdate] Title:', task.title)
-            console.log('[TaskUpdate] Description:', task.description)
             console.log('[TaskUpdate] Priority:', task.priority)
-            console.log('[TaskUpdate] Status:', task.status || 'todo')
 
             addTask(task)
             newCount++
 
-            console.log('[TaskUpdate] ✓ New task created')
           }
         })
 
-        console.log('[TaskUpdate] ===== TASK EXTRACTION COMPLETE =====')
         console.log('[TaskUpdate] New tasks created:', newCount)
-        console.log('[TaskUpdate] Existing tasks updated:', updatedCount)
         console.log('[TaskUpdate] Total tasks in project after updates:', useAppStore.getState().tasks.length)
 
         if (newCount > 0 || updatedCount > 0) {
@@ -257,7 +241,6 @@ export default function RecordingModal() {
             message: `Tasks: ${messages.join(', ')}!`
           })
         } else {
-          console.log('[TaskUpdate] No new or updated tasks')
         }
       } catch (error) {
         console.error('[TaskUpdate] ✗ ERROR during task extraction:', error)

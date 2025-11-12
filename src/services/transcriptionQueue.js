@@ -67,7 +67,6 @@ class TranscriptionQueue {
     this.currentProcessing = chunkIndex
 
     try {
-      console.log(`[TranscriptionQueue] Processing chunk ${chunkIndex}...`)
 
       // Validate blob
       if (!chunkBlob || chunkBlob.size === 0) {
@@ -86,7 +85,6 @@ class TranscriptionQueue {
 
       // Store result
       this.transcripts.set(chunkIndex, transcript)
-      console.log(`[TranscriptionQueue] ✓ Chunk ${chunkIndex} transcribed: ${transcript.length} chars`)
 
       // Trigger success callback
       if (this.onTranscriptionCompleteCallback) {

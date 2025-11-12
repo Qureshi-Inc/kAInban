@@ -33,7 +33,6 @@ export default function Header() {
     }
 
     const project = await createProject(newProjectName.trim())
-    console.log('[Header] Project created:', project)
     console.log('[Header] Project name:', project?.name)
 
     setNewProjectName('')

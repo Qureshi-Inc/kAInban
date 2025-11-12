@@ -67,7 +67,6 @@ export default function SettingsDialog() {
   }, [isSettingsOpen, settings, user])
 
   const handleTestConnection = async () => {
-    console.log('[Settings] Testing Azure OpenAI connection...')
     setTestingConnection(true)
 
     if (!aiFormData.azureEndpoint || !aiFormData.apiKey) {

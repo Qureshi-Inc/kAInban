@@ -14,20 +14,9 @@ class OpenAIService {
     this.whisperDeployment = settings.whisperDeployment || 'whisper-1'
     this.gptDeployment = settings.gptDeployment || 'gpt-4'
 
-    console.log('[OpenAI] Configured:', {
-      baseUrl: this.baseUrl ? '✓' : '✗',
-      apiKey: this.apiKey ? '✓ (hidden)' : '✗',
-      whisperDeployment: this.whisperDeployment,
-      gptDeployment: this.gptDeployment
-    })
   }
 
   validateConfig() {
-    console.log('[OpenAI] Validating config...', {
-      hasEndpoint: !!this.baseUrl,
-      hasApiKey: !!this.apiKey
-    })
-
     if (!this.baseUrl || !this.apiKey) {
       throw new Error('Azure OpenAI endpoint and API key are required. Please configure them in settings.')
     }

@@ -185,7 +185,6 @@ export async function authenticateUser(email, password) {
   // Update last login
   db.updateUserLogin(user.id)
 
-  console.log('[LocalAuth] User authenticated:', user.email)
 
   return user
 }
