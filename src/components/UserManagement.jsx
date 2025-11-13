@@ -99,13 +99,116 @@ Type "DELETE" to confirm:`
   }
 
   return (
-    <div className="p-6 max-w-6xl mx-auto">
-      <div className="flex items-center gap-3 mb-6">
-        <Users className="h-6 w-6 text-primary" />
-        <h2 className="text-2xl font-bold">User Management</h2>
+    <div className="p-2 sm:p-6 max-w-6xl mx-auto">
+      <div className="flex items-center gap-3 mb-4 sm:mb-6">
+        <Users className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+        <h2 className="text-lg sm:text-2xl font-bold">User Management</h2>
       </div>
 
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+      {/* Mobile Card View (sm and below) */}
+      <div className="block sm:hidden space-y-3">
+        {users.map((u) => (
+          <motion.div
+            key={u.id}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 space-y-3"
+          >
+            <div className="flex items-start justify-between">
+              <div className="flex items-center space-x-3">
+                {u.picture ? (
+                  <img
+                    src={u.picture}
+                    alt={u.name}
+                    className="h-10 w-10 rounded-full"
+                  />
+                ) : (
+                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                    <span className="text-primary font-semibold text-sm">
+                      {u.name?.charAt(0)?.toUpperCase() || u.email?.charAt(0)?.toUpperCase()}
+                    </span>
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+                    {u.name || 'No name'}
+                  </div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1 truncate">
+                    <Mail className="h-3 w-3 flex-shrink-0" />
+                    <span className="truncate">{u.email}</span>
+                  </div>
+                </div>
+              </div>
+              {u.id !== user?.id && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleDeleteUser(u.id, u.name || u.email)}
+                  className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 p-2"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 text-xs">
+              <div>
+                <span className="font-medium text-gray-500 dark:text-gray-400">Auth Method</span>
+                <div className="flex items-center gap-1 mt-1">
+                  {u.auth_provider === 'oidc' ? (
+                    <>
+                      <Key className="h-3 w-3 text-blue-500" />
+                      <span className="text-blue-600 dark:text-blue-400">PocketID</span>
+                    </>
+                  ) : (
+                    <>
+                      <Mail className="h-3 w-3 text-gray-500" />
+                      <span className="text-gray-600 dark:text-gray-400">Email</span>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <span className="font-medium text-gray-500 dark:text-gray-400">Role</span>
+                <div className="mt-1">
+                  {u.role === 'admin' ? (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">
+                      <Shield className="h-2.5 w-2.5" />
+                      Admin
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200">
+                      Member
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <span className="font-medium text-gray-500 dark:text-gray-400 text-xs">Last Login</span>
+              <div className="flex items-center gap-1 mt-1 text-xs text-gray-500 dark:text-gray-400">
+                <Clock className="h-3 w-3" />
+                {formatDate(u.last_login)}
+              </div>
+            </div>
+          </motion.div>
+        ))}
+
+        {users.length === 0 && (
+          <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-lg">
+            <Users className="mx-auto h-12 w-12 text-gray-400" />
+            <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-gray-100">No users</h3>
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              No users found in the system.
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* Desktop Table View (sm and above) */}
+      <div className="hidden sm:block bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-gray-50 dark:bg-gray-900">
@@ -227,7 +330,7 @@ Type "DELETE" to confirm:`
         )}
       </div>
 
-      <div className="mt-4 text-sm text-gray-500 dark:text-gray-400">
+      <div className="mt-4 text-xs sm:text-sm text-gray-500 dark:text-gray-400 grid grid-cols-2 sm:flex sm:space-x-6 gap-2 sm:gap-0">
         <p>Total users: {users.length}</p>
         <p>Admins: {users.filter(u => u.role === 'admin').length}</p>
         <p>OIDC users: {users.filter(u => u.auth_provider === 'oidc').length}</p>

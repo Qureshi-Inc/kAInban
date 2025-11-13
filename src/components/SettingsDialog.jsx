@@ -197,63 +197,71 @@ export default function SettingsDialog() {
 
   return (
     <Dialog open={isSettingsOpen} onOpenChange={setSettingsOpen}>
-      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+      <DialogContent className="w-[95vw] max-w-2xl max-h-[90vh] overflow-y-auto p-4 sm:p-6">
+        <DialogHeader className="pb-2">
+          <DialogTitle className="flex items-center gap-2 text-lg">
             <Settings className="h-5 w-5" />
             Settings
           </DialogTitle>
         </DialogHeader>
 
         <Tabs defaultValue="general" className="w-full">
-          <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-4' : 'grid-cols-1'}`}>
-            <TabsTrigger value="general">
-              <User className="h-4 w-4 mr-2" />
-              General
+          <TabsList className={`grid w-full gap-1 ${isAdmin ? 'grid-cols-2 lg:grid-cols-4' : 'grid-cols-1'} ${isAdmin ? 'p-1 h-auto min-h-[2.5rem]' : 'h-10'}`}>
+            <TabsTrigger value="general" className="flex-1 text-xs sm:text-sm px-1 sm:px-3 py-2 min-h-[2rem] sm:min-h-[2.5rem]">
+              <User className="h-3 w-3 sm:h-4 sm:w-4 mr-0.5 sm:mr-2 flex-shrink-0" />
+              <span className="hidden sm:inline">General</span>
+              <span className="sm:hidden text-xs">Profile</span>
             </TabsTrigger>
             {isAdmin && (
               <>
-                <TabsTrigger value="ai">
-                  <Bot className="h-4 w-4 mr-2" />
-                  AI Settings
+                <TabsTrigger value="ai" className="flex-1 text-xs sm:text-sm px-1 sm:px-3 py-2 min-h-[2rem] sm:min-h-[2.5rem]">
+                  <Bot className="h-3 w-3 sm:h-4 sm:w-4 mr-0.5 sm:mr-2 flex-shrink-0" />
+                  <span className="hidden lg:inline">AI Settings</span>
+                  <span className="lg:hidden text-xs">AI</span>
                 </TabsTrigger>
-                <TabsTrigger value="auth">
-                  <KeyRound className="h-4 w-4 mr-2" />
-                  Authentication
+                <TabsTrigger value="auth" className="flex-1 text-xs sm:text-sm px-1 sm:px-3 py-2 min-h-[2rem] sm:min-h-[2.5rem]">
+                  <KeyRound className="h-3 w-3 sm:h-4 sm:w-4 mr-0.5 sm:mr-2 flex-shrink-0" />
+                  <span className="hidden lg:inline">Authentication</span>
+                  <span className="lg:hidden text-xs">Auth</span>
                 </TabsTrigger>
-                <TabsTrigger value="users">
-                  <Users className="h-4 w-4 mr-2" />
-                  Users
+                <TabsTrigger value="users" className="flex-1 text-xs sm:text-sm px-1 sm:px-3 py-2 min-h-[2rem] sm:min-h-[2.5rem]">
+                  <Users className="h-3 w-3 sm:h-4 sm:w-4 mr-0.5 sm:mr-2 flex-shrink-0" />
+                  <span className="hidden lg:inline">Users</span>
+                  <span className="lg:hidden text-xs">Users</span>
                 </TabsTrigger>
               </>
             )}
           </TabsList>
 
           {/* General Settings Tab */}
-          <TabsContent value="general" className="space-y-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Name</label>
-              <Input
-                value={userFormData.name}
-                onChange={(e) => handleUserInputChange('name', e.target.value)}
-                placeholder="Your name"
-              />
+          <TabsContent value="general" className="space-y-4 px-1">
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Name</label>
+                <Input
+                  value={userFormData.name}
+                  onChange={(e) => handleUserInputChange('name', e.target.value)}
+                  placeholder="Your name"
+                  className="w-full"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Email</label>
+                <Input
+                  type="email"
+                  value={userFormData.email}
+                  onChange={(e) => handleUserInputChange('email', e.target.value)}
+                  placeholder="your@email.com"
+                  className="w-full"
+                />
+              </div>
             </div>
 
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Email</label>
-              <Input
-                type="email"
-                value={userFormData.email}
-                onChange={(e) => handleUserInputChange('email', e.target.value)}
-                placeholder="your@email.com"
-              />
-            </div>
+            <div className="border-t pt-6 mt-6">
+              <h3 className="text-sm font-semibold mb-4">Change Password</h3>
 
-            <div className="border-t pt-4 mt-4">
-              <h3 className="text-sm font-semibold mb-3">Change Password</h3>
-
-              <div className="space-y-3">
+              <div className="space-y-4">
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Current Password</label>
                   <Input
@@ -261,6 +269,7 @@ export default function SettingsDialog() {
                     value={userFormData.currentPassword}
                     onChange={(e) => handleUserInputChange('currentPassword', e.target.value)}
                     placeholder="Enter current password"
+                    className="w-full"
                   />
                 </div>
 
@@ -271,6 +280,7 @@ export default function SettingsDialog() {
                     value={userFormData.newPassword}
                     onChange={(e) => handleUserInputChange('newPassword', e.target.value)}
                     placeholder="Enter new password"
+                    className="w-full"
                   />
                 </div>
 
@@ -281,23 +291,29 @@ export default function SettingsDialog() {
                     value={userFormData.confirmPassword}
                     onChange={(e) => handleUserInputChange('confirmPassword', e.target.value)}
                     placeholder="Confirm new password"
+                    className="w-full"
                   />
                 </div>
               </div>
 
-              <p className="text-xs text-muted-foreground mt-2">
+              <p className="text-xs text-muted-foreground mt-3">
                 Leave blank to keep current password
               </p>
             </div>
 
-            <div className="flex justify-end gap-2 pt-4">
+            <div className="flex flex-col sm:flex-row justify-end gap-3 pt-6">
               <Button
                 variant="outline"
                 onClick={() => setSettingsOpen(false)}
+                className="w-full sm:w-auto"
               >
                 Cancel
               </Button>
-              <Button onClick={handleSaveProfile} disabled={savingProfile}>
+              <Button
+                onClick={handleSaveProfile}
+                disabled={savingProfile}
+                className="w-full sm:w-auto"
+              >
                 {savingProfile ? 'Saving...' : 'Save Changes'}
               </Button>
             </div>
@@ -305,85 +321,97 @@ export default function SettingsDialog() {
 
           {/* AI Settings Tab (Admin Only) */}
           {isAdmin && (
-            <TabsContent value="ai" className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">
-                  Azure OpenAI Endpoint *
-                </label>
-                <Input
-                  type="url"
-                  placeholder="https://your-resource.openai.azure.com"
-                  value={aiFormData.azureEndpoint}
-                  onChange={(e) => handleAiInputChange('azureEndpoint', e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium">
-                  API Key *
-                </label>
-                <Input
-                  type="password"
-                  placeholder="Your Azure OpenAI API Key"
-                  value={aiFormData.apiKey}
-                  onChange={(e) => handleAiInputChange('apiKey', e.target.value)}
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
+            <TabsContent value="ai" className="space-y-4 px-1">
+              <div className="space-y-4">
                 <div className="space-y-2">
                   <label className="text-sm font-medium">
-                    API Version
+                    Azure OpenAI Endpoint *
                   </label>
                   <Input
-                    value={aiFormData.apiVersion}
-                    onChange={(e) => handleAiInputChange('apiVersion', e.target.value)}
+                    type="url"
+                    placeholder="https://your-resource.openai.azure.com"
+                    value={aiFormData.azureEndpoint}
+                    onChange={(e) => handleAiInputChange('azureEndpoint', e.target.value)}
+                    className="w-full text-sm"
                   />
                 </div>
 
                 <div className="space-y-2">
                   <label className="text-sm font-medium">
-                    Whisper Deployment
+                    API Key *
                   </label>
                   <Input
-                    value={aiFormData.whisperDeployment}
-                    onChange={(e) => handleAiInputChange('whisperDeployment', e.target.value)}
+                    type="password"
+                    placeholder="Your Azure OpenAI API Key"
+                    value={aiFormData.apiKey}
+                    onChange={(e) => handleAiInputChange('apiKey', e.target.value)}
+                    className="w-full"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">
+                      API Version
+                    </label>
+                    <Input
+                      value={aiFormData.apiVersion}
+                      onChange={(e) => handleAiInputChange('apiVersion', e.target.value)}
+                      className="w-full"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">
+                      Whisper Deployment
+                    </label>
+                    <Input
+                      value={aiFormData.whisperDeployment}
+                      onChange={(e) => handleAiInputChange('whisperDeployment', e.target.value)}
+                      className="w-full"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">
+                    GPT Deployment
+                  </label>
+                  <Input
+                    value={aiFormData.gptDeployment}
+                    onChange={(e) => handleAiInputChange('gptDeployment', e.target.value)}
+                    className="w-full"
                   />
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <label className="text-sm font-medium">
-                  GPT Deployment
-                </label>
-                <Input
-                  value={aiFormData.gptDeployment}
-                  onChange={(e) => handleAiInputChange('gptDeployment', e.target.value)}
-                />
-              </div>
-
-              <div className="flex justify-between items-center gap-2 pt-4">
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 pt-6">
                 <Button
                   variant="secondary"
                   onClick={handleTestConnection}
                   disabled={testingConnection}
+                  className="w-full sm:w-auto"
                 >
                   {testingConnection ? 'Testing...' : 'Test Connection'}
                 </Button>
-                <div className="flex gap-2">
+                <div className="flex flex-col sm:flex-row gap-3">
                   <Button
                     variant="outline"
                     onClick={() => setSettingsOpen(false)}
+                    className="w-full sm:w-auto"
                   >
                     Cancel
                   </Button>
-                  <Button onClick={handleSaveAiSettings}>
+                  <Button
+                    onClick={handleSaveAiSettings}
+                    className="w-full sm:w-auto"
+                  >
                     Save AI Settings
                   </Button>
                 </div>
               </div>
 
-              <div className="text-xs text-muted-foreground">
+              <div className="text-xs text-muted-foreground mt-4">
                 * Required fields. Use "Test Connection" to verify your Azure OpenAI setup.
               </div>
             </TabsContent>
@@ -391,8 +419,8 @@ export default function SettingsDialog() {
 
           {/* Authentication Tab (Admin Only) */}
           {isAdmin && (
-            <TabsContent value="auth" className="space-y-4">
-              <div className="space-y-2 mb-4">
+            <TabsContent value="auth" className="space-y-4 px-1">
+              <div className="space-y-3 mb-6">
                 <h3 className="text-lg font-semibold">PocketID Authentication (OIDC)</h3>
                 <p className="text-sm text-muted-foreground">
                   Configure OpenID Connect authentication to allow users to sign in with PocketID
@@ -400,21 +428,23 @@ export default function SettingsDialog() {
               </div>
 
               <div className="space-y-4 p-4 bg-muted/30 rounded-lg">
-                <div className="flex items-center gap-2">
+                <div className="flex items-start sm:items-center gap-3">
                   <input
                     type="checkbox"
                     id="oidcEnabled"
                     checked={aiFormData.oidcEnabled}
                     onChange={(e) => handleAiInputChange('oidcEnabled', e.target.checked)}
-                    className="w-4 h-4 text-primary bg-gray-100 border-gray-300 rounded focus:ring-primary focus:ring-2"
+                    className="w-4 h-4 text-primary bg-gray-100 border-gray-300 rounded focus:ring-primary focus:ring-2 mt-0.5 sm:mt-0"
                   />
-                  <label htmlFor="oidcEnabled" className="text-sm font-medium cursor-pointer">
-                    Enable PocketID Authentication
-                  </label>
+                  <div className="flex-1">
+                    <label htmlFor="oidcEnabled" className="text-sm font-medium cursor-pointer block">
+                      Enable PocketID Authentication
+                    </label>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      When enabled, users will see a "Sign in with PocketID" button on the login page
+                    </p>
+                  </div>
                 </div>
-                <p className="text-xs text-muted-foreground ml-6">
-                  When enabled, users will see a "Sign in with PocketID" button on the login page
-                </p>
               </div>
 
               {aiFormData.oidcEnabled && (
@@ -428,6 +458,7 @@ export default function SettingsDialog() {
                       placeholder="https://pocketid.app"
                       value={aiFormData.oidcIssuer}
                       onChange={(e) => handleAiInputChange('oidcIssuer', e.target.value)}
+                      className="w-full text-sm"
                     />
                     <p className="text-xs text-muted-foreground">
                       The URL of your OpenID Connect provider (default: https://pocketid.app)
@@ -442,6 +473,7 @@ export default function SettingsDialog() {
                       placeholder="Your PocketID Client ID"
                       value={aiFormData.oidcClientId}
                       onChange={(e) => handleAiInputChange('oidcClientId', e.target.value)}
+                      className="w-full"
                     />
                     <p className="text-xs text-muted-foreground">
                       The client ID provided by PocketID for your application
@@ -457,6 +489,7 @@ export default function SettingsDialog() {
                       placeholder="Your PocketID Client Secret"
                       value={aiFormData.oidcClientSecret}
                       onChange={(e) => handleAiInputChange('oidcClientSecret', e.target.value)}
+                      className="w-full"
                     />
                     <p className="text-xs text-muted-foreground">
                       The client secret provided by PocketID (keep this secure)
@@ -472,6 +505,7 @@ export default function SettingsDialog() {
                       placeholder="https://notes.rodeomasjid.org/api/auth/oidc/callback"
                       value={aiFormData.oidcCallbackUrl}
                       onChange={(e) => handleAiInputChange('oidcCallbackUrl', e.target.value)}
+                      className="w-full text-sm"
                     />
                     <p className="text-xs text-muted-foreground">
                       This must exactly match the callback URL registered in PocketID
@@ -479,12 +513,12 @@ export default function SettingsDialog() {
                   </div>
 
                   <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-                    <h4 className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-2">
+                    <h4 className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-3">
                       Setup Instructions
                     </h4>
-                    <ol className="text-xs text-blue-800 dark:text-blue-200 space-y-1 list-decimal list-inside">
+                    <ol className="text-xs text-blue-800 dark:text-blue-200 space-y-2 list-decimal list-inside">
                       <li>Create an application in PocketID</li>
-                      <li>Set the callback URL to: <code className="bg-blue-100 dark:bg-blue-950 px-1 py-0.5 rounded">https://notes.rodeomasjid.org/api/auth/oidc/callback</code></li>
+                      <li className="break-all">Set the callback URL to: <code className="bg-blue-100 dark:bg-blue-950 px-1 py-0.5 rounded text-xs">https://notes.rodeomasjid.org/api/auth/oidc/callback</code></li>
                       <li>Copy the Client ID and Client Secret from PocketID</li>
                       <li>Paste them in the fields above</li>
                       <li>Enable PocketID Authentication and save</li>
@@ -493,19 +527,23 @@ export default function SettingsDialog() {
                 </div>
               )}
 
-              <div className="flex justify-end gap-2 pt-4">
+              <div className="flex flex-col sm:flex-row justify-end gap-3 pt-6">
                 <Button
                   variant="outline"
                   onClick={() => setSettingsOpen(false)}
+                  className="w-full sm:w-auto"
                 >
                   Cancel
                 </Button>
-                <Button onClick={handleSaveAiSettings}>
+                <Button
+                  onClick={handleSaveAiSettings}
+                  className="w-full sm:w-auto"
+                >
                   Save Authentication Settings
                 </Button>
               </div>
 
-              <div className="text-xs text-muted-foreground">
+              <div className="text-xs text-muted-foreground mt-4">
                 * Required fields when PocketID authentication is enabled
               </div>
             </TabsContent>

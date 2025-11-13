@@ -3,18 +3,15 @@ module.exports = {
   env: {
     browser: true,
     es2020: true,
-    node: true,
-    'vitest-globals/env': true
+    node: true
   },
   extends: [
     'eslint:recommended',
-    '@eslint/js/recommended',
     'plugin:react/recommended',
     'plugin:react/jsx-runtime',
     'plugin:react-hooks/recommended',
     'plugin:jsx-a11y/recommended',
-    'plugin:import/recommended',
-    'plugin:vitest-globals/recommended'
+    'plugin:import/recommended'
   ],
   ignorePatterns: [
     'dist',
@@ -54,8 +51,7 @@ module.exports = {
     'react-hooks',
     'react-refresh',
     'jsx-a11y',
-    'import',
-    'vitest-globals'
+    'import'
   ],
   rules: {
     // React specific rules
@@ -172,8 +168,7 @@ module.exports = {
     {
       files: ['**/*.test.{js,jsx}', '**/*.spec.{js,jsx}', '**/test/**/*.{js,jsx}'],
       env: {
-        jest: true,
-        'vitest-globals/env': true
+        jest: true
       },
       rules: {
         'no-console': 'off',
