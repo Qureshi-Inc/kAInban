@@ -1,6 +1,6 @@
 // PocketID Integration for Automated Account Creation
-import fetch from 'node-fetch'
 import crypto from 'crypto'
+import nodemailer from 'nodemailer'
 
 class PocketIDIntegration {
   constructor(config) {
@@ -62,78 +62,33 @@ class PocketIDIntegration {
     }
   }
 
-  // Method 1: Direct API account creation (if PocketID supports it)
-  async createPocketIDAccount(email, name) {
-    try {
-      // This would be the ideal approach if PocketID has admin APIs
-      const response = await fetch(`${this.pocketIdUrl}/api/admin/users`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.adminToken}`,
-        },
-        body: JSON.stringify({
-          email,
-          name,
-          sendWelcomeEmail: true,
-          clientReturnUrl: `${process.env.KAINBAN_URL}/welcome`
-        })
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        return { success: true, user: result };
-      } else {
-        throw new Error(`PocketID API error: ${response.status}`);
-      }
-    } catch (error) {
-      console.warn('[PocketID] Direct account creation failed:', error.message);
-      return { success: false, error: error.message };
-    }
+  // Method 1: Direct API account creation (most PocketID instances don't support this)
+  async createPocketIDAccount(_email, _name) {
+    // Skip this method for now since most PocketID instances don't have admin APIs
+    console.log('[PocketID] Skipping direct account creation - not supported by most PocketID instances');
+    return { success: false, error: 'Direct account creation not supported' };
   }
 
-  // Method 2: Generate invitation email (if PocketID supports invitations)
-  async sendInvitation(email, name, returnUrl) {
-    try {
-      const response = await fetch(`${this.pocketIdUrl}/api/invitations`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.adminToken}`,
-        },
-        body: JSON.stringify({
-          email,
-          name,
-          inviteMessage: `Welcome to kAInban! Complete your account setup to start managing tasks with AI.`,
-          returnUrl: returnUrl || `${process.env.KAINBAN_URL}/dashboard`,
-          expiresIn: '7d'
-        })
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        return { success: true, invitation: result };
-      } else {
-        throw new Error(`Invitation failed: ${response.status}`);
-      }
-    } catch (error) {
-      console.warn('[PocketID] Invitation failed:', error.message);
-      return { success: false, error: error.message };
-    }
+  // Method 2: Generate invitation email (most PocketID instances don't support this API)
+  async sendInvitation(_email, _name, _returnUrl) {
+    // Skip this method for now since most PocketID instances don't have invitation APIs
+    console.log('[PocketID] Skipping invitation API - not supported by most PocketID instances');
+    return { success: false, error: 'Invitation API not supported' };
   }
 
   // Method 3: Generate magic registration link
-  generateRegistrationLink(email, name, intentId) {
+  generateRegistrationLink(email, name, _intentId) {
+    // For most PocketID instances, the signup is handled through OIDC flow
+    // We'll create a simple registration URL that redirects back to kAInban
     const params = new URLSearchParams({
       email,
       name,
-      client_id: this.clientId,
-      return_to: `${process.env.KAINBAN_URL}/auth/pocketid/callback`,
-      signup_intent: intentId,
-      signup_source: 'kainban_landing'
+      return_to: `${process.env.KAINBAN_URL || 'https://notes.rodeomasjid.org'}`,
+      source: 'kainban'
     });
 
-    return `${this.pocketIdUrl}/register?${params.toString()}`;
+    // Most PocketID instances use '/auth' or '/signup' or just redirect to login
+    return `${this.pocketIdUrl}?${params.toString()}`;
   }
 
   // Method 4: Send custom email with registration link
@@ -225,33 +180,66 @@ class PocketIDIntegration {
     `;
   }
 
-  // Placeholder for email service integration
+  // Email service integration
   async sendEmail(emailData) {
-    // This should integrate with your actual email service
-    // Examples: SendGrid, Mailgun, AWS SES, etc.
-    console.log('[Email] Would send email:', {
-      to: emailData.to,
-      subject: emailData.subject,
-      // Don't log HTML content in production
-    });
+    try {
+      // Create nodemailer transporter based on environment variables
+      let transporter;
 
-    // For now, just log that email would be sent
-    // In production, implement with your email service:
-    /*
-    const sgMail = require('@sendgrid/mail');
-    sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+      if (process.env.SENDGRID_API_KEY) {
+        // SendGrid SMTP
+        transporter = nodemailer.createTransporter({
+          host: 'smtp.sendgrid.net',
+          port: 587,
+          secure: false,
+          auth: {
+            user: 'apikey',
+            pass: process.env.SENDGRID_API_KEY
+          }
+        });
+      } else if (process.env.SMTP_HOST) {
+        // Generic SMTP
+        transporter = nodemailer.createTransporter({
+          host: process.env.SMTP_HOST,
+          port: process.env.SMTP_PORT || 587,
+          secure: process.env.SMTP_SECURE === 'true',
+          auth: {
+            user: process.env.SMTP_USER,
+            pass: process.env.SMTP_PASS
+          }
+        });
+      } else {
+        // Fallback: Gmail SMTP (for testing)
+        console.log('[Email] No SMTP configured, using Gmail fallback (configure SMTP_* env vars for production)');
+        transporter = nodemailer.createTransporter({
+          service: 'gmail',
+          auth: {
+            user: process.env.GMAIL_USER,
+            pass: process.env.GMAIL_APP_PASSWORD // App password, not regular password
+          }
+        });
+      }
 
-    const msg = {
-      to: emailData.to,
-      from: 'noreply@kainban.com',
-      subject: emailData.subject,
-      html: emailData.html,
-    };
+      const mailOptions = {
+        from: process.env.FROM_EMAIL || 'noreply@kainban.com',
+        to: emailData.to,
+        subject: emailData.subject,
+        html: emailData.html
+      };
 
-    await sgMail.send(msg);
-    */
+      console.log(`[Email] Sending email to ${emailData.to}...`);
+      const result = await transporter.sendMail(mailOptions);
+      console.log(`[Email] Email sent successfully: ${result.messageId}`);
 
-    return { success: true };
+      return { success: true, messageId: result.messageId };
+
+    } catch (error) {
+      console.error('[Email] Failed to send email:', error.message);
+
+      // If email fails, we still want to show instructions to the user
+      console.log('[Email] Email delivery failed, but signup process will continue with manual instructions');
+      return { success: false, error: error.message };
+    }
   }
 
   // Attempt all signup methods in order of preference
