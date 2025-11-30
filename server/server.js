@@ -10,6 +10,7 @@ import path from 'path'
 import * as db from './database.js'
 import * as localAuth from './localAuth.js'
 import * as oidcAuth from './oidcAuth.js'
+import PocketIDIntegration from './pocketIdIntegration.js'
 
 const app = express()
 const PORT = process.env.PORT || 3001
@@ -100,11 +101,28 @@ app.use(session({
   proxy: true
 }))
 
+// Initialize PocketID integration
+const pocketIdIntegration = new PocketIDIntegration({
+  pocketIdUrl: process.env.POCKETID_URL || 'https://login.qureshi.io',
+  clientId: process.env.OIDC_CLIENT_ID,
+  clientSecret: process.env.OIDC_CLIENT_SECRET,
+  adminToken: process.env.POCKETID_ADMIN_TOKEN // Optional admin API token
+})
+
 // Rate limiting for auth endpoints
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 5, // 5 requests per window
   message: { error: 'Too many authentication attempts, please try again later' },
+  standardHeaders: true,
+  legacyHeaders: false
+})
+
+// Special rate limiter for signup endpoints (more lenient)
+const signupLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 10, // 10 signups per hour per IP
+  message: { error: 'Too many signup attempts, please try again later' },
   standardHeaders: true,
   legacyHeaders: false
 })
@@ -353,6 +371,135 @@ app.get('/api/auth/oidc/callback', async (req, res) => {
     console.error('[OIDC] Callback error:', error)
     const frontendUrl = process.env.APP_URL || 'https://notes.rodeomasjid.org'
     res.redirect(`${frontendUrl}?oidc_error=${encodeURIComponent(error.message)}`)
+  }
+})
+
+// PocketID Signup endpoints (Landing Page Integration)
+app.post('/api/auth/create-signup-intent', signupLimiter, async (req, res) => {
+  try {
+    const { email, name, source } = req.body
+
+    // Basic validation
+    if (!email || !email.includes('@')) {
+      return res.status(400).json({ error: 'Valid email is required' })
+    }
+
+    // Create signup intent
+    const intent = pocketIdIntegration.createSignupIntent(email, name, source)
+
+    console.log(`[Signup] Created intent ${intent.id} for ${email}`)
+
+    res.json({
+      success: true,
+      id: intent.id,
+      email: intent.email,
+      expiresAt: intent.expiresAt
+    })
+
+  } catch (error) {
+    console.error('[Signup] Intent creation error:', error)
+    res.status(500).json({ error: 'Failed to create signup intent' })
+  }
+})
+
+app.post('/api/auth/send-pocketid-invitation', signupLimiter, async (req, res) => {
+  try {
+    const { email, name, returnUrl } = req.body
+
+    // Basic validation
+    if (!email || !email.includes('@')) {
+      return res.status(400).json({ error: 'Valid email is required' })
+    }
+
+    // Process the signup through PocketID integration
+    const result = await pocketIdIntegration.processSignup(email, name, returnUrl)
+
+    console.log(`[Signup] Processed signup for ${email} via method: ${result.method}`)
+
+    res.json(result)
+
+  } catch (error) {
+    console.error('[Signup] PocketID invitation error:', error)
+    res.status(500).json({
+      error: 'Signup process failed',
+      details: error.message
+    })
+  }
+})
+
+app.post('/api/auth/send-magic-link', signupLimiter, async (req, res) => {
+  try {
+    const { email, name, type, redirectUrl } = req.body
+
+    // Basic validation
+    if (!email || !email.includes('@')) {
+      return res.status(400).json({ error: 'Valid email is required' })
+    }
+
+    // Create signup intent
+    const intent = pocketIdIntegration.createSignupIntent(email, name, 'magic_link')
+
+    // Generate registration link
+    const registrationLink = pocketIdIntegration.generateRegistrationLink(email, name, intent.id)
+
+    // Send custom email (this will use your email service)
+    const emailResult = await pocketIdIntegration.sendRegistrationEmail(email, name, intent.id)
+
+    if (emailResult.success) {
+      console.log(`[Signup] Magic link sent to ${email}`)
+      res.json({
+        success: true,
+        message: 'Magic link sent! Check your email to complete setup.',
+        registrationLink: emailResult.registrationLink
+      })
+    } else {
+      // Fallback: return manual instructions
+      res.json({
+        success: true,
+        message: 'Please complete your registration manually.',
+        registrationLink,
+        instructions: {
+          steps: [
+            `Visit ${pocketIdIntegration.pocketIdUrl}`,
+            `Create account with email: ${email}`,
+            'Enable passkey in Security settings',
+            'Return to kAInban and sign in'
+          ]
+        }
+      })
+    }
+
+  } catch (error) {
+    console.error('[Signup] Magic link error:', error)
+    res.status(500).json({
+      error: 'Failed to send magic link',
+      details: error.message
+    })
+  }
+})
+
+// Get signup intent status (for tracking)
+app.get('/api/auth/signup-intent/:intentId', (req, res) => {
+  try {
+    const { intentId } = req.params
+    const intent = pocketIdIntegration.getSignupIntent(intentId)
+
+    if (!intent) {
+      return res.status(404).json({ error: 'Signup intent not found or expired' })
+    }
+
+    res.json({
+      id: intent.id,
+      email: intent.email,
+      status: intent.status,
+      method: intent.method,
+      createdAt: intent.createdAt,
+      expiresAt: intent.expiresAt
+    })
+
+  } catch (error) {
+    console.error('[Signup] Intent status error:', error)
+    res.status(500).json({ error: 'Failed to get signup status' })
   }
 })
 
