@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="kAInban - AI-powered task management with meeting transcription and intelligent task extraction">
+  <meta name="keywords" content="AI, task management, kanban, transcription, productivity">
+  <title>kAInban - AI-Powered Task Management</title>
+  <link rel="icon" type="image/png" href="favicon.png">
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Custom styles -->
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+
+    .gradient-bg {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+
+    .gradient-text {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .feature-card {
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .feature-card:hover {
+      transform: translateY(-8px);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+    }
+
+    .pricing-card {
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .pricing-card:hover {
+      transform: scale(1.05);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+    }
+
+    .pricing-card.featured {
+      border: 3px solid #667eea;
+      transform: scale(1.05);
+    }
+  </style>
+</head>
+<body class="bg-gray-50">
+
+  <!-- Navigation -->
+  <nav class="bg-white shadow-sm fixed w-full top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between items-center h-16">
+        <div class="flex items-center">
+          <span class="text-2xl font-bold gradient-text">kAInban</span>
+        </div>
+        <div class="hidden md:flex items-center space-x-8">
+          <a href="#features" class="text-gray-700 hover:text-purple-600 transition">Features</a>
+          <a href="#pricing" class="text-gray-700 hover:text-purple-600 transition">Pricing</a>
+          <a href="#faq" class="text-gray-700 hover:text-purple-600 transition">FAQ</a>
+          <a href="https://notes.rodeomasjid.org" class="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition font-medium">
+            Launch App
+          </a>
+        </div>
+        <div class="md:hidden">
+          <button id="mobile-menu-button" class="text-gray-700 hover:text-purple-600">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mobile menu -->
+    <div id="mobile-menu" class="hidden md:hidden bg-white border-t">
+      <div class="px-4 py-4 space-y-3">
+        <a href="#features" class="block text-gray-700 hover:text-purple-600 transition">Features</a>
+        <a href="#pricing" class="block text-gray-700 hover:text-purple-600 transition">Pricing</a>
+        <a href="#faq" class="block text-gray-700 hover:text-purple-600 transition">FAQ</a>
+        <a href="https://notes.rodeomasjid.org" class="block bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition font-medium text-center">
+          Launch App
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Hero Section -->
+  <section class="pt-24 pb-20 gradient-bg text-white">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center">
+        <h1 class="text-5xl md:text-6xl font-extrabold mb-6 leading-tight">
+          AI-Powered Task Management<br/>
+          <span class="text-purple-200">That Actually Works</span>
+        </h1>
+        <p class="text-xl md:text-2xl mb-10 text-purple-100 max-w-3xl mx-auto">
+          Transform meetings into action items automatically. Record, transcribe, and let AI extract tasks for you.
+        </p>
+        <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
+          <a href="#pricing" class="bg-white text-purple-600 px-8 py-4 rounded-lg font-semibold text-lg hover:bg-gray-100 transition shadow-lg w-full sm:w-auto">
+            Get Started Free
+          </a>
+          <a href="#features" class="bg-purple-500 bg-opacity-20 backdrop-blur text-white px-8 py-4 rounded-lg font-semibold text-lg hover:bg-opacity-30 transition border-2 border-white border-opacity-30 w-full sm:w-auto">
+            See Features
+          </a>
+        </div>
+        <p class="mt-6 text-purple-100 text-sm">
+          ✓ No credit card required  ✓ Setup in 2 minutes  ✓ Secure with passkey authentication
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features Section -->
+  <section id="features" class="py-20 bg-white">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center mb-16">
+        <h2 class="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+          Powerful Features for <span class="gradient-text">Modern Teams</span>
+        </h2>
+        <p class="text-xl text-gray-600 max-w-2xl mx-auto">
+          Everything you need to turn conversations into completed tasks
+        </p>
+      </div>
+
+      <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <!-- Feature 1 -->
+        <div class="feature-card bg-white p-8 rounded-xl shadow-lg border border-gray-100">
+          <div class="w-14 h-14 bg-purple-100 rounded-lg flex items-center justify-center mb-6">
+            <svg class="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path>
+            </svg>
+          </div>
+          <h3 class="text-xl font-bold text-gray-900 mb-3">Meeting Transcription</h3>
+          <p class="text-gray-600">
+            Record meetings and get instant, accurate transcriptions powered by Azure OpenAI Whisper.
+          </p>
+        </div>
+
+        <!-- Feature 2 -->
+        <div class="feature-card bg-white p-8 rounded-xl shadow-lg border border-gray-100">
+          <div class="w-14 h-14 bg-purple-100 rounded-lg flex items-center justify-center mb-6">
+            <svg class="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
+            </svg>
+          </div>
+          <h3 class="text-xl font-bold text-gray-900 mb-3">AI Task Extraction</h3>
+          <p class="text-gray-600">
+            GPT-4 automatically identifies action items, deadlines, and assigns them to team members.
+          </p>
+        </div>
+
+        <!-- Feature 3 -->
+        <div class="feature-card bg-white p-8 rounded-xl shadow-lg border border-gray-100">
+          <div class="w-14 h-14 bg-purple-100 rounded-lg flex items-center justify-center mb-6">
+            <svg class="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 0a2 2 0 012 2v2a2 2 0 01-2 2m-8 0H7"></path>
+            </svg>
+          </div>
+          <h3 class="text-xl font-bold text-gray-900 mb-3">Kanban Board</h3>
+          <p class="text-gray-600">
+            Visual drag-and-drop interface to manage tasks through your workflow stages.
+          </p>
+        </div>
+
+        <!-- Feature 4 -->
+        <div class="feature-card bg-white p-8 rounded-xl shadow-lg border border-gray-100">
+          <div class="w-14 h-14 bg-purple-100 rounded-lg flex items-center justify-center mb-6">
+            <svg class="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+            </svg>
+          </div>
+          <h3 class="text-xl font-bold text-gray-900 mb-3">Secure Authentication</h3>
+          <p class="text-gray-600">
+            PocketID integration with passkey support for passwordless, secure access.
+          </p>
+        </div>
+
+        <!-- Feature 5 -->
+        <div class="feature-card bg-white p-8 rounded-xl shadow-lg border border-gray-100">
+          <div class="w-14 h-14 bg-purple-100 rounded-lg flex items-center justify-center mb-6">
+            <svg class="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"></path>
+            </svg>
+          </div>
+          <h3 class="text-xl font-bold text-gray-900 mb-3">Analytics Dashboard</h3>
+          <p class="text-gray-600">
+            Track productivity, completion rates, and team performance with visual insights.
+          </p>
+        </div>
+
+        <!-- Feature 6 -->
+        <div class="feature-card bg-white p-8 rounded-xl shadow-lg border border-gray-100">
+          <div class="w-14 h-14 bg-purple-100 rounded-lg flex items-center justify-center mb-6">
+            <svg class="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path>
+            </svg>
+          </div>
+          <h3 class="text-xl font-bold text-gray-900 mb-3">Project Management</h3>
+          <p class="text-gray-600">
+            Organize tasks into projects with dedicated workspaces and team collaboration.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Pricing Section -->
+  <section id="pricing" class="py-20 bg-gray-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center mb-16">
+        <h2 class="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+          Simple, <span class="gradient-text">Transparent Pricing</span>
+        </h2>
+        <p class="text-xl text-gray-600 max-w-2xl mx-auto">
+          Start free, upgrade when you need more power
+        </p>
+      </div>
+
+      <div class="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+        <!-- Free Tier -->
+        <div class="pricing-card bg-white rounded-2xl shadow-xl p-8 border border-gray-200">
+          <div class="mb-6">
+            <h3 class="text-2xl font-bold text-gray-900 mb-2">Free</h3>
+            <div class="flex items-baseline mb-4">
+              <span class="text-5xl font-extrabold text-gray-900">$0</span>
+              <span class="text-gray-500 ml-2">/month</span>
+            </div>
+            <p class="text-gray-600">Perfect for individuals and small teams</p>
+          </div>
+
+          <ul class="space-y-4 mb-8">
+            <li class="flex items-start">
+              <svg class="w-5 h-5 text-green-500 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"></path>
+              </svg>
+              <span class="text-gray-700">Up to 3 projects</span>
+            </li>
+            <li class="flex items-start">
+              <svg class="w-5 h-5 text-green-500 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"></path>
+              </svg>
+              <span class="text-gray-700">Unlimited tasks</span>
+            </li>
+            <li class="flex items-start">
+              <svg class="w-5 h-5 text-green-500 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"></path>
+              </svg>
+              <span class="text-gray-700">5 MB file uploads</span>
+            </li>
+            <li class="flex items-start">
+              <svg class="w-5 h-5 text-green-500 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"></path>
+              </svg>
+              <span class="text-gray-700">Basic AI transcription</span>
+            </li>
+            <li class="flex items-start">
+              <svg class="w-5 h-5 text-green-500 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"></path>
+              </svg>
+              <span class="text-gray-700">Kanban board</span>
+            </li>
+            <li class="flex items-start">
+              <svg class="w-5 h-5 text-green-500 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"></path>
+              </svg>
+              <span class="text-gray-700">Mobile app access</span>
+            </li>
+          </ul>
+
+          <a href="https://notes.rodeomasjid.org" class="block w-full bg-gray-100 text-gray-900 text-center px-6 py-3 rounded-lg font-semibold hover:bg-gray-200 transition">
+            Get Started
+          </a>
+        </div>
+
+        <!-- Pro Tier (Featured) -->
+        <div class="pricing-card featured bg-white rounded-2xl shadow-2xl p-8 relative transform scale-105">
+          <div class="absolute top-0 right-0 bg-purple-600 text-white px-4 py-1 rounded-bl-lg rounded-tr-2xl text-sm font-semibold">
+            POPULAR
+          </div>
+
+          <div class="mb-6">
+            <h3 class="text-2xl font-bold text-gray-900 mb-2">Pro</h3>
+            <div class="flex items-baseline mb-4">
+              <span class="text-5xl font-extrabold gradient-text">$19</span>
+              <span class="text-gray-500 ml-2">/month</span>
+            </div>
+            <p class="text-gray-600">For growing teams and power users</p>
+          </div>
+
+          <ul class="space-y-4 mb-8">
+            <li class="flex items-start">
+              <svg class="w-5 h-5 text-purple-600 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"></path>
+              </svg>
+              <span class="text-gray-700"><strong>Unlimited projects</strong></span>
+            </li>
+            <li class="flex items-start">
+              <svg class="w-5 h-5 text-purple-600 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"></path>
+              </svg>
+              <span class="text-gray-700"><strong>50 MB file uploads</strong></span>
+            </li>
+            <li class="flex items-start">
+              <svg class="w-5 h-5 text-purple-600 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"></path>
+              </svg>
+              <span class="text-gray-700">Priority AI processing</span>
+            </li>
+            <li class="flex items-start">
+              <svg class="w-5 h-5 text-purple-600 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"></path>
+              </svg>
+              <span class="text-gray-700">Advanced analytics</span>
+            </li>
+            <li class="flex items-start">
+              <svg class="w-5 h-5 text-purple-600 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"></path>
+              </svg>
+              <span class="text-gray-700">Team collaboration</span>
+            </li>
+            <li class="flex items-start">
+              <svg class="w-5 h-5 text-purple-600 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"></path>
+              </svg>
+              <span class="text-gray-700">Priority support</span>
+            </li>
+          </ul>
+
+          <a href="https://notes.rodeomasjid.org" class="block w-full gradient-bg text-white text-center px-6 py-3 rounded-lg font-semibold hover:opacity-90 transition">
+            Start Pro Trial
+          </a>
+        </div>
+
+        <!-- Enterprise Tier -->
+        <div class="pricing-card bg-white rounded-2xl shadow-xl p-8 border border-gray-200">
+          <div class="mb-6">
+            <h3 class="text-2xl font-bold text-gray-900 mb-2">Enterprise</h3>
+            <div class="flex items-baseline mb-4">
+              <span class="text-5xl font-extrabold text-gray-900">$49</span>
+              <span class="text-gray-500 ml-2">/month</span>
+            </div>
+            <p class="text-gray-600">For large organizations</p>
+          </div>
+
+          <ul class="space-y-4 mb-8">
+            <li class="flex items-start">
+              <svg class="w-5 h-5 text-green-500 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"></path>
+              </svg>
+              <span class="text-gray-700"><strong>Everything in Pro</strong></span>
+            </li>
+            <li class="flex items-start">
+              <svg class="w-5 h-5 text-green-500 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"></path>
+              </svg>
+              <span class="text-gray-700"><strong>200 MB file uploads</strong></span>
+            </li>
+            <li class="flex items-start">
+              <svg class="w-5 h-5 text-green-500 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"></path>
+              </svg>
+              <span class="text-gray-700">Dedicated account manager</span>
+            </li>
+            <li class="flex items-start">
+              <svg class="w-5 h-5 text-green-500 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"></path>
+              </svg>
+              <span class="text-gray-700">Custom integrations</span>
+            </li>
+            <li class="flex items-start">
+              <svg class="w-5 h-5 text-green-500 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"></path>
+              </svg>
+              <span class="text-gray-700">SLA guarantee</span>
+            </li>
+            <li class="flex items-start">
+              <svg class="w-5 h-5 text-green-500 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"></path>
+              </svg>
+              <span class="text-gray-700">On-premise deployment option</span>
+            </li>
+          </ul>
+
+          <a href="mailto:support@kainban.com?subject=Enterprise Inquiry" class="block w-full bg-gray-100 text-gray-900 text-center px-6 py-3 rounded-lg font-semibold hover:bg-gray-200 transition">
+            Contact Sales
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- How to Sign Up Section -->
+  <section class="py-20 bg-white">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center mb-12">
+        <h2 class="text-4xl font-bold text-gray-900 mb-4">
+          Getting Started is <span class="gradient-text">Simple</span>
+        </h2>
+        <p class="text-xl text-gray-600">
+          Set up your account with PocketID in under 2 minutes
+        </p>
+      </div>
+
+      <div class="bg-purple-50 rounded-2xl p-8 md:p-12 border-2 border-purple-100">
+        <div class="space-y-8">
+          <!-- Step 1 -->
+          <div class="flex items-start">
+            <div class="flex-shrink-0">
+              <div class="w-12 h-12 bg-purple-600 text-white rounded-full flex items-center justify-center font-bold text-lg">
+                1
+              </div>
+            </div>
+            <div class="ml-6">
+              <h3 class="text-xl font-bold text-gray-900 mb-2">Create Your PocketID Account</h3>
+              <p class="text-gray-700 mb-3">
+                Visit <a href="https://pocketid.app" target="_blank" class="text-purple-600 hover:underline font-semibold">pocketid.app</a> and sign up for a free account. PocketID is your secure, passwordless authentication provider.
+              </p>
+              <div class="bg-white rounded-lg p-4 border border-purple-200">
+                <p class="text-sm text-gray-600 mb-2"><strong>Important:</strong> Enable Passkey for Enhanced Security</p>
+                <p class="text-sm text-gray-600">
+                  After creating your PocketID account, go to <strong>Settings → Security → Add Passkey</strong>. This enables biometric authentication (Face ID, Touch ID, Windows Hello) for secure, passwordless login.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Step 2 -->
+          <div class="flex items-start">
+            <div class="flex-shrink-0">
+              <div class="w-12 h-12 bg-purple-600 text-white rounded-full flex items-center justify-center font-bold text-lg">
+                2
+              </div>
+            </div>
+            <div class="ml-6">
+              <h3 class="text-xl font-bold text-gray-900 mb-2">Sign In to kAInban</h3>
+              <p class="text-gray-700">
+                Click <strong>"Sign in with PocketID"</strong> on the kAInban login page. You'll be redirected to PocketID to authenticate using your passkey or password.
+              </p>
+            </div>
+          </div>
+
+          <!-- Step 3 -->
+          <div class="flex items-start">
+            <div class="flex-shrink-0">
+              <div class="w-12 h-12 bg-purple-600 text-white rounded-full flex items-center justify-center font-bold text-lg">
+                3
+              </div>
+            </div>
+            <div class="ml-6">
+              <h3 class="text-xl font-bold text-gray-900 mb-2">Start Managing Tasks</h3>
+              <p class="text-gray-700">
+                That's it! You're ready to record meetings, transcribe audio, and let AI extract your tasks automatically.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-10 text-center">
+          <a href="https://notes.rodeomasjid.org" class="inline-block gradient-bg text-white px-8 py-4 rounded-lg font-semibold text-lg hover:opacity-90 transition shadow-lg">
+            Launch kAInban Now →
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ Section -->
+  <section id="faq" class="py-20 bg-gray-50">
+    <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center mb-12">
+        <h2 class="text-4xl font-bold text-gray-900 mb-4">
+          Frequently Asked <span class="gradient-text">Questions</span>
+        </h2>
+      </div>
+
+      <div class="space-y-6">
+        <details class="bg-white rounded-lg shadow-md p-6 cursor-pointer">
+          <summary class="font-semibold text-lg text-gray-900">What is PocketID and why do I need it?</summary>
+          <p class="mt-4 text-gray-600">
+            PocketID is a secure, open-source identity provider that enables passwordless authentication using passkeys (biometric authentication like Face ID or Touch ID). It's more secure than traditional passwords and provides a seamless login experience.
+          </p>
+        </details>
+
+        <details class="bg-white rounded-lg shadow-md p-6 cursor-pointer">
+          <summary class="font-semibold text-lg text-gray-900">Can I use kAInban without a PocketID account?</summary>
+          <p class="mt-4 text-gray-600">
+            Yes! While we recommend PocketID for enhanced security, you can also create an account using email and password directly on kAInban.
+          </p>
+        </details>
+
+        <details class="bg-white rounded-lg shadow-md p-6 cursor-pointer">
+          <summary class="font-semibold text-lg text-gray-900">How accurate is the AI transcription?</summary>
+          <p class="mt-4 text-gray-600">
+            We use Azure OpenAI's Whisper model, which provides industry-leading accuracy (95%+) for transcriptions in multiple languages and accents.
+          </p>
+        </details>
+
+        <details class="bg-white rounded-lg shadow-md p-6 cursor-pointer">
+          <summary class="font-semibold text-lg text-gray-900">Is my data secure?</summary>
+          <p class="mt-4 text-gray-600">
+            Absolutely. All data is encrypted at rest and in transit. We use industry-standard security practices and never share your data with third parties. Your recordings and transcriptions are stored securely and only accessible by you and your team.
+          </p>
+        </details>
+
+        <details class="bg-white rounded-lg shadow-md p-6 cursor-pointer">
+          <summary class="font-semibold text-lg text-gray-900">Can I upgrade or downgrade my plan anytime?</summary>
+          <p class="mt-4 text-gray-600">
+            Yes! You can change your plan at any time. Upgrades take effect immediately, and downgrades will apply at the start of your next billing cycle.
+          </p>
+        </details>
+
+        <details class="bg-white rounded-lg shadow-md p-6 cursor-pointer">
+          <summary class="font-semibold text-lg text-gray-900">Do you offer refunds?</summary>
+          <p class="mt-4 text-gray-600">
+            We offer a 14-day money-back guarantee for all paid plans. If you're not satisfied, contact us for a full refund.
+          </p>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA Section -->
+  <section class="py-20 gradient-bg text-white">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+      <h2 class="text-4xl md:text-5xl font-bold mb-6">
+        Ready to Transform Your Workflow?
+      </h2>
+      <p class="text-xl mb-10 text-purple-100">
+        Join thousands of teams already using kAInban to stay organized and productive
+      </p>
+      <a href="https://notes.rodeomasjid.org" class="inline-block bg-white text-purple-600 px-10 py-4 rounded-lg font-bold text-lg hover:bg-gray-100 transition shadow-2xl">
+        Start Free Today
+      </a>
+      <p class="mt-6 text-purple-100 text-sm">
+        No credit card required • 14-day money-back guarantee
+      </p>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="bg-gray-900 text-gray-300 py-12">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="grid md:grid-cols-4 gap-8">
+        <div>
+          <h3 class="text-white font-bold text-xl mb-4">kAInban</h3>
+          <p class="text-sm">
+            AI-powered task management for modern teams
+          </p>
+        </div>
+
+        <div>
+          <h4 class="text-white font-semibold mb-4">Product</h4>
+          <ul class="space-y-2 text-sm">
+            <li><a href="#features" class="hover:text-white transition">Features</a></li>
+            <li><a href="#pricing" class="hover:text-white transition">Pricing</a></li>
+            <li><a href="https://notes.rodeomasjid.org" class="hover:text-white transition">Login</a></li>
+          </ul>
+        </div>
+
+        <div>
+          <h4 class="text-white font-semibold mb-4">Resources</h4>
+          <ul class="space-y-2 text-sm">
+            <li><a href="#faq" class="hover:text-white transition">FAQ</a></li>
+            <li><a href="https://github.com/Qureshi-Inc/kAInban" class="hover:text-white transition">GitHub</a></li>
+            <li><a href="https://github.com/Qureshi-Inc/kAInban/blob/main/LICENSE" class="hover:text-white transition">License (AGPL-3.0)</a></li>
+          </ul>
+        </div>
+
+        <div>
+          <h4 class="text-white font-semibold mb-4">Company</h4>
+          <ul class="space-y-2 text-sm">
+            <li><a href="mailto:support@kainban.com" class="hover:text-white transition">Contact</a></li>
+            <li><a href="#" class="hover:text-white transition">Privacy Policy</a></li>
+            <li><a href="#" class="hover:text-white transition">Terms of Service</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="border-t border-gray-800 mt-12 pt-8 text-center text-sm">
+        <p>&copy; 2025 kAInban by InterestingSoup. Open source under AGPL-3.0 License.</p>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // Mobile menu toggle
+    document.getElementById('mobile-menu-button').addEventListener('click', function() {
+      const mobileMenu = document.getElementById('mobile-menu');
+      mobileMenu.classList.toggle('hidden');
+    });
+
+    // Smooth scrolling for anchor links
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+      anchor.addEventListener('click', function (e) {
+        e.preventDefault();
+        const target = document.querySelector(this.getAttribute('href'));
+        if (target) {
+          target.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start'
+          });
+          // Close mobile menu if open
+          document.getElementById('mobile-menu').classList.add('hidden');
+        }
+      });
+    });
+  </script>
+</body>
+</html>
