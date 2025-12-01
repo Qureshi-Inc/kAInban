@@ -56,10 +56,37 @@ export default function AudioControls() {
     }
   }, [isRecording])
 
+  // Handle pause state changes for visualization
+  useEffect(() => {
+    if (isRecording) {
+      if (isPaused) {
+        stopVisualization()
+      } else {
+        startVisualization()
+      }
+    }
+  }, [isPaused, isRecording])
+
   const startTimer = () => {
     const startTime = Date.now()
+    let pauseOffset = 0
+
     timerRef.current = setInterval(() => {
-      const elapsed = Math.floor((Date.now() - startTime) / 1000)
+      if (isPaused) {
+        // Don't update timer while paused, but track pause time
+        if (!timerRef.pauseStartTime) {
+          timerRef.pauseStartTime = Date.now()
+        }
+        return
+      }
+
+      // If resuming from pause, add pause duration to offset
+      if (timerRef.pauseStartTime) {
+        pauseOffset += Date.now() - timerRef.pauseStartTime
+        timerRef.pauseStartTime = null
+      }
+
+      const elapsed = Math.floor((Date.now() - startTime - pauseOffset) / 1000)
       setRecordingTime(elapsed)
 
       // Update chunk info
@@ -137,7 +164,7 @@ export default function AudioControls() {
         }
       }
 
-      if (isRecording) {
+      if (isRecording && !isPaused) {
         animationRef.current = requestAnimationFrame(draw)
       }
     }

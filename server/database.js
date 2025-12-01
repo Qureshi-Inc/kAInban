@@ -142,6 +142,8 @@ try {
     db.exec('ALTER TABLE tasks ADD COLUMN rejected_ai_links TEXT')
   }
 
+  // Open Source version - no subscription fields needed
+
   // Add OIDC configuration columns to settings table
   const settingsColumns = db.prepare("PRAGMA table_info(settings)").all()
   const hasOidcEnabled = settingsColumns.some(col => col.name === 'oidc_enabled')

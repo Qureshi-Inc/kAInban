@@ -13,6 +13,7 @@ class AudioService {
     this.chunkDuration = 600 // 10 minutes in seconds
     this.chunkStartTime = null
     this.chunkTimer = null
+    this.pauseTime = null // Track when recording was paused
 
     // Callback for when a chunk is completed during recording
     this.onChunkCompleteCallback = null
@@ -261,6 +262,16 @@ class AudioService {
 
     if (this.mediaRecorder.state === 'recording') {
       this.mediaRecorder.pause()
+
+      // Pause the chunk timer to prevent chunk rotation during pause
+      if (this.chunkTimer) {
+        clearInterval(this.chunkTimer)
+        this.chunkTimer = null
+      }
+
+      // Store the pause time to adjust chunk timing when resuming
+      this.pauseTime = Date.now()
+
       console.log('[AudioService] Recording paused')
       return true
     }
@@ -274,6 +285,16 @@ class AudioService {
 
     if (this.mediaRecorder.state === 'paused') {
       this.mediaRecorder.resume()
+
+      // Adjust chunk start time to account for pause duration
+      if (this.pauseTime && this.chunkStartTime) {
+        const pauseDuration = Date.now() - this.pauseTime
+        this.chunkStartTime += pauseDuration
+      }
+
+      // Restart the chunk timer
+      this.startChunkTimer()
+
       console.log('[AudioService] Recording resumed')
       return true
     }
@@ -375,6 +396,7 @@ class AudioService {
     this.analyser = null
     this.audioChunks = []
     this.recordingChunks = []
+    this.pauseTime = null
     this.currentChunkIndex = 0
     this.chunkStartTime = null
   }
