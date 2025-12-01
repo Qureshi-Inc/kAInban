@@ -70,20 +70,27 @@ export default function AudioControls() {
   const startTimer = () => {
     const startTime = Date.now()
     let pauseOffset = 0
+    let lastPauseTime = null
 
     timerRef.current = setInterval(() => {
-      if (isPaused) {
+      // Check if recording is paused by checking the audioService state
+      const currentlyPaused = audioService.isPaused()
+
+      if (currentlyPaused) {
         // Don't update timer while paused, but track pause time
-        if (!timerRef.pauseStartTime) {
-          timerRef.pauseStartTime = Date.now()
+        if (!lastPauseTime) {
+          lastPauseTime = Date.now()
+          console.log('[AudioControls] Timer paused at:', lastPauseTime)
         }
         return
       }
 
       // If resuming from pause, add pause duration to offset
-      if (timerRef.pauseStartTime) {
-        pauseOffset += Date.now() - timerRef.pauseStartTime
-        timerRef.pauseStartTime = null
+      if (lastPauseTime) {
+        const pauseDuration = Date.now() - lastPauseTime
+        pauseOffset += pauseDuration
+        console.log('[AudioControls] Timer resumed, pause duration:', pauseDuration)
+        lastPauseTime = null
       }
 
       const elapsed = Math.floor((Date.now() - startTime - pauseOffset) / 1000)
