@@ -8,7 +8,8 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install ALL dependencies (including dev dependencies needed for build)
-RUN npm ci
+# Use npm install for better compatibility (works without exact package-lock.json)
+RUN npm install
 
 # Copy source code
 COPY . .

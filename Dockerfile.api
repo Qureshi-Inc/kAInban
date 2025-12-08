@@ -20,7 +20,8 @@ RUN apk add --no-cache \
 COPY server/package*.json ./
 
 # Install ALL dependencies (including dev for building)
-RUN npm ci
+# Use npm install for better compatibility (works without exact package-lock.json)
+RUN npm install
 
 # Rebuild ALL native modules for Alpine/musl
 RUN npm rebuild
