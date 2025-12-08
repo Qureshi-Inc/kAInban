@@ -2,8 +2,8 @@
 class PocketIDSignup {
   constructor(config) {
     this.pocketIdUrl = config.pocketIdUrl || 'https://login.qureshi.io';
-    this.kainbanUrl = config.kainbanUrl || 'https://notes.rodeomasjid.org';
-    this.apiEndpoint = config.apiEndpoint || 'https://notes.rodeomasjid.org/api';
+    this.kainbanUrl = config.kainbanUrl || 'https://app.kainban.com';
+    this.apiEndpoint = config.apiEndpoint || 'https://app.kainban.com/api';
   }
 
   // Method 1: Direct redirect to PocketID registration with return URL
@@ -186,7 +186,7 @@ class SignupForm {
           <li>Visit <a href="https://login.qureshi.io" target="_blank">login.qureshi.io</a></li>
           <li>Create account with email: <strong>${email}</strong></li>
           <li>Enable passkey in Security settings</li>
-          <li>Return to <a href="https://notes.rodeomasjid.org">kAInban</a> and sign in</li>
+          <li>Return to <a href="https://app.kainban.com">kAInban</a> and sign in</li>
         </ol>
         <button onclick="window.open('https://login.qureshi.io', '_blank')" class="btn-primary">
           Go to PocketID →
@@ -287,8 +287,8 @@ document.addEventListener('DOMContentLoaded', () => {
   // Initialize PocketID signup handler
   const pocketIdSignup = new PocketIDSignup({
     pocketIdUrl: 'https://login.qureshi.io',
-    kainbanUrl: 'https://notes.rodeomasjid.org',
-    apiEndpoint: 'https://notes.rodeomasjid.org/api'
+    kainbanUrl: 'https://app.kainban.com',
+    apiEndpoint: 'https://app.kainban.com/api'
   });
 
   // Initialize signup forms
