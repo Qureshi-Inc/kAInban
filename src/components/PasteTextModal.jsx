@@ -38,6 +38,9 @@ export default function PasteTextModal({ open, onOpenChange }) {
 
     setIsProcessing(true)
 
+    // Close modal immediately so progress UI is visible
+    onOpenChange(false)
+
     try {
       // Start progress tracking
       setUploadProgress({
@@ -127,9 +130,8 @@ export default function PasteTextModal({ open, onOpenChange }) {
         message: 'Text processing complete!'
       })
 
-      // Clear and close modal
+      // Clear transcript (modal already closed)
       setTranscript('')
-      onOpenChange(false)
 
       // Auto-dismiss progress after 3 seconds
       setTimeout(() => {
