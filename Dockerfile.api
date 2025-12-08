@@ -3,7 +3,7 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Install build dependencies required for native modules
+# Install build dependencies required for native modules and Alpine compatibility
 RUN apk add --no-cache \
     wget \
     python3 \
@@ -12,7 +12,9 @@ RUN apk add --no-cache \
     g++ \
     gcc \
     libc-dev \
-    sqlite-dev
+    sqlite-dev \
+    gcompat \
+    libc6-compat
 
 # Copy server package files
 COPY server/package*.json ./
@@ -22,6 +24,9 @@ RUN npm ci
 
 # Rebuild ALL native modules for Alpine/musl
 RUN npm rebuild
+
+# Specifically rebuild better-sqlite3 from source for Alpine compatibility
+RUN npm rebuild better-sqlite3 --build-from-source
 
 # Copy server code
 COPY server/ ./
