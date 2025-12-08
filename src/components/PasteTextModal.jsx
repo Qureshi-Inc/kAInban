@@ -14,7 +14,9 @@ export default function PasteTextModal({ open, onOpenChange }) {
     currentProject,
     createMeeting,
     addTask,
-    addNotification
+    addNotification,
+    setUploadProgress,
+    resetUploadProgress
   } = useAppStore()
 
   const handleProcess = async () => {
@@ -37,54 +39,123 @@ export default function PasteTextModal({ open, onOpenChange }) {
     setIsProcessing(true)
 
     try {
+      // Start progress tracking
+      setUploadProgress({
+        stage: 'converting',
+        percentage: 10,
+        message: 'Processing pasted text...'
+      })
 
-      // Generate summary and extract tasks from the pasted text
-      addNotification({
-        type: 'info',
-        message: 'Processing your text...'
+      // Generate summary from the pasted text
+      setUploadProgress({
+        stage: 'transcribing',
+        percentage: 30,
+        message: 'Generating summary with AI...'
       })
 
       const summary = await openaiService.generateSummary(transcript)
       console.log('[PasteText] Summary generated:', summary)
 
-      const tasks = await openaiService.extractTasks(transcript)
+      // Create meeting with the transcript and summary
+      setUploadProgress({
+        stage: 'transcribing',
+        percentage: 60,
+        message: 'Creating meeting record...'
+      })
 
-      // Create a meeting with the transcript and summary
       const meetingName = `Pasted Text - ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`
       await createMeeting(meetingName, transcript, summary)
+
+      // Extract tasks from the pasted text
+      setUploadProgress({
+        stage: 'extracting',
+        percentage: 80,
+        message: 'Extracting tasks from text...'
+      })
+
+      const { tasks: existingTasks, updateTask: storeUpdateTask } = useAppStore.getState()
+      const tasks = await openaiService.extractTasks(transcript, existingTasks)
+
+      let newCount = 0
+      let updatedCount = 0
 
       // Add extracted tasks
       if (tasks && tasks.length > 0) {
         tasks.forEach(task => {
-          addTask({
-            title: task.title,
-            description: task.description || '',
-            priority: task.priority || 'medium',
-            status: 'todo'
-          })
+          if (task.matchId && task.matchId > 0) {
+            // Update existing task
+            const existingTask = existingTasks[task.matchId - 1]
+            if (existingTask) {
+              const updatedDescription = existingTask.description +
+                (task.updates ? `\n\n**Update**: ${task.updates}` : '')
+
+              storeUpdateTask(existingTask.id, {
+                description: updatedDescription,
+                status: task.newStatus || existingTask.status,
+                priority: task.newPriority || existingTask.priority,
+                assignee: task.assignee || existingTask.assignee
+              })
+              updatedCount++
+            }
+          } else {
+            // Create new task
+            addTask({
+              title: task.title,
+              description: task.description || '',
+              priority: task.priority || 'medium',
+              status: 'todo'
+            })
+            newCount++
+          }
         })
+
+        // Show success notification
+        const messages = []
+        if (newCount > 0) messages.push(`${newCount} new`)
+        if (updatedCount > 0) messages.push(`${updatedCount} updated`)
 
         addNotification({
           type: 'success',
-          message: `✨ Extracted ${tasks.length} task${tasks.length > 1 ? 's' : ''} from your text`
-        })
-      } else {
-        addNotification({
-          type: 'info',
-          message: 'No tasks found in the text'
+          message: `Tasks: ${messages.join(', ')}!`
         })
       }
 
-      // Clear and close
+      // Mark as complete
+      setUploadProgress({
+        stage: 'complete',
+        percentage: 100,
+        message: 'Text processing complete!'
+      })
+
+      // Clear and close modal
       setTranscript('')
       onOpenChange(false)
 
+      // Auto-dismiss progress after 3 seconds
+      setTimeout(() => {
+        resetUploadProgress()
+      }, 3000)
+
     } catch (error) {
       console.error('[PasteText] Error:', error)
+
+      // Show error in progress indicator
+      setUploadProgress({
+        stage: 'error',
+        percentage: 0,
+        message: 'Text processing failed',
+        error: error.message || 'Failed to process pasted text'
+      })
+
       addNotification({
         type: 'error',
         message: `Failed to process text: ${error.message}`
       })
+
+      // Auto-dismiss error after 5 seconds
+      setTimeout(() => {
+        resetUploadProgress()
+      }, 5000)
     } finally {
       setIsProcessing(false)
     }
@@ -93,6 +164,8 @@ export default function PasteTextModal({ open, onOpenChange }) {
   const handleCancel = () => {
     setTranscript('')
     onOpenChange(false)
+    // Reset progress if user cancels
+    resetUploadProgress()
   }
 
   return (
