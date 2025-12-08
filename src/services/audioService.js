@@ -263,12 +263,6 @@ class AudioService {
     if (this.mediaRecorder.state === 'recording') {
       this.mediaRecorder.pause()
 
-      // Pause the chunk timer to prevent chunk rotation during pause
-      if (this.chunkTimer) {
-        clearInterval(this.chunkTimer)
-        this.chunkTimer = null
-      }
-
       // Store the pause time to adjust chunk timing when resuming
       this.pauseTime = Date.now()
 
@@ -291,9 +285,6 @@ class AudioService {
         const pauseDuration = Date.now() - this.pauseTime
         this.chunkStartTime += pauseDuration
       }
-
-      // Restart the chunk timer
-      this.startChunkTimer()
 
       console.log('[AudioService] Recording resumed')
       return true
