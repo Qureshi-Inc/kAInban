@@ -366,12 +366,20 @@ app.get('/api/auth/oidc/callback', async (req, res) => {
       console.log('[OIDC] User logged in:', user.email)
 
       // Redirect to frontend with success
-      const frontendUrl = process.env.APP_URL || 'https://app.kainban.com'
+      const frontendUrl = process.env.APP_URL
+      if (!frontendUrl) {
+        console.error('[OIDC] Missing APP_URL environment variable')
+        return res.status(500).json({ error: 'Server configuration error: Missing APP_URL' })
+      }
       res.redirect(`${frontendUrl}?oidc_success=true`)
     })
   } catch (error) {
     console.error('[OIDC] Callback error:', error)
-    const frontendUrl = process.env.APP_URL || 'https://app.kainban.com'
+    const frontendUrl = process.env.APP_URL
+    if (!frontendUrl) {
+      console.error('[OIDC] Missing APP_URL environment variable')
+      return res.status(500).json({ error: 'Server configuration error: Missing APP_URL' })
+    }
     res.redirect(`${frontendUrl}?oidc_error=${encodeURIComponent(error.message)}`)
   }
 })
