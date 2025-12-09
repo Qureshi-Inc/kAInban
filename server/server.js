@@ -93,10 +93,42 @@ if (process.env.LANDING_PAGE_URL && process.env.LANDING_PAGE_URL !== process.env
   corsOrigins.push(process.env.LANDING_PAGE_URL)
 }
 
+// Log CORS configuration for debugging
+console.log('[CORS] Configured origins:', corsOrigins)
+console.log('[CORS] Environment variables:')
+console.log('  APP_URL:', process.env.APP_URL)
+console.log('  LANDING_PAGE_URL:', process.env.LANDING_PAGE_URL)
+
 // Middleware
 app.use(cors({
-  origin: corsOrigins,
-  credentials: true
+  origin: (origin, callback) => {
+    console.log('[CORS] Request from origin:', origin)
+
+    // Allow requests with no origin (mobile apps, curl, etc.)
+    if (!origin) return callback(null, true)
+
+    // Check if origin is in allowed list
+    const isAllowed = corsOrigins.some(allowedOrigin => {
+      if (typeof allowedOrigin === 'string') {
+        return allowedOrigin === origin
+      } else if (allowedOrigin instanceof RegExp) {
+        return allowedOrigin.test(origin)
+      }
+      return false
+    })
+
+    if (isAllowed) {
+      console.log('[CORS] Origin allowed:', origin)
+      return callback(null, true)
+    } else {
+      console.log('[CORS] Origin blocked:', origin)
+      console.log('[CORS] Allowed origins:', corsOrigins)
+      return callback(new Error('Not allowed by CORS'), false)
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization']
 }))
 app.use(express.json({ limit: '100mb' }))  // Increased from 50mb to 100mb
 app.use(express.urlencoded({ limit: '100mb', extended: true }))  // Added for form data
