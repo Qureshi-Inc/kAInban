@@ -55,9 +55,72 @@
 
     /* Signup form styles */
     .signup-message {
-      padding: 1rem;
-      border-radius: 0.5rem;
-      margin: 1rem 0;
+      padding: 20px;
+      border-radius: 10px;
+      margin: 20px 0;
+      font-size: 16px;
+      line-height: 1.6;
+    }
+
+    .signup-message.success {
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      color: #065f46;
+    }
+
+    .signup-message.error {
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      color: #991b1b;
+    }
+
+    .signup-success h4 {
+      margin: 0 0 15px 0;
+      color: #065f46;
+      font-size: 20px;
+    }
+
+    .signup-success p {
+      margin: 10px 0;
+    }
+
+    .backup-instructions {
+      font-size: 14px;
+      margin-top: 20px;
+      opacity: 0.8;
+    }
+
+    .btn-link {
+      display: inline-block;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 10px 20px;
+      text-decoration: none;
+      border-radius: 6px;
+      font-weight: 500;
+      margin-top: 10px;
+      transition: transform 0.2s ease;
+    }
+
+    .btn-link:hover {
+      transform: translateY(-2px);
+      color: white;
+    }
+
+    .manual-signup h4 {
+      color: #4338ca;
+      margin: 0 0 15px 0;
+      font-size: 20px;
+    }
+
+    .manual-signup ol {
+      margin: 15px 0;
+      padding-left: 25px;
+    }
+
+    .manual-signup li {
+      margin: 8px 0;
+      line-height: 1.5;
     }
 
     .signup-message.success {

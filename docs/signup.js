@@ -6,27 +6,11 @@ class PocketIDSignup {
     this.apiEndpoint = config.apiEndpoint || 'https://app.kainban.com/api';
   }
 
-  // Method 1: Direct redirect to PocketID registration with return URL
+  // Method 1: Direct redirect to PocketID with return URL (most PocketID instances don't support direct registration)
   async signupWithRedirect(email, name) {
-    try {
-      // Create a signup intent in your backend first
-      const signupIntent = await this.createSignupIntent(email, name);
-
-      // Redirect to PocketID with registration parameters
-      const pocketIdSignupUrl = new URL(`${this.pocketIdUrl}/register`);
-      pocketIdSignupUrl.searchParams.append('email', email);
-      pocketIdSignupUrl.searchParams.append('name', name);
-      pocketIdSignupUrl.searchParams.append('return_to', `${this.kainbanUrl}/auth/pocketid/callback`);
-      pocketIdSignupUrl.searchParams.append('client_id', 'kainban'); // Your PocketID app ID
-      pocketIdSignupUrl.searchParams.append('signup_intent', signupIntent.id);
-
-      // Redirect user to PocketID registration
-      window.location.href = pocketIdSignupUrl.toString();
-
-    } catch (error) {
-      console.error('Signup redirect failed:', error);
-      throw new Error('Failed to initialize signup process');
-    }
+    // Skip direct redirect method as most PocketID instances don't support /register endpoint
+    // Instead, we'll throw an error to fall back to invitation email method
+    throw new Error('Direct PocketID redirect not supported');
   }
 
   // Method 2: Send invitation email via your backend
@@ -154,43 +138,60 @@ class SignupForm {
 
   async attemptSignup(email, name, plan) {
     try {
-      // Method 1: Try direct PocketID redirect (preferred)
-      await this.pocketIdSignup.signupWithRedirect(email, name);
+      // Method 1: Try invitation email (primary method)
+      const result = await this.pocketIdSignup.sendInvitation(email, name);
 
-    } catch (redirectError) {
+      // Check if email was actually sent or just providing instructions
+      if (result.method === 'email') {
+        this.showSuccess(`
+          <div class="signup-success">
+            <h4>✅ Almost there!</h4>
+            <p>We've sent setup instructions to <strong>${email}</strong></p>
+            <p>Check your email and follow the link to create your PocketID account.</p>
+            <p class="backup-instructions">If you don't see the email, you can also visit the link below:</p>
+            <a href="${result.registrationLink}" target="_blank" class="btn-link">Complete Setup Manually →</a>
+          </div>
+        `);
+      } else {
+        // Fallback to manual instructions with better messaging
+        this.showManualInstructions(email, result.registrationLink);
+      }
+
+    } catch (inviteError) {
+      console.warn('Invitation failed:', inviteError);
+
       try {
-        // Method 2: Try invitation email
-        const result = await this.pocketIdSignup.sendInvitation(email, name);
-        this.showSuccess(`Invitation sent! Check your email (${email}) for setup instructions.`);
+        // Method 2: Try magic link
+        const magicResult = await this.pocketIdSignup.sendMagicLink(email, name);
+        this.showSuccess(`Magic link sent! Check your email to complete setup.`);
 
-      } catch (inviteError) {
-        try {
-          // Method 3: Fallback to magic link
-          await this.pocketIdSignup.sendMagicLink(email, name);
-          this.showSuccess(`Magic link sent! Check your email to complete setup.`);
+      } catch (magicError) {
+        console.warn('Magic link failed:', magicError);
 
-        } catch (magicError) {
-          // Method 4: Manual instructions
-          this.showManualInstructions(email);
-        }
+        // Method 3: Manual instructions as final fallback
+        this.showManualInstructions(email);
       }
     }
   }
 
-  showManualInstructions(email) {
+  showManualInstructions(email, registrationLink) {
+    const pocketIdUrl = registrationLink || 'https://login.qureshi.io';
     const message = `
       <div class="manual-signup">
-        <h4>Complete Your Signup</h4>
-        <p>Follow these steps to get started:</p>
+        <h4>🔐 Complete Your Signup</h4>
+        <p>No email? No problem! Follow these simple steps:</p>
         <ol>
-          <li>Visit <a href="https://login.qureshi.io" target="_blank">login.qureshi.io</a></li>
+          <li>Click the button below to visit PocketID</li>
           <li>Create account with email: <strong>${email}</strong></li>
-          <li>Enable passkey in Security settings</li>
-          <li>Return to <a href="https://app.kainban.com">kAInban</a> and sign in</li>
+          <li>Enable passkey in Security settings (recommended)</li>
+          <li>Return to <a href="https://app.kainban.com" target="_blank">kAInban</a> and sign in</li>
         </ol>
-        <button onclick="window.open('https://login.qureshi.io', '_blank')" class="btn-primary">
-          Go to PocketID →
-        </button>
+        <div style="margin: 20px 0;">
+          <a href="${pocketIdUrl}" target="_blank" class="btn-primary" style="display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold;">
+            Create PocketID Account →
+          </a>
+        </div>
+        <p style="font-size: 14px; color: #666;">PocketID provides secure, passwordless authentication using Face ID, Touch ID, or Windows Hello.</p>
       </div>
     `;
     this.showSuccess(message);

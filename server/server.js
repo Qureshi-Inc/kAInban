@@ -64,19 +64,38 @@ const globalLimiter = rateLimit({
 // Apply global rate limiting
 app.use(globalLimiter)
 
+// Dynamic CORS configuration based on environment variables
+const corsOrigins = [
+  'http://localhost:8064',
+  'https://localhost:8064',
+  /^http:\/\/192\.168\.\d+\.\d+:8064$/,  // Allow local IP addresses
+  /^http:\/\/10\.\d+\.\d+\.\d+:8064$/    // Allow private network IPs
+]
+
+// Add APP_URL and its variations if configured
+if (process.env.APP_URL) {
+  const appUrl = new URL(process.env.APP_URL)
+  const baseUrl = `${appUrl.protocol}//${appUrl.hostname}`
+
+  corsOrigins.push(process.env.APP_URL) // Full URL
+  corsOrigins.push(baseUrl) // Base domain
+
+  // Add port variations for local development
+  if (appUrl.hostname === 'localhost' || appUrl.hostname.includes('127.0.0.1')) {
+    corsOrigins.push(`${baseUrl}:8064`)
+    corsOrigins.push(`http://${appUrl.hostname}:8064`)
+    corsOrigins.push(`https://${appUrl.hostname}:8064`)
+  }
+}
+
+// Add LANDING_PAGE_URL if different from APP_URL
+if (process.env.LANDING_PAGE_URL && process.env.LANDING_PAGE_URL !== process.env.APP_URL) {
+  corsOrigins.push(process.env.LANDING_PAGE_URL)
+}
+
 // Middleware
 app.use(cors({
-  origin: [
-    'http://localhost:8064',
-    'https://localhost:8064',
-    'http://notes.rodeomasjid.org:8064',
-    'http://notes.rodeomasjid.org',
-    'https://notes.rodeomasjid.org',
-    'https://app.kainban.com',
-    'https://kainban.com',
-    /^http:\/\/192\.168\.\d+\.\d+:8064$/,  // Allow local IP addresses
-    /^http:\/\/10\.\d+\.\d+\.\d+:8064$/    // Allow private network IPs
-  ],
+  origin: corsOrigins,
   credentials: true
 }))
 app.use(express.json({ limit: '100mb' }))  // Increased from 50mb to 100mb
