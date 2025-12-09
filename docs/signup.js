@@ -4,10 +4,11 @@ class PocketIDSignup {
     this.pocketIdUrl = config.pocketIdUrl || 'https://login.qureshi.io';
     this.kainbanUrl = config.kainbanUrl || 'https://app.kainban.com';
     this.apiEndpoint = config.apiEndpoint || 'https://app.kainban.com/api';
+    this.signupPageUrl = config.signupPageUrl || 'https://login.qureshi.io/signup';
   }
 
   // Method 1: Direct redirect to PocketID with return URL (most PocketID instances don't support direct registration)
-  async signupWithRedirect(email, name) {
+  async signupWithRedirect(_email, _name) {
     // Skip direct redirect method as most PocketID instances don't support /register endpoint
     // Instead, we'll throw an error to fall back to invitation email method
     throw new Error('Direct PocketID redirect not supported');
@@ -114,7 +115,7 @@ class SignupForm {
 
     const formData = new FormData(this.form);
     const email = formData.get('email');
-    const name = formData.get('name') || '';
+    const name = ''; // Only collecting email, not name
     const plan = formData.get('plan') || 'free';
 
     // Validate inputs
@@ -136,7 +137,7 @@ class SignupForm {
     }
   }
 
-  async attemptSignup(email, name, plan) {
+  async attemptSignup(email, name, _plan) {
     try {
       // Method 1: Try invitation email (primary method)
       const result = await this.pocketIdSignup.sendInvitation(email, name);
@@ -147,8 +148,14 @@ class SignupForm {
           <div class="signup-success">
             <h4>✅ Almost there!</h4>
             <p>We've sent setup instructions to <strong>${email}</strong></p>
+            <p><small>Redirecting you to complete setup...</small></p>
           </div>
         `);
+
+        // Auto-redirect after 1.5 seconds
+        setTimeout(() => {
+          window.location.href = this.pocketIdSignup.signupPageUrl;
+        }, 1500);
       } else {
         // Fallback to manual instructions with better messaging
         this.showManualInstructions(email, result.registrationLink);
@@ -159,7 +166,7 @@ class SignupForm {
 
       try {
         // Method 2: Try magic link
-        const magicResult = await this.pocketIdSignup.sendMagicLink(email, name);
+        await this.pocketIdSignup.sendMagicLink(email, name);
         this.showSuccess(`Magic link sent! Check your email to complete setup.`);
 
       } catch (magicError) {

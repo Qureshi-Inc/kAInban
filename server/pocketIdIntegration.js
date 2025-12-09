@@ -1,4 +1,5 @@
 // PocketID Integration for Automated Account Creation
+/* eslint-disable import/namespace, import/order, import/no-duplicates, import/default, import/no-named-as-default, import/no-named-as-default-member */
 import crypto from 'crypto'
 import nodemailer from 'nodemailer'
 
@@ -109,16 +110,25 @@ class PocketIDIntegration {
 
   // Method 3: Generate magic registration link
   generateRegistrationLink(email, name, _intentId) {
-    // For most PocketID instances, the signup is handled through OIDC flow
-    // We'll create a registration URL that redirects back to kAInban
+    // Use SIGNUP_PAGE environment variable if available, otherwise fall back to auth endpoint
+    const signupPageUrl = process.env.SIGNUP_PAGE || `${this.pocketIdUrl}/auth`;
     const appUrl = process.env.APP_URL;
     if (!appUrl) {
       console.error('[PocketID] Missing APP_URL environment variable for registration link');
       throw new Error('Server configuration error: Missing APP_URL');
     }
 
-    // Try different PocketID registration URL patterns
-    // Most PocketID instances handle new user creation automatically during OIDC flow
+    // If using a specific signup page, create a simple URL
+    if (process.env.SIGNUP_PAGE) {
+      const params = new URLSearchParams({
+        email,
+        return_to: appUrl,
+        source: 'kainban'
+      });
+      return `${signupPageUrl}?${params.toString()}`;
+    }
+
+    // Fallback to OIDC auth flow for instances without dedicated signup pages
     const params = new URLSearchParams({
       email,
       name,
@@ -127,14 +137,7 @@ class PocketIDIntegration {
       action: 'signup'  // Some PocketID instances support this
     });
 
-    // Try common PocketID signup endpoints
-    // 1. /register - if supported
-    // 2. /signup - alternative
-    // 3. /auth - default with signup params
-    // 4. / - root with params
-
-    // For now, let's try the OIDC login flow which should auto-create users
-    return `${this.pocketIdUrl}/auth?${params.toString()}`;
+    return `${signupPageUrl}?${params.toString()}`;
   }
 
   // Method 4: Send custom email with registration link
@@ -177,15 +180,16 @@ class PocketIDIntegration {
   </div>
 
   <div style="background: #f8fafc; padding: 30px; border-radius: 10px; margin-bottom: 30px;">
-    <h2 style="color: #667eea; margin: 0 0 15px 0;">Hi ${name || 'there'}!</h2>
+    <h2 style="color: #667eea; margin: 0 0 15px 0;">Hi there!</h2>
 
     <p>Thanks for signing up for kAInban! You're just one step away from revolutionizing how you manage tasks with AI.</p>
 
     <p><strong>What's next?</strong></p>
     <ol style="padding-left: 20px;">
       <li>Click the button below to complete your account setup</li>
-      <li>Create your secure PocketID account (with passkey for extra security)</li>
-      <li>Start recording meetings and let AI extract your tasks!</li>
+      <li>Create your secure PocketID account</li>
+      <li><strong>Important:</strong> After creating your account, add a passkey in Security settings (Face ID, Touch ID, or Windows Hello)</li>
+      <li>Return to kAInban and start recording meetings to let AI extract your tasks!</li>
     </ol>
   </div>
 
