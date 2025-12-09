@@ -62,11 +62,42 @@ class PocketIDIntegration {
     }
   }
 
-  // Method 1: Direct API account creation (most PocketID instances don't support this)
-  async createPocketIDAccount(_email, _name) {
-    // Skip this method for now since most PocketID instances don't have admin APIs
-    console.log('[PocketID] Skipping direct account creation - not supported by most PocketID instances');
-    return { success: false, error: 'Direct account creation not supported' };
+  // Method 1: Direct API account creation with admin token
+  async createPocketIDAccount(email, name) {
+    const adminToken = process.env.POCKETID_ADMIN_TOKEN;
+    if (!adminToken) {
+      console.log('[PocketID] Skipping direct account creation - no admin token configured');
+      return { success: false, error: 'No admin token configured' };
+    }
+
+    try {
+      // TODO: Replace with actual PocketID admin API endpoint
+      const response = await fetch(`${process.env.POCKET_ID_ISSUER}/admin/users`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${adminToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          email,
+          name,
+          send_invitation: true,
+          return_url: process.env.APP_URL
+        })
+      });
+
+      if (response.ok) {
+        const user = await response.json();
+        console.log(`[PocketID] Account created for ${email}`);
+        return { success: true, user };
+      } else {
+        console.log('[PocketID] Admin API account creation failed:', response.statusText);
+        return { success: false, error: 'Admin API failed' };
+      }
+    } catch (error) {
+      console.log('[PocketID] Admin API error:', error.message);
+      return { success: false, error: error.message };
+    }
   }
 
   // Method 2: Generate invitation email (most PocketID instances don't support this API)
@@ -80,10 +111,16 @@ class PocketIDIntegration {
   generateRegistrationLink(email, name, _intentId) {
     // For most PocketID instances, the signup is handled through OIDC flow
     // We'll create a simple registration URL that redirects back to kAInban
+    const appUrl = process.env.APP_URL;
+    if (!appUrl) {
+      console.error('[PocketID] Missing APP_URL environment variable for registration link');
+      throw new Error('Server configuration error: Missing APP_URL');
+    }
+
     const params = new URLSearchParams({
       email,
       name,
-      return_to: `${process.env.APP_URL}`,
+      return_to: appUrl,
       source: 'kainban'
     });
 
@@ -188,7 +225,7 @@ class PocketIDIntegration {
 
       if (process.env.SENDGRID_API_KEY) {
         // SendGrid SMTP
-        transporter = nodemailer.createTransporter({
+        transporter = nodemailer.createTransport({
           host: 'smtp.sendgrid.net',
           port: 587,
           secure: false,
@@ -199,7 +236,7 @@ class PocketIDIntegration {
         });
       } else if (process.env.SMTP_HOST) {
         // Generic SMTP
-        transporter = nodemailer.createTransporter({
+        transporter = nodemailer.createTransport({
           host: process.env.SMTP_HOST,
           port: process.env.SMTP_PORT || 587,
           secure: process.env.SMTP_SECURE === 'true',
@@ -211,7 +248,7 @@ class PocketIDIntegration {
       } else {
         // Fallback: Gmail SMTP (for testing)
         console.log('[Email] No SMTP configured, using Gmail fallback (configure SMTP_* env vars for production)');
-        transporter = nodemailer.createTransporter({
+        transporter = nodemailer.createTransport({
           service: 'gmail',
           auth: {
             user: process.env.GMAIL_USER,

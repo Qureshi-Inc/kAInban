@@ -73,6 +73,7 @@ app.use(cors({
     'http://notes.rodeomasjid.org',
     'https://notes.rodeomasjid.org',
     'https://app.kainban.com',
+    'https://kainban.com',
     /^http:\/\/192\.168\.\d+\.\d+:8064$/,  // Allow local IP addresses
     /^http:\/\/10\.\d+\.\d+\.\d+:8064$/    // Allow private network IPs
   ],
@@ -439,7 +440,7 @@ app.post('/api/auth/send-pocketid-invitation', signupLimiter, async (req, res) =
 
 app.post('/api/auth/send-magic-link', signupLimiter, async (req, res) => {
   try {
-    const { email, name, type, redirectUrl } = req.body
+    const { email, name } = req.body
 
     // Basic validation
     if (!email || !email.includes('@')) {
@@ -652,10 +653,10 @@ app.get('/api/projects/:id', localAuth.requireAuth, (req, res) => {
     console.log('  project.user_id:', project.user_id, typeof project.user_id)
     console.log('  req.session.user.id:', req.session.user.id, typeof req.session.user.id)
     console.log('  Strict match (===):', project.user_id === req.session.user.id)
-    console.log('  Loose match (==):', project.user_id == req.session.user.id)
+    console.log('  Loose match (==):', project.user_id === req.session.user.id)
 
     // Use loose equality to handle potential type mismatch
-    if (project.user_id != req.session.user.id) {
+    if (project.user_id !== req.session.user.id) {
       return res.status(403).json({ error: 'Access denied' })
     }
 
@@ -695,7 +696,7 @@ app.delete('/api/projects/:id', localAuth.requireAuth, (req, res) => {
       return res.status(404).json({ error: 'Project not found' })
     }
     // Use loose equality to handle potential type mismatch
-    if (project.user_id != req.session.user.id) {
+    if (project.user_id !== req.session.user.id) {
       return res.status(403).json({ error: 'Access denied' })
     }
 
@@ -789,7 +790,7 @@ app.get('/api/meetings/:id/summary', localAuth.requireAuth, (req, res) => {
       return res.status(404).json({ error: 'Meeting not found' })
     }
     // Use loose equality to handle potential type mismatch
-    if (meeting.user_id != req.session.user.id) {
+    if (meeting.user_id !== req.session.user.id) {
       return res.status(403).json({ error: 'Access denied' })
     }
 
@@ -820,7 +821,7 @@ app.delete('/api/meetings/:id', localAuth.requireAuth, (req, res) => {
     }
 
     // Verify meeting belongs to user (use loose equality)
-    if (meeting.user_id != req.session.user.id) {
+    if (meeting.user_id !== req.session.user.id) {
       return res.status(403).json({ error: 'Access denied' })
     }
 
