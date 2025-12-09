@@ -25,6 +25,17 @@ services:
       - POCKET_ID_CLIENT_ID=${POCKET_ID_CLIENT_ID}
       - POCKET_ID_CLIENT_SECRET=${POCKET_ID_CLIENT_SECRET}
       - POCKET_ID_CALLBACK_URL=${POCKET_ID_CALLBACK_URL}
+      # Email Configuration (SMTP)
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_PORT=${SMTP_PORT}
+      - SMTP_SECURE=${SMTP_SECURE}
+      - SMTP_USER=${SMTP_USER}
+      - SMTP_PASS=${SMTP_PASS}
+      - FROM_EMAIL=${FROM_EMAIL}
+      # Alternative email providers
+      - SENDGRID_API_KEY=${SENDGRID_API_KEY}
+      - GMAIL_USER=${GMAIL_USER}
+      - GMAIL_APP_PASSWORD=${GMAIL_APP_PASSWORD}
     volumes:
       - ./storage:/app/storage
     restart: unless-stopped
