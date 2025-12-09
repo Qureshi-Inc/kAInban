@@ -83,7 +83,7 @@ class PocketIDIntegration {
     const params = new URLSearchParams({
       email,
       name,
-      return_to: `${process.env.KAINBAN_URL || process.env.APP_URL}`,
+      return_to: `${process.env.APP_URL}`,
       source: 'kainban'
     });
 
