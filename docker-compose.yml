@@ -22,6 +22,7 @@ services:
       - POCKET_ID_ISSUER=${POCKET_ID_ISSUER:-https://pocketid.app}
       - POCKET_ID_CLIENT_ID=${POCKET_ID_CLIENT_ID}
       - POCKET_ID_CLIENT_SECRET=${POCKET_ID_CLIENT_SECRET}
+      - POCKET_ID_CALLBACK_URL=${POCKET_ID_CALLBACK_URL}
     volumes:
       - ./storage:/app/storage
     restart: unless-stopped
