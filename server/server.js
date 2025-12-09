@@ -72,6 +72,7 @@ app.use(cors({
     'http://notes.rodeomasjid.org:8064',
     'http://notes.rodeomasjid.org',
     'https://notes.rodeomasjid.org',
+    'https://app.kainban.com',
     /^http:\/\/192\.168\.\d+\.\d+:8064$/,  // Allow local IP addresses
     /^http:\/\/10\.\d+\.\d+\.\d+:8064$/    // Allow private network IPs
   ],
@@ -365,12 +366,12 @@ app.get('/api/auth/oidc/callback', async (req, res) => {
       console.log('[OIDC] User logged in:', user.email)
 
       // Redirect to frontend with success
-      const frontendUrl = process.env.APP_URL || 'https://notes.rodeomasjid.org'
+      const frontendUrl = process.env.APP_URL || 'https://app.kainban.com'
       res.redirect(`${frontendUrl}?oidc_success=true`)
     })
   } catch (error) {
     console.error('[OIDC] Callback error:', error)
-    const frontendUrl = process.env.APP_URL || 'https://notes.rodeomasjid.org'
+    const frontendUrl = process.env.APP_URL || 'https://app.kainban.com'
     res.redirect(`${frontendUrl}?oidc_error=${encodeURIComponent(error.message)}`)
   }
 })
