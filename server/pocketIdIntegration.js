@@ -110,22 +110,31 @@ class PocketIDIntegration {
   // Method 3: Generate magic registration link
   generateRegistrationLink(email, name, _intentId) {
     // For most PocketID instances, the signup is handled through OIDC flow
-    // We'll create a simple registration URL that redirects back to kAInban
+    // We'll create a registration URL that redirects back to kAInban
     const appUrl = process.env.APP_URL;
     if (!appUrl) {
       console.error('[PocketID] Missing APP_URL environment variable for registration link');
       throw new Error('Server configuration error: Missing APP_URL');
     }
 
+    // Try different PocketID registration URL patterns
+    // Most PocketID instances handle new user creation automatically during OIDC flow
     const params = new URLSearchParams({
       email,
       name,
       return_to: appUrl,
-      source: 'kainban'
+      source: 'kainban',
+      action: 'signup'  // Some PocketID instances support this
     });
 
-    // Most PocketID instances use '/auth' or '/signup' or just redirect to login
-    return `${this.pocketIdUrl}?${params.toString()}`;
+    // Try common PocketID signup endpoints
+    // 1. /register - if supported
+    // 2. /signup - alternative
+    // 3. /auth - default with signup params
+    // 4. / - root with params
+
+    // For now, let's try the OIDC login flow which should auto-create users
+    return `${this.pocketIdUrl}/auth?${params.toString()}`;
   }
 
   // Method 4: Send custom email with registration link

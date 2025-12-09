@@ -147,9 +147,6 @@ class SignupForm {
           <div class="signup-success">
             <h4>✅ Almost there!</h4>
             <p>We've sent setup instructions to <strong>${email}</strong></p>
-            <p>Check your email and follow the link to create your PocketID account.</p>
-            <p class="backup-instructions">If you don't see the email, you can also visit the link below:</p>
-            <a href="${result.registrationLink}" target="_blank" class="btn-link">Complete Setup Manually →</a>
           </div>
         `);
       } else {
