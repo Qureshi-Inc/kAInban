@@ -227,6 +227,32 @@ try {
       CREATE INDEX IF NOT EXISTS idx_users_active ON users(active);
     `)
   } catch (indexErr) {
+    // Indexes already exist or not needed
+  }
+
+  // Fix user_id data type mismatches (convert float strings like "2.0" back to integers)
+  try {
+    console.log('[Database] Fixing user_id data type mismatches...')
+
+    // Fix projects table user_id format
+    const projectsWithFloatIds = db.prepare("SELECT id, user_id FROM projects WHERE user_id LIKE '%.0'").all()
+    for (const project of projectsWithFloatIds) {
+      const fixedUserId = project.user_id.replace('.0', '')
+      db.prepare('UPDATE projects SET user_id = ? WHERE id = ?').run(fixedUserId, project.id)
+      console.log(`[Database] Fixed project ${project.id} user_id: ${project.user_id} -> ${fixedUserId}`)
+    }
+
+    // Fix meetings table user_id format
+    const meetingsWithFloatIds = db.prepare("SELECT id, user_id FROM meetings WHERE user_id LIKE '%.0'").all()
+    for (const meeting of meetingsWithFloatIds) {
+      const fixedUserId = meeting.user_id.replace('.0', '')
+      db.prepare('UPDATE meetings SET user_id = ? WHERE id = ?').run(fixedUserId, meeting.id)
+      console.log(`[Database] Fixed meeting ${meeting.id} user_id: ${meeting.user_id} -> ${fixedUserId}`)
+    }
+
+    console.log('[Database] User ID format fix completed')
+  } catch (userIdFixError) {
+    console.log('[Database] User ID format fix not needed or already completed')
   }
 
   console.log('[Database] Migration completed successfully')
@@ -383,8 +409,10 @@ export const saveSystemSettings = (settings) => {
 
 // Project operations
 export const getAllProjects = (userId) => {
+  // Ensure userId is always a string to prevent type mismatches
+  const userIdStr = String(userId)
   const stmt = db.prepare('SELECT * FROM projects WHERE user_id = ? ORDER BY updated_at DESC')
-  return stmt.all(userId)
+  return stmt.all(userIdStr)
 }
 
 export const getProject = (projectId) => {
@@ -435,6 +463,8 @@ export const getProject = (projectId) => {
 }
 
 export const saveProject = (userId, project) => {
+  // Ensure userId is always a string to prevent type mismatches
+  const userIdStr = String(userId)
   const existing = getProject(project.id)
 
   if (existing) {
@@ -443,13 +473,13 @@ export const saveProject = (userId, project) => {
       SET name = ?, transcript = ?, summary = ?, updated_at = CURRENT_TIMESTAMP
       WHERE id = ? AND user_id = ?
     `)
-    stmt.run(project.name, project.transcript || '', project.summary || '', project.id, userId)
+    stmt.run(project.name, project.transcript || '', project.summary || '', project.id, userIdStr)
   } else {
     const stmt = db.prepare(`
       INSERT INTO projects (id, user_id, name, transcript, summary)
       VALUES (?, ?, ?, ?, ?)
     `)
-    stmt.run(project.id, userId, project.name, project.transcript || '', project.summary || '')
+    stmt.run(project.id, userIdStr, project.name, project.transcript || '', project.summary || '')
   }
 
   // Save tasks if provided
@@ -466,6 +496,7 @@ export const saveProject = (userId, project) => {
 
     for (const task of project.tasks) {
       if (task.linkedTasks && task.linkedTasks.length > 0) {
+        // Process linked tasks
       }
       insertStmt.run(
         task.id,
@@ -486,6 +517,7 @@ export const saveProject = (userId, project) => {
     }
 
   } else {
+    // No tasks to save
   }
 
   // Note: Meetings are saved separately via /api/meetings endpoint
@@ -527,13 +559,15 @@ export const deleteTask = (taskId) => {
 
 // Meeting operations
 export const saveMeeting = (userId, meeting) => {
+  // Ensure userId is always a string to prevent type mismatches
+  const userIdStr = String(userId)
   const stmt = db.prepare(`
     INSERT OR REPLACE INTO meetings (id, user_id, project_id, name, summary_file, transcript_file)
     VALUES (?, ?, ?, ?, ?, ?)
   `)
   stmt.run(
     meeting.id,
-    userId,
+    userIdStr,
     meeting.projectId,
     meeting.name,
     meeting.summaryFile || null,
@@ -547,8 +581,10 @@ export const getMeeting = (meetingId) => {
 }
 
 export const getAllMeetings = (userId) => {
+  // Ensure userId is always a string to prevent type mismatches
+  const userIdStr = String(userId)
   const stmt = db.prepare('SELECT * FROM meetings WHERE user_id = ? ORDER BY created_at DESC')
-  return stmt.all(userId)
+  return stmt.all(userIdStr)
 }
 
 export const deleteMeeting = (meetingId) => {
@@ -679,24 +715,24 @@ export const deleteUser = (userId) => {
       if (projectIds.length > 0) {
         // Delete tasks for all user's projects
         const deleteTasksStmt = db.prepare(`DELETE FROM tasks WHERE project_id IN (${projectIds.map(() => '?').join(',')})`)
-        const tasksDeleted = deleteTasksStmt.run(...projectIds).changes
+        deleteTasksStmt.run(...projectIds)
       }
 
       // Delete user's meetings
       const deleteMeetingsStmt = db.prepare('DELETE FROM meetings WHERE user_id = ?')
-      const meetingsDeleted = deleteMeetingsStmt.run(userId).changes
+      deleteMeetingsStmt.run(userId)
 
       // Delete user's projects
       const deleteProjectsStmt = db.prepare('DELETE FROM projects WHERE user_id = ?')
-      const projectsDeleted = deleteProjectsStmt.run(userId).changes
+      deleteProjectsStmt.run(userId)
 
       // Delete user's settings
       const deleteSettingsStmt = db.prepare('DELETE FROM settings WHERE user_id = ?')
-      const settingsDeleted = deleteSettingsStmt.run(userId).changes
+      deleteSettingsStmt.run(userId)
 
       // Finally delete the user
       const deleteUserStmt = db.prepare('DELETE FROM users WHERE id = ?')
-      const userDeleted = deleteUserStmt.run(userId).changes
+      deleteUserStmt.run(userId)
 
     })()
 
