@@ -230,6 +230,115 @@ class ApiService {
       return false
     }
   }
+
+  // Analytics insights caching
+  async saveAnalyticsInsights(projectId, insights, taskCount) {
+    try {
+      const response = await this.secureFetch(`${API_URL}/analytics/insights`, {
+        method: 'POST',
+        body: JSON.stringify({
+          projectId: projectId === 'all' ? null : projectId,
+          insights,
+          taskCount,
+          timestamp: Date.now()
+        })
+      })
+      if (!response.ok) {
+        console.warn('[API] Failed to save analytics insights to server, using localStorage fallback')
+        // Fallback to localStorage
+        const cacheKey = `analytics_insights_cache_${projectId}`
+        localStorage.setItem(cacheKey, JSON.stringify({
+          insights,
+          timestamp: Date.now(),
+          taskCount
+        }))
+        return true
+      }
+      return await response.json()
+    } catch (error) {
+      console.error('[API] Save analytics insights error:', error)
+      // Fallback to localStorage
+      try {
+        const cacheKey = `analytics_insights_cache_${projectId}`
+        localStorage.setItem(cacheKey, JSON.stringify({
+          insights,
+          timestamp: Date.now(),
+          taskCount
+        }))
+        return true
+      } catch (localError) {
+        console.error('[API] localStorage fallback failed:', localError)
+        return false
+      }
+    }
+  }
+
+  async loadAnalyticsInsights(projectId) {
+    try {
+      const response = await this.secureFetch(`${API_URL}/analytics/insights/${projectId === 'all' ? 'all' : projectId}`)
+      if (response.ok) {
+        const data = await response.json()
+        return data
+      }
+    } catch (error) {
+      console.warn('[API] Failed to load analytics insights from server, trying localStorage:', error)
+    }
+
+    // Fallback to localStorage
+    try {
+      const cacheKey = `analytics_insights_cache_${projectId}`
+      const cached = localStorage.getItem(cacheKey)
+      if (cached) {
+        return JSON.parse(cached)
+      }
+    } catch (error) {
+      console.error('[API] localStorage fallback failed:', error)
+    }
+
+    return null
+  }
+
+  async clearAnalyticsInsights(projectId) {
+    try {
+      // Clear from server
+      await this.secureFetch(`${API_URL}/analytics/insights/${projectId === 'all' ? 'all' : projectId}`, {
+        method: 'DELETE'
+      })
+    } catch (error) {
+      console.warn('[API] Failed to clear analytics insights from server:', error)
+    }
+
+    // Always clear from localStorage as well
+    try {
+      const cacheKey = `analytics_insights_cache_${projectId}`
+      localStorage.removeItem(cacheKey)
+    } catch (error) {
+      console.error('[API] Failed to clear localStorage cache:', error)
+    }
+  }
+
+  async clearAllAnalyticsInsights() {
+    try {
+      // Clear all from server
+      await this.secureFetch(`${API_URL}/analytics/insights`, {
+        method: 'DELETE'
+      })
+    } catch (error) {
+      console.warn('[API] Failed to clear all analytics insights from server:', error)
+    }
+
+    // Clear all localStorage analytics caches
+    try {
+      const keys = Object.keys(localStorage)
+      keys.forEach(key => {
+        if (key.startsWith('analytics_insights_cache_')) {
+          localStorage.removeItem(key)
+        }
+      })
+    } catch (error) {
+      console.error('[API] Failed to clear all localStorage caches:', error)
+    }
+  }
 }
 
 export default new ApiService()

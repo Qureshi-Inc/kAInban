@@ -4,7 +4,7 @@ import React, { useState } from 'react'
 import useAppStore from '../stores/useAppStore'
 import { Button } from './ui/button'
 
-export default function UserProfile() {
+export default function UserProfile({ collapsed = false }) {
   const user = useAppStore((state) => state.user)
   const logout = useAppStore((state) => state.logout)
   const setSettingsOpen = useAppStore((state) => state.setSettingsOpen)
@@ -23,17 +23,19 @@ export default function UserProfile() {
       <Button
         variant="ghost"
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2"
+        className={`flex items-center gap-2 ${collapsed ? 'w-10 h-10 p-0 justify-center' : ''}`}
       >
         <div className="relative">
           <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-medium text-sm border-2 border-black">
             {user.name?.charAt(0).toUpperCase() || user.email?.charAt(0).toUpperCase()}
           </div>
         </div>
-        <div className="hidden sm:block text-left">
-          <div className="text-sm font-medium">{user.name}</div>
-          <div className="text-xs text-muted-foreground">{user.email}</div>
-        </div>
+        {!collapsed && (
+          <div className="hidden sm:block text-left">
+            <div className="text-sm font-medium">{user.name}</div>
+            <div className="text-xs text-muted-foreground">{user.email}</div>
+          </div>
+        )}
       </Button>
 
       <AnimatePresence>
@@ -47,11 +49,11 @@ export default function UserProfile() {
 
             {/* Dropdown Menu */}
             <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: -10 }}
+              initial={{ opacity: 0, scale: 0.95, y: collapsed ? 10 : -10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: -10 }}
+              exit={{ opacity: 0, scale: 0.95, y: collapsed ? 10 : -10 }}
               transition={{ duration: 0.15 }}
-              className="absolute right-0 mt-2 w-64 bg-white dark:bg-gray-800 rounded-lg shadow-xl border-2 border-gray-200 dark:border-gray-700 overflow-hidden z-50"
+              className={`absolute ${collapsed ? 'left-full bottom-0 ml-2' : 'right-0 top-full mt-2'} w-64 bg-white dark:bg-gray-800 rounded-lg shadow-xl border-2 border-gray-200 dark:border-gray-700 overflow-hidden z-[60]`}
             >
               {/* User Info */}
               <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700">

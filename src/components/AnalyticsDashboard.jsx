@@ -9,6 +9,7 @@ import 'swiper/css/effect-fade'
 import ReactMarkdown from 'react-markdown'
 import { Navigation, Pagination, Autoplay, EffectFade } from 'swiper/modules'
 import { Swiper, SwiperSlide } from 'swiper/react'
+import apiService from '../services/apiService'
 import openaiService from '../services/openaiService'
 import useAppStore from '../stores/useAppStore'
 import { Button } from './ui/button'
@@ -105,13 +106,12 @@ export default function AnalyticsDashboard() {
     return cachedMidnight >= currentMidnight
   }, [insightsCacheTime])
 
-  // Load cached insights from localStorage when project changes
-  const loadCachedInsights = (projectId) => {
+  // Load cached insights from server/localStorage when project changes
+  const loadCachedInsights = async(projectId) => {
     try {
-      const cacheKey = getInsightsCacheKey(projectId)
-      const cached = localStorage.getItem(cacheKey)
+      const cached = await apiService.loadAnalyticsInsights(projectId)
       if (cached) {
-        const { insights, timestamp, taskCount } = JSON.parse(cached)
+        const { insights, timestamp, taskCount } = cached
         const cachedMidnight = getMidnightDate(new Date(timestamp))
         const currentMidnight = getMidnightDate()
 
@@ -122,13 +122,13 @@ export default function AnalyticsDashboard() {
           setLastTaskCount(taskCount)
           return true // Successfully loaded from cache
         } else {
-          localStorage.removeItem(cacheKey)
+          // Clear expired cache
+          await apiService.clearAnalyticsInsights(projectId)
         }
       }
     } catch (error) {
       console.error('[Analytics] Failed to load cached insights for project:', projectId, error)
-      const cacheKey = getInsightsCacheKey(projectId)
-      localStorage.removeItem(cacheKey)
+      await apiService.clearAnalyticsInsights(projectId)
     }
     return false // No valid cache found
   }
@@ -222,14 +222,9 @@ export default function AnalyticsDashboard() {
       setInsightsCacheTime(timestamp)
       setLastTaskCount(analytics.total)
 
-      // Save to project-specific localStorage
+      // Save to server (with localStorage fallback)
       try {
-        const cacheKey = getInsightsCacheKey(selectedProjectId)
-        localStorage.setItem(cacheKey, JSON.stringify({
-          insights,
-          timestamp,
-          taskCount: analytics.total
-        }))
+        await apiService.saveAnalyticsInsights(selectedProjectId, insights, analytics.total)
       } catch (error) {
         console.error('[Analytics] Failed to cache insights:', error)
       }
@@ -243,17 +238,24 @@ export default function AnalyticsDashboard() {
 
   // Load cached insights when project changes
   useEffect(() => {
+    const loadInsights = async() => {
+      // Reset state
+      setAiInsights(null)
+      setInsightsCacheTime(null)
+      setLastTaskCount(0)
 
-    // Reset state
-    setAiInsights(null)
-    setInsightsCacheTime(null)
-    setLastTaskCount(0)
-
-    // Try to load cached insights for this specific project
-    const foundCache = loadCachedInsights(selectedProjectId)
-    if (foundCache) {
-    } else {
+      // Try to load cached insights for this specific project
+      try {
+        const foundCache = await loadCachedInsights(selectedProjectId)
+        if (!foundCache) {
+          console.log('[Analytics] No valid cache found for project:', selectedProjectId)
+        }
+      } catch (error) {
+        console.error('[Analytics] Error loading cached insights:', error)
+      }
     }
+
+    loadInsights()
   }, [selectedProjectId])
 
   // Close filter dropdown when clicking outside

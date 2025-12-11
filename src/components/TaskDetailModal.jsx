@@ -15,9 +15,18 @@ import {
   Sparkles,
   Check,
   Brain,
-  Search
+  Search,
+  Mail,
+  Phone,
+  FileText,
+  Code,
+  Zap,
+  Copy,
+  ExternalLink,
+  Loader2
 } from 'lucide-react'
 import React, { useState, useEffect } from 'react'
+import openaiService from '../services/openaiService'
 import useAppStore from '../stores/useAppStore'
 import { Button } from './ui/button'
 import { Card } from './ui/card'
@@ -40,34 +49,98 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
   const [aiDiscoveredLinks, setAiDiscoveredLinks] = useState([])
   const [showLinkedTasksDropdown, setShowLinkedTasksDropdown] = useState(false)
   const [linkSearchQuery, setLinkSearchQuery] = useState('')
+  const [aiContentModal, setAiContentModal] = useState({ isOpen: false, title: '', content: '', type: '' })
+  const [loadingAiAction, setLoadingAiAction] = useState(null) // Track which AI action is loading
 
   // Parse description for bullet points and convert to subtasks
   const parseSubtasksFromDescription = (description) => {
     if (!description) {return []}
 
-    // Match bullet points with various formats:
-    // - Item, * Item, • Item, 1. Item, etc.
-    const bulletRegex = /^[\s]*[-*•]\s+(.+)$/gm
-    const numberedRegex = /^[\s]*\d+[\.)]\s+(.+)$/gm
-
+    // Split by lines and look for bullet patterns
+    const lines = description.split('\n')
     const bullets = []
-    let match
+    let currentBullet = null
+    let currentNested = []
 
-    // Extract bullet points
-    while ((match = bulletRegex.exec(description)) !== null) {
-      bullets.push(match[1].trim())
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i]
+
+      // Check if this is a main bullet point
+      const mainBulletMatch = line.match(/^[\s]*[*•-]\s+(.+)$/) || line.match(/^[\s]*\d+[\.)]\s+(.+)$/)
+
+      if (mainBulletMatch) {
+        // Save previous bullet if exists
+        if (currentBullet) {
+          bullets.push({
+            text: currentBullet,
+            nested: currentNested.slice() // Copy array
+          })
+        }
+
+        // Start new bullet
+        currentBullet = mainBulletMatch[1].trim()
+        currentNested = []
+      } else {
+        // Check if this is a nested bullet point (indented)
+        const nestedMatch = line.match(/^[\s]{2,}[*•-]\s+(.+)$/) || line.match(/^[\s]{2,}\d+[\.)]\s+(.+)$/)
+
+        if (nestedMatch && currentBullet) {
+          currentNested.push(nestedMatch[1].trim())
+        } else if (line.trim() && currentBullet) {
+          // Continue the current bullet text (multi-line)
+          currentBullet += ' ' + line.trim()
+        }
+      }
     }
 
-    // Extract numbered items
-    while ((match = numberedRegex.exec(description)) !== null) {
-      bullets.push(match[1].trim())
+    // Don't forget the last bullet
+    if (currentBullet) {
+      bullets.push({
+        text: currentBullet,
+        nested: currentNested
+      })
     }
 
-    return bullets.map((text, index) => ({
+    // Convert to subtask format
+    return bullets.map((bullet, index) => ({
       id: `subtask-${Date.now()}-${index}`,
-      text,
-      completed: false
+      text: bullet.text,
+      completed: false,
+      hasNested: bullet.nested.length > 0,
+      nestedItems: bullet.nested,
+      originalText: bullet.text
     }))
+  }
+
+  // Clean description by removing bullet points that became subtasks
+  const getCleanDescription = (originalDescription, subtasks) => {
+    if (!originalDescription || subtasks.length === 0) {
+      return originalDescription
+    }
+
+    let cleanDescription = originalDescription
+
+    // Remove bullet point lines that became subtasks
+    subtasks.forEach(subtask => {
+      // Create regex patterns to match the original bullet point lines
+      const patterns = [
+        new RegExp(`^[\\s]*[*•-]\\s+${subtask.text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}.*$`, 'gm'),
+        new RegExp(`^[\\s]*\\d+[\\.)]\s+${subtask.text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}.*$`, 'gm')
+      ]
+
+      patterns.forEach(pattern => {
+        cleanDescription = cleanDescription.replace(pattern, '')
+      })
+    })
+
+    // Clean up extra newlines and whitespace
+    cleanDescription = cleanDescription
+      .split('\n')
+      .filter(line => line.trim() !== '')
+      .join('\n')
+      .trim()
+
+    return cleanDescription
   }
 
   // Initialize form from task
@@ -369,6 +442,180 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
   const completedSubtasks = subtasks.filter(st => st.completed).length
   const totalSubtasks = subtasks.length
   const progress = totalSubtasks > 0 ? (completedSubtasks / totalSubtasks) * 100 : 0
+
+  // AI Helper Functions
+  const getAiSuggestions = (subtaskText) => {
+    const text = subtaskText.toLowerCase()
+    const suggestions = []
+
+    // Email suggestions
+    if (text.includes('email') || text.includes('send') || text.includes('notify') || text.includes('contact')) {
+      suggestions.push({
+        type: 'email',
+        icon: Mail,
+        label: 'Generate Email',
+        action: () => generateEmailTemplate(subtaskText)
+      })
+    }
+
+    // Document suggestions
+    if (text.includes('document') || text.includes('write') || text.includes('draft') || text.includes('proposal')) {
+      suggestions.push({
+        type: 'document',
+        icon: FileText,
+        label: 'Document Template',
+        action: () => generateDocumentTemplate(subtaskText)
+      })
+    }
+
+    // Code suggestions
+    if (text.includes('code') || text.includes('script') || text.includes('develop') || text.includes('implement')) {
+      suggestions.push({
+        type: 'code',
+        icon: Code,
+        label: 'Code Template',
+        action: () => generateCodeTemplate(subtaskText)
+      })
+    }
+
+    return suggestions
+  }
+
+  const generateEmailTemplate = async(subtaskText) => {
+    try {
+      setLoadingAiAction('email')
+
+      const taskContext = {
+        title: task.title,
+        description: task.description,
+        priority: task.priority,
+        status: task.status
+      }
+
+      const emailTemplate = await openaiService.generateEmailTemplate(taskContext, subtaskText)
+
+      // Show in modal for easy copying
+      setAiContentModal({
+        isOpen: true,
+        title: 'AI Generated Email Template',
+        content: emailTemplate,
+        type: 'email'
+      })
+
+      addNotification({
+        type: 'success',
+        message: 'Email template generated successfully!'
+      })
+    } catch (error) {
+      console.error('Email generation error:', error)
+      addNotification({
+        type: 'error',
+        message: `Failed to generate email: ${error.message}`
+      })
+    } finally {
+      setLoadingAiAction(null)
+    }
+  }
+
+  const generateDocumentTemplate = async(subtaskText) => {
+    try {
+      setLoadingAiAction('document')
+
+      const taskContext = {
+        title: task.title,
+        description: task.description,
+        priority: task.priority,
+        status: task.status
+      }
+
+      const docTemplate = await openaiService.generateDocumentTemplate(taskContext, subtaskText)
+
+      // Show in modal for easy copying
+      setAiContentModal({
+        isOpen: true,
+        title: 'AI Generated Document Template',
+        content: docTemplate,
+        type: 'document'
+      })
+
+      addNotification({
+        type: 'success',
+        message: 'Document template generated successfully!'
+      })
+    } catch (error) {
+      console.error('Document generation error:', error)
+      addNotification({
+        type: 'error',
+        message: `Failed to generate document: ${error.message}`
+      })
+    } finally {
+      setLoadingAiAction(null)
+    }
+  }
+
+  const generateCodeTemplate = async(subtaskText) => {
+    try {
+      setLoadingAiAction('code')
+
+      const taskContext = {
+        title: task.title,
+        description: task.description,
+        priority: task.priority,
+        status: task.status
+      }
+
+      const codeTemplate = await openaiService.generateCodeTemplate(taskContext, subtaskText)
+
+      // Show in modal for easy copying
+      setAiContentModal({
+        isOpen: true,
+        title: 'AI Generated Code Template',
+        content: codeTemplate,
+        type: 'code'
+      })
+
+      addNotification({
+        type: 'success',
+        message: 'Code template generated successfully!'
+      })
+    } catch (error) {
+      console.error('Code generation error:', error)
+      addNotification({
+        type: 'error',
+        message: `Failed to generate code: ${error.message}`
+      })
+    } finally {
+      setLoadingAiAction(null)
+    }
+  }
+
+  const createTaskFromSubtask = (subtask) => {
+    const { createTask } = useAppStore.getState()
+
+    // Create nested subtasks from the parsed nested items
+    const nestedSubtasks = subtask.nestedItems.map((nestedText, index) => ({
+      id: `nested-${Date.now()}-${index}`,
+      text: nestedText,
+      completed: false
+    }))
+
+    // Create new task with proper hierarchy
+    const newTask = {
+      title: subtask.text,
+      description: `Created from subtask with ${nestedSubtasks.length} nested items`,
+      priority: 'medium',
+      status: 'todo',
+      subtasks: nestedSubtasks,
+      linkedTasks: [task.id] // Link back to parent task
+    }
+
+    createTask(newTask)
+
+    addNotification({
+      type: 'success',
+      message: `Created task "${subtask.text}" with ${nestedSubtasks.length} subtasks`
+    })
+  }
 
   if (!isOpen || !task) {return null}
 
@@ -748,9 +995,12 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
             <div>
               <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">
                 Description
+                {subtasks.length > 0 && (
+                  <span className="text-xs text-blue-600 ml-2">(Bullet points moved to subtasks)</span>
+                )}
               </label>
               <textarea
-                value={description}
+                value={getCleanDescription(description, subtasks)}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Add a detailed description..."
                 rows={4}
@@ -784,34 +1034,95 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
 
               {/* Subtask List */}
               <div className="space-y-2 mb-3">
-                {subtasks.map((subtask) => (
-                  <div
-                    key={subtask.id}
-                    className="flex items-center gap-2 p-2 rounded hover:bg-gray-50 dark:hover:bg-gray-700"
-                  >
-                    <button
-                      onClick={() => toggleSubtask(subtask.id)}
-                      className="flex-shrink-0"
+                {subtasks.map((subtask) => {
+                  const aiSuggestions = getAiSuggestions(subtask.text)
+
+                  return (
+                    <div
+                      key={subtask.id}
+                      className="flex items-start gap-2 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 border border-transparent hover:border-gray-200 dark:hover:border-gray-600 transition-all"
                     >
-                      {subtask.completed ? (
-                        <CheckSquare className="h-5 w-5 text-green-600" />
-                      ) : (
-                        <Square className="h-5 w-5 text-gray-400" />
-                      )}
-                    </button>
-                    <span className={`flex-1 ${subtask.completed ? 'line-through text-gray-500' : ''}`}>
-                      {subtask.text}
-                    </span>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => deleteSubtask(subtask.id)}
-                      className="h-8 w-8 flex-shrink-0"
-                    >
-                      <Trash2 className="h-4 w-4 text-gray-400 hover:text-red-600" />
-                    </Button>
-                  </div>
-                ))}
+                      <button
+                        onClick={() => toggleSubtask(subtask.id)}
+                        className="flex-shrink-0 mt-1"
+                      >
+                        {subtask.completed ? (
+                          <CheckSquare className="h-5 w-5 text-green-600" />
+                        ) : (
+                          <Square className="h-5 w-5 text-gray-400" />
+                        )}
+                      </button>
+
+                      <div className="flex-1 min-w-0">
+                        <div className={`${subtask.completed ? 'line-through text-gray-500' : ''}`}>
+                          {subtask.text}
+                        </div>
+
+                        {/* AI Action Icons */}
+                        {aiSuggestions.length > 0 && !subtask.completed && (
+                          <div className="mt-2 space-y-1">
+                            {/* AI Actions Header */}
+                            <div className="flex items-center gap-1">
+                              <Sparkles className="h-3 w-3 text-blue-500 flex-shrink-0" />
+                              <span className="text-xs text-gray-600 font-medium">AI Actions</span>
+                            </div>
+                            {/* AI Action Buttons */}
+                            <div className="flex flex-wrap items-center gap-1">
+                              {aiSuggestions.map((suggestion, index) => {
+                                const isLoading = loadingAiAction === suggestion.type
+                                return (
+                                  <Button
+                                    key={index}
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={suggestion.action}
+                                    disabled={isLoading || loadingAiAction !== null}
+                                    className="h-7 px-2 text-xs bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 hover:border-blue-300 flex items-center gap-1.5 min-w-0 disabled:opacity-50"
+                                    title={isLoading ? 'Generating...' : suggestion.label}
+                                  >
+                                    {isLoading ? (
+                                      <Loader2 className="h-3 w-3 flex-shrink-0 animate-spin" />
+                                    ) : (
+                                      <suggestion.icon className="h-3 w-3 flex-shrink-0" />
+                                    )}
+                                    <span className="truncate">
+                                      {isLoading ? 'Generating...' : suggestion.label}
+                                    </span>
+                                  </Button>
+                                )
+                              })}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-1 flex-shrink-0">
+                        {/* Create Task from Subtask (if has nested content) */}
+                        {subtask.hasNested && subtask.nestedItems && subtask.nestedItems.length > 0 && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => createTaskFromSubtask(subtask)}
+                            className="h-8 w-8 text-purple-500 hover:text-purple-600 hover:bg-purple-50"
+                            title="Create task from this subtask"
+                          >
+                            <ExternalLink className="h-4 w-4" />
+                          </Button>
+                        )}
+
+                        {/* Delete Subtask */}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => deleteSubtask(subtask.id)}
+                          className="h-8 w-8 text-gray-400 hover:text-red-600 hover:bg-red-50"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  )
+                })}
               </div>
 
               {/* Add Subtask */}
@@ -891,6 +1202,108 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
           </div>
         </motion.div>
       </motion.div>
+
+      {/* AI Content Modal */}
+      <AnimatePresence>
+        {aiContentModal.isOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 z-[70] flex items-center justify-center p-4"
+            onClick={() => setAiContentModal({ ...aiContentModal, isOpen: false })}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-hidden flex flex-col"
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between p-4 border-b">
+                <h3 className="text-lg font-semibold flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
+                    {aiContentModal.type === 'email' && <Mail className="h-4 w-4 text-blue-600" />}
+                    {aiContentModal.type === 'document' && <FileText className="h-4 w-4 text-blue-600" />}
+                    {aiContentModal.type === 'code' && <Code className="h-4 w-4 text-blue-600" />}
+                  </div>
+                  {aiContentModal.title}
+                </h3>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setAiContentModal({ ...aiContentModal, isOpen: false })}
+                >
+                  <X className="h-5 w-5" />
+                </Button>
+              </div>
+
+              {/* Content */}
+              <div className="flex-1 overflow-y-auto p-4">
+                <div className="relative">
+                  <pre className="whitespace-pre-wrap text-sm bg-gray-50 dark:bg-gray-900 p-4 rounded-lg border overflow-x-auto">
+                    {aiContentModal.content}
+                  </pre>
+                </div>
+              </div>
+
+              {/* Footer with Copy Button */}
+              <div className="p-4 border-t bg-gray-50 dark:bg-gray-900 flex justify-between items-center">
+                <span className="text-sm text-gray-600 dark:text-gray-400">
+                  Generated by AI • Ready to use
+                </span>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => setAiContentModal({ ...aiContentModal, isOpen: false })}
+                  >
+                    Close
+                  </Button>
+                  <Button
+                    onClick={async() => {
+                      try {
+                        await navigator.clipboard.writeText(aiContentModal.content)
+                        addNotification({
+                          type: 'success',
+                          message: 'Content copied to clipboard!'
+                        })
+                        setAiContentModal({ ...aiContentModal, isOpen: false })
+                      } catch (error) {
+                        // If clipboard fails, try to select the text
+                        const textArea = document.createElement('textarea')
+                        textArea.value = aiContentModal.content
+                        document.body.appendChild(textArea)
+                        textArea.select()
+                        textArea.setSelectionRange(0, 99999) // For mobile devices
+                        try {
+                          document.execCommand('copy')
+                          addNotification({
+                            type: 'success',
+                            message: 'Content copied to clipboard!'
+                          })
+                          setAiContentModal({ ...aiContentModal, isOpen: false })
+                        } catch (err) {
+                          addNotification({
+                            type: 'info',
+                            message: 'Please manually select and copy the text above.'
+                          })
+                        } finally {
+                          document.body.removeChild(textArea)
+                        }
+                      }
+                    }}
+                    className="flex items-center gap-2"
+                  >
+                    <Copy className="h-4 w-4" />
+                    Copy to Clipboard
+                  </Button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </AnimatePresence>
   )
 }

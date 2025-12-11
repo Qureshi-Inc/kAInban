@@ -1,6 +1,19 @@
 import { create } from 'zustand'
-import { generateId } from '@/lib/utils'
-import apiService from '@/services/apiService'
+import { generateId } from '../lib/utils'
+import apiService from '../services/apiService'
+
+// Helper function to invalidate analytics cache when tasks change
+const invalidateAnalyticsCache = async(currentProject) => {
+  try {
+    if (currentProject) {
+      await apiService.clearAnalyticsInsights(currentProject.id)
+    }
+    // Also clear "all" cache since it aggregates all projects
+    await apiService.clearAnalyticsInsights('all')
+  } catch (error) {
+    console.warn('[Store] Failed to invalidate analytics cache:', error)
+  }
+}
 
 const useAppStore = create((set, get) => ({
   // Authentication
@@ -126,6 +139,7 @@ const useAppStore = create((set, get) => ({
             selectedMeetingId: selectedMeetingId
           })
           if (selectedMeetingId) {
+            // Meeting was selected, handle appropriately
           }
         }
       }
@@ -239,6 +253,7 @@ const useAppStore = create((set, get) => ({
     try {
       const success = await apiService.saveProject(updatedProject)
       if (success) {
+        // Project saved successfully
       } else {
         console.error('[Store] ✗ Project update failed - apiService returned false')
         throw new Error('API service returned false')
@@ -399,9 +414,16 @@ const useAppStore = create((set, get) => ({
 
     set((state) => ({ tasks: [...state.tasks, newTask] }))
 
+    // Invalidate analytics cache since task count changed
+    invalidateAnalyticsCache(get().currentProject)
 
     get().updateCurrentProject()
     return newTask
+  },
+
+  // Alias for consistency with naming convention
+  createTask: (task) => {
+    return get().addTask(task)
   },
 
   updateTask: (taskId, updates) => {
@@ -440,6 +462,9 @@ const useAppStore = create((set, get) => ({
       })
     }
 
+    // Invalidate analytics cache since task was updated
+    invalidateAnalyticsCache(get().currentProject)
+
     get().updateCurrentProject()
   },
 
@@ -452,6 +477,8 @@ const useAppStore = create((set, get) => ({
       tasks: state.tasks.filter(task => task.id !== taskId)
     }))
 
+    // Invalidate analytics cache since task was deleted
+    invalidateAnalyticsCache(get().currentProject)
 
     get().updateCurrentProject()
   },

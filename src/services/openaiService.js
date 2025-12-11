@@ -803,6 +803,243 @@ Keep each insight concise and reference specific task titles. Be encouraging but
       throw error
     }
   }
+
+  async generateEmailTemplate(taskContext, subtaskText) {
+    this.validateConfig()
+
+    try {
+      console.log('[OpenAI] Generating email template...')
+
+      const prompt = `Based on the following task context, generate a professional email template for the specific subtask action.
+
+**MAIN TASK:**
+Title: ${taskContext.title}
+Description: ${taskContext.description || 'No description'}
+Priority: ${taskContext.priority}
+Status: ${taskContext.status}
+
+**SPECIFIC SUBTASK TO CREATE EMAIL FOR:**
+${subtaskText}
+
+Please generate a professional email template that:
+1. Has an appropriate subject line
+2. Is contextually relevant to both the main task and the specific subtask
+3. Is professional but not overly formal
+4. Includes placeholders for recipient name and sender name
+5. Is ready to use but can be customized
+
+Format the email with clear sections (Subject, Body with greeting, main content, and closing).`
+
+      const url = `${this.baseUrl}/openai/deployments/${this.gptDeployment}/chat/completions?api-version=${this.apiVersion}`
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'api-key': this.apiKey
+        },
+        body: JSON.stringify({
+          messages: [
+            {
+              role: 'system',
+              content: 'You are a professional email writing assistant. Generate clear, concise, and contextually appropriate email templates based on task information.'
+            },
+            {
+              role: 'user',
+              content: prompt
+            }
+          ],
+          max_tokens: 800,
+          temperature: 0.7
+        })
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        let errorMessage = `HTTP ${response.status}: Failed to generate email template`
+
+        try {
+          const errorData = JSON.parse(errorText)
+          if (errorData.error && errorData.error.message) {
+            errorMessage = errorData.error.message
+          }
+        } catch (e) {
+          if (errorText) {
+            errorMessage = errorText
+          }
+        }
+
+        throw new Error(errorMessage)
+      }
+
+      const result = await response.json()
+      return result.choices?.[0]?.message?.content || 'Unable to generate email template'
+    } catch (error) {
+      console.error('[OpenAI] Email template generation error:', error)
+      if (error.message.includes('fetch')) {
+        throw new Error('Network error: Unable to connect to Azure OpenAI. Please check your endpoint and internet connection.')
+      }
+      throw error
+    }
+  }
+
+  async generateDocumentTemplate(taskContext, subtaskText) {
+    this.validateConfig()
+
+    try {
+      console.log('[OpenAI] Generating document template...')
+
+      const prompt = `Based on the following task context, generate a structured document template for the specific subtask action.
+
+**MAIN TASK:**
+Title: ${taskContext.title}
+Description: ${taskContext.description || 'No description'}
+Priority: ${taskContext.priority}
+Status: ${taskContext.status}
+
+**SPECIFIC SUBTASK TO CREATE DOCUMENT FOR:**
+${subtaskText}
+
+Please generate a professional document template in Markdown format that:
+1. Has an appropriate title
+2. Includes relevant sections based on the context
+3. Contains structured headings and content areas
+4. Includes actionable items or checklists where appropriate
+5. Is comprehensive but not overwhelming
+
+Use proper Markdown formatting with headers, bullet points, and checkboxes where appropriate.`
+
+      const url = `${this.baseUrl}/openai/deployments/${this.gptDeployment}/chat/completions?api-version=${this.apiVersion}`
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'api-key': this.apiKey
+        },
+        body: JSON.stringify({
+          messages: [
+            {
+              role: 'system',
+              content: 'You are a professional document writing assistant. Generate well-structured, comprehensive document templates based on task information using Markdown formatting.'
+            },
+            {
+              role: 'user',
+              content: prompt
+            }
+          ],
+          max_tokens: 1000,
+          temperature: 0.6
+        })
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        let errorMessage = `HTTP ${response.status}: Failed to generate document template`
+
+        try {
+          const errorData = JSON.parse(errorText)
+          if (errorData.error && errorData.error.message) {
+            errorMessage = errorData.error.message
+          }
+        } catch (e) {
+          if (errorText) {
+            errorMessage = errorText
+          }
+        }
+
+        throw new Error(errorMessage)
+      }
+
+      const result = await response.json()
+      return result.choices?.[0]?.message?.content || 'Unable to generate document template'
+    } catch (error) {
+      console.error('[OpenAI] Document template generation error:', error)
+      if (error.message.includes('fetch')) {
+        throw new Error('Network error: Unable to connect to Azure OpenAI. Please check your endpoint and internet connection.')
+      }
+      throw error
+    }
+  }
+
+  async generateCodeTemplate(taskContext, subtaskText) {
+    this.validateConfig()
+
+    try {
+      console.log('[OpenAI] Generating code template...')
+
+      const prompt = `Based on the following task context, generate a code template for the specific subtask action.
+
+**MAIN TASK:**
+Title: ${taskContext.title}
+Description: ${taskContext.description || 'No description'}
+Priority: ${taskContext.priority}
+Status: ${taskContext.status}
+
+**SPECIFIC SUBTASK TO CREATE CODE FOR:**
+${subtaskText}
+
+Please generate a code template that:
+1. Infers the appropriate programming language from context
+2. Includes proper function structure and comments
+3. Has placeholder logic and TODO comments
+4. Follows best practices for the detected language
+5. Is functional but ready for customization
+
+If the language cannot be determined from context, default to JavaScript. Include helpful comments explaining the code structure.`
+
+      const url = `${this.baseUrl}/openai/deployments/${this.gptDeployment}/chat/completions?api-version=${this.apiVersion}`
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'api-key': this.apiKey
+        },
+        body: JSON.stringify({
+          messages: [
+            {
+              role: 'system',
+              content: 'You are a professional software development assistant. Generate clean, well-commented code templates based on task information. Follow best practices and include helpful explanatory comments.'
+            },
+            {
+              role: 'user',
+              content: prompt
+            }
+          ],
+          max_tokens: 800,
+          temperature: 0.5
+        })
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        let errorMessage = `HTTP ${response.status}: Failed to generate code template`
+
+        try {
+          const errorData = JSON.parse(errorText)
+          if (errorData.error && errorData.error.message) {
+            errorMessage = errorData.error.message
+          }
+        } catch (e) {
+          if (errorText) {
+            errorMessage = errorText
+          }
+        }
+
+        throw new Error(errorMessage)
+      }
+
+      const result = await response.json()
+      return result.choices?.[0]?.message?.content || 'Unable to generate code template'
+    } catch (error) {
+      console.error('[OpenAI] Code template generation error:', error)
+      if (error.message.includes('fetch')) {
+        throw new Error('Network error: Unable to connect to Azure OpenAI. Please check your endpoint and internet connection.')
+      }
+      throw error
+    }
+  }
 }
 
 export default new OpenAIService()

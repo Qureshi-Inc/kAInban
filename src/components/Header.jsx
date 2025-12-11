@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, Trash2, MoreVertical, Home, Folder, AlertTriangle } from 'lucide-react'
+import { Plus, Trash2, MoreVertical, Home, Folder, AlertTriangle, Activity, Menu } from 'lucide-react'
 import React, { useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import useAppStore from '../stores/useAppStore'
@@ -7,9 +7,8 @@ import { Button } from './ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from './ui/dialog'
 import { Input } from './ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select'
-import UserProfile from './UserProfile'
 
-export default function Header() {
+export default function Header({ onToggleSidebar, onShowActivity }) {
   const navigate = useNavigate()
   const location = useLocation()
   const projects = useAppStore((state) => state.projects)
@@ -94,8 +93,19 @@ export default function Header() {
       transition={{ duration: 0.4, ease: 'easeOut' }}
       className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
     >
-      {/* Brand and logo */}
+      {/* Brand and logo with hamburger menu */}
       <div className="flex items-center gap-4">
+        {/* Hamburger Menu Button */}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onToggleSidebar}
+          className="h-10 w-10 p-0"
+          title="Open Menu"
+        >
+          <Menu className="h-5 w-5" />
+        </Button>
+
         <motion.div
           className="w-10 h-10 flex items-center justify-center cursor-pointer"
           whileHover={{ scale: 1.05 }}
@@ -121,7 +131,6 @@ export default function Header() {
               v1.1.1
             </span>
           </div>
-          <p className="text-sm text-muted-foreground">AI-powered task management</p>
         </div>
       </div>
 
@@ -218,10 +227,20 @@ export default function Header() {
               </AnimatePresence>
             </div>
           )}
-
         </div>
 
-        <UserProfile />
+        {/* Activity button - only show when in a project */}
+        {currentProject && onShowActivity && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onShowActivity}
+            className="h-10 w-10 p-0 bg-card/30 hover:bg-card/60 backdrop-blur-sm border border-border/50"
+            title="Show Activity"
+          >
+            <Activity className="h-4 w-4" />
+          </Button>
+        )}
       </div>
 
       {/* Modern Create Project Dialog */}

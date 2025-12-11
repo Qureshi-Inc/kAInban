@@ -1,5 +1,5 @@
 // PocketID Integration for Automated Account Creation
-/* eslint-disable import/namespace, import/order, import/no-duplicates, import/default, import/no-named-as-default, import/no-named-as-default-member */
+ 
 import crypto from 'crypto'
 import nodemailer from 'nodemailer'
 

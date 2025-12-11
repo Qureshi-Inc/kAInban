@@ -3,9 +3,11 @@ import React, { useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 
 // Components
+import ActivityPanel from './components/ActivityPanel'
 import AuthPage from './components/AuthPage'
 import DebugPanel from './components/DebugPanel'
 import Header from './components/Header'
+import LeftSidebar from './components/LeftSidebar'
 import NotificationSystem from './components/NotificationSystem'
 import ProgressIndicator from './components/ProgressIndicator'
 import RecordingModal from './components/RecordingModal'
@@ -18,6 +20,8 @@ import useAppStore from './stores/useAppStore'
 
 function App() {
   const [loading, setLoading] = React.useState(true)
+  const [activityPanelOpen, setActivityPanelOpen] = React.useState(false)
+  const [sidebarOpen, setSidebarOpen] = React.useState(false)
   const user = useAppStore((state) => state.user)
   const authChecked = useAppStore((state) => state.authChecked)
   const checkAuth = useAppStore((state) => state.checkAuth)
@@ -48,7 +52,7 @@ function App() {
         // Initialize from backend
         const result = await initialize()
         if (result === undefined) {
-
+          // Settings load failed, will use defaults
         }
 
         // Check if settings are empty, if so, load from environment variables
@@ -76,6 +80,7 @@ function App() {
           updateSettings(envSettings)
 
         } else {
+          // Settings were already configured
         }
 
         setLoading(false)
@@ -253,27 +258,56 @@ function App() {
   return (
     <BrowserRouter>
       <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
-        {/* Modern glassmorphism navbar */}
-        <div className="sticky top-0 z-50 backdrop-blur-xl bg-background/80 border-b border-border/50">
-          <div className="w-full px-6 py-4 max-w-[1920px] mx-auto">
-            <Header />
+        {/* Left Sidebar - Overlay when open */}
+        <LeftSidebar
+          isOpen={sidebarOpen}
+          onClose={() => setSidebarOpen(false)}
+        />
+
+        {/* Main content area - full width */}
+        <div className="flex flex-col min-h-screen">
+          {/* Header with hamburger menu and activity button */}
+          <div className="sticky top-0 z-40 backdrop-blur-xl bg-background/80 border-b border-border/50">
+            <div className="w-full px-6 py-4">
+              <Header
+                onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
+                onShowActivity={() => setActivityPanelOpen(true)}
+              />
+            </div>
           </div>
+
+          {/* Content */}
+          <div className="flex-1 px-6 py-8">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, ease: 'easeOut' }}
+              className="space-y-8 max-w-[1920px] mx-auto"
+            >
+              <Routes>
+                <Route path="/" element={<MainView />} />
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Routes>
+            </motion.div>
+          </div>
+
+          {/* Footer */}
+          <footer className="py-8 border-t border-border/50 bg-card/30 backdrop-blur-sm">
+            <div className="text-center px-6">
+              <p className="text-sm text-muted-foreground">
+                Built with <span className="text-red-500">♥</span> by{' '}
+                <span className="font-medium text-foreground">InterestingSoup</span>{' '}
+                <span className="text-xs opacity-70">2025</span>
+              </p>
+            </div>
+          </footer>
         </div>
 
-        {/* Main content area */}
-        <div className="w-full px-6 py-8 max-w-[1920px] mx-auto">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, ease: 'easeOut' }}
-            className="space-y-8"
-          >
-            <Routes>
-              <Route path="/" element={<MainView />} />
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-          </motion.div>
-        </div>
+        {/* Activity Panel */}
+        <ActivityPanel
+          isOpen={activityPanelOpen}
+          onClose={() => setActivityPanelOpen(false)}
+        />
 
         {/* Modals and overlays */}
         <SettingsDialog />
@@ -290,17 +324,6 @@ function App() {
 
         {/* Debug panel for mobile development */}
         {import.meta.env.DEV && <DebugPanel />}
-
-        {/* Footer */}
-        <footer className="mt-16 py-8 border-t border-border/50 bg-card/30 backdrop-blur-sm">
-          <div className="text-center">
-            <p className="text-sm text-muted-foreground">
-              Built with <span className="text-red-500">♥</span> by{' '}
-              <span className="font-medium text-foreground">InterestingSoup</span>{' '}
-              <span className="text-xs opacity-70">2025</span>
-            </p>
-          </div>
-        </footer>
       </div>
     </BrowserRouter>
   )

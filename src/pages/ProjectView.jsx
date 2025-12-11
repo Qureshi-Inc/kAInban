@@ -1,6 +1,6 @@
+import { motion } from 'framer-motion'
 import { useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { motion } from 'framer-motion'
 import AudioControls from '../components/AudioControls'
 import KanbanBoard from '../components/KanbanBoard'
 import MeetingFilesPanel from '../components/MeetingFilesPanel'
