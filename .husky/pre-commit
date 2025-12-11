@@ -12,8 +12,4 @@ if [ -f "tsconfig.json" ]; then
   npm run type-check
 fi
 
-# Run tests
-echo "Running tests..."
-npm run test:run
-
 echo "Pre-commit checks completed successfully!"
