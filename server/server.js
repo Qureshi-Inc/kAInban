@@ -802,7 +802,7 @@ app.get('/api/projects/:id', localAuth.requireAuth, (req, res) => {
     console.log('  Loose match (==):', project.user_id === req.session.user.id)
 
     // Use loose equality to handle potential type mismatch
-    if (String(project.user_id) !== String(req.session.user.id)) {
+    if (project.user_id != req.session.user.id) {
       return res.status(403).json({ error: 'Access denied' })
     }
 
@@ -842,7 +842,7 @@ app.delete('/api/projects/:id', localAuth.requireAuth, (req, res) => {
       return res.status(404).json({ error: 'Project not found' })
     }
     // Use loose equality to handle potential type mismatch
-    if (String(project.user_id) !== String(req.session.user.id)) {
+    if (project.user_id != req.session.user.id) {
       return res.status(403).json({ error: 'Access denied' })
     }
 
@@ -936,7 +936,7 @@ app.get('/api/meetings/:id/summary', localAuth.requireAuth, (req, res) => {
       return res.status(404).json({ error: 'Meeting not found' })
     }
     // Use loose equality to handle potential type mismatch
-    if (String(meeting.user_id) !== String(req.session.user.id)) {
+    if (meeting.user_id != req.session.user.id) {
       return res.status(403).json({ error: 'Access denied' })
     }
 
@@ -967,7 +967,7 @@ app.delete('/api/meetings/:id', localAuth.requireAuth, (req, res) => {
     }
 
     // Verify meeting belongs to user (use loose equality)
-    if (String(meeting.user_id) !== String(req.session.user.id)) {
+    if (meeting.user_id != req.session.user.id) {
       return res.status(403).json({ error: 'Access denied' })
     }
 
@@ -1089,7 +1089,7 @@ app.get(
 
       // Get project to verify user access
       const project = db.getProject(taskInfo.project_id)
-      if (!project || String(project.user_id) !== String(req.session.user.id)) {
+      if (!project || project.user_id != req.session.user.id) {
         return res.status(403).json({ error: 'Access denied' })
       }
 
@@ -1112,7 +1112,7 @@ app.get(
 
       // Verify project access
       const project = db.getProject(projectId)
-      if (!project || String(project.user_id) !== String(req.session.user.id)) {
+      if (!project || project.user_id != req.session.user.id) {
         return res.status(403).json({ error: 'Access denied' })
       }
 
@@ -1144,7 +1144,7 @@ app.get(
 
       // Get project to verify user access
       const project = db.getProject(taskInfo.project_id)
-      if (!project || String(project.user_id) !== String(req.session.user.id)) {
+      if (!project || project.user_id != req.session.user.id) {
         return res.status(403).json({ error: 'Access denied' })
       }
 

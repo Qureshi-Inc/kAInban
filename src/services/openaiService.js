@@ -263,7 +263,7 @@ TASK CONSOLIDATION RULES:
 MATCHING EXISTING TASKS:
 1. If a task matches an EXISTING TASK (same project/topic), return with:
    - "matchId": the index number (1-based) of the matching existing task
-   - "updates": new information to ADD to existing description
+   - "updates": new information to add as an AI comment (do NOT modify existing description)
    - "newStatus": update status if mentioned
    - "newPriority": update priority if mentioned
 
@@ -291,7 +291,7 @@ Return ONLY valid JSON array:
     "matchId": 1,  // ONLY if matches existing task
     "title": "Family Night Event Planning",
     "description": "Organize family night event with following sub-tasks:\n• Confirm date with Brother Hanif\n• Plan activities and games\n• Arrange venue setup\n• Send invitations to family members",
-    "updates": "Brother Hanif confirmed availability",  // ONLY if matchId exists
+    "updates": "Brother Hanif confirmed availability for this Saturday",  // ONLY if matchId exists - will become AI comment
     "newStatus": "in-progress",  // ONLY if status changed
     "newPriority": "high",  // ONLY if priority changed
     "priority": "high",
