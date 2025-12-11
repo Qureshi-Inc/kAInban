@@ -11,7 +11,7 @@ export default function ProjectView() {
   const { projectId } = useParams()
   const navigate = useNavigate()
   const currentProject = useAppStore((state) => state.currentProject)
-  const selectProject = useAppStore((state) => state.selectProject)
+  const loadProject = useAppStore((state) => state.loadProject)
   const projects = useAppStore((state) => state.projects)
 
   useEffect(() => {
@@ -19,13 +19,13 @@ export default function ProjectView() {
     if (projectId && (!currentProject || currentProject.id !== projectId)) {
       const project = projects.find((p) => p.id === projectId)
       if (project) {
-        selectProject(project)
+        loadProject(projectId)
       } else {
         // Project not found, redirect to dashboard
         navigate('/')
       }
     }
-  }, [projectId, currentProject, projects, selectProject, navigate])
+  }, [projectId, currentProject, projects, loadProject, navigate])
 
   // If no project loaded yet, show loading
   if (!currentProject || currentProject.id !== projectId) {
