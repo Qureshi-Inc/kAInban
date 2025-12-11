@@ -84,8 +84,8 @@ export default function MainView() {
     )
   }
 
-  // Show loading if project doesn't match
-  if (currentProject.id !== projectId) {
+  // Show loading if project doesn't match (compare using startsWith for short ID)
+  if (!currentProject.id.startsWith(projectId)) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-muted-foreground">Loading project...</div>
