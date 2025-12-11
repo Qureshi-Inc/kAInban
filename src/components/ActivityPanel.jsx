@@ -11,13 +11,104 @@ import {
   ArrowRight,
   MessageSquare
 } from 'lucide-react'
+import React, { useState, useEffect } from 'react'
+import apiService from '../services/apiService'
 import useAppStore from '../stores/useAppStore'
 import { Button } from './ui/button'
 
 export default function ActivityPanel({ isOpen, onClose }) {
-  const currentProject = useAppStore((state) => state.currentProject)
+  const currentProject = useAppStore(state => state.currentProject)
+  const [activities, setActivities] = useState([])
+  const [loading, setLoading] = useState(false)
 
-  // Mock activity data for demo - this would come from the store in real implementation
+  // Load real change tracking data
+  useEffect(() => {
+    const loadActivities = async () => {
+      if (!isOpen || !currentProject?.id) {
+        return
+      }
+
+      setLoading(true)
+      try {
+        const changes = await apiService.getProjectChanges(
+          currentProject.id,
+          50
+        )
+
+        // Convert change tracking data to activity format
+        const formattedActivities = changes.map(change => ({
+          id: change.id,
+          type: change.change_type,
+          title: formatChangeTitle(change.change_type, change.field_name),
+          description: formatChangeDescription(change),
+          details: {
+            taskTitle: change.task_title,
+            field: change.field_name,
+            oldValue: change.old_value,
+            newValue: change.new_value,
+            metadata: change.metadata
+          },
+          timestamp: new Date(change.created_at),
+          user: change.user_name || change.user_email || 'Unknown User'
+        }))
+
+        setActivities(formattedActivities)
+      } catch (error) {
+        console.error('Failed to load activities:', error)
+        setActivities([])
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadActivities()
+  }, [isOpen, currentProject?.id])
+
+  // Helper functions to format change data
+  const formatChangeTitle = (changeType, fieldName) => {
+    switch (changeType) {
+      case 'created':
+        return 'Task Created'
+      case 'updated':
+        return 'Task Updated'
+      case 'deleted':
+        return 'Task Deleted'
+      case 'status_changed':
+        return 'Status Changed'
+      case 'priority_changed':
+        return 'Priority Changed'
+      case 'title_changed':
+        return 'Title Changed'
+      case 'description_changed':
+        return 'Description Updated'
+      case 'assignee_changed':
+        return 'Assignee Changed'
+      case 'due_date_changed':
+        return 'Due Date Changed'
+      case 'ai_comment_added':
+        return 'AI Analysis Added'
+      default:
+        return 'Task Modified'
+    }
+  }
+
+  const formatChangeDescription = change => {
+    if (change.change_type === 'created') {
+      return `New task "${change.task_title}" was created`
+    }
+    if (change.change_type === 'deleted') {
+      return `Task "${change.task_title}" was deleted`
+    }
+    if (change.change_type === 'ai_comment_added') {
+      return `AI analysis added to "${change.task_title}"`
+    }
+    if (change.field_name && change.old_value && change.new_value) {
+      return `Task "${change.task_title}" ${change.field_name} changed from "${change.old_value}" to "${change.new_value}"`
+    }
+    return `Task "${change.task_title}" was modified`
+  }
+
+  // Fallback mock activities for demo purposes (shown when no real data)
   const mockActivities = [
     {
       id: '1',
@@ -86,24 +177,32 @@ export default function ActivityPanel({ isOpen, onClose }) {
     }
   ]
 
-  const getActivityIcon = (type) => {
+  const getActivityIcon = type => {
     switch (type) {
-      case 'task_created':
+      case 'created':
         return <Plus className="h-4 w-4 text-green-500" />
-      case 'task_updated':
+      case 'updated':
+      case 'title_changed':
+      case 'description_changed':
         return <Edit3 className="h-4 w-4 text-blue-500" />
-      case 'task_completed':
+      case 'status_changed':
         return <CheckCircle2 className="h-4 w-4 text-green-500" />
-      case 'task_comment':
-        return <MessageSquare className="h-4 w-4 text-purple-500" />
-      case 'transcript_processed':
+      case 'priority_changed':
         return <AlertCircle className="h-4 w-4 text-orange-500" />
+      case 'assignee_changed':
+        return <User className="h-4 w-4 text-blue-500" />
+      case 'due_date_changed':
+        return <Calendar className="h-4 w-4 text-purple-500" />
+      case 'ai_comment_added':
+        return <MessageSquare className="h-4 w-4 text-purple-500" />
+      case 'deleted':
+        return <X className="h-4 w-4 text-red-500" />
       default:
         return <Calendar className="h-4 w-4 text-gray-500" />
     }
   }
 
-  const formatTimestamp = (timestamp) => {
+  const formatTimestamp = timestamp => {
     const now = new Date()
     const diff = now - timestamp
     const minutes = Math.floor(diff / (1000 * 60))
@@ -122,44 +221,57 @@ export default function ActivityPanel({ isOpen, onClose }) {
     return `${days}d ago`
   }
 
-  const renderActivityDetails = (activity) => {
-    switch (activity.type) {
-      case 'task_updated':
-        return (
-          <div className="mt-2 space-y-2">
-            {activity.details.changes && Object.entries(activity.details.changes).map(([key, change]) => (
-              <div key={key} className="text-xs bg-muted/50 rounded p-2">
-                <span className="font-medium capitalize">{key}:</span>
-                <div className="flex items-center gap-2 mt-1">
-                  <span className="px-2 py-1 bg-red-100 text-red-800 rounded text-xs">
-                    {change.from}
-                  </span>
-                  <ArrowRight className="h-3 w-3" />
-                  <span className="px-2 py-1 bg-green-100 text-green-800 rounded text-xs">
-                    {change.to}
-                  </span>
-                </div>
-              </div>
-            ))}
+  const renderActivityDetails = activity => {
+    // Show old/new values for field changes
+    if (activity.details?.oldValue && activity.details?.newValue) {
+      return (
+        <div className="mt-2 text-xs bg-muted/50 rounded p-2">
+          <span className="font-medium capitalize">
+            {activity.details.field}:
+          </span>
+          <div className="flex items-center gap-2 mt-1">
+            <span className="px-2 py-1 bg-red-100 text-red-800 rounded text-xs">
+              {activity.details.oldValue}
+            </span>
+            <ArrowRight className="h-3 w-3" />
+            <span className="px-2 py-1 bg-green-100 text-green-800 rounded text-xs">
+              {activity.details.newValue}
+            </span>
           </div>
-        )
-      case 'transcript_processed':
-        return (
-          <div className="mt-2 text-xs bg-muted/50 rounded p-2 space-y-1">
-            <div><span className="font-medium">Duration:</span> {activity.details.duration}</div>
-            <div><span className="font-medium">Tasks extracted:</span> {activity.details.tasksExtracted}</div>
-            <div><span className="font-medium">File:</span> {activity.details.filename}</div>
-          </div>
-        )
-      case 'task_comment':
-        return (
-          <div className="mt-2 text-xs bg-muted/50 rounded p-2">
-            <span className="italic">&ldquo;{activity.details.comment}&rdquo;</span>
-          </div>
-        )
-      default:
-        return null
+        </div>
+      )
     }
+
+    // Show metadata if available
+    if (activity.details?.metadata) {
+      const metadata = activity.details.metadata
+      return (
+        <div className="mt-2 text-xs bg-muted/50 rounded p-2 space-y-1">
+          {metadata.source && (
+            <div>
+              <span className="font-medium">Source:</span> {metadata.source}
+            </div>
+          )}
+          {metadata.title && (
+            <div>
+              <span className="font-medium">Task:</span> {metadata.title}
+            </div>
+          )}
+          {metadata.status && (
+            <div>
+              <span className="font-medium">Status:</span> {metadata.status}
+            </div>
+          )}
+          {metadata.priority && (
+            <div>
+              <span className="font-medium">Priority:</span> {metadata.priority}
+            </div>
+          )}
+        </div>
+      )
+    }
+
+    return null
   }
 
   return (
@@ -193,11 +305,18 @@ export default function ActivityPanel({ isOpen, onClose }) {
                   <div>
                     <h2 className="text-lg font-semibold">Activity</h2>
                     <p className="text-sm text-muted-foreground">
-                      {currentProject ? `${currentProject.name}` : 'All Projects'}
+                      {currentProject
+                        ? `${currentProject.name}`
+                        : 'All Projects'}
                     </p>
                   </div>
                 </div>
-                <Button variant="ghost" size="sm" onClick={onClose} className="h-8 w-8 p-0">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={onClose}
+                  className="h-8 w-8 p-0"
+                >
                   <X className="h-4 w-4" />
                 </Button>
               </div>
@@ -205,74 +324,88 @@ export default function ActivityPanel({ isOpen, onClose }) {
 
             {/* Activity Feed */}
             <div className="flex-1 overflow-y-auto p-6">
-              <div className="space-y-6">
-                {mockActivities.map((activity, index) => (
-                  <motion.div
-                    key={activity.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.1 }}
-                    className="relative"
-                  >
-                    {/* Timeline line */}
-                    {index < mockActivities.length - 1 && (
-                      <div className="absolute left-6 top-12 bottom-0 w-px bg-border/30" />
-                    )}
+              {loading ? (
+                <div className="text-center py-12">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+                  <p className="text-muted-foreground">Loading activity...</p>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {activities.map((activity, index) => (
+                    <motion.div
+                      key={activity.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.1 }}
+                      className="relative"
+                    >
+                      {/* Timeline line */}
+                      {index < activities.length - 1 && (
+                        <div className="absolute left-6 top-12 bottom-0 w-px bg-border/30" />
+                      )}
 
-                    {/* Activity item */}
-                    <div className="flex gap-4">
-                      {/* Icon */}
-                      <div className="w-12 h-12 rounded-xl bg-background border border-border/50 flex items-center justify-center flex-shrink-0">
-                        {getActivityIcon(activity.type)}
-                      </div>
+                      {/* Activity item */}
+                      <div className="flex gap-4">
+                        {/* Icon */}
+                        <div className="w-12 h-12 rounded-xl bg-background border border-border/50 flex items-center justify-center flex-shrink-0">
+                          {getActivityIcon(activity.type)}
+                        </div>
 
-                      {/* Content */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="min-w-0 flex-1">
-                            <p className="font-medium text-sm">{activity.title}</p>
-                            <p className="text-sm text-muted-foreground mt-1">
-                              {activity.description}
-                            </p>
+                        {/* Content */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0 flex-1">
+                              <p className="font-medium text-sm">
+                                {activity.title}
+                              </p>
+                              <p className="text-sm text-muted-foreground mt-1">
+                                {activity.description}
+                              </p>
+                            </div>
+                            <time className="text-xs text-muted-foreground flex-shrink-0">
+                              {formatTimestamp(activity.timestamp)}
+                            </time>
                           </div>
-                          <time className="text-xs text-muted-foreground flex-shrink-0">
-                            {formatTimestamp(activity.timestamp)}
-                          </time>
-                        </div>
 
-                        {/* Activity details */}
-                        {renderActivityDetails(activity)}
+                          {/* Activity details */}
+                          {renderActivityDetails(activity)}
 
-                        {/* User info */}
-                        <div className="flex items-center gap-2 mt-3">
-                          <User className="h-3 w-3 text-muted-foreground" />
-                          <span className="text-xs text-muted-foreground">
-                            {activity.user}
-                          </span>
+                          {/* User info */}
+                          <div className="flex items-center gap-2 mt-3">
+                            <User className="h-3 w-3 text-muted-foreground" />
+                            <span className="text-xs text-muted-foreground">
+                              {activity.user}
+                            </span>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </motion.div>
-                ))}
+                    </motion.div>
+                  ))}
 
-                {/* Empty state */}
-                {mockActivities.length === 0 && (
-                  <div className="text-center py-12">
-                    <Calendar className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
-                    <p className="text-muted-foreground">No recent activity</p>
-                    <p className="text-sm text-muted-foreground/70 mt-1">
-                      Activity will appear here as you work on tasks
-                    </p>
-                  </div>
-                )}
-              </div>
+                  {/* Empty state */}
+                  {activities.length === 0 && (
+                    <div className="text-center py-12">
+                      <Calendar className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
+                      <p className="text-muted-foreground">
+                        No recent activity
+                      </p>
+                      <p className="text-sm text-muted-foreground/70 mt-1">
+                        Activity will appear here as you work on tasks
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Footer */}
             <div className="p-6 border-t border-border/50 bg-muted/20">
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <Clock className="h-3 w-3" />
-                <span>Last updated {formatTimestamp(new Date(Date.now() - 1000 * 60))}</span>
+                <span>
+                  Last updated{' '}
+                  {formatTimestamp(new Date(Date.now() - 1000 * 60))}
+                </span>
               </div>
             </div>
           </motion.div>

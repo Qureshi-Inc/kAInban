@@ -76,7 +76,6 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_meetings_user ON meetings(user_id);
 `)
 
-
 // Create users table with both local and OIDC auth support
 db.exec(`
   CREATE TABLE IF NOT EXISTS users (
@@ -155,9 +154,15 @@ try {
   const hasSubtasks = taskColumns.some(col => col.name === 'subtasks')
   const hasComments = taskColumns.some(col => col.name === 'comments')
   const hasLinkedTasks = taskColumns.some(col => col.name === 'linked_tasks')
-  const hasAiCreatedLinks = taskColumns.some(col => col.name === 'ai_created_links')
-  const hasAiDiscoveredLinks = taskColumns.some(col => col.name === 'ai_discovered_links')
-  const hasRejectedAiLinks = taskColumns.some(col => col.name === 'rejected_ai_links')
+  const hasAiCreatedLinks = taskColumns.some(
+    col => col.name === 'ai_created_links'
+  )
+  const hasAiDiscoveredLinks = taskColumns.some(
+    col => col.name === 'ai_discovered_links'
+  )
+  const hasRejectedAiLinks = taskColumns.some(
+    col => col.name === 'rejected_ai_links'
+  )
 
   if (!hasDueDate) {
     db.exec('ALTER TABLE tasks ADD COLUMN due_date DATE')
@@ -195,11 +200,19 @@ try {
 
   // Add OIDC configuration columns to settings table
   const settingsColumns = db.prepare('PRAGMA table_info(settings)').all()
-  const hasOidcEnabled = settingsColumns.some(col => col.name === 'oidc_enabled')
-  const hasOidcClientId = settingsColumns.some(col => col.name === 'oidc_client_id')
-  const hasOidcClientSecret = settingsColumns.some(col => col.name === 'oidc_client_secret')
+  const hasOidcEnabled = settingsColumns.some(
+    col => col.name === 'oidc_enabled'
+  )
+  const hasOidcClientId = settingsColumns.some(
+    col => col.name === 'oidc_client_id'
+  )
+  const hasOidcClientSecret = settingsColumns.some(
+    col => col.name === 'oidc_client_secret'
+  )
   const hasOidcIssuer = settingsColumns.some(col => col.name === 'oidc_issuer')
-  const hasOidcCallbackUrl = settingsColumns.some(col => col.name === 'oidc_callback_url')
+  const hasOidcCallbackUrl = settingsColumns.some(
+    col => col.name === 'oidc_callback_url'
+  )
 
   if (!hasOidcEnabled) {
     db.exec('ALTER TABLE settings ADD COLUMN oidc_enabled INTEGER DEFAULT 0')
@@ -214,7 +227,9 @@ try {
   }
 
   if (!hasOidcIssuer) {
-    db.exec("ALTER TABLE settings ADD COLUMN oidc_issuer TEXT DEFAULT 'https://pocketid.app'")
+    db.exec(
+      "ALTER TABLE settings ADD COLUMN oidc_issuer TEXT DEFAULT 'https://pocketid.app'"
+    )
   }
 
   if (!hasOidcCallbackUrl) {
@@ -223,7 +238,11 @@ try {
 
   // Migrate existing OIDC users if any (from old schema)
   try {
-    const oldUsersCheck = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='users_old'").get()
+    const oldUsersCheck = db
+      .prepare(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='users_old'"
+      )
+      .get()
     if (!oldUsersCheck) {
       // Check if current users table has 'sub' column (old OIDC schema)
       const userColumns = db.prepare('PRAGMA table_info(users)').all()
@@ -284,19 +303,33 @@ try {
     console.log('[Database] Fixing user_id data type mismatches...')
 
     // Fix projects table user_id format
-    const projectsWithFloatIds = db.prepare("SELECT id, user_id FROM projects WHERE user_id LIKE '%.0'").all()
+    const projectsWithFloatIds = db
+      .prepare("SELECT id, user_id FROM projects WHERE user_id LIKE '%.0'")
+      .all()
     for (const project of projectsWithFloatIds) {
       const fixedUserId = project.user_id.replace('.0', '')
-      db.prepare('UPDATE projects SET user_id = ? WHERE id = ?').run(fixedUserId, project.id)
-      console.log(`[Database] Fixed project ${project.id} user_id: ${project.user_id} -> ${fixedUserId}`)
+      db.prepare('UPDATE projects SET user_id = ? WHERE id = ?').run(
+        fixedUserId,
+        project.id
+      )
+      console.log(
+        `[Database] Fixed project ${project.id} user_id: ${project.user_id} -> ${fixedUserId}`
+      )
     }
 
     // Fix meetings table user_id format
-    const meetingsWithFloatIds = db.prepare("SELECT id, user_id FROM meetings WHERE user_id LIKE '%.0'").all()
+    const meetingsWithFloatIds = db
+      .prepare("SELECT id, user_id FROM meetings WHERE user_id LIKE '%.0'")
+      .all()
     for (const meeting of meetingsWithFloatIds) {
       const fixedUserId = meeting.user_id.replace('.0', '')
-      db.prepare('UPDATE meetings SET user_id = ? WHERE id = ?').run(fixedUserId, meeting.id)
-      console.log(`[Database] Fixed meeting ${meeting.id} user_id: ${meeting.user_id} -> ${fixedUserId}`)
+      db.prepare('UPDATE meetings SET user_id = ? WHERE id = ?').run(
+        fixedUserId,
+        meeting.id
+      )
+      console.log(
+        `[Database] Fixed meeting ${meeting.id} user_id: ${meeting.user_id} -> ${fixedUserId}`
+      )
     }
 
     console.log('[Database] User ID format fix completed')
@@ -317,7 +350,8 @@ export const getSystemSettings = () => {
 
   // If no system settings exist, return defaults from environment variables
   if (!settings) {
-    const enableOidc = process.env.ENABLE_OIDC === 'true' || process.env.ENABLE_OIDC === '1'
+    const enableOidc =
+      process.env.ENABLE_OIDC === 'true' || process.env.ENABLE_OIDC === '1'
     return {
       user_id: 'system',
       oidc_issuer: process.env.POCKET_ID_ISSUER || 'https://pocketid.app',
@@ -332,7 +366,7 @@ export const getSystemSettings = () => {
 }
 
 // Legacy function for user-specific settings (AI settings only now)
-export const getSettings = (userId) => {
+export const getSettings = userId => {
   const stmt = db.prepare('SELECT * FROM settings WHERE user_id = ? LIMIT 1')
   const settings = stmt.get(userId)
 
@@ -372,9 +406,14 @@ export const saveSettings = (userId, settings) => {
   const existing = getSettings(userId)
 
   // Use environment variables as fallback for OIDC settings
-  const oidcIssuer = settings.oidcIssuer || process.env.POCKET_ID_ISSUER || 'https://pocketid.app'
-  const oidcClientId = settings.oidcClientId || process.env.POCKET_ID_CLIENT_ID || null
-  const oidcClientSecret = settings.oidcClientSecret || process.env.POCKET_ID_CLIENT_SECRET || null
+  const oidcIssuer =
+    settings.oidcIssuer ||
+    process.env.POCKET_ID_ISSUER ||
+    'https://pocketid.app'
+  const oidcClientId =
+    settings.oidcClientId || process.env.POCKET_ID_CLIENT_ID || null
+  const oidcClientSecret =
+    settings.oidcClientSecret || process.env.POCKET_ID_CLIENT_SECRET || null
 
   if (existing && existing.id) {
     const stmt = db.prepare(`
@@ -421,7 +460,7 @@ export const saveSettings = (userId, settings) => {
 }
 
 // Save system-wide settings (OIDC settings are shared across all admins)
-export const saveSystemSettings = (settings) => {
+export const saveSystemSettings = settings => {
   const existing = getSystemSettings()
 
   if (existing && existing.id) {
@@ -457,20 +496,24 @@ export const saveSystemSettings = (settings) => {
 }
 
 // Project operations
-export const getAllProjects = (userId) => {
+export const getAllProjects = userId => {
   // Ensure userId is always a string to prevent type mismatches
   const userIdStr = String(userId)
-  const stmt = db.prepare('SELECT * FROM projects WHERE user_id = ? ORDER BY updated_at DESC')
+  const stmt = db.prepare(
+    'SELECT * FROM projects WHERE user_id = ? ORDER BY updated_at DESC'
+  )
   return stmt.all(userIdStr)
 }
 
-export const getProject = (projectId) => {
+export const getProject = projectId => {
   const stmt = db.prepare('SELECT * FROM projects WHERE id = ?')
   const project = stmt.get(projectId)
 
   if (project) {
     // Get tasks for this project
-    const tasksStmt = db.prepare('SELECT * FROM tasks WHERE project_id = ? ORDER BY created_at ASC')
+    const tasksStmt = db.prepare(
+      'SELECT * FROM tasks WHERE project_id = ? ORDER BY created_at ASC'
+    )
     const tasks = tasksStmt.all(projectId)
 
     // Convert database format to frontend format for tasks
@@ -485,15 +528,23 @@ export const getProject = (projectId) => {
       subtasks: task.subtasks ? JSON.parse(task.subtasks) : [],
       comments: task.comments ? JSON.parse(task.comments) : [],
       linkedTasks: task.linked_tasks ? JSON.parse(task.linked_tasks) : [],
-      aiCreatedLinks: task.ai_created_links ? JSON.parse(task.ai_created_links) : [],
-      aiDiscoveredLinks: task.ai_discovered_links ? JSON.parse(task.ai_discovered_links) : [],
-      rejectedAiLinks: task.rejected_ai_links ? JSON.parse(task.rejected_ai_links) : [],
+      aiCreatedLinks: task.ai_created_links
+        ? JSON.parse(task.ai_created_links)
+        : [],
+      aiDiscoveredLinks: task.ai_discovered_links
+        ? JSON.parse(task.ai_discovered_links)
+        : [],
+      rejectedAiLinks: task.rejected_ai_links
+        ? JSON.parse(task.rejected_ai_links)
+        : [],
       createdAt: task.created_at,
       projectId: task.project_id
     }))
 
     // Get meetings for this project
-    const meetingsStmt = db.prepare('SELECT * FROM meetings WHERE project_id = ? ORDER BY created_at DESC')
+    const meetingsStmt = db.prepare(
+      'SELECT * FROM meetings WHERE project_id = ? ORDER BY created_at DESC'
+    )
     const meetings = meetingsStmt.all(projectId)
 
     // Convert database format to frontend format for meetings
@@ -522,31 +573,46 @@ export const saveProject = (userId, project) => {
       SET name = ?, transcript = ?, summary = ?, updated_at = CURRENT_TIMESTAMP
       WHERE id = ? AND user_id = ?
     `)
-    stmt.run(project.name, project.transcript || '', project.summary || '', project.id, userIdStr)
+    stmt.run(
+      project.name,
+      project.transcript || '',
+      project.summary || '',
+      project.id,
+      userIdStr
+    )
   } else {
     const stmt = db.prepare(`
       INSERT INTO projects (id, user_id, name, transcript, summary)
       VALUES (?, ?, ?, ?, ?)
     `)
-    stmt.run(project.id, userIdStr, project.name, project.transcript || '', project.summary || '')
+    stmt.run(
+      project.id,
+      userIdStr,
+      project.name,
+      project.transcript || '',
+      project.summary || ''
+    )
   }
 
-  // Save tasks if provided
+  // Save tasks if provided with change tracking
   if (project.tasks && Array.isArray(project.tasks)) {
+    // Get existing tasks to compare for changes
+    const existingProject = getProject(project.id)
+    const existingTasks = existingProject?.tasks || []
 
-    // Delete existing tasks and insert new ones
-    const deleteStmt = db.prepare('DELETE FROM tasks WHERE project_id = ?')
-    deleteStmt.run(project.id)
+    // Create maps for easy lookup
+    const existingTasksMap = new Map(existingTasks.map(t => [t.id, t]))
+    const newTasksMap = new Map(project.tasks.map(t => [t.id, t]))
 
     const insertStmt = db.prepare(`
-      INSERT INTO tasks (id, project_id, title, description, status, priority, due_date, assignee, subtasks, comments, linked_tasks, ai_created_links, ai_discovered_links, rejected_ai_links)
+      INSERT OR REPLACE INTO tasks (id, project_id, title, description, status, priority, due_date, assignee, subtasks, comments, linked_tasks, ai_created_links, ai_discovered_links, rejected_ai_links)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `)
 
     for (const task of project.tasks) {
-      if (task.linkedTasks && task.linkedTasks.length > 0) {
-        // Process linked tasks
-      }
+      const existingTask = existingTasksMap.get(task.id)
+
+      // Insert/update the task
       insertStmt.run(
         task.id,
         project.id,
@@ -563,22 +629,163 @@ export const saveProject = (userId, project) => {
         JSON.stringify(task.aiDiscoveredLinks || []),
         JSON.stringify(task.rejectedAiLinks || [])
       )
+
+      // Record changes if task existed before
+      if (existingTask) {
+        // Check for status change
+        if (existingTask.status !== task.status) {
+          recordTaskChange(
+            task.id,
+            userIdStr,
+            'status_changed',
+            'status',
+            existingTask.status,
+            task.status,
+            {
+              source: 'task_update'
+            }
+          )
+        }
+
+        // Check for priority change
+        if (existingTask.priority !== task.priority) {
+          recordTaskChange(
+            task.id,
+            userIdStr,
+            'priority_changed',
+            'priority',
+            existingTask.priority,
+            task.priority,
+            {
+              source: 'task_update'
+            }
+          )
+        }
+
+        // Check for title change
+        if (existingTask.title !== task.title) {
+          recordTaskChange(
+            task.id,
+            userIdStr,
+            'title_changed',
+            'title',
+            existingTask.title,
+            task.title,
+            {
+              source: 'task_update'
+            }
+          )
+        }
+
+        // Check for description change
+        if (existingTask.description !== (task.description || '')) {
+          recordTaskChange(
+            task.id,
+            userIdStr,
+            'description_changed',
+            'description',
+            existingTask.description,
+            task.description || '',
+            {
+              source: 'task_update'
+            }
+          )
+        }
+
+        // Check for assignee change
+        if (existingTask.assignee !== task.assignee) {
+          recordTaskChange(
+            task.id,
+            userIdStr,
+            'assignee_changed',
+            'assignee',
+            existingTask.assignee,
+            task.assignee,
+            {
+              source: 'task_update'
+            }
+          )
+        }
+
+        // Check for due date change
+        if (existingTask.dueDate !== task.dueDate) {
+          recordTaskChange(
+            task.id,
+            userIdStr,
+            'due_date_changed',
+            'dueDate',
+            existingTask.dueDate,
+            task.dueDate,
+            {
+              source: 'task_update'
+            }
+          )
+        }
+
+        // Record general update
+        recordTaskChange(task.id, userIdStr, 'updated', null, null, null, {
+          source: 'task_update',
+          timestamp: new Date().toISOString()
+        })
+      } else {
+        // Record task creation
+        recordTaskChange(task.id, userIdStr, 'created', null, null, null, {
+          source: 'task_creation',
+          title: task.title,
+          status: task.status,
+          priority: task.priority
+        })
+      }
     }
 
+    // Check for deleted tasks
+    for (const existingTask of existingTasks) {
+      if (!newTasksMap.has(existingTask.id)) {
+        // Task was deleted
+        recordTaskChange(
+          existingTask.id,
+          userIdStr,
+          'deleted',
+          null,
+          null,
+          null,
+          {
+            source: 'task_deletion',
+            title: existingTask.title
+          }
+        )
+
+        // Delete the task from database
+        const deleteStmt = db.prepare('DELETE FROM tasks WHERE id = ?')
+        deleteStmt.run(existingTask.id)
+      }
+    }
   } else {
-    // No tasks to save
+    // No tasks to save - if there were existing tasks, they're being deleted
+    const existingProject = getProject(project.id)
+    if (existingProject?.tasks && existingProject.tasks.length > 0) {
+      for (const task of existingProject.tasks) {
+        recordTaskChange(task.id, userIdStr, 'deleted', null, null, null, {
+          source: 'project_clear',
+          title: task.title
+        })
+      }
+      // Delete all tasks for this project
+      const deleteStmt = db.prepare('DELETE FROM tasks WHERE project_id = ?')
+      deleteStmt.run(project.id)
+    }
   }
 
   // Note: Meetings are saved separately via /api/meetings endpoint
 }
 
-export const deleteProject = (projectId) => {
+export const deleteProject = projectId => {
   const stmt = db.prepare('DELETE FROM projects WHERE id = ?')
   stmt.run(projectId)
 }
 
 // Task operations
-export const saveTask = (task) => {
+export const saveTask = task => {
   const stmt = db.prepare(`
     INSERT OR REPLACE INTO tasks (id, project_id, title, description, status, priority, due_date, assignee, subtasks, comments, linked_tasks, ai_created_links, ai_discovered_links, rejected_ai_links)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -601,7 +808,7 @@ export const saveTask = (task) => {
   )
 }
 
-export const deleteTask = (taskId) => {
+export const deleteTask = taskId => {
   const stmt = db.prepare('DELETE FROM tasks WHERE id = ?')
   stmt.run(taskId)
 }
@@ -624,40 +831,44 @@ export const saveMeeting = (userId, meeting) => {
   )
 }
 
-export const getMeeting = (meetingId) => {
+export const getMeeting = meetingId => {
   const stmt = db.prepare('SELECT * FROM meetings WHERE id = ?')
   return stmt.get(meetingId)
 }
 
-export const getAllMeetings = (userId) => {
+export const getAllMeetings = userId => {
   // Ensure userId is always a string to prevent type mismatches
   const userIdStr = String(userId)
-  const stmt = db.prepare('SELECT * FROM meetings WHERE user_id = ? ORDER BY created_at DESC')
+  const stmt = db.prepare(
+    'SELECT * FROM meetings WHERE user_id = ? ORDER BY created_at DESC'
+  )
   return stmt.all(userIdStr)
 }
 
-export const deleteMeeting = (meetingId) => {
+export const deleteMeeting = meetingId => {
   const stmt = db.prepare('DELETE FROM meetings WHERE id = ?')
   stmt.run(meetingId)
 }
 
 // User operations for local authentication
-export const getUserById = (userId) => {
+export const getUserById = userId => {
   const stmt = db.prepare('SELECT * FROM users WHERE id = ? AND active = 1')
   return stmt.get(userId)
 }
 
-export const getUserByEmail = (email) => {
+export const getUserByEmail = email => {
   const stmt = db.prepare('SELECT * FROM users WHERE email = ? AND active = 1')
   return stmt.get(email)
 }
 
 export const getUserByOIDC = (issuer, sub) => {
-  const stmt = db.prepare('SELECT * FROM users WHERE oidc_issuer = ? AND oidc_sub = ? AND active = 1')
+  const stmt = db.prepare(
+    'SELECT * FROM users WHERE oidc_issuer = ? AND oidc_sub = ? AND active = 1'
+  )
   return stmt.get(issuer, sub)
 }
 
-export const createUser = (userData) => {
+export const createUser = userData => {
   const stmt = db.prepare(`
     INSERT INTO users (
       email, email_verified, name, picture, role, auth_provider,
@@ -722,7 +933,9 @@ export const updateUser = (userId, updates) => {
     values.push(updates.active ? 1 : 0)
   }
 
-  if (fields.length === 0) {return getUserById(userId)}
+  if (fields.length === 0) {
+    return getUserById(userId)
+  }
 
   fields.push('updated_at = CURRENT_TIMESTAMP')
   values.push(userId)
@@ -733,8 +946,10 @@ export const updateUser = (userId, updates) => {
   return getUserById(userId)
 }
 
-export const updateUserLogin = (userId) => {
-  const stmt = db.prepare('UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = ?')
+export const updateUserLogin = userId => {
+  const stmt = db.prepare(
+    'UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = ?'
+  )
   stmt.run(userId)
 }
 
@@ -743,9 +958,13 @@ export const getAllUsers = () => {
   return stmt.all()
 }
 
-export const deleteUser = (userId) => {
+export const deleteUser = userId => {
   // Check if this is the last admin
-  const adminCount = db.prepare("SELECT COUNT(*) as count FROM users WHERE role = 'admin' AND active = 1").get()
+  const adminCount = db
+    .prepare(
+      "SELECT COUNT(*) as count FROM users WHERE role = 'admin' AND active = 1"
+    )
+    .get()
   const user = getUserById(userId)
 
   if (user && user.role === 'admin' && adminCount.count === 1) {
@@ -758,35 +977,43 @@ export const deleteUser = (userId) => {
       console.log(`[Database] Deleting all data for user ${userId}`)
 
       // Get user's project IDs to delete associated tasks and meetings
-      const userProjects = db.prepare('SELECT id FROM projects WHERE user_id = ?').all(userId)
+      const userProjects = db
+        .prepare('SELECT id FROM projects WHERE user_id = ?')
+        .all(userId)
       const projectIds = userProjects.map(p => p.id)
 
       if (projectIds.length > 0) {
         // Delete tasks for all user's projects
-        const deleteTasksStmt = db.prepare(`DELETE FROM tasks WHERE project_id IN (${projectIds.map(() => '?').join(',')})`)
+        const deleteTasksStmt = db.prepare(
+          `DELETE FROM tasks WHERE project_id IN (${projectIds.map(() => '?').join(',')})`
+        )
         deleteTasksStmt.run(...projectIds)
       }
 
       // Delete user's meetings
-      const deleteMeetingsStmt = db.prepare('DELETE FROM meetings WHERE user_id = ?')
+      const deleteMeetingsStmt = db.prepare(
+        'DELETE FROM meetings WHERE user_id = ?'
+      )
       deleteMeetingsStmt.run(userId)
 
       // Delete user's projects
-      const deleteProjectsStmt = db.prepare('DELETE FROM projects WHERE user_id = ?')
+      const deleteProjectsStmt = db.prepare(
+        'DELETE FROM projects WHERE user_id = ?'
+      )
       deleteProjectsStmt.run(userId)
 
       // Delete user's settings
-      const deleteSettingsStmt = db.prepare('DELETE FROM settings WHERE user_id = ?')
+      const deleteSettingsStmt = db.prepare(
+        'DELETE FROM settings WHERE user_id = ?'
+      )
       deleteSettingsStmt.run(userId)
 
       // Finally delete the user
       const deleteUserStmt = db.prepare('DELETE FROM users WHERE id = ?')
       deleteUserStmt.run(userId)
-
     })()
 
     return true
-
   } catch (error) {
     console.error(`[Database] Error deleting user ${userId}:`, error)
     throw new Error(`Failed to delete user: ${error.message}`)
@@ -795,13 +1022,21 @@ export const deleteUser = (userId) => {
 
 // Check if any users exist (for first-run setup)
 export const hasUsers = () => {
-  const stmt = db.prepare('SELECT COUNT(*) as count FROM users WHERE active = 1')
+  const stmt = db.prepare(
+    'SELECT COUNT(*) as count FROM users WHERE active = 1'
+  )
   const result = stmt.get()
   return result.count > 0
 }
 
 // Analytics insights caching methods
-export const saveAnalyticsInsights = (userId, projectId, insights, taskCount, timestamp) => {
+export const saveAnalyticsInsights = (
+  userId,
+  projectId,
+  insights,
+  taskCount,
+  timestamp
+) => {
   const stmt = db.prepare(`
     INSERT OR REPLACE INTO analytics_insights
     (user_id, project_id, insights, task_count, timestamp)
@@ -827,7 +1062,7 @@ export const clearAnalyticsInsights = (userId, projectId) => {
   return stmt.run(userId, projectId)
 }
 
-export const clearAllAnalyticsInsights = (userId) => {
+export const clearAllAnalyticsInsights = userId => {
   const stmt = db.prepare(`
     DELETE FROM analytics_insights
     WHERE user_id = ?
@@ -836,18 +1071,42 @@ export const clearAllAnalyticsInsights = (userId) => {
 }
 
 // Task change tracking methods
-export const recordTaskChange = (taskId, userId, changeType, fieldName = null, oldValue = null, newValue = null, metadata = null) => {
+export const recordTaskChange = (
+  taskId,
+  userId,
+  changeType,
+  fieldName = null,
+  oldValue = null,
+  newValue = null,
+  metadata = null
+) => {
   const stmt = db.prepare(`
     INSERT INTO task_changes
     (task_id, user_id, change_type, field_name, old_value, new_value, metadata)
     VALUES (?, ?, ?, ?, ?, ?, ?)
   `)
 
-  const oldValueStr = oldValue ? (typeof oldValue === 'object' ? JSON.stringify(oldValue) : oldValue.toString()) : null
-  const newValueStr = newValue ? (typeof newValue === 'object' ? JSON.stringify(newValue) : newValue.toString()) : null
+  const oldValueStr = oldValue
+    ? typeof oldValue === 'object'
+      ? JSON.stringify(oldValue)
+      : oldValue.toString()
+    : null
+  const newValueStr = newValue
+    ? typeof newValue === 'object'
+      ? JSON.stringify(newValue)
+      : newValue.toString()
+    : null
   const metadataStr = metadata ? JSON.stringify(metadata) : null
 
-  return stmt.run(taskId, userId, changeType, fieldName, oldValueStr, newValueStr, metadataStr)
+  return stmt.run(
+    taskId,
+    userId,
+    changeType,
+    fieldName,
+    oldValueStr,
+    newValueStr,
+    metadataStr
+  )
 }
 
 export const getTaskChanges = (taskId, limit = 50) => {
@@ -865,8 +1124,16 @@ export const getTaskChanges = (taskId, limit = 50) => {
   // Parse JSON fields
   return changes.map(change => ({
     ...change,
-    old_value: change.old_value ? (change.old_value.startsWith('{') || change.old_value.startsWith('[') ? JSON.parse(change.old_value) : change.old_value) : null,
-    new_value: change.new_value ? (change.new_value.startsWith('{') || change.new_value.startsWith('[') ? JSON.parse(change.new_value) : change.new_value) : null,
+    old_value: change.old_value
+      ? change.old_value.startsWith('{') || change.old_value.startsWith('[')
+        ? JSON.parse(change.old_value)
+        : change.old_value
+      : null,
+    new_value: change.new_value
+      ? change.new_value.startsWith('{') || change.new_value.startsWith('[')
+        ? JSON.parse(change.new_value)
+        : change.new_value
+      : null,
     metadata: change.metadata ? JSON.parse(change.metadata) : null
   }))
 }
@@ -886,14 +1153,30 @@ export const getProjectTaskChanges = (projectId, limit = 100) => {
 
   return changes.map(change => ({
     ...change,
-    old_value: change.old_value ? (change.old_value.startsWith('{') || change.old_value.startsWith('[') ? JSON.parse(change.old_value) : change.old_value) : null,
-    new_value: change.new_value ? (change.new_value.startsWith('{') || change.new_value.startsWith('[') ? JSON.parse(change.new_value) : change.new_value) : null,
+    old_value: change.old_value
+      ? change.old_value.startsWith('{') || change.old_value.startsWith('[')
+        ? JSON.parse(change.old_value)
+        : change.old_value
+      : null,
+    new_value: change.new_value
+      ? change.new_value.startsWith('{') || change.new_value.startsWith('[')
+        ? JSON.parse(change.new_value)
+        : change.new_value
+      : null,
     metadata: change.metadata ? JSON.parse(change.metadata) : null
   }))
 }
 
 // Task comments methods
-export const addTaskComment = (commentId, taskId, userId, authorName, content, commentType = 'user', metadata = null) => {
+export const addTaskComment = (
+  commentId,
+  taskId,
+  userId,
+  authorName,
+  content,
+  commentType = 'user',
+  metadata = null
+) => {
   const stmt = db.prepare(`
     INSERT INTO task_comments
     (id, task_id, user_id, author_name, content, comment_type, metadata)
@@ -901,7 +1184,15 @@ export const addTaskComment = (commentId, taskId, userId, authorName, content, c
   `)
 
   const metadataStr = metadata ? JSON.stringify(metadata) : null
-  return stmt.run(commentId, taskId, userId, authorName, content, commentType, metadataStr)
+  return stmt.run(
+    commentId,
+    taskId,
+    userId,
+    authorName,
+    content,
+    commentType,
+    metadataStr
+  )
 }
 
 export const getTaskComments = (taskId, limit = 50) => {
@@ -940,7 +1231,7 @@ export const deleteTaskComment = (commentId, userId) => {
 }
 
 // Export all data
-export const exportAll = (userId) => {
+export const exportAll = userId => {
   return {
     settings: getSettings(userId),
     projects: getAllProjects(userId).map(p => getProject(p.id))
