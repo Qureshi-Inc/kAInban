@@ -1,18 +1,19 @@
 import { motion } from 'framer-motion'
 import { FileAudio, Calendar, Trash2 } from 'lucide-react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import useAppStore from '../stores/useAppStore'
 import { Button } from './ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
 
 export default function MeetingFilesPanel() {
   const navigate = useNavigate()
-  const { projectId } = useParams()
+  const [searchParams] = useSearchParams()
+  const projectId = searchParams.get('project')
   const { meetings, selectedMeetingId, deleteMeeting } = useAppStore()
 
   const handleSelectMeeting = (meetingId) => {
     // Update URL to include meeting ID
-    navigate(`/project/${projectId}/meeting/${meetingId}`)
+    navigate(`/?project=${projectId}&meeting=${meetingId}`)
   }
 
   const handleDeleteMeeting = async(meetingId, e) => {
@@ -21,7 +22,7 @@ export default function MeetingFilesPanel() {
       await deleteMeeting(meetingId)
       // If we just deleted the selected meeting, navigate back to project view
       if (selectedMeetingId === meetingId) {
-        navigate(`/project/${projectId}`)
+        navigate(`/?project=${projectId}`)
       }
     }
   }

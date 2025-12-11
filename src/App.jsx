@@ -12,8 +12,7 @@ import RecordingModal from './components/RecordingModal'
 import SettingsDialog from './components/SettingsDialog'
 
 // Pages
-import Dashboard from './pages/Dashboard'
-import ProjectView from './pages/ProjectView'
+import MainView from './pages/MainView'
 import openaiService from './services/openaiService'
 import useAppStore from './stores/useAppStore'
 
@@ -270,9 +269,7 @@ function App() {
             className="space-y-8"
           >
             <Routes>
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/project/:projectId" element={<ProjectView />} />
-              <Route path="/project/:projectId/meeting/:meetingId" element={<ProjectView />} />
+              <Route path="/" element={<MainView />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </motion.div>

@@ -55,7 +55,7 @@ export default function Header() {
       setIsCreateProjectOpen(true)
     } else {
       loadProject(projectId)
-      navigate(`/project/${projectId}`)
+      navigate(`/?project=${projectId}`)
     }
   }
 
