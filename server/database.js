@@ -97,6 +97,21 @@ db.exec(`
   );
 `)
 
+// Create analytics insights table for caching
+db.exec(`
+  CREATE TABLE IF NOT EXISTS analytics_insights (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id TEXT NOT NULL,
+    project_id TEXT,  -- NULL means "all projects"
+    insights TEXT NOT NULL,
+    task_count INTEGER,
+    timestamp INTEGER NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    UNIQUE(user_id, project_id)  -- One cache entry per user per project
+  );
+`)
+
 // Migration: Add new columns if they don't exist
 try {
   // Check if due_date column exists in tasks table
@@ -749,6 +764,41 @@ export const hasUsers = () => {
   const stmt = db.prepare('SELECT COUNT(*) as count FROM users WHERE active = 1')
   const result = stmt.get()
   return result.count > 0
+}
+
+// Analytics insights caching methods
+export const saveAnalyticsInsights = (userId, projectId, insights, taskCount, timestamp) => {
+  const stmt = db.prepare(`
+    INSERT OR REPLACE INTO analytics_insights
+    (user_id, project_id, insights, task_count, timestamp)
+    VALUES (?, ?, ?, ?, ?)
+  `)
+  return stmt.run(userId, projectId, insights, taskCount, timestamp)
+}
+
+export const getAnalyticsInsights = (userId, projectId) => {
+  const stmt = db.prepare(`
+    SELECT insights, task_count, timestamp
+    FROM analytics_insights
+    WHERE user_id = ? AND project_id IS ?
+  `)
+  return stmt.get(userId, projectId)
+}
+
+export const clearAnalyticsInsights = (userId, projectId) => {
+  const stmt = db.prepare(`
+    DELETE FROM analytics_insights
+    WHERE user_id = ? AND project_id IS ?
+  `)
+  return stmt.run(userId, projectId)
+}
+
+export const clearAllAnalyticsInsights = (userId) => {
+  const stmt = db.prepare(`
+    DELETE FROM analytics_insights
+    WHERE user_id = ?
+  `)
+  return stmt.run(userId)
 }
 
 // Export all data

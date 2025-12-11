@@ -895,6 +895,74 @@ app.delete('/api/meetings/:id', localAuth.requireAuth, (req, res) => {
   }
 })
 
+// Analytics insights caching endpoints
+app.post('/api/analytics/insights', localAuth.requireAuth, async (req, res) => {
+  try {
+    const { projectId, insights, taskCount, timestamp } = req.body
+    const userId = req.session.user.id
+
+    // Save analytics insights to database
+    db.saveAnalyticsInsights(userId, projectId, insights, taskCount, timestamp)
+
+    res.json({ success: true })
+  } catch (error) {
+    console.error('[Analytics] Save insights error:', error)
+    res.status(500).json({ error: 'Failed to save analytics insights' })
+  }
+})
+
+app.get('/api/analytics/insights/:projectId', localAuth.requireAuth, async (req, res) => {
+  try {
+    const { projectId } = req.params
+    const userId = req.session.user.id
+
+    // Handle "all" projects case
+    const actualProjectId = projectId === 'all' ? null : projectId
+
+    const cached = db.getAnalyticsInsights(userId, actualProjectId)
+
+    if (cached) {
+      res.json(cached)
+    } else {
+      res.status(404).json({ error: 'No cached insights found' })
+    }
+  } catch (error) {
+    console.error('[Analytics] Load insights error:', error)
+    res.status(500).json({ error: 'Failed to load analytics insights' })
+  }
+})
+
+app.delete('/api/analytics/insights/:projectId', localAuth.requireAuth, async (req, res) => {
+  try {
+    const { projectId } = req.params
+    const userId = req.session.user.id
+
+    // Handle "all" projects case
+    const actualProjectId = projectId === 'all' ? null : projectId
+
+    db.clearAnalyticsInsights(userId, actualProjectId)
+
+    res.json({ success: true })
+  } catch (error) {
+    console.error('[Analytics] Clear insights error:', error)
+    res.status(500).json({ error: 'Failed to clear analytics insights' })
+  }
+})
+
+app.delete('/api/analytics/insights', localAuth.requireAuth, async (req, res) => {
+  try {
+    const userId = req.session.user.id
+
+    // Clear all analytics insights for user
+    db.clearAllAnalyticsInsights(userId)
+
+    res.json({ success: true })
+  } catch (error) {
+    console.error('[Analytics] Clear all insights error:', error)
+    res.status(500).json({ error: 'Failed to clear all analytics insights' })
+  }
+})
+
 // Start server
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`[Server] API running on http://0.0.0.0:${PORT}`)
