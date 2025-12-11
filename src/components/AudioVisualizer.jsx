@@ -1,17 +1,25 @@
 import React, { useEffect, useRef } from 'react'
 import AudioMotionAnalyzer from 'audiomotion-analyzer'
 
-export default function AudioVisualizer({ analyser, isActive = false }) {
+export default function AudioVisualizer({ stream, isActive = false }) {
   const containerRef = useRef(null)
   const audioMotionRef = useRef(null)
 
   useEffect(() => {
-    if (!containerRef.current) return
+    if (!containerRef.current || !stream) return
+
+    let audioContext = null
+    let sourceNode = null
 
     // Initialize AudioMotion analyzer
     try {
+      // Create audio context and source node from stream
+      audioContext = new (window.AudioContext || window.webkitAudioContext)()
+      sourceNode = audioContext.createMediaStreamSource(stream)
+
+      // Create AudioMotion analyzer without source (we'll connect manually)
       audioMotionRef.current = new AudioMotionAnalyzer(containerRef.current, {
-        audioCtx: analyser?.context,
+        audioCtx: audioContext,
         connectSpeakers: false, // Don't connect to speakers since we're just visualizing
         mode: 10, // Line/Area graph mode
         gradient: 'rainbow',
@@ -21,7 +29,7 @@ export default function AudioVisualizer({ analyser, isActive = false }) {
         showScaleY: false,
         showScaleX: false,
         overlay: true,
-        bgAlpha: 0,
+        bgAlpha: 0, // Transparent background
         reflexRatio: 0.3,
         reflexAlpha: 0.2,
         reflexBright: 1,
@@ -30,18 +38,14 @@ export default function AudioVisualizer({ analyser, isActive = false }) {
         lumiBars: false,
         radial: false,
         splitGradient: false,
-        stereo: false,
+        channelLayout: 'single', // Use channelLayout instead of deprecated stereo
         smoothing: 0.7
       })
 
-      // Connect the analyzer if available
-      if (analyser) {
-        // Connect the existing analyser node to audiomotion
-        const audioMotion = audioMotionRef.current
-        analyser.connect(audioMotion.analyzer)
-      }
+      // Connect the source node to audiomotion's input
+      audioMotionRef.current.connectInput(sourceNode)
 
-      console.log('[AudioVisualizer] Initialized')
+      console.log('[AudioVisualizer] Initialized with stream')
     } catch (error) {
       console.error('[AudioVisualizer] Initialization error:', error)
     }
@@ -56,8 +60,11 @@ export default function AudioVisualizer({ analyser, isActive = false }) {
           console.error('[AudioVisualizer] Cleanup error:', error)
         }
       }
+      if (audioContext && audioContext.state !== 'closed') {
+        audioContext.close()
+      }
     }
-  }, [analyser])
+  }, [stream])
 
   // Handle active state changes
   useEffect(() => {
@@ -78,7 +85,7 @@ export default function AudioVisualizer({ analyser, isActive = false }) {
         height: '120px',
         borderRadius: '8px',
         overflow: 'hidden',
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        background: 'transparent',
         transition: 'opacity 0.3s ease'
       }}
     />

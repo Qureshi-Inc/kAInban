@@ -17,6 +17,7 @@ export default function AudioControls() {
   const [recordingTime, setRecordingTime] = useState(0)
   const [chunkInfo, setChunkInfo] = useState(null)
   const [isPasteTextOpen, setIsPasteTextOpen] = useState(false)
+  const [audioStream, setAudioStream] = useState(null)
   const [transcriptionStatus, setTranscriptionStatus] = useState({
     transcribedChunks: 0,
     totalChunks: 0,
@@ -158,6 +159,9 @@ export default function AudioControls() {
       await audioService.startRecording()
       setRecording(true)
       setPaused(false)
+
+      // Update audio stream state to trigger AudioVisualizer re-render
+      setAudioStream(audioService.stream)
     } catch (error) {
       console.error('Recording error:', error)
       addNotification({
@@ -221,6 +225,7 @@ export default function AudioControls() {
       setRecording(false)
       setPaused(false)
       setRecordingModalOpen(false)
+      setAudioStream(null) // Reset audio stream when recording stops
 
       // Start progress tracking
       setUploadProgress({
@@ -690,9 +695,9 @@ export default function AudioControls() {
                 >
                   <div className="pt-4 space-y-4 border-t">
                     {/* Audio Visualization */}
-                    <div className="recording-visualizer p-4 rounded-lg bg-gray-50 dark:bg-gray-900">
+                    <div className="py-2">
                       <AudioVisualizer
-                        analyser={audioService.analyser}
+                        stream={audioStream}
                         isActive={isRecording && !isPaused}
                       />
                     </div>

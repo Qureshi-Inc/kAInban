@@ -34,14 +34,7 @@ module.exports = {
       version: '18.2'
     },
     'import/resolver': {
-      alias: {
-        map: [
-          ['@', './src'],
-          ['@/components', './src/components'],
-          ['@/services', './src/services'],
-          ['@/stores', './src/stores'],
-          ['@/lib', './src/lib']
-        ],
+      node: {
         extensions: ['.js', '.jsx', '.ts', '.tsx']
       }
     }
