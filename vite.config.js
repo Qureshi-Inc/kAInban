@@ -22,44 +22,47 @@ export default defineConfig({
   plugins: [
     react(),
     // Disable PWA in development to prevent reload issues
-    ...(process.env.NODE_ENV === 'production' ? [
-      VitePWA({
-        registerType: 'autoUpdate',
-        workbox: {
-          globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
-          // Exclude API calls from service worker caching
-          navigateFallbackDenylist: [/^\/api/],
-          runtimeCaching: [
-            {
-              urlPattern: /^https:\/\/.*\/api\/.*/,
-              handler: 'NetworkOnly'
-            }
-          ]
-        },
-        manifest: {
-          name: 'Audio Task Manager',
-          short_name: 'AudioTasks',
-          description: 'Transcribe audio and organize tasks on a mobile-friendly kanban board',
-          theme_color: '#4285f4',
-          background_color: '#fafafa',
-          display: 'standalone',
-          orientation: 'portrait-primary',
-          start_url: '/',
-          icons: [
-            {
-              src: '/icon-192.png',
-              sizes: '192x192',
-              type: 'image/png'
+    ...(process.env.NODE_ENV === 'production'
+      ? [
+          VitePWA({
+            registerType: 'autoUpdate',
+            workbox: {
+              globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+              // Exclude API calls from service worker caching
+              navigateFallbackDenylist: [/^\/api/],
+              runtimeCaching: [
+                {
+                  urlPattern: /^https:\/\/.*\/api\/.*/,
+                  handler: 'NetworkOnly'
+                }
+              ]
             },
-            {
-              src: '/icon-512.png',
-              sizes: '512x512',
-              type: 'image/png'
+            manifest: {
+              name: 'kAInban - AI-Powered Task Management',
+              short_name: 'kAInban',
+              description:
+                'AI-powered task management with meeting transcription and intelligent task extraction',
+              theme_color: '#667eea',
+              background_color: '#fafafa',
+              display: 'standalone',
+              orientation: 'portrait-primary',
+              start_url: '/',
+              icons: [
+                {
+                  src: '/icon-192.png',
+                  sizes: '192x192',
+                  type: 'image/png'
+                },
+                {
+                  src: '/icon-512.png',
+                  sizes: '512x512',
+                  type: 'image/png'
+                }
+              ]
             }
-          ]
-        }
-      })
-    ] : [])
+          })
+        ]
+      : [])
   ],
   resolve: {
     alias: {
@@ -80,7 +83,7 @@ export default defineConfig({
       '/api': {
         target: 'http://localhost:3001',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, '/api')
+        rewrite: path => path.replace(/^\/api/, '/api')
       }
     },
     hmr: {
