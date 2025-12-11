@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react'
 import { Settings, User, Bot, KeyRound, Users } from 'lucide-react'
-import { Button } from './ui/button'
-import { Input } from './ui/input'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog'
-import { Tabs, TabsList, TabsTrigger, TabsContent } from './ui/tabs'
-import useAppStore from '../stores/useAppStore'
+import React, { useState, useEffect } from 'react'
 import apiService from '../services/apiService'
+import useAppStore from '../stores/useAppStore'
+import { Button } from './ui/button'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog'
+import { Input } from './ui/input'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from './ui/tabs'
 import UserManagement from './UserManagement'
 
 export default function SettingsDialog() {
@@ -66,7 +66,7 @@ export default function SettingsDialog() {
     }
   }, [isSettingsOpen, settings, user])
 
-  const handleTestConnection = async () => {
+  const handleTestConnection = async() => {
     setTestingConnection(true)
 
     if (!aiFormData.azureEndpoint || !aiFormData.apiKey) {
@@ -136,7 +136,7 @@ export default function SettingsDialog() {
     })
   }
 
-  const handleSaveProfile = async () => {
+  const handleSaveProfile = async() => {
     setSavingProfile(true)
 
     try {

@@ -1,7 +1,7 @@
-import Database from 'better-sqlite3'
+import fs from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
-import fs from 'fs'
+import Database from 'better-sqlite3'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -100,7 +100,7 @@ db.exec(`
 // Migration: Add new columns if they don't exist
 try {
   // Check if due_date column exists in tasks table
-  const taskColumns = db.prepare("PRAGMA table_info(tasks)").all()
+  const taskColumns = db.prepare('PRAGMA table_info(tasks)').all()
   const hasDueDate = taskColumns.some(col => col.name === 'due_date')
   const hasAssignee = taskColumns.some(col => col.name === 'assignee')
   const hasSubtasks = taskColumns.some(col => col.name === 'subtasks')
@@ -145,7 +145,7 @@ try {
   // Open Source version - no subscription fields needed
 
   // Add OIDC configuration columns to settings table
-  const settingsColumns = db.prepare("PRAGMA table_info(settings)").all()
+  const settingsColumns = db.prepare('PRAGMA table_info(settings)').all()
   const hasOidcEnabled = settingsColumns.some(col => col.name === 'oidc_enabled')
   const hasOidcClientId = settingsColumns.some(col => col.name === 'oidc_client_id')
   const hasOidcClientSecret = settingsColumns.some(col => col.name === 'oidc_client_secret')
@@ -177,7 +177,7 @@ try {
     const oldUsersCheck = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='users_old'").get()
     if (!oldUsersCheck) {
       // Check if current users table has 'sub' column (old OIDC schema)
-      const userColumns = db.prepare("PRAGMA table_info(users)").all()
+      const userColumns = db.prepare('PRAGMA table_info(users)').all()
       const hasSub = userColumns.some(col => col.name === 'sub')
 
       if (hasSub && !userColumns.some(col => col.name === 'auth_provider')) {
@@ -673,7 +673,7 @@ export const updateUser = (userId, updates) => {
     values.push(updates.active ? 1 : 0)
   }
 
-  if (fields.length === 0) return getUserById(userId)
+  if (fields.length === 0) {return getUserById(userId)}
 
   fields.push('updated_at = CURRENT_TIMESTAMP')
   values.push(userId)

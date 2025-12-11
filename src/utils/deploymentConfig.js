@@ -2,7 +2,7 @@
 export const deploymentConfig = {
   mode: 'opensource',
   showBadges: true,
-  allowSelfHosted: true,
+  allowSelfHosted: true
 }
 
 // Open Source limits (unlimited)

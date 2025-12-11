@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
+import React, { useState, useEffect } from 'react'
+import apiService from '../services/apiService'
 import LoginForm from './LoginForm'
 import RegisterForm from './RegisterForm'
-import apiService from '../services/apiService'
 
 export default function AuthPage({ onAuthSuccess }) {
   const [mode, setMode] = useState('login') // 'login' or 'register'
@@ -16,7 +16,7 @@ export default function AuthPage({ onAuthSuccess }) {
     checkAuthStatus()
   }, [])
 
-  const checkAuthStatus = async () => {
+  const checkAuthStatus = async() => {
     try {
       const status = await apiService.getAuthStatus()
       setIsFirstUser(!status.hasUsers)
@@ -31,7 +31,7 @@ export default function AuthPage({ onAuthSuccess }) {
     }
   }
 
-  const handleLogin = async (email, password) => {
+  const handleLogin = async(email, password) => {
     setError('')
     try {
       const response = await apiService.login(email, password)
@@ -43,7 +43,7 @@ export default function AuthPage({ onAuthSuccess }) {
     }
   }
 
-  const handleRegister = async (name, email, password) => {
+  const handleRegister = async(name, email, password) => {
     setError('')
     try {
       const response = await apiService.register(name, email, password)

@@ -1,11 +1,11 @@
-import React, { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Trash2, CheckSquare, Plus, MoreVertical, List, LayoutGrid, ChevronDown, ChevronRight } from 'lucide-react'
+import React, { useState } from 'react'
+import openaiService from '../services/openaiService'
+import useAppStore from '../stores/useAppStore'
+import TaskDetailModal from './TaskDetailModal'
 import { Button } from './ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
-import useAppStore from '../stores/useAppStore'
-import openaiService from '../services/openaiService'
-import TaskDetailModal from './TaskDetailModal'
 
 const TaskCard = ({ task, onStatusChange, onDelete, onClick }) => {
   const [isDragging, setIsDragging] = React.useState(false)
@@ -45,8 +45,8 @@ const TaskCard = ({ task, onStatusChange, onDelete, onClick }) => {
       whileTap={{ scale: 0.98 }}
       transition={{
         duration: 0.2,
-        ease: "easeOut",
-        scale: { type: "spring", stiffness: 300, damping: 25 }
+        ease: 'easeOut',
+        scale: { type: 'spring', stiffness: 300, damping: 25 }
       }}
       className={`group task-card bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-xl p-1 sm:p-4 mb-3 shadow-lg hover:shadow-2xl cursor-grab active:cursor-grabbing backdrop-blur-sm transition-all duration-300 hover:border-primary/40 hover:bg-gradient-to-br hover:from-gray-50/50 hover:to-white dark:hover:from-gray-700/50 dark:hover:to-gray-800 ${getDragStyles()}`}
       style={{
@@ -133,7 +133,7 @@ const Column = ({ title, status, tasks, onTaskMove, onTaskReorder, onTaskDelete,
     const taskId = e.dataTransfer.getData('text/plain')
     const task = allTasks.find(t => t.id === taskId)
 
-    if (!task) return
+    if (!task) {return}
 
     // If moving to a different column, just change status
     if (task.status !== status) {
@@ -194,7 +194,7 @@ const Column = ({ title, status, tasks, onTaskMove, onTaskReorder, onTaskDelete,
           <motion.span
             className="bg-gradient-to-r from-primary/20 to-primary/10 text-primary px-3 py-1.5 rounded-full text-sm font-bold shadow-sm ring-1 ring-primary/20"
             whileHover={{ scale: 1.1, rotate: [0, -5, 5, 0] }}
-            transition={{ type: "spring", stiffness: 400, damping: 10 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 10 }}
           >
             {count}
           </motion.span>
@@ -451,10 +451,10 @@ export default function KanbanBoard() {
   const sortTasksByOrder = (tasks) => {
     return tasks.sort((a, b) => {
       // If both have order, sort by order
-      if (a.order && b.order) return a.order - b.order
+      if (a.order && b.order) {return a.order - b.order}
       // If only one has order, prioritize it
-      if (a.order && !b.order) return -1
-      if (!a.order && b.order) return 1
+      if (a.order && !b.order) {return -1}
+      if (!a.order && b.order) {return 1}
       // If neither has order, sort by creation time
       return new Date(a.createdAt) - new Date(b.createdAt)
     })
@@ -472,7 +472,7 @@ export default function KanbanBoard() {
     const draggedIndex = columnTasks.findIndex(t => t.id === draggedTaskId)
     const targetIndex = columnTasks.findIndex(t => t.id === targetTaskId)
 
-    if (draggedIndex === -1 || targetIndex === -1) return
+    if (draggedIndex === -1 || targetIndex === -1) {return}
 
     // Create new order
     const reorderedTasks = [...columnTasks]
@@ -491,9 +491,9 @@ export default function KanbanBoard() {
     })
   }
 
-  const handleTaskMove = async (taskId, newStatus) => {
+  const handleTaskMove = async(taskId, newStatus) => {
     const task = tasks.find(t => t.id === taskId)
-    if (!task) return
+    if (!task) {return}
 
     const previousStatus = task.status
 
@@ -550,7 +550,7 @@ export default function KanbanBoard() {
   }
 
   const handleClearAll = () => {
-    if (tasks.length === 0) return
+    if (tasks.length === 0) {return}
 
     if (confirm('Clear all tasks? This cannot be undone.')) {
       clearTasks()
@@ -683,177 +683,177 @@ export default function KanbanBoard() {
 
   return (
     <>
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, delay: 0.2 }}
-    >
-      <Card className="border-2 shadow-2xl bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900">
-        <CardHeader className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border-b-2">
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-3">
-              <motion.div
-                className="p-2 bg-gradient-to-br from-primary to-primary/80 rounded-lg shadow-lg"
-                whileHover={{ scale: 1.1, rotate: 5 }}
-                transition={{ type: "spring", stiffness: 400, damping: 10 }}
-              >
-                <CheckSquare className="h-6 w-6 text-white" />
-              </motion.div>
-              <div>
-                <div className="text-2xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-                  Task Board
-                </div>
-                <div className="text-xs text-muted-foreground font-normal">
-                  {tasks.length} total tasks
-                </div>
-              </div>
-            </CardTitle>
-
-            <div className="flex items-center gap-2">
-              {/* Add Task Button */}
-              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                <Button
-                  onClick={handleCreateTask}
-                  variant="default"
-                  size="sm"
-                  className="flex items-center gap-2 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-md"
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0.2 }}
+      >
+        <Card className="border-2 shadow-2xl bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900">
+          <CardHeader className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border-b-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-3">
+                <motion.div
+                  className="p-2 bg-gradient-to-br from-primary to-primary/80 rounded-lg shadow-lg"
+                  whileHover={{ scale: 1.1, rotate: 5 }}
+                  transition={{ type: 'spring', stiffness: 400, damping: 10 }}
                 >
-                  <Plus className="h-4 w-4" />
-                  <span className="hidden sm:inline">Add Task</span>
-                </Button>
-              </motion.div>
+                  <CheckSquare className="h-6 w-6 text-white" />
+                </motion.div>
+                <div>
+                  <div className="text-2xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+                    Task Board
+                  </div>
+                  <div className="text-xs text-muted-foreground font-normal">
+                    {tasks.length} total tasks
+                  </div>
+                </div>
+              </CardTitle>
 
-              {/* Menu Button */}
-              <div className="relative">
+              <div className="flex items-center gap-2">
+                {/* Add Task Button */}
                 <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                   <Button
-                    onClick={() => setIsMenuOpen(!isMenuOpen)}
-                    variant="outline"
-                    size="icon"
-                    className="h-9 w-9"
+                    onClick={handleCreateTask}
+                    variant="default"
+                    size="sm"
+                    className="flex items-center gap-2 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-md"
                   >
-                    <MoreVertical className="h-4 w-4" />
+                    <Plus className="h-4 w-4" />
+                    <span className="hidden sm:inline">Add Task</span>
                   </Button>
                 </motion.div>
 
-                {/* Dropdown Menu */}
-                <AnimatePresence>
-                  {isMenuOpen && (
-                    <>
-                      {/* Backdrop to close menu */}
-                      <div
-                        className="fixed inset-0 z-40"
-                        onClick={() => setIsMenuOpen(false)}
-                      />
+                {/* Menu Button */}
+                <div className="relative">
+                  <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                    <Button
+                      onClick={() => setIsMenuOpen(!isMenuOpen)}
+                      variant="outline"
+                      size="icon"
+                      className="h-9 w-9"
+                    >
+                      <MoreVertical className="h-4 w-4" />
+                    </Button>
+                  </motion.div>
 
-                      {/* Menu */}
-                      <motion.div
-                        initial={{ opacity: 0, scale: 0.95, y: -10 }}
-                        animate={{ opacity: 1, scale: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.95, y: -10 }}
-                        transition={{ duration: 0.1 }}
-                        className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border-2 border-gray-200 dark:border-gray-700 overflow-hidden z-50"
-                      >
-                        {/* View Toggle */}
-                        <button
-                          onClick={() => {
-                            setViewMode(viewMode === 'kanban' ? 'list' : 'kanban')
-                            setIsMenuOpen(false)
-                          }}
-                          className="w-full px-4 py-3 text-left text-sm hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2 transition-colors border-b border-gray-200 dark:border-gray-700"
+                  {/* Dropdown Menu */}
+                  <AnimatePresence>
+                    {isMenuOpen && (
+                      <>
+                        {/* Backdrop to close menu */}
+                        <div
+                          className="fixed inset-0 z-40"
+                          onClick={() => setIsMenuOpen(false)}
+                        />
+
+                        {/* Menu */}
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                          animate={{ opacity: 1, scale: 1, y: 0 }}
+                          exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                          transition={{ duration: 0.1 }}
+                          className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border-2 border-gray-200 dark:border-gray-700 overflow-hidden z-50"
                         >
-                          {viewMode === 'kanban' ? (
-                            <>
-                              <List className="h-4 w-4" />
-                              Switch to List View
-                            </>
-                          ) : (
-                            <>
-                              <LayoutGrid className="h-4 w-4" />
-                              Switch to Kanban View
-                            </>
-                          )}
-                        </button>
-
-                        {tasks.length > 0 && (
+                          {/* View Toggle */}
                           <button
                             onClick={() => {
+                              setViewMode(viewMode === 'kanban' ? 'list' : 'kanban')
                               setIsMenuOpen(false)
-                              handleClearAll()
                             }}
-                            className="w-full px-4 py-3 text-left text-sm hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 flex items-center gap-2 transition-colors"
+                            className="w-full px-4 py-3 text-left text-sm hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2 transition-colors border-b border-gray-200 dark:border-gray-700"
                           >
-                            <Trash2 className="h-4 w-4" />
-                            Clear All Tasks
+                            {viewMode === 'kanban' ? (
+                              <>
+                                <List className="h-4 w-4" />
+                                Switch to List View
+                              </>
+                            ) : (
+                              <>
+                                <LayoutGrid className="h-4 w-4" />
+                                Switch to Kanban View
+                              </>
+                            )}
                           </button>
-                        )}
-                        {tasks.length === 0 && (
-                          <div className="px-4 py-3 text-sm text-muted-foreground text-center">
-                            No actions available
-                          </div>
-                        )}
-                      </motion.div>
-                    </>
-                  )}
-                </AnimatePresence>
+
+                          {tasks.length > 0 && (
+                            <button
+                              onClick={() => {
+                                setIsMenuOpen(false)
+                                handleClearAll()
+                              }}
+                              className="w-full px-4 py-3 text-left text-sm hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 flex items-center gap-2 transition-colors"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                              Clear All Tasks
+                            </button>
+                          )}
+                          {tasks.length === 0 && (
+                            <div className="px-4 py-3 text-sm text-muted-foreground text-center">
+                              No actions available
+                            </div>
+                          )}
+                        </motion.div>
+                      </>
+                    )}
+                  </AnimatePresence>
+                </div>
               </div>
             </div>
-          </div>
-        </CardHeader>
-        <CardContent className="p-6">
-          {viewMode === 'kanban' ? (
-            <div className="grid grid-cols-1 xl:grid-cols-4 gap-4 xl:gap-6 w-full">
-              <Column
-                title="📋 To Do"
-                status="todo"
-                tasks={todoTasks}
-                count={todoTasks.length}
-                onTaskMove={handleTaskMove}
-                onTaskReorder={handleTaskReorder}
-                onTaskDelete={handleTaskDelete}
-                onTaskClick={handleTaskClick}
-                allTasks={tasks}
-              />
-              <Column
-                title="⚡ In Progress"
-                status="in-progress"
-                tasks={inProgressTasks}
-                count={inProgressTasks.length}
-                onTaskMove={handleTaskMove}
-                onTaskReorder={handleTaskReorder}
-                onTaskDelete={handleTaskDelete}
-                onTaskClick={handleTaskClick}
-                allTasks={tasks}
-              />
-              <Column
-                title="✅ Done"
-                status="done"
-                tasks={doneTasks}
-                count={doneTasks.length}
-                onTaskMove={handleTaskMove}
-                onTaskReorder={handleTaskReorder}
-                onTaskDelete={handleTaskDelete}
-                onTaskClick={handleTaskClick}
-                allTasks={tasks}
-              />
-              <Column
-                title="🚫 Blocked"
-                status="blocked"
-                tasks={blockedTasks}
-                count={blockedTasks.length}
-                onTaskMove={handleTaskMove}
-                onTaskReorder={handleTaskReorder}
-                onTaskDelete={handleTaskDelete}
-                onTaskClick={handleTaskClick}
-                allTasks={tasks}
-              />
-            </div>
-          ) : (
-            <ListView />
-          )}
-        </CardContent>
-      </Card>
-    </motion.div>
+          </CardHeader>
+          <CardContent className="p-6">
+            {viewMode === 'kanban' ? (
+              <div className="grid grid-cols-1 xl:grid-cols-4 gap-4 xl:gap-6 w-full">
+                <Column
+                  title="📋 To Do"
+                  status="todo"
+                  tasks={todoTasks}
+                  count={todoTasks.length}
+                  onTaskMove={handleTaskMove}
+                  onTaskReorder={handleTaskReorder}
+                  onTaskDelete={handleTaskDelete}
+                  onTaskClick={handleTaskClick}
+                  allTasks={tasks}
+                />
+                <Column
+                  title="⚡ In Progress"
+                  status="in-progress"
+                  tasks={inProgressTasks}
+                  count={inProgressTasks.length}
+                  onTaskMove={handleTaskMove}
+                  onTaskReorder={handleTaskReorder}
+                  onTaskDelete={handleTaskDelete}
+                  onTaskClick={handleTaskClick}
+                  allTasks={tasks}
+                />
+                <Column
+                  title="✅ Done"
+                  status="done"
+                  tasks={doneTasks}
+                  count={doneTasks.length}
+                  onTaskMove={handleTaskMove}
+                  onTaskReorder={handleTaskReorder}
+                  onTaskDelete={handleTaskDelete}
+                  onTaskClick={handleTaskClick}
+                  allTasks={tasks}
+                />
+                <Column
+                  title="🚫 Blocked"
+                  status="blocked"
+                  tasks={blockedTasks}
+                  count={blockedTasks.length}
+                  onTaskMove={handleTaskMove}
+                  onTaskReorder={handleTaskReorder}
+                  onTaskDelete={handleTaskDelete}
+                  onTaskClick={handleTaskClick}
+                  allTasks={tasks}
+                />
+              </div>
+            ) : (
+              <ListView />
+            )}
+          </CardContent>
+        </Card>
+      </motion.div>
 
       {/* Task Detail Modal */}
       <TaskDetailModal

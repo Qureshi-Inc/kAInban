@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
+import { Mail, Lock, User, Loader2, Check, X, KeyRound } from 'lucide-react'
+import React, { useState, useEffect } from 'react'
+import apiService from '../services/apiService'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
-import { Mail, Lock, User, Loader2, Check, X, KeyRound } from 'lucide-react'
-import apiService from '../services/apiService'
 
 export default function RegisterForm({ onRegister, onSwitchToLogin, error, isFirstUser }) {
   const [name, setName] = useState('')
@@ -38,9 +38,9 @@ export default function RegisterForm({ onRegister, onSwitchToLogin, error, isFir
     passwordValidation.hasNumber &&
     passwordValidation.match
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async(e) => {
     e.preventDefault()
-    if (!isValid) return
+    if (!isValid) {return}
 
     setLoading(true)
     try {
@@ -50,7 +50,7 @@ export default function RegisterForm({ onRegister, onSwitchToLogin, error, isFir
     }
   }
 
-  const handleOIDCLogin = async () => {
+  const handleOIDCLogin = async() => {
     setOidcLoading(true)
     try {
       const authUrl = await apiService.initiateOIDCLogin()
@@ -86,7 +86,7 @@ export default function RegisterForm({ onRegister, onSwitchToLogin, error, isFir
         <motion.div
           className="w-16 h-16 mx-auto rounded-xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center text-white font-bold text-3xl shadow-lg ring-2 ring-primary/20 mb-4"
           whileHover={{ scale: 1.1, rotate: 10 }}
-          transition={{ type: "spring", stiffness: 400, damping: 10 }}
+          transition={{ type: 'spring', stiffness: 400, damping: 10 }}
         >
           🎤
         </motion.div>

@@ -1,11 +1,11 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
-import request from 'supertest'
 import express from 'express'
 import session from 'express-session'
+import request from 'supertest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { initializeDatabase } from '../database.js'
 
 // Mock the server setup
-const createTestApp = async () => {
+const createTestApp = async() => {
   const app = express()
 
   // Initialize database
@@ -21,7 +21,7 @@ const createTestApp = async () => {
   }))
 
   // Mock auth routes
-  app.post('/api/auth/register', async (req, res) => {
+  app.post('/api/auth/register', async(req, res) => {
     const { name, email, password } = req.body
 
     if (!name || !email || !password) {
@@ -43,7 +43,7 @@ const createTestApp = async () => {
     })
   })
 
-  app.post('/api/auth/login', async (req, res) => {
+  app.post('/api/auth/login', async(req, res) => {
     const { email, password } = req.body
 
     if (!email || !password) {
@@ -91,12 +91,12 @@ const createTestApp = async () => {
 describe('Authentication API', () => {
   let app
 
-  beforeEach(async () => {
+  beforeEach(async() => {
     app = await createTestApp()
   })
 
   describe('POST /api/auth/register', () => {
-    it('should register a new user successfully', async () => {
+    it('should register a new user successfully', async() => {
       const userData = {
         name: 'John Doe',
         email: 'john@example.com',
@@ -117,7 +117,7 @@ describe('Authentication API', () => {
       expect(response.body.user.password).toBeUndefined()
     })
 
-    it('should reject registration with missing fields', async () => {
+    it('should reject registration with missing fields', async() => {
       const response = await request(app)
         .post('/api/auth/register')
         .send({ email: 'test@example.com' })
@@ -126,7 +126,7 @@ describe('Authentication API', () => {
       expect(response.body.error).toBe('Name, email, and password are required')
     })
 
-    it('should reject registration with short password', async () => {
+    it('should reject registration with short password', async() => {
       const userData = {
         name: 'John Doe',
         email: 'john@example.com',
@@ -143,7 +143,7 @@ describe('Authentication API', () => {
   })
 
   describe('POST /api/auth/login', () => {
-    it('should login with valid credentials', async () => {
+    it('should login with valid credentials', async() => {
       const loginData = {
         email: 'test@example.com',
         password: 'password123'
@@ -162,7 +162,7 @@ describe('Authentication API', () => {
       })
     })
 
-    it('should reject login with invalid credentials', async () => {
+    it('should reject login with invalid credentials', async() => {
       const loginData = {
         email: 'test@example.com',
         password: 'wrongpassword'
@@ -176,7 +176,7 @@ describe('Authentication API', () => {
       expect(response.body.error).toBe('Invalid credentials')
     })
 
-    it('should reject login with missing fields', async () => {
+    it('should reject login with missing fields', async() => {
       const response = await request(app)
         .post('/api/auth/login')
         .send({ email: 'test@example.com' })
@@ -187,7 +187,7 @@ describe('Authentication API', () => {
   })
 
   describe('GET /api/auth/user', () => {
-    it('should return user info when authenticated', async () => {
+    it('should return user info when authenticated', async() => {
       const agent = request.agent(app)
 
       // Login first
@@ -208,7 +208,7 @@ describe('Authentication API', () => {
       })
     })
 
-    it('should return 401 when not authenticated', async () => {
+    it('should return 401 when not authenticated', async() => {
       const response = await request(app)
         .get('/api/auth/user')
         .expect(401)
@@ -218,7 +218,7 @@ describe('Authentication API', () => {
   })
 
   describe('POST /api/auth/logout', () => {
-    it('should logout successfully', async () => {
+    it('should logout successfully', async() => {
       const agent = request.agent(app)
 
       // Login first
@@ -242,7 +242,7 @@ describe('Authentication API', () => {
   })
 
   describe('GET /api/health', () => {
-    it('should return health status', async () => {
+    it('should return health status', async() => {
       const response = await request(app)
         .get('/api/health')
         .expect(200)

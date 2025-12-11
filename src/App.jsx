@@ -1,21 +1,21 @@
-import React, { useEffect } from 'react'
 import { motion } from 'framer-motion'
-import useAppStore from './stores/useAppStore'
-import openaiService from './services/openaiService'
+import React, { useEffect } from 'react'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 
 // Components
-import Header from './components/Header'
-import AudioControls from './components/AudioControls'
-import SummaryPanel from './components/SummaryPanel'
-import MeetingFilesPanel from './components/MeetingFilesPanel'
-import KanbanBoard from './components/KanbanBoard'
-import SettingsDialog from './components/SettingsDialog'
-import RecordingModal from './components/RecordingModal'
-import NotificationSystem from './components/NotificationSystem'
-import DebugPanel from './components/DebugPanel'
-import ProgressIndicator from './components/ProgressIndicator'
-import AnalyticsDashboard from './components/AnalyticsDashboard'
 import AuthPage from './components/AuthPage'
+import DebugPanel from './components/DebugPanel'
+import Header from './components/Header'
+import NotificationSystem from './components/NotificationSystem'
+import ProgressIndicator from './components/ProgressIndicator'
+import RecordingModal from './components/RecordingModal'
+import SettingsDialog from './components/SettingsDialog'
+
+// Pages
+import Dashboard from './pages/Dashboard'
+import ProjectView from './pages/ProjectView'
+import openaiService from './services/openaiService'
+import useAppStore from './stores/useAppStore'
 
 function App() {
   const [loading, setLoading] = React.useState(true)
@@ -36,7 +36,7 @@ function App() {
 
   useEffect(() => {
     // Check authentication and initialize in parallel
-    const initApp = async () => {
+    const initApp = async() => {
       try {
         // Check authentication first
         const authenticatedUser = await checkAuth()
@@ -137,7 +137,7 @@ function App() {
                   transition={{
                     duration: 2,
                     repeat: Infinity,
-                    ease: "easeInOut"
+                    ease: 'easeInOut'
                   }}
                 >
                   🎤
@@ -153,7 +153,7 @@ function App() {
                   transition={{
                     duration: 2,
                     repeat: Infinity,
-                    ease: "easeInOut"
+                    ease: 'easeInOut'
                   }}
                 />
               </div>
@@ -180,7 +180,7 @@ function App() {
                   transition={{
                     duration: 1.5,
                     repeat: Infinity,
-                    ease: "easeInOut"
+                    ease: 'easeInOut'
                   }}
                 />
               </div>
@@ -252,129 +252,59 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
-      {/* Modern glassmorphism navbar */}
-      <div className="sticky top-0 z-50 backdrop-blur-xl bg-background/80 border-b border-border/50">
-        <div className="w-full px-6 py-4 max-w-[1920px] mx-auto">
-          <Header />
+    <BrowserRouter>
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
+        {/* Modern glassmorphism navbar */}
+        <div className="sticky top-0 z-50 backdrop-blur-xl bg-background/80 border-b border-border/50">
+          <div className="w-full px-6 py-4 max-w-[1920px] mx-auto">
+            <Header />
+          </div>
         </div>
-      </div>
 
-      {/* Main content area */}
-      <div className="w-full px-6 py-8 max-w-[1920px] mx-auto">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, ease: "easeOut" }}
-          className="space-y-8"
-        >
-          {/* Show Analytics Dashboard when no project is selected */}
-          {!currentProject ? (
-            <div className="space-y-6">
-              {/* Breadcrumb for context */}
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.1 }}
-                className="flex items-center gap-2 text-sm text-muted-foreground"
-              >
-                <span className="font-medium">Dashboard</span>
-                <span className="text-xs">•</span>
-                <span>Overview & Analytics</span>
-              </motion.div>
-
-              <AnalyticsDashboard />
-            </div>
-          ) : (
-            <div className="space-y-8">
-              {/* Project breadcrumb and context */}
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.1 }}
-                className="space-y-4"
-              >
-                {/* Breadcrumb navigation */}
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <span
-                    className="hover:text-foreground cursor-pointer transition-colors font-medium"
-                    onClick={() => {
-                      const { clearSession } = useAppStore.getState()
-                      clearSession()
-                    }}
-                  >
-                    Dashboard
-                  </span>
-                  <span className="text-xs">→</span>
-                  <span className="font-medium text-foreground">{currentProject.name}</span>
-                  <span className="text-xs">•</span>
-                  <span className="px-2 py-1 bg-primary/10 text-primary text-xs rounded-full">
-                    {currentProject.tasks?.length || 0} tasks
-                  </span>
-                </div>
-
-              </motion.div>
-
-              {/* Audio controls with modern styling */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-              >
-                <AudioControls />
-              </motion.div>
-
-              {/* Content grid with improved spacing */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 }}
-                className="space-y-8"
-              >
-                <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
-                  <div className="xl:col-span-8">
-                    <SummaryPanel />
-                  </div>
-
-                  <div className="xl:col-span-4">
-                    <MeetingFilesPanel />
-                  </div>
-                </div>
-
-                <KanbanBoard />
-              </motion.div>
-            </div>
-          )}
-        </motion.div>
-      </div>
-
-      {/* Modals and overlays */}
-      <SettingsDialog />
-      <RecordingModal />
-      <NotificationSystem notifications={notifications} />
-
-      {/* Progress indicator for file uploads */}
-      <ProgressIndicator
-        progress={{
-          ...uploadProgress,
-          onDismiss: resetUploadProgress
-        }}
-      />
-
-      {/* Debug panel for mobile development */}
-      {import.meta.env.DEV && <DebugPanel />}
-
-      {/* Footer */}
-      <footer className="mt-16 py-8 border-t border-border/50 bg-card/30 backdrop-blur-sm">
-        <div className="text-center">
-          <p className="text-sm text-muted-foreground">
-            Built with <span className="text-red-500">♥</span> by{' '}
-            <span className="font-medium text-foreground">InterestingSoup</span>{' '}
-            <span className="text-xs opacity-70">2025</span>
-          </p>
+        {/* Main content area */}
+        <div className="w-full px-6 py-8 max-w-[1920px] mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, ease: 'easeOut' }}
+            className="space-y-8"
+          >
+            <Routes>
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/project/:projectId" element={<ProjectView />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </motion.div>
         </div>
-      </footer>
-    </div>
+
+        {/* Modals and overlays */}
+        <SettingsDialog />
+        <RecordingModal />
+        <NotificationSystem notifications={notifications} />
+
+        {/* Progress indicator for file uploads */}
+        <ProgressIndicator
+          progress={{
+            ...uploadProgress,
+            onDismiss: resetUploadProgress
+          }}
+        />
+
+        {/* Debug panel for mobile development */}
+        {import.meta.env.DEV && <DebugPanel />}
+
+        {/* Footer */}
+        <footer className="mt-16 py-8 border-t border-border/50 bg-card/30 backdrop-blur-sm">
+          <div className="text-center">
+            <p className="text-sm text-muted-foreground">
+              Built with <span className="text-red-500">♥</span> by{' '}
+              <span className="font-medium text-foreground">InterestingSoup</span>{' '}
+              <span className="text-xs opacity-70">2025</span>
+            </p>
+          </div>
+        </footer>
+      </div>
+    </BrowserRouter>
   )
 }
 

@@ -30,7 +30,7 @@ const ProgressIndicator = ({ progress }) => {
         initial={{ opacity: 0, scale: 0.9, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.9, y: 20 }}
-        transition={{ type: "spring", duration: 0.5 }}
+        transition={{ type: 'spring', duration: 0.5 }}
         className="fixed bottom-6 z-50 left-0 right-0 mx-auto sm:left-auto sm:right-6 sm:mx-0 w-[calc(100%-3rem)] sm:w-96"
       >
         <motion.div
@@ -47,7 +47,7 @@ const ProgressIndicator = ({ progress }) => {
                 <motion.div
                   className={`relative w-10 h-10 rounded-xl bg-gradient-to-br ${currentStage.color} flex items-center justify-center shadow-lg`}
                   animate={isProcessing ? { rotate: [0, 360] } : {}}
-                  transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                  transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
                 >
                   {isProcessing ? (
                     <Loader2 size={20} className="text-white" />
@@ -108,12 +108,12 @@ const ProgressIndicator = ({ progress }) => {
                     className={`absolute inset-y-0 left-0 bg-gradient-to-r ${currentStage.color} rounded-full`}
                     initial={{ width: 0 }}
                     animate={{ width: `${progress.percentage}%` }}
-                    transition={{ duration: 0.5, ease: "easeOut" }}
+                    transition={{ duration: 0.5, ease: 'easeOut' }}
                   />
                   <motion.div
                     className="absolute inset-y-0 left-0 bg-white/30 rounded-full"
                     animate={{ x: ['0%', '100%'] }}
-                    transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                    transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
                     style={{ width: '30%' }}
                   />
                 </div>
@@ -149,7 +149,8 @@ const ProgressIndicator = ({ progress }) => {
                         ${isComplete ? 'text-green-600 dark:text-green-400' : ''}
                         ${isCurrent ? 'text-gray-900 dark:text-white' : ''}
                         ${isFuture ? 'text-gray-400' : ''}
-                      `}>
+                      `}
+                      >
                         {stage.label}
                       </span>
                       {/* Connector Line */}

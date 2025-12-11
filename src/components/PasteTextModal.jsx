@@ -1,10 +1,10 @@
-import React, { useState } from 'react'
 import { motion } from 'framer-motion'
 import { FileText, X, Sparkles } from 'lucide-react'
+import React, { useState } from 'react'
+import openaiService from '../services/openaiService'
+import useAppStore from '../stores/useAppStore'
 import { Button } from './ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog'
-import useAppStore from '../stores/useAppStore'
-import openaiService from '../services/openaiService'
 
 export default function PasteTextModal({ open, onOpenChange }) {
   const [transcript, setTranscript] = useState('')
@@ -19,7 +19,7 @@ export default function PasteTextModal({ open, onOpenChange }) {
     resetUploadProgress
   } = useAppStore()
 
-  const handleProcess = async () => {
+  const handleProcess = async() => {
     if (!transcript.trim()) {
       addNotification({
         type: 'error',
@@ -114,8 +114,8 @@ export default function PasteTextModal({ open, onOpenChange }) {
 
         // Show success notification
         const messages = []
-        if (newCount > 0) messages.push(`${newCount} new`)
-        if (updatedCount > 0) messages.push(`${updatedCount} updated`)
+        if (newCount > 0) {messages.push(`${newCount} new`)}
+        if (updatedCount > 0) {messages.push(`${updatedCount} updated`)}
 
         addNotification({
           type: 'success',
@@ -223,7 +223,7 @@ Example:
                 <>
                   <motion.div
                     animate={{ rotate: 360 }}
-                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                    transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
                   >
                     <Sparkles className="w-4 h-4" />
                   </motion.div>

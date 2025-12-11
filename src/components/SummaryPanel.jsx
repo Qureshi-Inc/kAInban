@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { FileText, Download, Share2, Copy } from 'lucide-react'
+import React, { useState, useEffect } from 'react'
 import ReactMarkdown from 'react-markdown'
+import openaiService from '../services/openaiService'
+import useAppStore from '../stores/useAppStore'
 import { Button } from './ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
-import useAppStore from '../stores/useAppStore'
-import openaiService from '../services/openaiService'
 
 export default function SummaryPanel() {
   const { getSelectedMeeting, addTask, addNotification } = useAppStore()
@@ -15,7 +15,7 @@ export default function SummaryPanel() {
 
   // Load summary content from backend when meeting changes
   useEffect(() => {
-    const loadSummary = async () => {
+    const loadSummary = async() => {
       if (!selectedMeeting) {
         setSummary('')
         return
@@ -79,7 +79,7 @@ export default function SummaryPanel() {
     })
   }
 
-  const handleCopySummary = async () => {
+  const handleCopySummary = async() => {
     if (!summary || !summary.trim()) {
       addNotification({
         type: 'error',
@@ -103,7 +103,7 @@ export default function SummaryPanel() {
     }
   }
 
-  const handleShareSummary = async () => {
+  const handleShareSummary = async() => {
     if (!summary || !summary.trim()) {
       addNotification({
         type: 'error',
@@ -118,7 +118,7 @@ export default function SummaryPanel() {
       try {
         await navigator.share({
           title: meetingName,
-          text: summary,
+          text: summary
         })
         addNotification({
           type: 'success',
@@ -137,7 +137,7 @@ export default function SummaryPanel() {
     }
   }
 
-  const handleGenerateTasks = async () => {
+  const handleGenerateTasks = async() => {
 
     // IMPORTANT: Use transcript (not summary) for accurate task extraction
     const transcript = selectedMeeting?.transcript
@@ -198,8 +198,8 @@ export default function SummaryPanel() {
       })
 
       const messages = []
-      if (newCount > 0) messages.push(`${newCount} new`)
-      if (updatedCount > 0) messages.push(`${updatedCount} updated`)
+      if (newCount > 0) {messages.push(`${newCount} new`)}
+      if (updatedCount > 0) {messages.push(`${updatedCount} updated`)}
 
       addNotification({
         type: 'success',
@@ -227,7 +227,7 @@ export default function SummaryPanel() {
               <motion.div
                 className="p-2 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg shadow-md"
                 whileHover={{ scale: 1.1, rotate: 5 }}
-                transition={{ type: "spring", stiffness: 400, damping: 10 }}
+                transition={{ type: 'spring', stiffness: 400, damping: 10 }}
               >
                 <FileText className="h-5 w-5 text-white" />
               </motion.div>
@@ -278,7 +278,7 @@ export default function SummaryPanel() {
                 >
                   <motion.div
                     animate={{ rotate: 360 }}
-                    transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                    transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
                   >
                     <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
                   </motion.div>

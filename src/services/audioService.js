@@ -136,7 +136,7 @@ class AudioService {
   startChunkTimer() {
     // Check chunk duration every second
     this.chunkTimer = setInterval(() => {
-      if (!this.chunkStartTime) return
+      if (!this.chunkStartTime) {return}
 
       const elapsedSeconds = (Date.now() - this.chunkStartTime) / 1000
 
@@ -148,7 +148,7 @@ class AudioService {
   }
 
   rotateToNextChunk() {
-    console.log(`[AudioService] === CHUNK ROTATION START ===`)
+    console.log('[AudioService] === CHUNK ROTATION START ===')
 
     // Get reference to completed chunk data
     const completedChunkIndex = this.currentChunkIndex
@@ -232,7 +232,7 @@ class AudioService {
   }
 
   getCurrentChunkInfo() {
-    if (!this.chunkStartTime) return null
+    if (!this.chunkStartTime) {return null}
 
     const elapsedSeconds = Math.floor((Date.now() - this.chunkStartTime) / 1000)
     const remainingSeconds = Math.max(0, this.chunkDuration - elapsedSeconds)
@@ -247,7 +247,7 @@ class AudioService {
   }
 
   getVisualizationData() {
-    if (!this.analyser) return null
+    if (!this.analyser) {return null}
 
     const bufferLength = this.analyser.frequencyBinCount
     const dataArray = new Uint8Array(bufferLength)
@@ -516,7 +516,7 @@ class AudioService {
     const format = 1 // PCM
     const bitDepth = 16
 
-    let length = buffer.length * numChannels * 2
+    const length = buffer.length * numChannels * 2
     let arrayBuffer = new ArrayBuffer(44 + length)
     let view = new DataView(arrayBuffer)
 

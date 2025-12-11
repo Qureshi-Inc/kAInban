@@ -1,8 +1,8 @@
-import React from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { CheckCircle, AlertCircle, Info, X } from 'lucide-react'
-import { Button } from './ui/button'
+import React from 'react'
 import useAppStore from '../stores/useAppStore'
+import { Button } from './ui/button'
 
 const NotificationItem = ({ notification }) => {
   const { removeNotification } = useAppStore()

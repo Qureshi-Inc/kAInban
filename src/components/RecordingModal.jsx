@@ -1,12 +1,12 @@
-import React, { useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { Square, X } from 'lucide-react'
-import { Button } from './ui/button'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog'
+import React, { useEffect, useRef } from 'react'
 import { formatTime } from '../lib/utils'
-import useAppStore from '../stores/useAppStore'
 import audioService from '../services/audioService'
 import openaiService from '../services/openaiService'
+import useAppStore from '../stores/useAppStore'
+import { Button } from './ui/button'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog'
 
 export default function RecordingModal() {
   const canvasRef = useRef(null)
@@ -61,7 +61,7 @@ export default function RecordingModal() {
 
   const startVisualization = () => {
     const canvas = canvasRef.current
-    if (!canvas) return
+    if (!canvas) {return}
 
     const ctx = canvas.getContext('2d')
     const { width, height } = canvas
@@ -125,7 +125,7 @@ export default function RecordingModal() {
     }
   }
 
-  const handleStop = async () => {
+  const handleStop = async() => {
     try {
       console.log('[RecordingModal] Stopping recording...')
       const audioBlob = await audioService.stopRecording()
@@ -233,8 +233,8 @@ export default function RecordingModal() {
 
         if (newCount > 0 || updatedCount > 0) {
           const messages = []
-          if (newCount > 0) messages.push(`${newCount} new`)
-          if (updatedCount > 0) messages.push(`${updatedCount} updated`)
+          if (newCount > 0) {messages.push(`${newCount} new`)}
+          if (updatedCount > 0) {messages.push(`${updatedCount} updated`)}
 
           addNotification({
             type: 'success',

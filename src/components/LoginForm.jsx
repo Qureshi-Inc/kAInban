@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
+import { Mail, Lock, Loader2, KeyRound } from 'lucide-react'
+import React, { useState, useEffect } from 'react'
+import apiService from '../services/apiService'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
-import { Mail, Lock, Loader2, KeyRound } from 'lucide-react'
-import apiService from '../services/apiService'
 
 export default function LoginForm({ onLogin, onSwitchToRegister, error }) {
   const [email, setEmail] = useState('')
@@ -19,7 +19,7 @@ export default function LoginForm({ onLogin, onSwitchToRegister, error }) {
     })
   }, [])
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async(e) => {
     e.preventDefault()
     setLoading(true)
     try {
@@ -29,7 +29,7 @@ export default function LoginForm({ onLogin, onSwitchToRegister, error }) {
     }
   }
 
-  const handleOIDCLogin = async () => {
+  const handleOIDCLogin = async() => {
     setOidcLoading(true)
     try {
       const authUrl = await apiService.initiateOIDCLogin()
@@ -52,7 +52,7 @@ export default function LoginForm({ onLogin, onSwitchToRegister, error }) {
         <motion.div
           className="w-16 h-16 mx-auto flex items-center justify-center mb-4"
           whileHover={{ scale: 1.1, rotate: 10 }}
-          transition={{ type: "spring", stiffness: 400, damping: 10 }}
+          transition={{ type: 'spring', stiffness: 400, damping: 10 }}
         >
           <img src="/icon-192.png" alt="kAInban" className="w-16 h-16 object-contain" />
         </motion.div>

@@ -1,14 +1,17 @@
-import React, { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Plus, Trash2, MoreVertical, Home, Folder, AlertTriangle } from 'lucide-react'
+import React, { useState } from 'react'
+import { useNavigate, useLocation } from 'react-router-dom'
+import useAppStore from '../stores/useAppStore'
 import { Button } from './ui/button'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from './ui/dialog'
 import { Input } from './ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from './ui/dialog'
 import UserProfile from './UserProfile'
-import useAppStore from '../stores/useAppStore'
 
 export default function Header() {
+  const navigate = useNavigate()
+  const location = useLocation()
   const projects = useAppStore((state) => state.projects)
   const currentProject = useAppStore((state) => state.currentProject)
   const createProject = useAppStore((state) => state.createProject)
@@ -23,7 +26,7 @@ export default function Header() {
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false)
   const [projectToDelete, setProjectToDelete] = useState(null)
 
-  const handleCreateProject = async () => {
+  const handleCreateProject = async() => {
     if (!newProjectName.trim()) {
       addNotification({
         type: 'error',
@@ -47,22 +50,24 @@ export default function Header() {
   const handleProjectChange = (projectId) => {
     if (projectId === 'none') {
       clearSession()
+      navigate('/')
     } else if (projectId === 'create_new') {
       setIsCreateProjectOpen(true)
     } else {
       loadProject(projectId)
+      navigate(`/project/${projectId}`)
     }
   }
 
   const handleDeleteProject = () => {
-    if (!currentProject) return
+    if (!currentProject) {return}
     setProjectToDelete(currentProject)
     setIsDeleteConfirmOpen(true)
     setIsMenuOpen(false)
   }
 
-  const confirmDeleteProject = async () => {
-    if (!projectToDelete) return
+  const confirmDeleteProject = async() => {
+    if (!projectToDelete) {return}
 
     try {
       await deleteProject(projectToDelete.id)
@@ -84,7 +89,7 @@ export default function Header() {
     <motion.header
       initial={{ opacity: 0, y: -20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, ease: "easeOut" }}
+      transition={{ duration: 0.4, ease: 'easeOut' }}
       className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
     >
       {/* Brand and logo */}
@@ -92,8 +97,11 @@ export default function Header() {
         <motion.div
           className="w-10 h-10 flex items-center justify-center cursor-pointer"
           whileHover={{ scale: 1.05 }}
-          transition={{ type: "spring", stiffness: 400, damping: 20 }}
-          onClick={() => clearSession()}
+          transition={{ type: 'spring', stiffness: 400, damping: 20 }}
+          onClick={() => {
+            clearSession()
+            navigate('/')
+          }}
           title="Go to Dashboard"
         >
           <img src="/icon-192.png" alt="kAInban" className="w-10 h-10 object-contain" />
@@ -190,7 +198,7 @@ export default function Header() {
                       initial={{ opacity: 0, scale: 0.95, y: -10 }}
                       animate={{ opacity: 1, scale: 1, y: 0 }}
                       exit={{ opacity: 0, scale: 0.95, y: -10 }}
-                      transition={{ duration: 0.2, ease: "easeOut" }}
+                      transition={{ duration: 0.2, ease: 'easeOut' }}
                       className="absolute right-0 mt-2 w-52 bg-card/95 backdrop-blur-md border border-border/50 rounded-xl shadow-xl overflow-hidden z-50"
                     >
                       <div className="p-1">

@@ -1,15 +1,15 @@
-import React, { useRef, useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Mic, Upload, Square, Pause, Play, FileText } from 'lucide-react'
-import { Button } from './ui/button'
-import { Card, CardContent } from './ui/card'
+import React, { useRef, useEffect, useState } from 'react'
 import { formatTime } from '../lib/utils'
-import useAppStore from '../stores/useAppStore'
 import audioService from '../services/audioService'
 import openaiService from '../services/openaiService'
 import transcriptionQueue from '../services/transcriptionQueue'
-import PasteTextModal from './PasteTextModal'
+import useAppStore from '../stores/useAppStore'
 import AudioVisualizer from './AudioVisualizer'
+import PasteTextModal from './PasteTextModal'
+import { Button } from './ui/button'
+import { Card, CardContent } from './ui/card'
 
 export default function AudioControls() {
   const fileInputRef = useRef(null)
@@ -99,7 +99,7 @@ export default function AudioControls() {
 
   // Visualization is now handled by AudioVisualizer component
 
-  const handleStartRecording = async () => {
+  const handleStartRecording = async() => {
     try {
       // Reset transcription queue for new recording
       transcriptionQueue.reset()
@@ -140,7 +140,7 @@ export default function AudioControls() {
       })
 
       // Set up chunk completion callback for background transcription
-      audioService.setOnChunkComplete(async (chunkBlob, chunkIndex) => {
+      audioService.setOnChunkComplete(async(chunkBlob, chunkIndex) => {
         console.log(`[AudioControls] Chunk ${chunkIndex} completed, queuing for background transcription`)
 
         // Queue chunk for background transcription
@@ -197,7 +197,7 @@ export default function AudioControls() {
     }
   }
 
-  const handleStopRecording = async () => {
+  const handleStopRecording = async() => {
     try {
       console.log('[AudioControls] Stopping recording...')
       const result = await audioService.stopRecording()
@@ -277,7 +277,7 @@ export default function AudioControls() {
             console.log(`[AudioControls] Chunk ${actualIndex + 1} transcribed: ${chunkTranscript.length} chars`)
           }
         } else {
-          console.log(`[AudioControls] All chunks were already transcribed in the background!`)
+          console.log('[AudioControls] All chunks were already transcribed in the background!')
         }
 
         // Combine all transcripts
@@ -356,8 +356,8 @@ export default function AudioControls() {
           })
 
           const messages = []
-          if (newCount > 0) messages.push(`${newCount} new`)
-          if (updatedCount > 0) messages.push(`${updatedCount} updated`)
+          if (newCount > 0) {messages.push(`${newCount} new`)}
+          if (updatedCount > 0) {messages.push(`${updatedCount} updated`)}
 
           // Only show notification with final result
           addNotification({
@@ -429,9 +429,9 @@ export default function AudioControls() {
     }
   }
 
-  const handleFileUpload = async (event) => {
+  const handleFileUpload = async(event) => {
     const file = event.target.files?.[0]
-    if (!file) return
+    if (!file) {return}
 
     try {
       // Start progress tracking
@@ -528,8 +528,8 @@ export default function AudioControls() {
           })
 
           const messages = []
-          if (newCount > 0) messages.push(`${newCount} new`)
-          if (updatedCount > 0) messages.push(`${updatedCount} updated`)
+          if (newCount > 0) {messages.push(`${newCount} new`)}
+          if (updatedCount > 0) {messages.push(`${updatedCount} updated`)}
 
           // Only show final result notification
           addNotification({
@@ -598,7 +598,7 @@ export default function AudioControls() {
             <div className="flex flex-col sm:flex-row gap-3 w-full">
               <Button
                 onClick={isRecording ? handleStopRecording : handleStartRecording}
-                variant={isRecording ? "destructive" : "default"}
+                variant={isRecording ? 'destructive' : 'default'}
                 size="lg"
                 className="flex items-center justify-center gap-2 flex-1 sm:min-w-[160px] h-12 sm:h-10"
                 disabled={!currentProject}

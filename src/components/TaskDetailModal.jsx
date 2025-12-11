@@ -1,4 +1,3 @@
-import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   X,
@@ -18,9 +17,10 @@ import {
   Brain,
   Search
 } from 'lucide-react'
+import React, { useState, useEffect } from 'react'
+import useAppStore from '../stores/useAppStore'
 import { Button } from './ui/button'
 import { Card } from './ui/card'
-import useAppStore from '../stores/useAppStore'
 
 export default function TaskDetailModal({ task, isOpen, onClose }) {
   const { updateTask, deleteTask, addNotification, tasks, linkTasks, unlinkTasks, getLinkedTasks, acceptAiSuggestion, rejectAiSuggestion, updateCurrentProject } = useAppStore()
@@ -43,7 +43,7 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
 
   // Parse description for bullet points and convert to subtasks
   const parseSubtasksFromDescription = (description) => {
-    if (!description) return []
+    if (!description) {return []}
 
     // Match bullet points with various formats:
     // - Item, * Item, • Item, 1. Item, etc.
@@ -117,8 +117,8 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
     }
   }, [task])
 
-  const handleSave = async () => {
-    if (!task) return
+  const handleSave = async() => {
+    if (!task) {return}
 
     const updates = {
       title,
@@ -137,7 +137,7 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
     updateTask(task.id, updates)
 
     // Force save to backend
-    setTimeout(async () => {
+    setTimeout(async() => {
       try {
         await updateCurrentProject()
       } catch (error) {
@@ -157,7 +157,7 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
   }
 
   const handleDelete = () => {
-    if (!task) return
+    if (!task) {return}
 
     if (confirm('Are you sure you want to delete this task?')) {
       deleteTask(task.id)
@@ -170,7 +170,7 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
   }
 
   const addSubtask = () => {
-    if (!newSubtask.trim()) return
+    if (!newSubtask.trim()) {return}
 
     const subtask = {
       id: `subtask-${Date.now()}`,
@@ -193,7 +193,7 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
   }
 
   const addComment = () => {
-    if (!newComment.trim()) return
+    if (!newComment.trim()) {return}
 
     const comment = {
       id: `comment-${Date.now()}`,
@@ -217,7 +217,7 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
         linkTasks(task.id, updatedLinkedTasks)
 
         // Force save to backend
-        setTimeout(async () => {
+        setTimeout(async() => {
           try {
             await updateCurrentProject()
           } catch (error) {
@@ -251,7 +251,7 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
       unlinkTasks(task.id, taskToUnlinkId)
 
       // Force save to backend
-      setTimeout(async () => {
+      setTimeout(async() => {
         try {
           await updateCurrentProject()
         } catch (error) {
@@ -272,7 +272,7 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
 
   // Get available tasks for linking (exclude current task and already linked tasks)
   const getAvailableTasksForLinking = () => {
-    if (!task) return []
+    if (!task) {return []}
     let availableTasks = tasks.filter(t =>
       t.id !== task.id &&
       !linkedTasks.includes(t.id) &&
@@ -346,7 +346,7 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
   }
 
   const formatDate = (dateString) => {
-    if (!dateString) return 'Not set'
+    if (!dateString) {return 'Not set'}
     const date = new Date(dateString)
     return date.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })
   }
@@ -359,10 +359,10 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
     const diffHours = Math.floor(diffMs / 3600000)
     const diffDays = Math.floor(diffMs / 86400000)
 
-    if (diffMins < 1) return 'Just now'
-    if (diffMins < 60) return `${diffMins}m ago`
-    if (diffHours < 24) return `${diffHours}h ago`
-    if (diffDays < 7) return `${diffDays}d ago`
+    if (diffMins < 1) {return 'Just now'}
+    if (diffMins < 60) {return `${diffMins}m ago`}
+    if (diffHours < 24) {return `${diffHours}h ago`}
+    if (diffDays < 7) {return `${diffDays}d ago`}
     return date.toLocaleDateString([], { month: 'short', day: 'numeric' })
   }
 
@@ -370,7 +370,7 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
   const totalSubtasks = subtasks.length
   const progress = totalSubtasks > 0 ? (completedSubtasks / totalSubtasks) * 100 : 0
 
-  if (!isOpen || !task) return null
+  if (!isOpen || !task) {return null}
 
   return (
     <AnimatePresence>
@@ -503,23 +503,25 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                     <div className="space-y-1">
                       {linkedTasks.map(linkedTaskId => {
                         const linkedTask = tasks.find(t => t.id === linkedTaskId)
-                        if (!linkedTask) return null
+                        if (!linkedTask) {return null}
 
                         return (
                           <div key={linkedTaskId} className="flex items-center justify-between p-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md">
                             <div className="flex items-center gap-2 flex-1 min-w-0">
                               <div className={`w-2 h-2 rounded-full ${
                                 linkedTask.status === 'done' ? 'bg-green-500' :
-                                linkedTask.status === 'in-progress' ? 'bg-blue-500' :
-                                linkedTask.status === 'blocked' ? 'bg-red-500' :
-                                'bg-gray-400'
-                              }`} />
+                                  linkedTask.status === 'in-progress' ? 'bg-blue-500' :
+                                    linkedTask.status === 'blocked' ? 'bg-red-500' :
+                                      'bg-gray-400'
+                              }`}
+                              />
                               <span className="text-sm truncate">{linkedTask.title}</span>
                               <span className={`text-xs px-1.5 py-0.5 rounded ${
                                 linkedTask.priority === 'high' ? 'bg-red-100 text-red-600' :
-                                linkedTask.priority === 'medium' ? 'bg-yellow-100 text-yellow-600' :
-                                'bg-blue-100 text-blue-600'
-                              }`}>
+                                  linkedTask.priority === 'medium' ? 'bg-yellow-100 text-yellow-600' :
+                                    'bg-blue-100 text-blue-600'
+                              }`}
+                              >
                                 {linkedTask.priority}
                               </span>
                             </div>
@@ -548,23 +550,25 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                     <div className="space-y-1">
                       {aiCreatedLinks.map(aiLinkId => {
                         const aiLinkedTask = tasks.find(t => t.id === aiLinkId)
-                        if (!aiLinkedTask) return null
+                        if (!aiLinkedTask) {return null}
 
                         return (
                           <div key={aiLinkId} className="flex items-center justify-between p-2 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-md">
                             <div className="flex items-center gap-2 flex-1 min-w-0">
                               <div className={`w-2 h-2 rounded-full ${
                                 aiLinkedTask.status === 'done' ? 'bg-green-500' :
-                                aiLinkedTask.status === 'in-progress' ? 'bg-blue-500' :
-                                aiLinkedTask.status === 'blocked' ? 'bg-red-500' :
-                                'bg-gray-400'
-                              }`} />
+                                  aiLinkedTask.status === 'in-progress' ? 'bg-blue-500' :
+                                    aiLinkedTask.status === 'blocked' ? 'bg-red-500' :
+                                      'bg-gray-400'
+                              }`}
+                              />
                               <span className="text-sm truncate">{aiLinkedTask.title}</span>
                               <span className={`text-xs px-1.5 py-0.5 rounded ${
                                 aiLinkedTask.priority === 'high' ? 'bg-red-100 text-red-600' :
-                                aiLinkedTask.priority === 'medium' ? 'bg-yellow-100 text-yellow-600' :
-                                'bg-blue-100 text-blue-600'
-                              }`}>
+                                  aiLinkedTask.priority === 'medium' ? 'bg-yellow-100 text-yellow-600' :
+                                    'bg-blue-100 text-blue-600'
+                              }`}
+                              >
                                 {aiLinkedTask.priority}
                               </span>
                             </div>
@@ -605,23 +609,25 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                     <div className="space-y-1">
                       {aiDiscoveredLinks.map(aiDiscoveredId => {
                         const aiDiscoveredTask = tasks.find(t => t.id === aiDiscoveredId)
-                        if (!aiDiscoveredTask) return null
+                        if (!aiDiscoveredTask) {return null}
 
                         return (
                           <div key={aiDiscoveredId} className="flex items-center justify-between p-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-md">
                             <div className="flex items-center gap-2 flex-1 min-w-0">
                               <div className={`w-2 h-2 rounded-full ${
                                 aiDiscoveredTask.status === 'done' ? 'bg-green-500' :
-                                aiDiscoveredTask.status === 'in-progress' ? 'bg-blue-500' :
-                                aiDiscoveredTask.status === 'blocked' ? 'bg-red-500' :
-                                'bg-gray-400'
-                              }`} />
+                                  aiDiscoveredTask.status === 'in-progress' ? 'bg-blue-500' :
+                                    aiDiscoveredTask.status === 'blocked' ? 'bg-red-500' :
+                                      'bg-gray-400'
+                              }`}
+                              />
                               <span className="text-sm truncate">{aiDiscoveredTask.title}</span>
                               <span className={`text-xs px-1.5 py-0.5 rounded ${
                                 aiDiscoveredTask.priority === 'high' ? 'bg-red-100 text-red-600' :
-                                aiDiscoveredTask.priority === 'medium' ? 'bg-yellow-100 text-yellow-600' :
-                                'bg-blue-100 text-blue-600'
-                              }`}>
+                                  aiDiscoveredTask.priority === 'medium' ? 'bg-yellow-100 text-yellow-600' :
+                                    'bg-blue-100 text-blue-600'
+                              }`}
+                              >
                                 {aiDiscoveredTask.priority}
                               </span>
                             </div>
@@ -703,19 +709,21 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                               >
                                 <div className={`w-2 h-2 rounded-full ${
                                   availableTask.status === 'done' ? 'bg-green-500' :
-                                  availableTask.status === 'in-progress' ? 'bg-blue-500' :
-                                  availableTask.status === 'blocked' ? 'bg-red-500' :
-                                  'bg-gray-400'
-                                }`} />
+                                    availableTask.status === 'in-progress' ? 'bg-blue-500' :
+                                      availableTask.status === 'blocked' ? 'bg-red-500' :
+                                        'bg-gray-400'
+                                }`}
+                                />
                                 <div className="flex-1 min-w-0">
                                   <div className="text-sm font-medium truncate">{availableTask.title}</div>
                                   <div className="text-xs text-gray-500 truncate">{availableTask.description || 'No description'}</div>
                                 </div>
                                 <span className={`text-xs px-1.5 py-0.5 rounded ${
                                   availableTask.priority === 'high' ? 'bg-red-100 text-red-600' :
-                                  availableTask.priority === 'medium' ? 'bg-yellow-100 text-yellow-600' :
-                                  'bg-blue-100 text-blue-600'
-                                }`}>
+                                    availableTask.priority === 'medium' ? 'bg-yellow-100 text-yellow-600' :
+                                      'bg-blue-100 text-blue-600'
+                                }`}
+                                >
                                   {availableTask.priority}
                                 </span>
                               </button>

@@ -41,15 +41,15 @@ function shouldKeepLog(line) {
 function cleanupFile(filePath) {
   console.log(`Cleaning up: ${filePath}`)
 
-  let content = fs.readFileSync(filePath, 'utf8')
-  let originalLength = content.length
+  const content = fs.readFileSync(filePath, 'utf8')
+  const originalLength = content.length
   let removedLines = 0
 
   // Split into lines for better control
-  let lines = content.split('\n')
-  let cleanedLines = []
+  const lines = content.split('\n')
+  const cleanedLines = []
 
-  for (let line of lines) {
+  for (const line of lines) {
     let shouldRemove = false
 
     // Check if this line should be kept first
@@ -59,7 +59,7 @@ function cleanupFile(filePath) {
     }
 
     // Check if this line matches removal patterns
-    for (let pattern of REMOVE_PATTERNS) {
+    for (const pattern of REMOVE_PATTERNS) {
       if (pattern.test(line)) {
         console.log(`  Removing: ${line.trim()}`)
         shouldRemove = true
@@ -73,7 +73,7 @@ function cleanupFile(filePath) {
     }
   }
 
-  let cleanedContent = cleanedLines.join('\n')
+  const cleanedContent = cleanedLines.join('\n')
 
   if (cleanedContent !== content) {
     fs.writeFileSync(filePath, cleanedContent)
@@ -83,7 +83,7 @@ function cleanupFile(filePath) {
 }
 
 function findFilesToClean(dir, extensions = ['.js', '.jsx']) {
-  let files = []
+  const files = []
 
   function walkDir(currentPath) {
     const items = fs.readdirSync(currentPath)

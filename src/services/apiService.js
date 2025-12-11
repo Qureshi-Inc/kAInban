@@ -19,7 +19,7 @@ class ApiService {
       const response = await fetch(`${API_URL}/auth/status`, {
         credentials: 'include'
       })
-      if (!response.ok) throw new Error('Failed to get auth status')
+      if (!response.ok) {throw new Error('Failed to get auth status')}
       return await response.json()
     } catch (error) {
       console.error('[API] Get auth status error:', error)
@@ -95,7 +95,7 @@ class ApiService {
       const response = await this.secureFetch(`${API_URL}/auth/logout`, {
         method: 'POST'
       })
-      if (!response.ok) throw new Error('Logout failed')
+      if (!response.ok) {throw new Error('Logout failed')}
       return true
     } catch (error) {
       console.error('[API] Logout error:', error)
@@ -108,7 +108,7 @@ class ApiService {
       const response = await fetch(`${API_URL}/auth/oidc/status`, {
         credentials: 'include'
       })
-      if (!response.ok) throw new Error('Failed to get OIDC status')
+      if (!response.ok) {throw new Error('Failed to get OIDC status')}
       return await response.json()
     } catch (error) {
       console.error('[API] Get OIDC status error:', error)
@@ -139,7 +139,7 @@ class ApiService {
       const response = await fetch(`${API_URL}/settings`, {
         credentials: 'include'
       })
-      if (!response.ok) throw new Error('Failed to get settings')
+      if (!response.ok) {throw new Error('Failed to get settings')}
       return await response.json()
     } catch (error) {
       console.error('[API] Get settings error:', error)
@@ -153,7 +153,7 @@ class ApiService {
         method: 'POST',
         body: JSON.stringify(settings)
       })
-      if (!response.ok) throw new Error('Failed to save settings')
+      if (!response.ok) {throw new Error('Failed to save settings')}
       return true
     } catch (error) {
       console.error('[API] Save settings error:', error)
@@ -167,7 +167,7 @@ class ApiService {
       const response = await fetch(`${API_URL}/projects`, {
         credentials: 'include'
       })
-      if (!response.ok) throw new Error('Failed to get projects')
+      if (!response.ok) {throw new Error('Failed to get projects')}
       return await response.json()
     } catch (error) {
       console.error('[API] Get projects error:', error)
@@ -180,7 +180,7 @@ class ApiService {
       const response = await fetch(`${API_URL}/projects/${projectId}`, {
         credentials: 'include'
       })
-      if (!response.ok) throw new Error('Failed to get project')
+      if (!response.ok) {throw new Error('Failed to get project')}
       return await response.json()
     } catch (error) {
       console.error('[API] Get project error:', error)
@@ -223,7 +223,7 @@ class ApiService {
       const response = await this.secureFetch(`${API_URL}/projects/${projectId}`, {
         method: 'DELETE'
       })
-      if (!response.ok) throw new Error('Failed to delete project')
+      if (!response.ok) {throw new Error('Failed to delete project')}
       return true
     } catch (error) {
       console.error('[API] Delete project error:', error)

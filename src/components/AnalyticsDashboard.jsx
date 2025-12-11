@@ -1,18 +1,18 @@
-import React, { useState, useMemo, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { BarChart3, TrendingUp, CheckCircle2, AlertCircle, Clock, Target, Sparkles, Filter } from 'lucide-react'
-import { Swiper, SwiperSlide } from 'swiper/react'
-import { Navigation, Pagination, Autoplay, EffectFade } from 'swiper/modules'
+import React, { useState, useMemo, useEffect } from 'react'
 import 'swiper/css'
 import 'swiper/css/navigation'
 import 'swiper/css/pagination'
 import 'swiper/css/autoplay'
 import 'swiper/css/effect-fade'
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
-import { Button } from './ui/button'
 import ReactMarkdown from 'react-markdown'
-import useAppStore from '../stores/useAppStore'
+import { Navigation, Pagination, Autoplay, EffectFade } from 'swiper/modules'
+import { Swiper, SwiperSlide } from 'swiper/react'
 import openaiService from '../services/openaiService'
+import useAppStore from '../stores/useAppStore'
+import { Button } from './ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
 
 const getInsightsCacheKey = (projectId) => `analytics_insights_cache_${projectId}`
 
@@ -66,7 +66,7 @@ export default function AnalyticsDashboard() {
     const today = new Date()
     today.setHours(0, 0, 0, 0)
     const overdue = allTasks.filter(t => {
-      if (!t.dueDate || t.status === 'done') return false
+      if (!t.dueDate || t.status === 'done') {return false}
       const dueDate = new Date(t.dueDate)
       return dueDate < today
     }).length
@@ -98,7 +98,7 @@ export default function AnalyticsDashboard() {
 
   // Check if insights cache is still valid (expires at midnight)
   const insightsCacheValid = useMemo(() => {
-    if (!insightsCacheTime) return false
+    if (!insightsCacheTime) {return false}
     const cachedMidnight = getMidnightDate(new Date(insightsCacheTime))
     const currentMidnight = getMidnightDate()
     // Cache is valid if it's from today (after current midnight)
@@ -136,7 +136,7 @@ export default function AnalyticsDashboard() {
 
   // Parse AI insights into carousel items
   const parseInsightsIntoCarousel = (insights) => {
-    if (!insights) return []
+    if (!insights) {return []}
 
     // Split by the ** markers and filter out empty parts
     const parts = insights.split('**').filter(part => part.trim())
@@ -207,7 +207,7 @@ export default function AnalyticsDashboard() {
     }
   }, [analytics.total, aiInsights, insightsCacheValid, loadingInsights])
 
-  const handleGenerateInsights = async () => {
+  const handleGenerateInsights = async() => {
     // Don't regenerate if already loading or if we have valid cached insights
     if (loadingInsights || (insightsCacheValid && aiInsights)) {
       return
@@ -291,443 +291,444 @@ export default function AnalyticsDashboard() {
         .dark .insights-swiper .swiper-pagination-bullet {
           background: rgb(75 85 99) !important;
         }
-      `}</style>
+      `}
+      </style>
 
       <div className="space-y-6 pb-8">
         {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="flex flex-row items-start justify-between gap-2"
-      >
-        <div className="flex-1 min-w-0 pr-2">
-          <h2 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
-            Analytics Dashboard
-          </h2>
-          <p className="text-xs sm:text-sm text-muted-foreground mt-1 truncate">
-            {selectedProjectId === 'all'
-              ? `${projects.length} projects`
-              : projects.find(p => p.id === selectedProjectId)?.name || 'Selected project'}
-          </p>
-        </div>
-
-        {/* Project Filter */}
-        <div className="relative analytics-filter-dropdown">
-          <Button
-            variant="outline"
-            onClick={() => setIsFilterOpen(!isFilterOpen)}
-            className="flex items-center gap-1 px-2 sm:px-3"
-            size="sm"
-          >
-            <Filter className="h-4 w-4 flex-shrink-0" />
-            <span className="hidden sm:inline text-xs sm:text-sm truncate max-w-24 sm:max-w-none">
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex flex-row items-start justify-between gap-2"
+        >
+          <div className="flex-1 min-w-0 pr-2">
+            <h2 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+              Analytics Dashboard
+            </h2>
+            <p className="text-xs sm:text-sm text-muted-foreground mt-1 truncate">
               {selectedProjectId === 'all'
-                ? 'All Projects'
-                : projects.find(p => p.id === selectedProjectId)?.name || 'Selected'}
-            </span>
-          </Button>
+                ? `${projects.length} projects`
+                : projects.find(p => p.id === selectedProjectId)?.name || 'Selected project'}
+            </p>
+          </div>
 
-          <AnimatePresence>
-            {isFilterOpen && (
-              <>
-                {/* Backdrop */}
-                <div
-                  className="fixed inset-0 z-40"
-                  onClick={() => setIsFilterOpen(false)}
-                />
+          {/* Project Filter */}
+          <div className="relative analytics-filter-dropdown">
+            <Button
+              variant="outline"
+              onClick={() => setIsFilterOpen(!isFilterOpen)}
+              className="flex items-center gap-1 px-2 sm:px-3"
+              size="sm"
+            >
+              <Filter className="h-4 w-4 flex-shrink-0" />
+              <span className="hidden sm:inline text-xs sm:text-sm truncate max-w-24 sm:max-w-none">
+                {selectedProjectId === 'all'
+                  ? 'All Projects'
+                  : projects.find(p => p.id === selectedProjectId)?.name || 'Selected'}
+              </span>
+            </Button>
 
-                {/* Dropdown */}
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.95, y: -10 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.95, y: -10 }}
-                  transition={{ duration: 0.15 }}
-                  className="absolute right-0 mt-2 w-72 bg-white dark:bg-gray-800 rounded-lg shadow-xl border-2 border-gray-200 dark:border-gray-700 overflow-hidden z-50"
-                >
-                  {/* All Projects Option */}
-                  <button
-                    onClick={() => {
-                      setSelectedProjectId('all')
-                      setIsFilterOpen(false)
-                    }}
-                    className={`w-full px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors border-b border-gray-100 dark:border-gray-700 ${
-                      selectedProjectId === 'all' ? 'bg-primary/10 text-primary font-medium' : ''
-                    }`}
+            <AnimatePresence>
+              {isFilterOpen && (
+                <>
+                  {/* Backdrop */}
+                  <div
+                    className="fixed inset-0 z-40"
+                    onClick={() => setIsFilterOpen(false)}
+                  />
+
+                  {/* Dropdown */}
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                    transition={{ duration: 0.15 }}
+                    className="absolute right-0 mt-2 w-72 bg-white dark:bg-gray-800 rounded-lg shadow-xl border-2 border-gray-200 dark:border-gray-700 overflow-hidden z-50"
                   >
-                    <div className="font-medium">All Projects</div>
-                    <div className="text-xs text-muted-foreground mt-1">
-                      View analytics across all {projects.length} projects
-                    </div>
-                  </button>
-
-                  {/* Individual Projects */}
-                  {projects.length > 0 && (
-                    <>
-                      <div className="px-4 py-2 text-xs font-semibold text-muted-foreground bg-gray-50 dark:bg-gray-700/50">
-                        Individual Projects
+                    {/* All Projects Option */}
+                    <button
+                      onClick={() => {
+                        setSelectedProjectId('all')
+                        setIsFilterOpen(false)
+                      }}
+                      className={`w-full px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors border-b border-gray-100 dark:border-gray-700 ${
+                        selectedProjectId === 'all' ? 'bg-primary/10 text-primary font-medium' : ''
+                      }`}
+                    >
+                      <div className="font-medium">All Projects</div>
+                      <div className="text-xs text-muted-foreground mt-1">
+                        View analytics across all {projects.length} projects
                       </div>
-                      {projects.map((project) => (
-                        <button
-                          key={project.id}
-                          onClick={() => {
-                            setSelectedProjectId(project.id)
-                            setIsFilterOpen(false)
-                          }}
-                          className={`w-full px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${
-                            selectedProjectId === project.id ? 'bg-primary/10 text-primary font-medium' : ''
-                          }`}
-                        >
-                          <div className="flex items-center justify-between gap-2">
-                            <span className="font-medium truncate">{project.name}</span>
-                            <span className="text-xs text-muted-foreground flex-shrink-0">
-                              {project.tasks?.length || 0} tasks
-                            </span>
-                          </div>
-                        </button>
-                      ))}
-                    </>
-                  )}
-                </motion.div>
-              </>
-            )}
-          </AnimatePresence>
-        </div>
-      </motion.div>
+                    </button>
 
-      {/* AI Task Recommendations - Moved to Top */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-      >
-        <Card className="relative overflow-hidden bg-gradient-to-br from-blue-50/50 via-purple-50/30 to-pink-50/50 dark:from-blue-950/30 dark:via-purple-950/20 dark:to-pink-950/30 border-2 border-blue-200/30 dark:border-blue-800/30 shadow-lg">
-          {/* Animated background gradient */}
-          <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 via-purple-500/5 to-pink-500/5 animate-pulse" />
-
-          <CardHeader className="relative bg-gradient-to-r from-blue-600/10 via-purple-600/10 to-pink-600/10 border-b border-blue-200/20 dark:border-blue-800/20">
-            <CardTitle className="flex items-center gap-3">
-              <motion.div
-                className="p-2 bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 rounded-xl shadow-lg"
-                whileHover={{ scale: 1.1, rotate: 5 }}
-                transition={{ type: "spring", stiffness: 400, damping: 10 }}
-              >
-                <Sparkles className="h-6 w-6 text-white" />
-              </motion.div>
-              <div>
-                <span className="text-xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
-                  kAInban Recommendations
-                </span>
-                <p className="text-sm text-muted-foreground font-normal mt-1">
-                  Powered by intelligent task analysis
-                </p>
-              </div>
-            </CardTitle>
-          </CardHeader>
-
-          <CardContent className="relative p-6">
-            {analytics.total === 0 ? (
-              <div className="text-center py-12">
-                <motion.div
-                  initial={{ scale: 0.8, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  transition={{ duration: 0.5 }}
-                >
-                  <div className="relative mb-6">
-                    <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-pink-500/20 rounded-full blur-xl" />
-                    <Sparkles className="relative h-16 w-16 mx-auto text-blue-500/40" />
-                  </div>
-                  <h3 className="text-lg font-semibold text-muted-foreground mb-2">No Tasks to Analyze</h3>
-                  <p className="text-sm text-muted-foreground max-w-md mx-auto">
-                    Create some tasks in your projects to unlock personalized AI insights and productivity recommendations.
-                  </p>
-                </motion.div>
-              </div>
-            ) : loadingInsights && !aiInsights ? (
-              <div className="text-center py-12">
-                <motion.div
-                  initial={{ scale: 0.8, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  transition={{ duration: 0.5 }}
-                >
-                  <div className="relative mb-6">
-                    <motion.div
-                      animate={{ rotate: 360 }}
-                      transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
-                      className="absolute inset-0 bg-gradient-to-r from-blue-500/30 via-purple-500/30 to-pink-500/30 rounded-full blur-xl"
-                    />
-                    <motion.div
-                      animate={{ rotate: -360 }}
-                      transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                    >
-                      <Sparkles className="relative h-16 w-16 mx-auto text-blue-500" />
-                    </motion.div>
-                  </div>
-                  <h3 className="text-lg font-semibold mb-2">Analyzing Your Tasks</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Our AI is reviewing your {analytics.total} tasks to generate personalized insights...
-                  </p>
-                </motion.div>
-              </div>
-            ) : aiInsights ? (
-              (() => {
-                const carouselItems = parseInsightsIntoCarousel(aiInsights)
-
-                return (
-                  <div className="space-y-4 pb-6">
-                    {/* SwiperJS Carousel */}
-                    <Swiper
-                      modules={[Navigation, Pagination, Autoplay, EffectFade]}
-                      spaceBetween={20}
-                      slidesPerView={1}
-                      autoplay={{
-                        delay: 4000,
-                        disableOnInteraction: false,
-                        pauseOnMouseEnter: true
-                      }}
-                      pagination={{
-                        clickable: false,
-                        bulletClass: 'swiper-pagination-bullet !w-1 !h-1 !bg-purple-500',
-                        bulletActiveClass: 'swiper-pagination-bullet-active !bg-purple-600'
-                      }}
-                      effect="fade"
-                      fadeEffect={{
-                        crossFade: true
-                      }}
-                      loop={carouselItems.length > 1}
-                      className="insights-swiper"
-                      style={{
-                        '--swiper-pagination-bottom': '0px',
-                        '--swiper-pagination-bullet-size': '4px',
-                        '--swiper-pagination-bullet-horizontal-gap': '2px'
-                      }}
-                    >
-                      {carouselItems.map((item, index) => (
-                        <SwiperSlide key={index}>
-                          <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            transition={{ duration: 0.3 }}
-                            className="bg-white/60 dark:bg-gray-900/40 backdrop-blur-sm rounded-lg p-6 border border-white/20 dark:border-gray-800/20"
+                    {/* Individual Projects */}
+                    {projects.length > 0 && (
+                      <>
+                        <div className="px-4 py-2 text-xs font-semibold text-muted-foreground bg-gray-50 dark:bg-gray-700/50">
+                          Individual Projects
+                        </div>
+                        {projects.map((project) => (
+                          <button
+                            key={project.id}
+                            onClick={() => {
+                              setSelectedProjectId(project.id)
+                              setIsFilterOpen(false)
+                            }}
+                            className={`w-full px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${
+                              selectedProjectId === project.id ? 'bg-primary/10 text-primary font-medium' : ''
+                            }`}
                           >
-                            <div className="flex items-start gap-4">
-                              <div className="flex-shrink-0">
-                                <div className={`p-2 rounded-full bg-white/50 dark:bg-gray-800/50 ${item.iconColor}`}>
-                                  <item.iconComponent className="h-6 w-6" />
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="font-medium truncate">{project.name}</span>
+                              <span className="text-xs text-muted-foreground flex-shrink-0">
+                                {project.tasks?.length || 0} tasks
+                              </span>
+                            </div>
+                          </button>
+                        ))}
+                      </>
+                    )}
+                  </motion.div>
+                </>
+              )}
+            </AnimatePresence>
+          </div>
+        </motion.div>
+
+        {/* AI Task Recommendations - Moved to Top */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+        >
+          <Card className="relative overflow-hidden bg-gradient-to-br from-blue-50/50 via-purple-50/30 to-pink-50/50 dark:from-blue-950/30 dark:via-purple-950/20 dark:to-pink-950/30 border-2 border-blue-200/30 dark:border-blue-800/30 shadow-lg">
+            {/* Animated background gradient */}
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 via-purple-500/5 to-pink-500/5 animate-pulse" />
+
+            <CardHeader className="relative bg-gradient-to-r from-blue-600/10 via-purple-600/10 to-pink-600/10 border-b border-blue-200/20 dark:border-blue-800/20">
+              <CardTitle className="flex items-center gap-3">
+                <motion.div
+                  className="p-2 bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 rounded-xl shadow-lg"
+                  whileHover={{ scale: 1.1, rotate: 5 }}
+                  transition={{ type: 'spring', stiffness: 400, damping: 10 }}
+                >
+                  <Sparkles className="h-6 w-6 text-white" />
+                </motion.div>
+                <div>
+                  <span className="text-xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+                    kAInban Recommendations
+                  </span>
+                  <p className="text-sm text-muted-foreground font-normal mt-1">
+                    Powered by intelligent task analysis
+                  </p>
+                </div>
+              </CardTitle>
+            </CardHeader>
+
+            <CardContent className="relative p-6">
+              {analytics.total === 0 ? (
+                <div className="text-center py-12">
+                  <motion.div
+                    initial={{ scale: 0.8, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ duration: 0.5 }}
+                  >
+                    <div className="relative mb-6">
+                      <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-pink-500/20 rounded-full blur-xl" />
+                      <Sparkles className="relative h-16 w-16 mx-auto text-blue-500/40" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-muted-foreground mb-2">No Tasks to Analyze</h3>
+                    <p className="text-sm text-muted-foreground max-w-md mx-auto">
+                      Create some tasks in your projects to unlock personalized AI insights and productivity recommendations.
+                    </p>
+                  </motion.div>
+                </div>
+              ) : loadingInsights && !aiInsights ? (
+                <div className="text-center py-12">
+                  <motion.div
+                    initial={{ scale: 0.8, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ duration: 0.5 }}
+                  >
+                    <div className="relative mb-6">
+                      <motion.div
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 3, repeat: Infinity, ease: 'linear' }}
+                        className="absolute inset-0 bg-gradient-to-r from-blue-500/30 via-purple-500/30 to-pink-500/30 rounded-full blur-xl"
+                      />
+                      <motion.div
+                        animate={{ rotate: -360 }}
+                        transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+                      >
+                        <Sparkles className="relative h-16 w-16 mx-auto text-blue-500" />
+                      </motion.div>
+                    </div>
+                    <h3 className="text-lg font-semibold mb-2">Analyzing Your Tasks</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Our AI is reviewing your {analytics.total} tasks to generate personalized insights...
+                    </p>
+                  </motion.div>
+                </div>
+              ) : aiInsights ? (
+                (() => {
+                  const carouselItems = parseInsightsIntoCarousel(aiInsights)
+
+                  return (
+                    <div className="space-y-4 pb-6">
+                      {/* SwiperJS Carousel */}
+                      <Swiper
+                        modules={[Navigation, Pagination, Autoplay, EffectFade]}
+                        spaceBetween={20}
+                        slidesPerView={1}
+                        autoplay={{
+                          delay: 4000,
+                          disableOnInteraction: false,
+                          pauseOnMouseEnter: true
+                        }}
+                        pagination={{
+                          clickable: false,
+                          bulletClass: 'swiper-pagination-bullet !w-1 !h-1 !bg-purple-500',
+                          bulletActiveClass: 'swiper-pagination-bullet-active !bg-purple-600'
+                        }}
+                        effect="fade"
+                        fadeEffect={{
+                          crossFade: true
+                        }}
+                        loop={carouselItems.length > 1}
+                        className="insights-swiper"
+                        style={{
+                          '--swiper-pagination-bottom': '0px',
+                          '--swiper-pagination-bullet-size': '4px',
+                          '--swiper-pagination-bullet-horizontal-gap': '2px'
+                        }}
+                      >
+                        {carouselItems.map((item, index) => (
+                          <SwiperSlide key={index}>
+                            <motion.div
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              transition={{ duration: 0.3 }}
+                              className="bg-white/60 dark:bg-gray-900/40 backdrop-blur-sm rounded-lg p-6 border border-white/20 dark:border-gray-800/20"
+                            >
+                              <div className="flex items-start gap-4">
+                                <div className="flex-shrink-0">
+                                  <div className={`p-2 rounded-full bg-white/50 dark:bg-gray-800/50 ${item.iconColor}`}>
+                                    <item.iconComponent className="h-6 w-6" />
+                                  </div>
+                                </div>
+                                <div className="flex-1">
+                                  <h3 className="text-lg font-semibold mb-3 text-purple-700 dark:text-purple-300">
+                                    {item.title}
+                                  </h3>
+                                  <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
+                                    {item.content}
+                                  </p>
                                 </div>
                               </div>
-                              <div className="flex-1">
-                                <h3 className="text-lg font-semibold mb-3 text-purple-700 dark:text-purple-300">
-                                  {item.title}
-                                </h3>
-                                <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
-                                  {item.content}
-                                </p>
-                              </div>
-                            </div>
-                          </motion.div>
-                        </SwiperSlide>
-                      ))}
-                    </Swiper>
-                  </div>
-                )
-              })()
-            ) : (
-              <div className="text-center py-8">
-                <p className="text-muted-foreground">No insights available yet.</p>
-              </div>
-            )}
+                            </motion.div>
+                          </SwiperSlide>
+                        ))}
+                      </Swiper>
+                    </div>
+                  )
+                })()
+              ) : (
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground">No insights available yet.</p>
+                </div>
+              )}
 
-            {insightsCacheValid && (
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="flex items-center justify-center gap-2 text-xs text-muted-foreground bg-white/30 dark:bg-gray-900/30 backdrop-blur-sm rounded-full px-4 py-2 border border-white/20 dark:border-gray-800/20"
-              >
-                <Sparkles className="h-3 w-3" />
-                <span>Insights refresh daily at midnight or when you add new tasks</span>
-              </motion.div>
-            )}
-          </CardContent>
-        </Card>
-      </motion.div>
-
-      {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Completion Rate */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.2 }}
-        >
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Completion Rate</CardTitle>
-              <Target className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-green-600 dark:text-green-400">
-                {analytics.completionRate}%
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                {analytics.completed} of {analytics.total} tasks completed
-              </p>
-              {/* Progress bar */}
-              <div className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-full mt-3 overflow-hidden">
+              {insightsCacheValid && (
                 <motion.div
-                  className="h-full bg-gradient-to-r from-green-500 to-green-600"
-                  initial={{ width: 0 }}
-                  animate={{ width: `${analytics.completionRate}%` }}
-                  transition={{ duration: 1, ease: 'easeOut' }}
-                />
-              </div>
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="flex items-center justify-center gap-2 text-xs text-muted-foreground bg-white/30 dark:bg-gray-900/30 backdrop-blur-sm rounded-full px-4 py-2 border border-white/20 dark:border-gray-800/20"
+                >
+                  <Sparkles className="h-3 w-3" />
+                  <span>Insights refresh daily at midnight or when you add new tasks</span>
+                </motion.div>
+              )}
             </CardContent>
           </Card>
         </motion.div>
 
-        {/* Total Tasks */}
+        {/* Quick Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Completion Rate */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.2 }}
+          >
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Completion Rate</CardTitle>
+                <Target className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-green-600 dark:text-green-400">
+                  {analytics.completionRate}%
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {analytics.completed} of {analytics.total} tasks completed
+                </p>
+                {/* Progress bar */}
+                <div className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-full mt-3 overflow-hidden">
+                  <motion.div
+                    className="h-full bg-gradient-to-r from-green-500 to-green-600"
+                    initial={{ width: 0 }}
+                    animate={{ width: `${analytics.completionRate}%` }}
+                    transition={{ duration: 1, ease: 'easeOut' }}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          {/* Total Tasks */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.3 }}
+          >
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Tasks</CardTitle>
+                <BarChart3 className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">{analytics.total}</div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {selectedProjectId === 'all' ? `Across ${projects.length} projects` : 'In selected project'}
+                </p>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          {/* In Progress */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.4 }}
+          >
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">In Progress</CardTitle>
+                <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">
+                  {analytics.inProgress}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Active tasks being worked on
+                </p>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          {/* Overdue */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.5 }}
+          >
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Overdue</CardTitle>
+                <Clock className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className={`text-3xl font-bold ${analytics.overdue > 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-400'}`}>
+                  {analytics.overdue}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {analytics.overdue > 0 ? 'Tasks past due date' : 'No overdue tasks'}
+                </p>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </div>
+
+        {/* Status Distribution */}
         <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.3 }}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.6 }}
         >
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Tasks</CardTitle>
-              <BarChart3 className="h-4 w-4 text-muted-foreground" />
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <CheckCircle2 className="h-5 w-5" />
+                Status Distribution
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold">{analytics.total}</div>
-              <p className="text-xs text-muted-foreground mt-1">
-                {selectedProjectId === 'all' ? `Across ${projects.length} projects` : 'In selected project'}
-              </p>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {/* Todo */}
+                <div className="text-center p-4 rounded-lg bg-gray-100 dark:bg-gray-800">
+                  <div className="text-2xl font-bold text-gray-600 dark:text-gray-300">{analytics.todo}</div>
+                  <div className="text-xs text-muted-foreground mt-1">To Do</div>
+                </div>
+
+                {/* In Progress */}
+                <div className="text-center p-4 rounded-lg bg-blue-100 dark:bg-blue-900/30">
+                  <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{analytics.inProgress}</div>
+                  <div className="text-xs text-muted-foreground mt-1">In Progress</div>
+                </div>
+
+                {/* Blocked */}
+                <div className="text-center p-4 rounded-lg bg-red-100 dark:bg-red-900/30">
+                  <div className="text-2xl font-bold text-red-600 dark:text-red-400">{analytics.blocked}</div>
+                  <div className="text-xs text-muted-foreground mt-1">Blocked</div>
+                </div>
+
+                {/* Done */}
+                <div className="text-center p-4 rounded-lg bg-green-100 dark:bg-green-900/30">
+                  <div className="text-2xl font-bold text-green-600 dark:text-green-400">{analytics.completed}</div>
+                  <div className="text-xs text-muted-foreground mt-1">Done</div>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </motion.div>
 
-        {/* In Progress */}
+        {/* Priority Distribution */}
         <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.4 }}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.7 }}
         >
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">In Progress</CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <AlertCircle className="h-5 w-5" />
+                Priority Distribution
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">
-                {analytics.inProgress}
+              <div className="grid grid-cols-3 gap-4">
+                {/* High Priority */}
+                <div className="text-center p-4 rounded-lg bg-red-100 dark:bg-red-900/30">
+                  <div className="text-2xl font-bold text-red-600 dark:text-red-400">{analytics.highPriority}</div>
+                  <div className="text-xs text-muted-foreground mt-1">High Priority</div>
+                </div>
+
+                {/* Medium Priority */}
+                <div className="text-center p-4 rounded-lg bg-yellow-100 dark:bg-yellow-900/30">
+                  <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{analytics.mediumPriority}</div>
+                  <div className="text-xs text-muted-foreground mt-1">Medium Priority</div>
+                </div>
+
+                {/* Low Priority */}
+                <div className="text-center p-4 rounded-lg bg-green-100 dark:bg-green-900/30">
+                  <div className="text-2xl font-bold text-green-600 dark:text-green-400">{analytics.lowPriority}</div>
+                  <div className="text-xs text-muted-foreground mt-1">Low Priority</div>
+                </div>
               </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Active tasks being worked on
-              </p>
             </CardContent>
           </Card>
         </motion.div>
-
-        {/* Overdue */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.5 }}
-        >
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Overdue</CardTitle>
-              <Clock className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className={`text-3xl font-bold ${analytics.overdue > 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-400'}`}>
-                {analytics.overdue}
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                {analytics.overdue > 0 ? 'Tasks past due date' : 'No overdue tasks'}
-              </p>
-            </CardContent>
-          </Card>
-        </motion.div>
-      </div>
-
-      {/* Status Distribution */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.6 }}
-      >
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CheckCircle2 className="h-5 w-5" />
-              Status Distribution
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {/* Todo */}
-              <div className="text-center p-4 rounded-lg bg-gray-100 dark:bg-gray-800">
-                <div className="text-2xl font-bold text-gray-600 dark:text-gray-300">{analytics.todo}</div>
-                <div className="text-xs text-muted-foreground mt-1">To Do</div>
-              </div>
-
-              {/* In Progress */}
-              <div className="text-center p-4 rounded-lg bg-blue-100 dark:bg-blue-900/30">
-                <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{analytics.inProgress}</div>
-                <div className="text-xs text-muted-foreground mt-1">In Progress</div>
-              </div>
-
-              {/* Blocked */}
-              <div className="text-center p-4 rounded-lg bg-red-100 dark:bg-red-900/30">
-                <div className="text-2xl font-bold text-red-600 dark:text-red-400">{analytics.blocked}</div>
-                <div className="text-xs text-muted-foreground mt-1">Blocked</div>
-              </div>
-
-              {/* Done */}
-              <div className="text-center p-4 rounded-lg bg-green-100 dark:bg-green-900/30">
-                <div className="text-2xl font-bold text-green-600 dark:text-green-400">{analytics.completed}</div>
-                <div className="text-xs text-muted-foreground mt-1">Done</div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </motion.div>
-
-      {/* Priority Distribution */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.7 }}
-      >
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <AlertCircle className="h-5 w-5" />
-              Priority Distribution
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-3 gap-4">
-              {/* High Priority */}
-              <div className="text-center p-4 rounded-lg bg-red-100 dark:bg-red-900/30">
-                <div className="text-2xl font-bold text-red-600 dark:text-red-400">{analytics.highPriority}</div>
-                <div className="text-xs text-muted-foreground mt-1">High Priority</div>
-              </div>
-
-              {/* Medium Priority */}
-              <div className="text-center p-4 rounded-lg bg-yellow-100 dark:bg-yellow-900/30">
-                <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{analytics.mediumPriority}</div>
-                <div className="text-xs text-muted-foreground mt-1">Medium Priority</div>
-              </div>
-
-              {/* Low Priority */}
-              <div className="text-center p-4 rounded-lg bg-green-100 dark:bg-green-900/30">
-                <div className="text-2xl font-bold text-green-600 dark:text-green-400">{analytics.lowPriority}</div>
-                <div className="text-xs text-muted-foreground mt-1">Low Priority</div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </motion.div>
 
       </div>
     </>

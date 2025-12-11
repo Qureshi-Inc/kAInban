@@ -6,7 +6,7 @@ import * as db from './database.js'
 const ARGON2_OPTIONS = {
   memoryCost: 19456, // 19 MiB
   timeCost: 2,
-  parallelism: 1,
+  parallelism: 1
 }
 
 /**
@@ -46,7 +46,7 @@ export function validateEmail(email) {
     gmail_remove_subaddress: false, // Keep + addressing
     outlookdotcom_remove_subaddress: false,
     yahoo_remove_subaddress: false,
-    icloud_remove_subaddress: false,
+    icloud_remove_subaddress: false
   })
 
   return { valid: true, email: normalized }
@@ -145,7 +145,7 @@ export async function registerUser({ email, password, name }) {
     name: nameValidation.name,
     role: isFirstUser ? 'admin' : 'member',
     auth_provider: 'local',
-    password_hash: passwordHash,
+    password_hash: passwordHash
   })
 
   console.log('[LocalAuth] User registered:', user.email, 'Role:', user.role)
@@ -236,7 +236,7 @@ export function formatUserForSession(user) {
     picture: user.picture,
     role: user.role,
     auth_provider: user.auth_provider,
-    email_verified: !!user.email_verified,
+    email_verified: !!user.email_verified
   }
 }
 
@@ -274,5 +274,5 @@ export default {
   changePassword,
   formatUserForSession,
   requireAuth,
-  requireAdmin,
+  requireAdmin
 }

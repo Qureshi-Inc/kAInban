@@ -1,13 +1,13 @@
 import 'dotenv/config'
-import express from 'express'
-import cors from 'cors'
-import morgan from 'morgan'
-import session from 'express-session'
-import connectSqlite3 from 'connect-sqlite3'
-import rateLimit from 'express-rate-limit'
-import helmet from 'helmet'
 import fs from 'fs'
 import path from 'path'
+import connectSqlite3 from 'connect-sqlite3'
+import cors from 'cors'
+import express from 'express'
+import rateLimit from 'express-rate-limit'
+import session from 'express-session'
+import helmet from 'helmet'
+import morgan from 'morgan'
 import * as db from './database.js'
 import * as localAuth from './localAuth.js'
 import * as oidcAuth from './oidcAuth.js'
@@ -27,12 +27,12 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-      fontSrc: ["'self'", "https://fonts.gstatic.com"],
+      styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+      fontSrc: ["'self'", 'https://fonts.gstatic.com'],
       scriptSrc: ["'self'", "'unsafe-eval'"], // unsafe-eval needed for Vite dev
-      imgSrc: ["'self'", "data:", "https:"],
-      connectSrc: ["'self'", "https://api.openai.com", "https://*.openai.azure.com"],
-      mediaSrc: ["'self'", "blob:"],
+      imgSrc: ["'self'", 'data:', 'https:'],
+      connectSrc: ["'self'", 'https://api.openai.com', 'https://*.openai.azure.com'],
+      mediaSrc: ["'self'", 'blob:'],
       objectSrc: ["'none'"],
       baseUri: ["'self'"],
       formAction: ["'self'"],
@@ -105,7 +105,7 @@ app.use(cors({
     console.log('[CORS] Request from origin:', origin)
 
     // Allow requests with no origin (mobile apps, curl, etc.)
-    if (!origin) return callback(null, true)
+    if (!origin) {return callback(null, true)}
 
     // Check if origin is in allowed list
     const isAllowed = corsOrigins.some(allowedOrigin => {
@@ -192,7 +192,7 @@ app.get('/health', (req, res) => {
 })
 
 // Authentication endpoints
-app.post('/api/auth/register', authLimiter, async (req, res) => {
+app.post('/api/auth/register', authLimiter, async(req, res) => {
   try {
     const { email, password, name } = req.body
 
@@ -230,7 +230,7 @@ app.post('/api/auth/register', authLimiter, async (req, res) => {
   }
 })
 
-app.post('/api/auth/login', authLimiter, async (req, res) => {
+app.post('/api/auth/login', authLimiter, async(req, res) => {
   try {
     const { email, password } = req.body
 
@@ -331,7 +331,7 @@ app.get('/api/auth/oidc/status', (req, res) => {
   })
 })
 
-app.get('/api/auth/oidc/login', async (req, res) => {
+app.get('/api/auth/oidc/login', async(req, res) => {
   try {
     // Get system settings to check if OIDC is enabled
     const settings = db.getSystemSettings()
@@ -369,7 +369,7 @@ app.get('/api/auth/oidc/login', async (req, res) => {
   }
 })
 
-app.get('/api/auth/oidc/callback', async (req, res) => {
+app.get('/api/auth/oidc/callback', async(req, res) => {
   try {
     const codeVerifier = req.session.oidcCodeVerifier
     const state = req.session.oidcState
@@ -437,7 +437,7 @@ app.get('/api/auth/oidc/callback', async (req, res) => {
 })
 
 // PocketID Signup endpoints (Landing Page Integration)
-app.post('/api/auth/create-signup-intent', signupLimiter, async (req, res) => {
+app.post('/api/auth/create-signup-intent', signupLimiter, async(req, res) => {
   try {
     const { email, name, source } = req.body
 
@@ -464,7 +464,7 @@ app.post('/api/auth/create-signup-intent', signupLimiter, async (req, res) => {
   }
 })
 
-app.post('/api/auth/send-pocketid-invitation', signupLimiter, async (req, res) => {
+app.post('/api/auth/send-pocketid-invitation', signupLimiter, async(req, res) => {
   try {
     const { email, name, returnUrl } = req.body
 
@@ -489,7 +489,7 @@ app.post('/api/auth/send-pocketid-invitation', signupLimiter, async (req, res) =
   }
 })
 
-app.post('/api/auth/send-magic-link', signupLimiter, async (req, res) => {
+app.post('/api/auth/send-magic-link', signupLimiter, async(req, res) => {
   try {
     const { email, name } = req.body
 

@@ -1,7 +1,7 @@
 import React from 'react'
 import { getBadgeConfig } from '../utils/deploymentConfig'
 
-const SubscriptionBadge = ({ className = "" }) => {
+const SubscriptionBadge = ({ className = '' }) => {
   const badgeConfig = getBadgeConfig()
 
   return (

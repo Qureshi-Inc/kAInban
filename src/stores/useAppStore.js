@@ -13,7 +13,7 @@ const useAppStore = create((set, get) => ({
     apiKey: '',
     apiVersion: '2024-02-01',
     whisperDeployment: 'whisper-1',
-    gptDeployment: 'gpt-4',
+    gptDeployment: 'gpt-4'
   },
   settingsLoaded: false,
 
@@ -47,7 +47,7 @@ const useAppStore = create((set, get) => ({
   },
 
   // Authentication Actions
-  checkAuth: async () => {
+  checkAuth: async() => {
     try {
       const user = await apiService.getCurrentUser()
       set({ user, authChecked: true })
@@ -64,7 +64,7 @@ const useAppStore = create((set, get) => ({
     set({ user })
   },
 
-  logout: async () => {
+  logout: async() => {
     try {
       await apiService.logout()
       set({ user: null, currentProject: null, projects: [], tasks: [], meetings: [] })
@@ -74,7 +74,7 @@ const useAppStore = create((set, get) => ({
   },
 
   // Initialize - Load data from backend
-  initialize: async () => {
+  initialize: async() => {
 
     try {
       // Load settings
@@ -90,7 +90,7 @@ const useAppStore = create((set, get) => ({
 
       // For each project, if it doesn't have tasks populated, try to load them
       const projectsWithTasks = await Promise.all(
-        projects.map(async (project) => {
+        projects.map(async(project) => {
           // If the project already has tasks, use it as-is
           if (project.tasks && project.tasks.length > 0) {
             return project
@@ -139,7 +139,7 @@ const useAppStore = create((set, get) => ({
   },
 
   // Settings Actions
-  updateSettings: async (newSettings) => {
+  updateSettings: async(newSettings) => {
     const settings = { ...get().settings, ...newSettings }
     set({ settings })
 
@@ -148,7 +148,7 @@ const useAppStore = create((set, get) => ({
   },
 
   // Project Actions
-  createProject: async (name) => {
+  createProject: async(name) => {
     const project = {
       id: generateId(),
       name,
@@ -176,7 +176,7 @@ const useAppStore = create((set, get) => ({
     return project
   },
 
-  loadProject: async (projectId) => {
+  loadProject: async(projectId) => {
     console.log('[Store] Project ID:', projectId)
 
     const project = await apiService.getProject(projectId)
@@ -206,7 +206,7 @@ const useAppStore = create((set, get) => ({
     }
   },
 
-  updateCurrentProject: async () => {
+  updateCurrentProject: async() => {
     const { currentProject, tasks, meetings } = get()
     if (!currentProject) {
       console.warn('[Store] updateCurrentProject: No current project to update')
@@ -249,7 +249,7 @@ const useAppStore = create((set, get) => ({
     }
   },
 
-  deleteProject: async (projectId) => {
+  deleteProject: async(projectId) => {
     const wasCurrentProject = get().currentProject?.id === projectId
 
     set((state) => ({
@@ -276,7 +276,7 @@ const useAppStore = create((set, get) => ({
   setRecordingModalOpen: (open) => set({ isRecordingModalOpen: open }),
 
   // Meeting Actions
-  createMeeting: async (name, transcript, summary) => {
+  createMeeting: async(name, transcript, summary) => {
     const meeting = {
       id: generateId(),
       name,
@@ -337,7 +337,7 @@ const useAppStore = create((set, get) => ({
     }
   },
 
-  deleteMeeting: async (meetingId) => {
+  deleteMeeting: async(meetingId) => {
     const wasSelected = get().selectedMeetingId === meetingId
 
     try {
@@ -502,7 +502,7 @@ const useAppStore = create((set, get) => ({
 
   getLinkedTasks: (taskId) => {
     const task = get().tasks.find(t => t.id === taskId)
-    if (!task || !task.linkedTasks) return []
+    if (!task || !task.linkedTasks) {return []}
 
     return get().tasks.filter(t => task.linkedTasks.includes(t.id))
   },
@@ -510,7 +510,7 @@ const useAppStore = create((set, get) => ({
   // AI Link Management
   acceptAiSuggestion: (taskId, suggestionId, suggestionType) => {
     const task = get().tasks.find(t => t.id === taskId)
-    if (!task) return
+    if (!task) {return}
 
     // Move AI suggestion to manual links
     const updatedLinkedTasks = [...(task.linkedTasks || []), suggestionId]
@@ -536,7 +536,7 @@ const useAppStore = create((set, get) => ({
 
   rejectAiSuggestion: (taskId, suggestionId, suggestionType) => {
     const task = get().tasks.find(t => t.id === taskId)
-    if (!task) return
+    if (!task) {return}
 
     // Add to rejected list
     const updatedRejectedAiLinks = [...(task.rejectedAiLinks || []), suggestionId]
@@ -563,7 +563,7 @@ const useAppStore = create((set, get) => ({
   // Add AI discovered links (called from KanbanBoard when task completed)
   addAiDiscoveredLinks: (taskId, discoveredTaskIds) => {
     const task = get().tasks.find(t => t.id === taskId)
-    if (!task || !discoveredTaskIds.length) return
+    if (!task || !discoveredTaskIds.length) {return}
 
     // Filter out already linked or rejected suggestions
     const newDiscoveredLinks = discoveredTaskIds.filter(id =>

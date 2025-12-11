@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Users, Mail, Shield, Key, Trash2, Clock } from 'lucide-react'
-import { Button } from './ui/button'
+import React, { useState, useEffect } from 'react'
 import useAppStore from '../stores/useAppStore'
+import { Button } from './ui/button'
 
 export default function UserManagement() {
   const [users, setUsers] = useState([])
@@ -14,7 +14,7 @@ export default function UserManagement() {
     fetchUsers()
   }, [])
 
-  const fetchUsers = async () => {
+  const fetchUsers = async() => {
     try {
       const response = await fetch('/api/users', {
         credentials: 'include'
@@ -37,7 +37,7 @@ export default function UserManagement() {
     }
   }
 
-  const handleDeleteUser = async (userId, userName) => {
+  const handleDeleteUser = async(userId, userName) => {
     const warningMessage = `⚠️  PERMANENT DELETION WARNING ⚠️
 
 Are you sure you want to delete user "${userName}"?
@@ -86,7 +86,7 @@ Type "DELETE" to confirm:`
   }
 
   const formatDate = (dateString) => {
-    if (!dateString) return 'Never'
+    if (!dateString) {return 'Never'}
     return new Date(dateString).toLocaleString()
   }
 

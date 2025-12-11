@@ -1,8 +1,8 @@
-import React, { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { LogOut, User as UserIcon, Shield, Settings } from 'lucide-react'
-import { Button } from './ui/button'
+import React, { useState } from 'react'
 import useAppStore from '../stores/useAppStore'
+import { Button } from './ui/button'
 
 export default function UserProfile() {
   const user = useAppStore((state) => state.user)
@@ -10,7 +10,7 @@ export default function UserProfile() {
   const setSettingsOpen = useAppStore((state) => state.setSettingsOpen)
   const [isOpen, setIsOpen] = useState(false)
 
-  if (!user) return null
+  if (!user) {return null}
 
   const handleLogout = () => {
     if (confirm('Are you sure you want to logout?')) {

@@ -458,7 +458,7 @@ ${transcript}`
 
   // Find related tasks that should be updated together
   async findRelatedTasks(tasks, completedTaskTitle, completedTaskDescription) {
-    if (!tasks || tasks.length === 0) return []
+    if (!tasks || tasks.length === 0) {return []}
 
     try {
       const prompt = `Given that this task has been completed:
@@ -469,8 +469,8 @@ Description: "${completedTaskDescription}"
 
 EXISTING TASKS:
 ${tasks.map((task, idx) =>
-  `${idx + 1}. "${task.title}" - ${task.description}`
-).join('\n')}
+    `${idx + 1}. "${task.title}" - ${task.description}`
+  ).join('\n')}
 
 Return ONLY a JSON array of task indices (1-based) that are related to the completed task and should also be marked as completed or updated. Tasks are related if they:
 1. Are part of the same project/topic
@@ -720,8 +720,8 @@ ${transcript}`
 
 CURRENT TASKS:
 ${tasksWithContext.slice(0, 25).map((task, idx) =>
-  `${idx + 1}. "${task.title}" - Status: ${task.status}, Priority: ${task.priority}${task.dueContext}${task.description ? ` - ${task.description.substring(0, 100)}` : ''}`
-).join('\n')}
+    `${idx + 1}. "${task.title}" - Status: ${task.status}, Priority: ${task.priority}${task.dueContext}${task.description ? ` - ${task.description.substring(0, 100)}` : ''}`
+  ).join('\n')}
 ${tasksWithContext.length > 25 ? `\n...and ${tasksWithContext.length - 25} more tasks` : ''}
 
 CONTEXT:

@@ -1,6 +1,6 @@
-import { beforeAll, afterAll, beforeEach, afterEach } from 'vitest'
 import fs from 'fs/promises'
 import path from 'path'
+import { beforeAll, afterAll, beforeEach, afterEach } from 'vitest'
 
 // Test database path
 const TEST_DB_PATH = path.join(process.cwd(), 'storage', 'test.db')
@@ -15,7 +15,7 @@ global.console = {
 }
 
 // Setup test environment
-beforeAll(async () => {
+beforeAll(async() => {
   // Ensure storage directory exists
   await fs.mkdir(path.dirname(TEST_DB_PATH), { recursive: true })
 
@@ -28,7 +28,7 @@ beforeAll(async () => {
 })
 
 // Clean up after all tests
-afterAll(async () => {
+afterAll(async() => {
   try {
     await fs.unlink(TEST_DB_PATH)
   } catch (error) {
@@ -37,7 +37,7 @@ afterAll(async () => {
 })
 
 // Clean up before each test
-beforeEach(async () => {
+beforeEach(async() => {
   try {
     await fs.unlink(TEST_DB_PATH)
   } catch (error) {
@@ -46,7 +46,7 @@ beforeEach(async () => {
 })
 
 // Clean up after each test
-afterEach(async () => {
+afterEach(async() => {
   // Close any open database connections
   if (global.testDb) {
     global.testDb.close()

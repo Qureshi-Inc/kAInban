@@ -1,12 +1,12 @@
-import React, { useEffect, useRef } from 'react'
 import AudioMotionAnalyzer from 'audiomotion-analyzer'
+import React, { useEffect, useRef } from 'react'
 
 export default function AudioVisualizer({ stream, isActive = false }) {
   const containerRef = useRef(null)
   const audioMotionRef = useRef(null)
 
   useEffect(() => {
-    if (!containerRef.current || !stream) return
+    if (!containerRef.current || !stream) {return}
 
     let audioContext = null
     let sourceNode = null
