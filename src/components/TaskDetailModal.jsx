@@ -27,6 +27,7 @@ import {
 } from 'lucide-react'
 import React, { useState, useEffect } from 'react'
 import openaiService from '../services/openaiService'
+import apiService from '../services/apiService'
 import useAppStore from '../stores/useAppStore'
 import { Button } from './ui/button'
 import { Card } from './ui/card'
@@ -44,6 +45,8 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
   const [newSubtask, setNewSubtask] = useState('')
   const [comments, setComments] = useState([])
   const [newComment, setNewComment] = useState('')
+  const [serverComments, setServerComments] = useState([])
+  const [loadingComments, setLoadingComments] = useState(false)
   const [linkedTasks, setLinkedTasks] = useState([])
   const [aiCreatedLinks, setAiCreatedLinks] = useState([])
   const [aiDiscoveredLinks, setAiDiscoveredLinks] = useState([])
@@ -265,19 +268,6 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
     setSubtasks(subtasks.filter(st => st.id !== subtaskId))
   }
 
-  const addComment = () => {
-    if (!newComment.trim()) {return}
-
-    const comment = {
-      id: `comment-${Date.now()}`,
-      text: newComment,
-      author: assignee || 'You',
-      timestamp: new Date().toISOString()
-    }
-
-    setComments([...comments, comment])
-    setNewComment('')
-  }
 
   const handleLinkTask = (taskToLinkId) => {
 
@@ -616,6 +606,79 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
       message: `Created task "${subtask.text}" with ${nestedSubtasks.length} subtasks`
     })
   }
+
+  // Load comments from server
+  const loadServerComments = async () => {
+    if (!task?.id) return
+
+    setLoadingComments(true)
+    try {
+      const comments = await apiService.getTaskComments(task.id)
+      setServerComments(comments)
+    } catch (error) {
+      console.error('Failed to load comments:', error)
+      addNotification({
+        type: 'error',
+        message: 'Failed to load comments'
+      })
+    } finally {
+      setLoadingComments(false)
+    }
+  }
+
+  const addComment = async () => {
+    if (!newComment.trim() || !task?.id) return
+
+    try {
+      const result = await apiService.addTaskComment(task.id, newComment.trim(), 'user')
+      if (result.success) {
+        setNewComment('')
+        // Reload comments to get the updated list
+        await loadServerComments()
+        addNotification({
+          type: 'success',
+          message: 'Comment added successfully'
+        })
+      } else {
+        throw new Error(result.error || 'Failed to add comment')
+      }
+    } catch (error) {
+      console.error('Failed to add comment:', error)
+      addNotification({
+        type: 'error',
+        message: `Failed to add comment: ${error.message}`
+      })
+    }
+  }
+
+  const addAiComment = async (content, metadata = null) => {
+    if (!task?.id) return
+
+    try {
+      const result = await apiService.addTaskComment(task.id, content, 'ai_update', metadata)
+      if (result.success) {
+        // Reload comments to get the updated list
+        await loadServerComments()
+        return result
+      } else {
+        throw new Error(result.error || 'Failed to add AI comment')
+      }
+    } catch (error) {
+      console.error('Failed to add AI comment:', error)
+      addNotification({
+        type: 'error',
+        message: `Failed to record AI update: ${error.message}`
+      })
+      return { success: false, error: error.message }
+    }
+  }
+
+  // Load comments when task changes
+  useEffect(() => {
+    if (isOpen && task?.id) {
+      loadServerComments()
+    }
+  }, [isOpen, task?.id])
 
   if (!isOpen || !task) {return null}
 
@@ -1145,25 +1208,34 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
             <div>
               <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3 block flex items-center gap-2">
                 <MessageSquare className="h-4 w-4" />
-                Comments ({comments.length})
+                Comments ({serverComments.length})
+                {loadingComments && <div className="animate-spin h-3 w-3 border border-gray-300 border-t-gray-600 rounded-full" />}
               </label>
 
               {/* Comment List */}
               <div className="space-y-3 mb-3 max-h-60 overflow-y-auto">
-                {comments.map((comment) => (
-                  <Card key={comment.id} className="p-3">
+                {serverComments.map((comment) => (
+                  <Card key={comment.id} className={`p-3 ${comment.comment_type === 'ai_update' ? 'border-blue-200 bg-blue-50 dark:bg-blue-900/20' : ''}`}>
                     <div className="flex items-start justify-between mb-1">
-                      <span className="font-medium text-sm">{comment.author}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-sm">{comment.author_name}</span>
+                        {comment.comment_type === 'ai_update' && (
+                          <span className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">AI Update</span>
+                        )}
+                      </div>
                       <span className="text-xs text-gray-500 flex items-center gap-1">
                         <Clock className="h-3 w-3" />
-                        {formatTimestamp(comment.timestamp)}
+                        {formatTimestamp(new Date(comment.created_at))}
                       </span>
                     </div>
-                    <p className="text-sm text-gray-700 dark:text-gray-300">
-                      {comment.text}
+                    <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
+                      {comment.content}
                     </p>
                   </Card>
                 ))}
+                {serverComments.length === 0 && !loadingComments && (
+                  <p className="text-sm text-gray-500 text-center py-4">No comments yet. Add the first comment below.</p>
+                )}
               </div>
 
               {/* Add Comment */}

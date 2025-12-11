@@ -2,6 +2,7 @@ import { motion } from 'framer-motion'
 import { FileText, X, Sparkles } from 'lucide-react'
 import React, { useState } from 'react'
 import openaiService from '../services/openaiService'
+import apiService from '../services/apiService'
 import useAppStore from '../stores/useAppStore'
 import { Button } from './ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog'
@@ -84,20 +85,34 @@ export default function PasteTextModal({ open, onOpenChange }) {
 
       // Add extracted tasks
       if (tasks && tasks.length > 0) {
-        tasks.forEach(task => {
+        tasks.forEach(async task => {
           if (task.matchId && task.matchId > 0) {
-            // Update existing task
+            // Update existing task and add AI comment instead of updating description
             const existingTask = existingTasks[task.matchId - 1]
             if (existingTask) {
-              const updatedDescription = existingTask.description +
-                (task.updates ? `\n\n**Update**: ${task.updates}` : '')
-
+              // Update task properties (status, priority, etc.) but not description
               storeUpdateTask(existingTask.id, {
-                description: updatedDescription,
                 status: task.newStatus || existingTask.status,
                 priority: task.newPriority || existingTask.priority,
                 assignee: task.assignee || existingTask.assignee
               })
+
+              // Add AI comment with the updates instead of appending to description
+              if (task.updates) {
+                try {
+                  await apiService.addTaskComment(
+                    existingTask.id,
+                    `**AI Analysis Update from Transcript**: ${task.updates}`,
+                    'ai_update',
+                    {
+                      source: 'transcript_analysis',
+                      originalTranscript: transcript.substring(0, 200) + '...' // First 200 chars for context
+                    }
+                  )
+                } catch (error) {
+                  console.error('Failed to add AI comment:', error)
+                }
+              }
               updatedCount++
             }
           } else {

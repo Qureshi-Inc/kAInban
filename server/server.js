@@ -963,6 +963,162 @@ app.delete('/api/analytics/insights', localAuth.requireAuth, async (req, res) =>
   }
 })
 
+// Task change tracking endpoints
+app.get('/api/tasks/:taskId/changes', localAuth.requireAuth, async (req, res) => {
+  try {
+    const { taskId } = req.params
+    const { limit = 50 } = req.query
+
+    // Get task to verify access
+    const task = db.getTask(taskId)
+    if (!task) {
+      return res.status(404).json({ error: 'Task not found' })
+    }
+
+    // Get project to verify user access
+    const project = db.getProject(task.project_id)
+    if (!project || project.user_id !== req.session.user.id) {
+      return res.status(403).json({ error: 'Access denied' })
+    }
+
+    const changes = db.getTaskChanges(taskId, parseInt(limit))
+    res.json(changes)
+  } catch (error) {
+    console.error('[Task Changes] Get changes error:', error)
+    res.status(500).json({ error: 'Failed to get task changes' })
+  }
+})
+
+app.get('/api/projects/:projectId/changes', localAuth.requireAuth, async (req, res) => {
+  try {
+    const { projectId } = req.params
+    const { limit = 100 } = req.query
+
+    // Verify project access
+    const project = db.getProject(projectId)
+    if (!project || project.user_id !== req.session.user.id) {
+      return res.status(403).json({ error: 'Access denied' })
+    }
+
+    const changes = db.getProjectTaskChanges(projectId, parseInt(limit))
+    res.json(changes)
+  } catch (error) {
+    console.error('[Project Changes] Get changes error:', error)
+    res.status(500).json({ error: 'Failed to get project changes' })
+  }
+})
+
+// Task comments endpoints
+app.get('/api/tasks/:taskId/comments', localAuth.requireAuth, async (req, res) => {
+  try {
+    const { taskId } = req.params
+    const { limit = 50 } = req.query
+
+    // Get task to verify access
+    const task = db.getTask(taskId)
+    if (!task) {
+      return res.status(404).json({ error: 'Task not found' })
+    }
+
+    // Get project to verify user access
+    const project = db.getProject(task.project_id)
+    if (!project || project.user_id !== req.session.user.id) {
+      return res.status(403).json({ error: 'Access denied' })
+    }
+
+    const comments = db.getTaskComments(taskId, parseInt(limit))
+    res.json(comments)
+  } catch (error) {
+    console.error('[Task Comments] Get comments error:', error)
+    res.status(500).json({ error: 'Failed to get task comments' })
+  }
+})
+
+app.post('/api/tasks/:taskId/comments', localAuth.requireAuth, async (req, res) => {
+  try {
+    const { taskId } = req.params
+    const { content, commentType = 'user', metadata = null } = req.body
+    const userId = req.session.user.id
+    const user = req.session.user
+
+    if (!content || !content.trim()) {
+      return res.status(400).json({ error: 'Comment content is required' })
+    }
+
+    // Get task to verify access
+    const task = db.getTask(taskId)
+    if (!task) {
+      return res.status(404).json({ error: 'Task not found' })
+    }
+
+    // Get project to verify user access
+    const project = db.getProject(task.project_id)
+    if (!project || project.user_id !== userId) {
+      return res.status(403).json({ error: 'Access denied' })
+    }
+
+    // Generate comment ID
+    const commentId = `comment_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+
+    // Add comment
+    db.addTaskComment(commentId, taskId, userId, user.name || user.email, content.trim(), commentType, metadata)
+
+    // Record change if it's an AI update
+    if (commentType === 'ai_update') {
+      db.recordTaskChange(taskId, userId, 'ai_comment_added', null, null, content.trim(), {
+        commentId,
+        commentType: 'ai_update'
+      })
+    }
+
+    res.json({ id: commentId, success: true })
+  } catch (error) {
+    console.error('[Task Comments] Add comment error:', error)
+    res.status(500).json({ error: 'Failed to add comment' })
+  }
+})
+
+app.put('/api/comments/:commentId', localAuth.requireAuth, async (req, res) => {
+  try {
+    const { commentId } = req.params
+    const { content } = req.body
+    const userId = req.session.user.id
+
+    if (!content || !content.trim()) {
+      return res.status(400).json({ error: 'Comment content is required' })
+    }
+
+    const result = db.updateTaskComment(commentId, content.trim())
+
+    if (result.changes === 0) {
+      return res.status(404).json({ error: 'Comment not found or access denied' })
+    }
+
+    res.json({ success: true })
+  } catch (error) {
+    console.error('[Task Comments] Update comment error:', error)
+    res.status(500).json({ error: 'Failed to update comment' })
+  }
+})
+
+app.delete('/api/comments/:commentId', localAuth.requireAuth, async (req, res) => {
+  try {
+    const { commentId } = req.params
+    const userId = req.session.user.id
+
+    const result = db.deleteTaskComment(commentId, userId)
+
+    if (result.changes === 0) {
+      return res.status(404).json({ error: 'Comment not found or access denied' })
+    }
+
+    res.json({ success: true })
+  } catch (error) {
+    console.error('[Task Comments] Delete comment error:', error)
+    res.status(500).json({ error: 'Failed to delete comment' })
+  }
+})
+
 // Start server
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`[Server] API running on http://0.0.0.0:${PORT}`)

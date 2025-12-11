@@ -112,6 +112,40 @@ db.exec(`
   );
 `)
 
+// Create task change tracking table
+db.exec(`
+  CREATE TABLE IF NOT EXISTS task_changes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    task_id TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    change_type TEXT NOT NULL, -- 'created', 'updated', 'deleted', 'status_changed', 'priority_changed', etc.
+    field_name TEXT,           -- specific field that changed (title, description, priority, etc.)
+    old_value TEXT,            -- previous value (JSON for complex fields)
+    new_value TEXT,            -- new value (JSON for complex fields)
+    metadata TEXT,             -- additional context (JSON)
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (task_id) REFERENCES tasks(id),
+    FOREIGN KEY (user_id) REFERENCES users(id)
+  );
+`)
+
+// Create task comments table (separate from change tracking)
+db.exec(`
+  CREATE TABLE IF NOT EXISTS task_comments (
+    id TEXT PRIMARY KEY,
+    task_id TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    author_name TEXT NOT NULL,  -- Display name for the comment author
+    content TEXT NOT NULL,
+    comment_type TEXT DEFAULT 'user', -- 'user', 'ai_update', 'system'
+    metadata TEXT,             -- additional data (JSON)
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (task_id) REFERENCES tasks(id),
+    FOREIGN KEY (user_id) REFERENCES users(id)
+  );
+`)
+
 // Migration: Add new columns if they don't exist
 try {
   // Check if due_date column exists in tasks table
@@ -799,6 +833,110 @@ export const clearAllAnalyticsInsights = (userId) => {
     WHERE user_id = ?
   `)
   return stmt.run(userId)
+}
+
+// Task change tracking methods
+export const recordTaskChange = (taskId, userId, changeType, fieldName = null, oldValue = null, newValue = null, metadata = null) => {
+  const stmt = db.prepare(`
+    INSERT INTO task_changes
+    (task_id, user_id, change_type, field_name, old_value, new_value, metadata)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `)
+
+  const oldValueStr = oldValue ? (typeof oldValue === 'object' ? JSON.stringify(oldValue) : oldValue.toString()) : null
+  const newValueStr = newValue ? (typeof newValue === 'object' ? JSON.stringify(newValue) : newValue.toString()) : null
+  const metadataStr = metadata ? JSON.stringify(metadata) : null
+
+  return stmt.run(taskId, userId, changeType, fieldName, oldValueStr, newValueStr, metadataStr)
+}
+
+export const getTaskChanges = (taskId, limit = 50) => {
+  const stmt = db.prepare(`
+    SELECT tc.*, u.name as user_name, u.email as user_email
+    FROM task_changes tc
+    LEFT JOIN users u ON tc.user_id = u.id
+    WHERE tc.task_id = ?
+    ORDER BY tc.created_at DESC
+    LIMIT ?
+  `)
+
+  const changes = stmt.all(taskId, limit)
+
+  // Parse JSON fields
+  return changes.map(change => ({
+    ...change,
+    old_value: change.old_value ? (change.old_value.startsWith('{') || change.old_value.startsWith('[') ? JSON.parse(change.old_value) : change.old_value) : null,
+    new_value: change.new_value ? (change.new_value.startsWith('{') || change.new_value.startsWith('[') ? JSON.parse(change.new_value) : change.new_value) : null,
+    metadata: change.metadata ? JSON.parse(change.metadata) : null
+  }))
+}
+
+export const getProjectTaskChanges = (projectId, limit = 100) => {
+  const stmt = db.prepare(`
+    SELECT tc.*, u.name as user_name, u.email as user_email, t.title as task_title
+    FROM task_changes tc
+    LEFT JOIN users u ON tc.user_id = u.id
+    LEFT JOIN tasks t ON tc.task_id = t.id
+    WHERE t.project_id = ?
+    ORDER BY tc.created_at DESC
+    LIMIT ?
+  `)
+
+  const changes = stmt.all(projectId, limit)
+
+  return changes.map(change => ({
+    ...change,
+    old_value: change.old_value ? (change.old_value.startsWith('{') || change.old_value.startsWith('[') ? JSON.parse(change.old_value) : change.old_value) : null,
+    new_value: change.new_value ? (change.new_value.startsWith('{') || change.new_value.startsWith('[') ? JSON.parse(change.new_value) : change.new_value) : null,
+    metadata: change.metadata ? JSON.parse(change.metadata) : null
+  }))
+}
+
+// Task comments methods
+export const addTaskComment = (commentId, taskId, userId, authorName, content, commentType = 'user', metadata = null) => {
+  const stmt = db.prepare(`
+    INSERT INTO task_comments
+    (id, task_id, user_id, author_name, content, comment_type, metadata)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `)
+
+  const metadataStr = metadata ? JSON.stringify(metadata) : null
+  return stmt.run(commentId, taskId, userId, authorName, content, commentType, metadataStr)
+}
+
+export const getTaskComments = (taskId, limit = 50) => {
+  const stmt = db.prepare(`
+    SELECT tc.*, u.name as user_name, u.email as user_email
+    FROM task_comments tc
+    LEFT JOIN users u ON tc.user_id = u.id
+    WHERE tc.task_id = ?
+    ORDER BY tc.created_at ASC
+    LIMIT ?
+  `)
+
+  const comments = stmt.all(taskId, limit)
+
+  return comments.map(comment => ({
+    ...comment,
+    metadata: comment.metadata ? JSON.parse(comment.metadata) : null
+  }))
+}
+
+export const updateTaskComment = (commentId, content) => {
+  const stmt = db.prepare(`
+    UPDATE task_comments
+    SET content = ?, updated_at = CURRENT_TIMESTAMP
+    WHERE id = ?
+  `)
+  return stmt.run(content, commentId)
+}
+
+export const deleteTaskComment = (commentId, userId) => {
+  const stmt = db.prepare(`
+    DELETE FROM task_comments
+    WHERE id = ? AND user_id = ?
+  `)
+  return stmt.run(commentId, userId)
 }
 
 // Export all data

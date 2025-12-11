@@ -339,6 +339,82 @@ class ApiService {
       console.error('[API] Failed to clear all localStorage caches:', error)
     }
   }
+
+  // Task change tracking methods
+  async getTaskChanges(taskId, limit = 50) {
+    try {
+      const response = await this.secureFetch(`${API_URL}/tasks/${taskId}/changes?limit=${limit}`)
+      if (!response.ok) {throw new Error('Failed to get task changes')}
+      return await response.json()
+    } catch (error) {
+      console.error('[API] Get task changes error:', error)
+      return []
+    }
+  }
+
+  async getProjectChanges(projectId, limit = 100) {
+    try {
+      const response = await this.secureFetch(`${API_URL}/projects/${projectId}/changes?limit=${limit}`)
+      if (!response.ok) {throw new Error('Failed to get project changes')}
+      return await response.json()
+    } catch (error) {
+      console.error('[API] Get project changes error:', error)
+      return []
+    }
+  }
+
+  // Task comments methods
+  async getTaskComments(taskId, limit = 50) {
+    try {
+      const response = await this.secureFetch(`${API_URL}/tasks/${taskId}/comments?limit=${limit}`)
+      if (!response.ok) {throw new Error('Failed to get task comments')}
+      return await response.json()
+    } catch (error) {
+      console.error('[API] Get task comments error:', error)
+      return []
+    }
+  }
+
+  async addTaskComment(taskId, content, commentType = 'user', metadata = null) {
+    try {
+      const response = await this.secureFetch(`${API_URL}/tasks/${taskId}/comments`, {
+        method: 'POST',
+        body: JSON.stringify({ content, commentType, metadata })
+      })
+      if (!response.ok) {throw new Error('Failed to add comment')}
+      return await response.json()
+    } catch (error) {
+      console.error('[API] Add comment error:', error)
+      return { success: false, error: error.message }
+    }
+  }
+
+  async updateTaskComment(commentId, content) {
+    try {
+      const response = await this.secureFetch(`${API_URL}/comments/${commentId}`, {
+        method: 'PUT',
+        body: JSON.stringify({ content })
+      })
+      if (!response.ok) {throw new Error('Failed to update comment')}
+      return await response.json()
+    } catch (error) {
+      console.error('[API] Update comment error:', error)
+      return { success: false, error: error.message }
+    }
+  }
+
+  async deleteTaskComment(commentId) {
+    try {
+      const response = await this.secureFetch(`${API_URL}/comments/${commentId}`, {
+        method: 'DELETE'
+      })
+      if (!response.ok) {throw new Error('Failed to delete comment')}
+      return await response.json()
+    } catch (error) {
+      console.error('[API] Delete comment error:', error)
+      return { success: false, error: error.message }
+    }
+  }
 }
 
 export default new ApiService()
