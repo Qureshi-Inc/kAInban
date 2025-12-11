@@ -9,13 +9,11 @@ import audioService from '../services/audioService'
 import openaiService from '../services/openaiService'
 import transcriptionQueue from '../services/transcriptionQueue'
 import PasteTextModal from './PasteTextModal'
+import AudioVisualizer from './AudioVisualizer'
 
 export default function AudioControls() {
   const fileInputRef = useRef(null)
-  const canvasRef = useRef(null)
-  const animationRef = useRef(null)
   const timerRef = useRef(null)
-  const chunkInfoRef = useRef(null)
   const [recordingTime, setRecordingTime] = useState(0)
   const [chunkInfo, setChunkInfo] = useState(null)
   const [isPasteTextOpen, setIsPasteTextOpen] = useState(false)
@@ -39,33 +37,19 @@ export default function AudioControls() {
     resetUploadProgress
   } = useAppStore()
 
-  // Timer and visualization effects
+  // Timer effects
   useEffect(() => {
     if (isRecording) {
       startTimer()
-      startVisualization()
     } else {
       stopTimer()
-      stopVisualization()
       setRecordingTime(0)
     }
 
     return () => {
       stopTimer()
-      stopVisualization()
     }
   }, [isRecording])
-
-  // Handle pause state changes for visualization
-  useEffect(() => {
-    if (isRecording) {
-      if (isPaused) {
-        stopVisualization()
-      } else {
-        startVisualization()
-      }
-    }
-  }, [isPaused, isRecording])
 
   const startTimer = () => {
     const startTime = Date.now()
@@ -112,79 +96,7 @@ export default function AudioControls() {
     setChunkInfo(null)
   }
 
-  const startVisualization = () => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-
-    const ctx = canvas.getContext('2d')
-    const analyser = audioService.analyser
-    let dataArray = null
-
-    if (analyser) {
-      const bufferLength = analyser.frequencyBinCount
-      dataArray = new Uint8Array(bufferLength)
-    }
-
-    const draw = () => {
-      const width = canvas.width
-      const height = canvas.height
-
-      if (!dataArray) {
-        // Draw a simple pulse animation
-        ctx.fillStyle = '#f8f9fa'
-        ctx.fillRect(0, 0, width, height)
-
-        const time = Date.now() * 0.005
-        const centerY = height / 2
-        const barCount = 32
-
-        for (let i = 0; i < barCount; i++) {
-          const x = (i / barCount) * width
-          const barHeight = Math.sin(time + i * 0.5) * 20 + 10
-          const gradient = ctx.createLinearGradient(0, centerY - barHeight, 0, centerY + barHeight)
-          gradient.addColorStop(0, '#4285f4')
-          gradient.addColorStop(1, '#34a853')
-
-          ctx.fillStyle = gradient
-          ctx.fillRect(x, centerY - barHeight, width / barCount - 2, barHeight * 2)
-        }
-      } else {
-        analyser.getByteFrequencyData(dataArray)
-
-        ctx.fillStyle = '#f8f9fa'
-        ctx.fillRect(0, 0, width, height)
-
-        const barWidth = (width / dataArray.length) * 2.5
-        let x = 0
-
-        for (let i = 0; i < dataArray.length; i++) {
-          const barHeight = (dataArray[i] / 255) * height * 0.8
-
-          const gradient = ctx.createLinearGradient(0, height - barHeight, 0, height)
-          gradient.addColorStop(0, '#4285f4')
-          gradient.addColorStop(1, '#34a853')
-
-          ctx.fillStyle = gradient
-          ctx.fillRect(x, height - barHeight, barWidth, barHeight)
-
-          x += barWidth + 1
-        }
-      }
-
-      if (isRecording && !isPaused) {
-        animationRef.current = requestAnimationFrame(draw)
-      }
-    }
-
-    draw()
-  }
-
-  const stopVisualization = () => {
-    if (animationRef.current) {
-      cancelAnimationFrame(animationRef.current)
-      animationRef.current = null
-    }
-  }
+  // Visualization is now handled by AudioVisualizer component
 
   const handleStartRecording = async () => {
     try {
@@ -779,11 +691,9 @@ export default function AudioControls() {
                   <div className="pt-4 space-y-4 border-t">
                     {/* Audio Visualization */}
                     <div className="recording-visualizer p-4 rounded-lg bg-gray-50 dark:bg-gray-900">
-                      <canvas
-                        ref={canvasRef}
-                        width={400}
-                        height={120}
-                        className="w-full h-[120px] rounded-md"
+                      <AudioVisualizer
+                        analyser={audioService.analyser}
+                        isActive={isRecording && !isPaused}
                       />
                     </div>
 
