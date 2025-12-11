@@ -23,7 +23,7 @@ export default function ActivityPanel({ isOpen, onClose }) {
 
   // Load real change tracking data
   useEffect(() => {
-    const loadActivities = async () => {
+    const loadActivities = async() => {
       if (!isOpen || !currentProject?.id) {
         return
       }

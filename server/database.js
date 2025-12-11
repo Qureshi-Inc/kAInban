@@ -722,11 +722,20 @@ export const saveProject = (userId, project) => {
           )
         }
 
-        // Record general update
-        recordTaskChange(task.id, userIdStr, 'updated', null, null, null, {
-          source: 'task_update',
-          timestamp: new Date().toISOString()
-        })
+        // Only record general update if there were actual changes
+        const hasChanges = (existingTask.status !== task.status) ||
+                          (existingTask.priority !== task.priority) ||
+                          (existingTask.title !== task.title) ||
+                          (existingTask.description !== (task.description || '')) ||
+                          (existingTask.assignee !== task.assignee) ||
+                          (existingTask.dueDate !== task.dueDate)
+
+        if (hasChanges) {
+          recordTaskChange(task.id, userIdStr, 'updated', null, null, null, {
+            source: 'task_update',
+            timestamp: new Date().toISOString()
+          })
+        }
       } else {
         // Record task creation
         recordTaskChange(task.id, userIdStr, 'created', null, null, null, {

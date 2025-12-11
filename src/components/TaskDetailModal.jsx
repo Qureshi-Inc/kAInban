@@ -26,8 +26,8 @@ import {
   Loader2
 } from 'lucide-react'
 import React, { useState, useEffect } from 'react'
-import openaiService from '../services/openaiService'
 import apiService from '../services/apiService'
+import openaiService from '../services/openaiService'
 import useAppStore from '../stores/useAppStore'
 import { Button } from './ui/button'
 import { Card } from './ui/card'
@@ -608,8 +608,8 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
   }
 
   // Load comments from server
-  const loadServerComments = async () => {
-    if (!task?.id) return
+  const loadServerComments = async() => {
+    if (!task?.id) {return}
 
     setLoadingComments(true)
     try {
@@ -626,8 +626,8 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
     }
   }
 
-  const addComment = async () => {
-    if (!newComment.trim() || !task?.id) return
+  const addComment = async() => {
+    if (!newComment.trim() || !task?.id) {return}
 
     try {
       const result = await apiService.addTaskComment(task.id, newComment.trim(), 'user')
@@ -651,8 +651,8 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
     }
   }
 
-  const addAiComment = async (content, metadata = null) => {
-    if (!task?.id) return
+  const addAiComment = async(content, metadata = null) => {
+    if (!task?.id) {return}
 
     try {
       const result = await apiService.addTaskComment(task.id, content, 'ai_update', metadata)

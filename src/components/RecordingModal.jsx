@@ -2,6 +2,7 @@ import { motion } from 'framer-motion'
 import { Square, X } from 'lucide-react'
 import React, { useEffect, useRef } from 'react'
 import { formatTime } from '../lib/utils'
+import apiService from '../services/apiService'
 import audioService from '../services/audioService'
 import openaiService from '../services/openaiService'
 import useAppStore from '../stores/useAppStore'
@@ -187,7 +188,7 @@ export default function RecordingModal() {
         let newCount = 0
         let updatedCount = 0
 
-        extractedTasks.forEach((task, index) => {
+        for (const [index, task] of extractedTasks.entries()) {
 
           if (task.matchId && task.matchId > 0) {
             // Update existing task
@@ -196,14 +197,27 @@ export default function RecordingModal() {
             if (existingTask) {
               console.log('[TaskUpdate] Existing task title:', existingTask.title)
 
-              const updatedDescription = existingTask.description +
-                (task.updates ? `\n\n**Update**: ${task.updates}` : '')
-
               const updates = {
-                description: updatedDescription,
                 status: task.newStatus || existingTask.status,
                 priority: task.newPriority || existingTask.priority,
                 assignee: task.assignee || existingTask.assignee
+              }
+
+              // Add AI comment if there are updates
+              if (task.updates) {
+                try {
+                  await apiService.addTaskComment(
+                    existingTask.id,
+                    `**AI Analysis Update from Recording**: ${task.updates}`,
+                    'ai_update',
+                    {
+                      source: 'recording_analysis',
+                      originalTranscript: transcript.substring(0, 200) + '...'
+                    }
+                  )
+                } catch (error) {
+                  console.error('Failed to add AI comment:', error)
+                }
               }
 
               console.log('[TaskUpdate] Applying updates:', updates)
@@ -226,7 +240,7 @@ export default function RecordingModal() {
             newCount++
 
           }
-        })
+        }
 
         console.log('[TaskUpdate] New tasks created:', newCount)
         console.log('[TaskUpdate] Total tasks in project after updates:', useAppStore.getState().tasks.length)

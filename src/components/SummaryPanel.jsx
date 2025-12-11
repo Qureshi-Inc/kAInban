@@ -2,6 +2,7 @@ import { motion } from 'framer-motion'
 import { FileText, Download, Share2, Copy } from 'lucide-react'
 import React, { useState, useEffect } from 'react'
 import ReactMarkdown from 'react-markdown'
+import apiService from '../services/apiService'
 import openaiService from '../services/openaiService'
 import useAppStore from '../stores/useAppStore'
 import { Button } from './ui/button'
@@ -179,15 +180,25 @@ export default function SummaryPanel() {
           // Update existing task
           const existingTask = existingTasks[task.matchId - 1]
           if (existingTask) {
-            const updatedDescription = existingTask.description +
-              (task.updates ? `\n\n**Update**: ${task.updates}` : '')
-
             storeUpdateTask(existingTask.id, {
-              description: updatedDescription,
               status: task.newStatus || existingTask.status,
               priority: task.newPriority || existingTask.priority,
               assignee: task.assignee || existingTask.assignee
             })
+
+            // Add AI comment if there are updates
+            if (task.updates) {
+              apiService.addTaskComment(
+                existingTask.id,
+                `**AI Analysis Update from Summary**: ${task.updates}`,
+                'ai_update',
+                {
+                  source: 'summary_analysis'
+                }
+              ).catch(error => {
+                console.error('Failed to add AI comment:', error)
+              })
+            }
             updatedCount++
           }
         } else {

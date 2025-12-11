@@ -2,6 +2,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Mic, Upload, Square, Pause, Play, FileText } from 'lucide-react'
 import React, { useRef, useEffect, useState } from 'react'
 import { formatTime } from '../lib/utils'
+import apiService from '../services/apiService'
 import audioService from '../services/audioService'
 import openaiService from '../services/openaiService'
 import transcriptionQueue from '../services/transcriptionQueue'
@@ -337,15 +338,26 @@ export default function AudioControls() {
               // Update existing task
               const existingTask = existingTasks[task.matchId - 1]
               if (existingTask) {
-                const updatedDescription = existingTask.description +
-                  (task.updates ? `\n\n**Update**: ${task.updates}` : '')
-
                 storeUpdateTask(existingTask.id, {
-                  description: updatedDescription,
                   status: task.newStatus || existingTask.status,
                   priority: task.newPriority || existingTask.priority,
                   assignee: task.assignee || existingTask.assignee
                 })
+
+                // Add AI comment if there are updates
+                if (task.updates) {
+                  apiService.addTaskComment(
+                    existingTask.id,
+                    `**AI Analysis Update from Audio**: ${task.updates}`,
+                    'ai_update',
+                    {
+                      source: 'audio_analysis',
+                      originalTranscript: transcript.substring(0, 200) + '...'
+                    }
+                  ).catch(error => {
+                    console.error('Failed to add AI comment:', error)
+                  })
+                }
                 updatedCount++
               }
             } else {
@@ -509,15 +521,26 @@ export default function AudioControls() {
               // Update existing task
               const existingTask = existingTasks[task.matchId - 1]
               if (existingTask) {
-                const updatedDescription = existingTask.description +
-                  (task.updates ? `\n\n**Update**: ${task.updates}` : '')
-
                 storeUpdateTask(existingTask.id, {
-                  description: updatedDescription,
                   status: task.newStatus || existingTask.status,
                   priority: task.newPriority || existingTask.priority,
                   assignee: task.assignee || existingTask.assignee
                 })
+
+                // Add AI comment if there are updates
+                if (task.updates) {
+                  apiService.addTaskComment(
+                    existingTask.id,
+                    `**AI Analysis Update from Audio**: ${task.updates}`,
+                    'ai_update',
+                    {
+                      source: 'audio_analysis',
+                      originalTranscript: transcript.substring(0, 200) + '...'
+                    }
+                  ).catch(error => {
+                    console.error('Failed to add AI comment:', error)
+                  })
+                }
                 updatedCount++
               }
             } else {
