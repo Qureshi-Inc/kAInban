@@ -148,14 +148,9 @@ class SignupForm {
           <div class="signup-success">
             <h4>✅ Almost there!</h4>
             <p>We've sent setup instructions to <strong>${email}</strong></p>
-            <p><small>Redirecting you to complete setup...</small></p>
+            <p><small>Check your email and follow the instructions to complete your account setup.</small></p>
           </div>
         `);
-
-        // Auto-redirect after 1.5 seconds
-        setTimeout(() => {
-          window.location.href = this.pocketIdSignup.signupPageUrl;
-        }, 1500);
       } else {
         // Fallback to manual instructions with better messaging
         this.showManualInstructions(email, result.registrationLink);

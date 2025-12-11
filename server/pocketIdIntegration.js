@@ -203,8 +203,24 @@ class PocketIDIntegration {
               font-weight: bold;
               font-size: 18px;
               display: inline-block;
-              box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);">
+              box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+              margin-bottom: 15px;">
       Complete Your Setup →
+    </a>
+
+    <br>
+
+    <a href="${process.env.APP_URL || 'https://app.kainban.com'}"
+       style="background: #f8fafc;
+              color: #667eea;
+              border: 2px solid #667eea;
+              padding: 12px 30px;
+              text-decoration: none;
+              border-radius: 8px;
+              font-weight: bold;
+              font-size: 16px;
+              display: inline-block;">
+      Launch kAInban →
     </a>
   </div>
 
