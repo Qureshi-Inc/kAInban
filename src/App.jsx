@@ -272,6 +272,7 @@ function App() {
             <Routes>
               <Route path="/" element={<Dashboard />} />
               <Route path="/project/:projectId" element={<ProjectView />} />
+              <Route path="/project/:projectId/meeting/:meetingId" element={<ProjectView />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </motion.div>

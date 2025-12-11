@@ -8,11 +8,13 @@ import SummaryPanel from '../components/SummaryPanel'
 import useAppStore from '../stores/useAppStore'
 
 export default function ProjectView() {
-  const { projectId } = useParams()
+  const { projectId, meetingId } = useParams()
   const navigate = useNavigate()
   const currentProject = useAppStore((state) => state.currentProject)
   const loadProject = useAppStore((state) => state.loadProject)
   const projects = useAppStore((state) => state.projects)
+  const selectMeeting = useAppStore((state) => state.selectMeeting)
+  const meetings = useAppStore((state) => state.meetings)
 
   useEffect(() => {
     // If project ID in URL doesn't match current project, load it
@@ -26,6 +28,22 @@ export default function ProjectView() {
       }
     }
   }, [projectId, currentProject, projects, loadProject, navigate])
+
+  useEffect(() => {
+    // If meeting ID is in URL, select it
+    if (meetingId && meetings.length > 0) {
+      const meeting = meetings.find((m) => m.id === meetingId)
+      if (meeting) {
+        selectMeeting(meetingId)
+      } else {
+        // Meeting not found in this project, redirect to project without meeting
+        navigate(`/project/${projectId}`)
+      }
+    } else if (!meetingId) {
+      // No meeting in URL, clear selection
+      selectMeeting(null)
+    }
+  }, [meetingId, meetings, selectMeeting, navigate, projectId])
 
   // If no project loaded yet, show loading
   if (!currentProject || currentProject.id !== projectId) {
@@ -47,12 +65,13 @@ export default function ProjectView() {
       >
         {/* Breadcrumb navigation */}
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <span
-            className="hover:text-foreground cursor-pointer transition-colors font-medium"
+          <button
+            type="button"
+            className="hover:text-foreground cursor-pointer transition-colors font-medium bg-transparent border-0 p-0"
             onClick={() => navigate('/')}
           >
             Dashboard
-          </span>
+          </button>
           <span className="text-xs">→</span>
           <span className="font-medium text-foreground">{currentProject.name}</span>
           <span className="text-xs">•</span>
