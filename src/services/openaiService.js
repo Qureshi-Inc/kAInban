@@ -379,6 +379,15 @@ ${transcript}`
         console.log('[OpenAI] Number of tasks parsed:', tasks.length)
         console.log('[OpenAI] Raw tasks from AI:', JSON.stringify(tasks, null, 2))
 
+        // Debug: Check if AI is putting updates in description field
+        tasks.forEach((task, idx) => {
+          if (task.matchId && task.description && task.description.includes('AI Analysis')) {
+            console.error(`[OpenAI] ⚠️ PROBLEM: Task ${idx + 1} has AI update in description field instead of updates field!`)
+            console.error(`[OpenAI] Description: ${task.description}`)
+            console.error(`[OpenAI] Updates: ${task.updates || 'NONE'}`)
+          }
+        })
+
         // Validate and sanitize tasks
         return tasks.map((task, index) => {
           console.log(`[OpenAI] Processing task ${index + 1}:`, JSON.stringify(task, null, 2))

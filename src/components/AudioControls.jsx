@@ -333,11 +333,15 @@ export default function AudioControls() {
         let updatedCount = 0
 
         if (extractedTasks.length > 0) {
-          extractedTasks.forEach(task => {
+          for (const task of extractedTasks) {
             if (task.matchId && task.matchId > 0) {
               // Update existing task
               const existingTask = existingTasks[task.matchId - 1]
               if (existingTask) {
+                console.log('[TaskUpdate] Original task description:', existingTask.description?.substring(0, 100))
+                console.log('[TaskUpdate] AI task description:', task.description?.substring(0, 100))
+                console.log('[TaskUpdate] AI task updates field:', task.updates)
+
                 storeUpdateTask(existingTask.id, {
                   status: task.newStatus || existingTask.status,
                   priority: task.newPriority || existingTask.priority,
@@ -346,17 +350,32 @@ export default function AudioControls() {
 
                 // Add AI comment if there are updates
                 if (task.updates) {
-                  apiService.addTaskComment(
-                    existingTask.id,
-                    `**AI Analysis Update from Audio**: ${task.updates}`,
-                    'ai_update',
-                    {
-                      source: 'audio_analysis',
-                      originalTranscript: transcript.substring(0, 200) + '...'
+                  try {
+                    const commentResult = await apiService.addTaskComment(
+                      existingTask.id,
+                      `**AI Analysis Update from Audio**: ${task.updates}`,
+                      'ai_update',
+                      {
+                        source: 'audio_analysis',
+                        originalTranscript: transcript.substring(0, 200) + '...'
+                      }
+                    )
+                    if (commentResult && commentResult.success) {
+                      console.log('[TaskUpdate] ✓ AI comment added successfully:', commentResult.id)
+                    } else {
+                      console.error('[TaskUpdate] ✗ AI comment failed:', commentResult?.error || 'Unknown error')
+                      addNotification({
+                        type: 'warning',
+                        message: `AI update added to "${existingTask.title}" but comment creation failed`
+                      })
                     }
-                  ).catch(error => {
-                    console.error('Failed to add AI comment:', error)
-                  })
+                  } catch (error) {
+                    console.error('[TaskUpdate] ✗ AI comment error:', error)
+                    addNotification({
+                      type: 'warning',
+                      message: `AI update added to "${existingTask.title}" but comment creation failed: ${error.message}`
+                    })
+                  }
                 }
                 updatedCount++
               }
@@ -365,7 +384,7 @@ export default function AudioControls() {
               addTask(task)
               newCount++
             }
-          })
+          }
 
           const messages = []
           if (newCount > 0) {messages.push(`${newCount} new`)}
@@ -516,11 +535,15 @@ export default function AudioControls() {
         const extractedTasks = await openaiService.extractTasks(transcript, existingTasks)
 
         if (extractedTasks.length > 0) {
-          extractedTasks.forEach(task => {
+          for (const task of extractedTasks) {
             if (task.matchId && task.matchId > 0) {
               // Update existing task
               const existingTask = existingTasks[task.matchId - 1]
               if (existingTask) {
+                console.log('[TaskUpdate] Original task description:', existingTask.description?.substring(0, 100))
+                console.log('[TaskUpdate] AI task description:', task.description?.substring(0, 100))
+                console.log('[TaskUpdate] AI task updates field:', task.updates)
+
                 storeUpdateTask(existingTask.id, {
                   status: task.newStatus || existingTask.status,
                   priority: task.newPriority || existingTask.priority,
@@ -529,17 +552,32 @@ export default function AudioControls() {
 
                 // Add AI comment if there are updates
                 if (task.updates) {
-                  apiService.addTaskComment(
-                    existingTask.id,
-                    `**AI Analysis Update from Audio**: ${task.updates}`,
-                    'ai_update',
-                    {
-                      source: 'audio_analysis',
-                      originalTranscript: transcript.substring(0, 200) + '...'
+                  try {
+                    const commentResult = await apiService.addTaskComment(
+                      existingTask.id,
+                      `**AI Analysis Update from Audio**: ${task.updates}`,
+                      'ai_update',
+                      {
+                        source: 'audio_analysis',
+                        originalTranscript: transcript.substring(0, 200) + '...'
+                      }
+                    )
+                    if (commentResult && commentResult.success) {
+                      console.log('[TaskUpdate] ✓ AI comment added successfully:', commentResult.id)
+                    } else {
+                      console.error('[TaskUpdate] ✗ AI comment failed:', commentResult?.error || 'Unknown error')
+                      addNotification({
+                        type: 'warning',
+                        message: `AI update added to "${existingTask.title}" but comment creation failed`
+                      })
                     }
-                  ).catch(error => {
-                    console.error('Failed to add AI comment:', error)
-                  })
+                  } catch (error) {
+                    console.error('[TaskUpdate] ✗ AI comment error:', error)
+                    addNotification({
+                      type: 'warning',
+                      message: `AI update added to "${existingTask.title}" but comment creation failed: ${error.message}`
+                    })
+                  }
                 }
                 updatedCount++
               }
@@ -548,7 +586,7 @@ export default function AudioControls() {
               addTask(task)
               newCount++
             }
-          })
+          }
 
           const messages = []
           if (newCount > 0) {messages.push(`${newCount} new`)}
