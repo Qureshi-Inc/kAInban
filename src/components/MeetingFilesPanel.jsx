@@ -12,8 +12,9 @@ export default function MeetingFilesPanel() {
   const { meetings, selectedMeetingId, deleteMeeting } = useAppStore()
 
   const handleSelectMeeting = (meetingId) => {
-    // Update URL to include meeting ID
-    navigate(`/?project=${projectId}&meeting=${meetingId}`)
+    // Update URL to include meeting ID (short version)
+    const shortMeetingId = meetingId.split('_')[0]
+    navigate(`/?project=${projectId}&meeting=${shortMeetingId}`)
   }
 
   const handleDeleteMeeting = async(meetingId, e) => {

@@ -25,15 +25,17 @@ export default function MainView() {
   // Handle project loading
   useEffect(() => {
     if (projectId) {
-      // If project ID in URL doesn't match current project, load it
-      if (!currentProject || currentProject.id !== projectId) {
-        const project = projects.find((p) => p.id === projectId)
-        if (project) {
-          loadProject(projectId)
-        } else {
-          // Project not found, redirect to dashboard
-          navigate('/')
+      // Find project by short ID (match beginning of full ID)
+      const project = projects.find((p) => p.id.startsWith(projectId))
+
+      if (project) {
+        // If project ID in URL doesn't match current project, load it
+        if (!currentProject || currentProject.id !== project.id) {
+          loadProject(project.id)
         }
+      } else {
+        // Project not found, redirect to dashboard
+        navigate('/')
       }
     } else {
       // No project in URL, clear current project
@@ -46,9 +48,11 @@ export default function MainView() {
   // Handle meeting selection
   useEffect(() => {
     if (meetingId && meetings.length > 0) {
-      const meeting = meetings.find((m) => m.id === meetingId)
+      // Find meeting by short ID (match beginning of full ID)
+      const meeting = meetings.find((m) => m.id.startsWith(meetingId))
+
       if (meeting) {
-        selectMeeting(meetingId)
+        selectMeeting(meeting.id)
       } else {
         // Meeting not found, redirect to project without meeting
         const params = new URLSearchParams(searchParams)

@@ -55,7 +55,9 @@ export default function Header() {
       setIsCreateProjectOpen(true)
     } else {
       loadProject(projectId)
-      navigate(`/?project=${projectId}`)
+      // Use short ID (before underscore) in URL
+      const shortId = projectId.split('_')[0]
+      navigate(`/?project=${shortId}`)
     }
   }
 
