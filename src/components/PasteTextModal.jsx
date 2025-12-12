@@ -102,7 +102,7 @@ export default function PasteTextModal({ open, onOpenChange }) {
                 try {
                   await apiService.addTaskComment(
                     existingTask.id,
-                    `**AI Analysis Update from Transcript**: ${task.updates}`,
+                    task.updates,
                     'ai_update',
                     {
                       source: 'transcript_analysis',

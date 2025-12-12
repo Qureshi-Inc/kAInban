@@ -190,7 +190,7 @@ export default function SummaryPanel() {
             if (task.updates) {
               apiService.addTaskComment(
                 existingTask.id,
-                `**AI Analysis Update from Summary**: ${task.updates}`,
+                task.updates,
                 'ai_update',
                 {
                   source: 'summary_analysis'

@@ -361,7 +361,7 @@ export default function AudioControls() {
                   try {
                     const commentResult = await apiService.addTaskComment(
                       existingTask.id,
-                      `**AI Analysis Update from Audio**: ${task.updates}`,
+                      task.updates,
                       'ai_update',
                       {
                         source: 'audio_analysis',
@@ -571,7 +571,7 @@ export default function AudioControls() {
                   try {
                     const commentResult = await apiService.addTaskComment(
                       existingTask.id,
-                      `**AI Analysis Update from Audio**: ${task.updates}`,
+                      task.updates,
                       'ai_update',
                       {
                         source: 'audio_analysis',

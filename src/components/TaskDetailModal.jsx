@@ -1231,7 +1231,9 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                   <Card key={comment.id} className={`p-3 ${comment.comment_type === 'ai_update' ? 'border-blue-200 bg-blue-50 dark:bg-blue-900/20' : ''}`}>
                     <div className="flex items-start justify-between mb-1">
                       <div className="flex items-center gap-2">
-                        <span className="font-medium text-sm">{comment.author_name}</span>
+                        {comment.comment_type !== 'ai_update' && (
+                          <span className="font-medium text-sm">{comment.author_name}</span>
+                        )}
                         {comment.comment_type === 'ai_update' && (
                           <span className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">AI Update</span>
                         )}

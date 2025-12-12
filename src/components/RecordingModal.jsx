@@ -208,7 +208,7 @@ export default function RecordingModal() {
                 try {
                   await apiService.addTaskComment(
                     existingTask.id,
-                    `**AI Analysis Update from Recording**: ${task.updates}`,
+                    task.updates,
                     'ai_update',
                     {
                       source: 'recording_analysis',
