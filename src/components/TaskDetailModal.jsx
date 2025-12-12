@@ -32,6 +32,19 @@ import useAppStore from '../stores/useAppStore'
 import { Button } from './ui/button'
 import { Card } from './ui/card'
 
+// Helper function to render **text** as bold
+const renderWithBold = (text) => {
+  if (!text) return text
+
+  const parts = text.split(/(\*\*[^*]+\*\*)/g)
+  return parts.map((part, index) => {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      return <strong key={index}>{part.slice(2, -2)}</strong>
+    }
+    return part
+  })
+}
+
 export default function TaskDetailModal({ task, isOpen, onClose }) {
   const { updateTask, deleteTask, addNotification, tasks, linkTasks, unlinkTasks, getLinkedTasks, acceptAiSuggestion, rejectAiSuggestion, updateCurrentProject } = useAppStore()
 
@@ -1229,7 +1242,7 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                       </span>
                     </div>
                     <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
-                      {comment.content}
+                      {renderWithBold(comment.content)}
                     </p>
                   </Card>
                 ))}

@@ -732,12 +732,13 @@ export const saveProject = (userId, project) => {
                           (normalizedExistingAssignee !== normalizedNewAssignee) ||
                           (existingTask.dueDate !== task.dueDate)
 
-        if (hasChanges) {
-          recordTaskChange(task.id, userIdStr, 'updated', null, null, null, {
-            source: 'task_update',
-            timestamp: new Date().toISOString()
-          })
-        }
+        // Don't record generic "updated" entries since we have specific change records
+        // if (hasChanges) {
+        //   recordTaskChange(task.id, userIdStr, 'updated', null, null, null, {
+        //     source: 'task_update',
+        //     timestamp: new Date().toISOString()
+        //   })
+        // }
       } else {
         // Record task creation
         recordTaskChange(task.id, userIdStr, 'created', null, null, null, {

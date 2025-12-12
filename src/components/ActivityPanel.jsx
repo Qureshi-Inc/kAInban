@@ -16,6 +16,19 @@ import apiService from '../services/apiService'
 import useAppStore from '../stores/useAppStore'
 import { Button } from './ui/button'
 
+// Helper function to render **text** as bold
+const renderWithBold = (text) => {
+  if (!text) return text
+
+  const parts = text.split(/(\*\*[^*]+\*\*)/g)
+  return parts.map((part, index) => {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      return <strong key={index}>{part.slice(2, -2)}</strong>
+    }
+    return part
+  })
+}
+
 export default function ActivityPanel({ isOpen, onClose }) {
   const currentProject = useAppStore(state => state.currentProject)
   const [activities, setActivities] = useState([])
@@ -86,7 +99,7 @@ export default function ActivityPanel({ isOpen, onClose }) {
       case 'due_date_changed':
         return 'Due Date Changed'
       case 'ai_comment_added':
-        return 'AI Analysis Added'
+        return 'AI Coordinator'
       default:
         return 'Task Modified'
     }
@@ -100,7 +113,8 @@ export default function ActivityPanel({ isOpen, onClose }) {
       return `Task "${change.task_title}" was deleted`
     }
     if (change.change_type === 'ai_comment_added') {
-      return `AI analysis added to "${change.task_title}"`
+      // Show the actual AI comment content instead of generic message
+      return renderWithBold(change.new_value) || `AI analysis added to "${change.task_title}"`
     }
     if (change.field_name && change.old_value && change.new_value) {
       return `Task "${change.task_title}" ${change.field_name} changed from "${change.old_value}" to "${change.new_value}"`
