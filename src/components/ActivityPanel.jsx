@@ -99,7 +99,7 @@ export default function ActivityPanel({ isOpen, onClose }) {
       case 'due_date_changed':
         return 'Due Date Changed'
       case 'ai_comment_added':
-        return 'AI Coordinator'
+        return 'Comment Posted'
       default:
         return 'Task Modified'
     }

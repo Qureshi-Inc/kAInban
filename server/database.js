@@ -1152,7 +1152,13 @@ export const getTaskChanges = (taskId, limit = 50) => {
 
 export const getProjectTaskChanges = (projectId, limit = 100) => {
   const stmt = db.prepare(`
-    SELECT tc.*, u.name as user_name, u.email as user_email, t.title as task_title
+    SELECT tc.*,
+           CASE
+             WHEN tc.change_type = 'ai_comment_added' THEN 'AI Coordinator'
+             ELSE u.name
+           END as user_name,
+           u.email as user_email,
+           t.title as task_title
     FROM task_changes tc
     LEFT JOIN users u ON tc.user_id = u.id
     LEFT JOIN tasks t ON tc.task_id = t.id
