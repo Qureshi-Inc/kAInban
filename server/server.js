@@ -1181,7 +1181,7 @@ app.post(
 
       // Get project to verify user access
       const project = db.getProject(taskInfo.project_id)
-      if (!project || project.user_id !== userId) {
+      if (!project || project.user_id != userId) {
         return res.status(403).json({ error: 'Access denied' })
       }
 
