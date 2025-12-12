@@ -342,14 +342,22 @@ export default function AudioControls() {
                 console.log('[TaskUpdate] AI task description:', task.description?.substring(0, 100))
                 console.log('[TaskUpdate] AI task updates field:', task.updates)
 
-                storeUpdateTask(existingTask.id, {
+                const updates = {
                   status: task.newStatus || existingTask.status,
                   priority: task.newPriority || existingTask.priority,
                   assignee: task.assignee || existingTask.assignee
-                })
+                }
 
-                // Add AI comment if there are updates
-                if (task.updates) {
+                // Check if there are actual changes
+                const hasStatusChange = updates.status !== existingTask.status
+                const hasPriorityChange = updates.priority !== existingTask.priority
+                const hasAssigneeChange = updates.assignee !== existingTask.assignee
+                const hasActualChanges = hasStatusChange || hasPriorityChange || hasAssigneeChange
+
+                storeUpdateTask(existingTask.id, updates)
+
+                // Only add AI comment if there are actual changes AND updates text
+                if (task.updates && hasActualChanges) {
                   try {
                     const commentResult = await apiService.addTaskComment(
                       existingTask.id,
@@ -544,14 +552,22 @@ export default function AudioControls() {
                 console.log('[TaskUpdate] AI task description:', task.description?.substring(0, 100))
                 console.log('[TaskUpdate] AI task updates field:', task.updates)
 
-                storeUpdateTask(existingTask.id, {
+                const updates = {
                   status: task.newStatus || existingTask.status,
                   priority: task.newPriority || existingTask.priority,
                   assignee: task.assignee || existingTask.assignee
-                })
+                }
 
-                // Add AI comment if there are updates
-                if (task.updates) {
+                // Check if there are actual changes
+                const hasStatusChange = updates.status !== existingTask.status
+                const hasPriorityChange = updates.priority !== existingTask.priority
+                const hasAssigneeChange = updates.assignee !== existingTask.assignee
+                const hasActualChanges = hasStatusChange || hasPriorityChange || hasAssigneeChange
+
+                storeUpdateTask(existingTask.id, updates)
+
+                // Only add AI comment if there are actual changes AND updates text
+                if (task.updates && hasActualChanges) {
                   try {
                     const commentResult = await apiService.addTaskComment(
                       existingTask.id,

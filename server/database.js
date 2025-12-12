@@ -692,8 +692,10 @@ export const saveProject = (userId, project) => {
           )
         }
 
-        // Check for assignee change
-        if (existingTask.assignee !== task.assignee) {
+        // Check for assignee change (normalize null/undefined)
+        const normalizedExistingAssignee = existingTask.assignee || null
+        const normalizedNewAssignee = task.assignee || null
+        if (normalizedExistingAssignee !== normalizedNewAssignee) {
           recordTaskChange(
             task.id,
             userIdStr,
@@ -727,7 +729,7 @@ export const saveProject = (userId, project) => {
                           (existingTask.priority !== task.priority) ||
                           (existingTask.title !== task.title) ||
                           (existingTask.description !== (task.description || '')) ||
-                          (existingTask.assignee !== task.assignee) ||
+                          (normalizedExistingAssignee !== normalizedNewAssignee) ||
                           (existingTask.dueDate !== task.dueDate)
 
         if (hasChanges) {

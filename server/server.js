@@ -1189,11 +1189,12 @@ app.post(
       const commentId = `comment_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
 
       // Add comment
+      const authorName = commentType === 'ai_update' ? 'AI Coordinator' : (user.name || user.email)
       db.addTaskComment(
         commentId,
         taskId,
         userId,
-        user.name || user.email,
+        authorName,
         content.trim(),
         commentType,
         metadata
