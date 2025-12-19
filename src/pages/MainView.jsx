@@ -25,7 +25,13 @@ export default function MainView() {
 
   // Sync URL to reflect state changes (State -> URL, not URL -> State)
   useEffect(() => {
-    if (!currentProject) return
+    // If no currentProject, navigate to dashboard (clear URL params)
+    if (!currentProject) {
+      if (window.location.search !== '') {
+        navigate('/', { replace: true })
+      }
+      return
+    }
 
     const params = new URLSearchParams()
     params.set('project', currentProject.id.slice(0, 8)) // Use short ID

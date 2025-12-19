@@ -7,9 +7,11 @@ import {
   CheckSquare,
   Key
 } from 'lucide-react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import useAppStore from '../stores/useAppStore'
 import { Button } from './ui/button'
+import SearchModal from './SearchModal'
 import UserProfile from './UserProfile'
 
 export default function LeftSidebar({ isOpen, onClose }) {
@@ -17,6 +19,7 @@ export default function LeftSidebar({ isOpen, onClose }) {
   const clearSession = useAppStore((state) => state.clearSession)
   const setSettingsOpen = useAppStore((state) => state.setSettingsOpen)
   const addNotification = useAppStore((state) => state.addNotification)
+  const [isSearchOpen, setIsSearchOpen] = useState(false)
 
   const handleDashboard = () => {
     clearSession()
@@ -71,7 +74,7 @@ export default function LeftSidebar({ isOpen, onClose }) {
                   variant="ghost"
                   size="sm"
                   onClick={() => {
-                    handleComingSoon('Search')
+                    setIsSearchOpen(true)
                     onClose()
                   }}
                   className="w-full justify-start h-12 px-4"
@@ -164,6 +167,7 @@ export default function LeftSidebar({ isOpen, onClose }) {
           </motion.div>
         </>
       )}
+      <SearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
     </AnimatePresence>
   )
 }
