@@ -854,6 +854,18 @@ app.delete('/api/projects/:id', localAuth.requireAuth, (req, res) => {
   }
 })
 
+// Delete all projects for current user
+app.delete('/api/projects', localAuth.requireAuth, (req, res) => {
+  try {
+    console.log('[Projects] Deleting all projects for user:', req.session.user.id)
+    db.deleteAllProjects(req.session.user.id)
+    res.json({ success: true, message: 'All projects deleted successfully' })
+  } catch (error) {
+    console.error('[Projects] Delete all error:', error)
+    res.status(500).json({ error: 'Failed to delete all projects' })
+  }
+})
+
 // Export all data
 app.get('/api/export', localAuth.requireAuth, (req, res) => {
   try {

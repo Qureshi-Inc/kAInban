@@ -16,6 +16,7 @@ export default function SettingsDialog() {
   const addNotification = useAppStore((state) => state.addNotification)
   const user = useAppStore((state) => state.user)
   const setUser = useAppStore((state) => state.setUser)
+  const deleteAllProjects = useAppStore((state) => state.deleteAllProjects)
 
   const [aiFormData, setAiFormData] = useState({
     azureEndpoint: '',
@@ -185,6 +186,30 @@ export default function SettingsDialog() {
     }
   }
 
+  const handleDeleteAllProjects = async() => {
+    if (!confirm('Are you sure you want to delete ALL projects? This will permanently delete all your projects, tasks, meetings, and data. This action cannot be undone.')) {
+      return
+    }
+
+    if (!confirm('This is your final warning. ALL your data will be permanently deleted. Type "DELETE ALL" to confirm this action.')) {
+      return
+    }
+
+    try {
+      await deleteAllProjects()
+      addNotification({
+        type: 'success',
+        message: 'All projects deleted successfully'
+      })
+      setSettingsOpen(false)
+    } catch (error) {
+      addNotification({
+        type: 'error',
+        message: `Failed to delete all projects: ${error.message}`
+      })
+    }
+  }
+
   const handleAiInputChange = (field, value) => {
     setAiFormData(prev => ({ ...prev, [field]: value }))
   }
@@ -299,6 +324,33 @@ export default function SettingsDialog() {
               <p className="text-xs text-muted-foreground mt-3">
                 Leave blank to keep current password
               </p>
+            </div>
+
+            {/* Danger Zone */}
+            <div className="border-t border-red-200 pt-6 mt-6">
+              <h3 className="text-sm font-semibold mb-4 text-red-600">Danger Zone</h3>
+
+              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+                <div className="flex items-start gap-3">
+                  <div className="flex-1">
+                    <h4 className="text-sm font-medium text-red-900 dark:text-red-100 mb-1">
+                      Delete All Projects
+                    </h4>
+                    <p className="text-xs text-red-700 dark:text-red-300 mb-3">
+                      This will permanently delete all your projects, tasks, meetings, and associated data. This action cannot be undone.
+                    </p>
+                  </div>
+                </div>
+
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={handleDeleteAllProjects}
+                  className="w-full sm:w-auto"
+                >
+                  Delete All Projects
+                </Button>
+              </div>
             </div>
 
             <div className="flex flex-col sm:flex-row justify-end gap-3 pt-6">

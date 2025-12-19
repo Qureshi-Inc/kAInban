@@ -267,21 +267,59 @@ const useAppStore = create((set, get) => ({
   deleteProject: async(projectId) => {
     const wasCurrentProject = get().currentProject?.id === projectId
 
-    set((state) => ({
-      projects: state.projects.filter(p => p.id !== projectId),
-      currentProject: state.currentProject?.id === projectId ? null : state.currentProject,
-      tasks: state.currentProject?.id === projectId ? [] : state.tasks,
-      meetings: state.currentProject?.id === projectId ? [] : state.meetings,
-      selectedMeetingId: state.currentProject?.id === projectId ? null : state.selectedMeetingId
-    }))
+    try {
+      // Delete from backend first
+      const success = await apiService.deleteProject(projectId)
 
-    // Clear localStorage if this was the current project
-    if (wasCurrentProject) {
-      localStorage.removeItem('lastSelectedProject')
+      if (!success) {
+        throw new Error('Failed to delete project from server')
+      }
+
+      // Only update local state if backend deletion succeeded
+      set((state) => ({
+        projects: state.projects.filter(p => p.id !== projectId),
+        currentProject: state.currentProject?.id === projectId ? null : state.currentProject,
+        tasks: state.currentProject?.id === projectId ? [] : state.tasks,
+        meetings: state.currentProject?.id === projectId ? [] : state.meetings,
+        selectedMeetingId: state.currentProject?.id === projectId ? null : state.selectedMeetingId
+      }))
+
+      // Clear localStorage if this was the current project
+      if (wasCurrentProject) {
+        localStorage.removeItem('lastSelectedProject')
+      }
+
+      return true
+    } catch (error) {
+      console.error('[Store] Delete project failed:', error)
+      throw error
     }
+  },
 
-    // Delete from backend
-    await apiService.deleteProject(projectId)
+  deleteAllProjects: async() => {
+    try {
+      // Delete all projects from backend in one call
+      await apiService.deleteAllProjects()
+
+      // Clear all local state
+      set({
+        projects: [],
+        currentProject: null,
+        tasks: [],
+        meetings: [],
+        selectedMeetingId: null
+      })
+
+      // Clear localStorage
+      localStorage.removeItem('lastSelectedProject')
+      localStorage.removeItem('lastSelectedMeeting')
+
+      console.log('[Store] All projects deleted successfully')
+      return true
+    } catch (error) {
+      console.error('[Store] Delete all projects error:', error)
+      throw error
+    }
   },
 
   // Recording Actions
@@ -395,7 +433,7 @@ const useAppStore = create((set, get) => ({
       title: task.title || 'Untitled Task',
       description: task.description || '',
       priority: task.priority || 'medium',
-      subtasks: task.subtasks || [],
+      subtasks: task.subtasks ? JSON.parse(JSON.stringify(task.subtasks)) : [],
       comments: task.comments || [],
       status: 'todo',
       createdAt: new Date().toISOString(),

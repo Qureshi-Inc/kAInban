@@ -29,6 +29,7 @@ import React, { useState, useEffect } from 'react'
 import apiService from '../services/apiService'
 import openaiService from '../services/openaiService'
 import useAppStore from '../stores/useAppStore'
+import { parseSubtasksFromDescription } from '../lib/utils'
 import { Button } from './ui/button'
 import { Card } from './ui/card'
 
@@ -68,65 +69,6 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
   const [aiContentModal, setAiContentModal] = useState({ isOpen: false, title: '', content: '', type: '' })
   const [loadingAiAction, setLoadingAiAction] = useState(null) // Track which AI action is loading
 
-  // Parse description for bullet points and convert to subtasks
-  const parseSubtasksFromDescription = (description) => {
-    if (!description) {return []}
-
-    // Split by lines and look for bullet patterns
-    const lines = description.split('\n')
-    const bullets = []
-    let currentBullet = null
-    let currentNested = []
-
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i]
-
-      // Check if this is a main bullet point
-      const mainBulletMatch = line.match(/^[\s]*[*•-]\s+(.+)$/) || line.match(/^[\s]*\d+[\.)]\s+(.+)$/)
-
-      if (mainBulletMatch) {
-        // Save previous bullet if exists
-        if (currentBullet) {
-          bullets.push({
-            text: currentBullet,
-            nested: currentNested.slice() // Copy array
-          })
-        }
-
-        // Start new bullet
-        currentBullet = mainBulletMatch[1].trim()
-        currentNested = []
-      } else {
-        // Check if this is a nested bullet point (indented)
-        const nestedMatch = line.match(/^[\s]{2,}[*•-]\s+(.+)$/) || line.match(/^[\s]{2,}\d+[\.)]\s+(.+)$/)
-
-        if (nestedMatch && currentBullet) {
-          currentNested.push(nestedMatch[1].trim())
-        } else if (line.trim() && currentBullet) {
-          // Continue the current bullet text (multi-line)
-          currentBullet += ' ' + line.trim()
-        }
-      }
-    }
-
-    // Don't forget the last bullet
-    if (currentBullet) {
-      bullets.push({
-        text: currentBullet,
-        nested: currentNested
-      })
-    }
-
-    // Convert to subtask format
-    return bullets.map((bullet, index) => ({
-      id: `subtask-${Date.now()}-${index}`,
-      text: bullet.text,
-      completed: false,
-      hasNested: bullet.nested.length > 0,
-      nestedItems: bullet.nested,
-      originalText: bullet.text
-    }))
-  }
 
   // Clean description by removing bullet points that became subtasks
   const getCleanDescription = (originalDescription, subtasks) => {
@@ -262,7 +204,7 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
     if (!newSubtask.trim()) {return}
 
     const subtask = {
-      id: `subtask-${Date.now()}`,
+      id: `subtask-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       text: newSubtask,
       completed: false
     }

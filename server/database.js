@@ -796,6 +796,73 @@ export const deleteProject = projectId => {
   stmt.run(projectId)
 }
 
+export const deleteAllProjects = userId => {
+  // Ensure userId is always a string to prevent type mismatches
+  const userIdStr = String(userId)
+
+  try {
+    // Start transaction
+    db.exec('BEGIN TRANSACTION')
+
+    // Delete in order of foreign key dependencies:
+    // 1. Delete task comments (references tasks)
+    const deleteTaskCommentsStmt = db.prepare(`
+      DELETE FROM task_comments WHERE task_id IN (
+        SELECT id FROM tasks WHERE project_id IN (
+          SELECT id FROM projects WHERE user_id = ?
+        )
+      )
+    `)
+    deleteTaskCommentsStmt.run(userIdStr)
+
+    // 2. Delete task changes logs (references tasks)
+    const deleteTaskChangesStmt = db.prepare(`
+      DELETE FROM task_changes WHERE task_id IN (
+        SELECT id FROM tasks WHERE project_id IN (
+          SELECT id FROM projects WHERE user_id = ?
+        )
+      )
+    `)
+    deleteTaskChangesStmt.run(userIdStr)
+
+    // 3. Delete analytics insights entries for user's projects
+    const deleteAnalyticsStmt = db.prepare(`
+      DELETE FROM analytics_insights WHERE user_id = ?
+    `)
+    deleteAnalyticsStmt.run(userIdStr)
+
+    // 4. Delete meetings (references projects, but has ON DELETE SET NULL)
+    const deleteMeetingsStmt = db.prepare('DELETE FROM meetings WHERE project_id IN (SELECT id FROM projects WHERE user_id = ?)')
+    deleteMeetingsStmt.run(userIdStr)
+
+    // 5. Delete tasks (references projects)
+    const deleteTasksStmt = db.prepare(`
+      DELETE FROM tasks WHERE project_id IN (
+        SELECT id FROM projects WHERE user_id = ?
+      )
+    `)
+    deleteTasksStmt.run(userIdStr)
+
+    // 6. Finally delete all projects for the user
+    const deleteProjectsStmt = db.prepare('DELETE FROM projects WHERE user_id = ?')
+    deleteProjectsStmt.run(userIdStr)
+
+    // Commit transaction
+    db.exec('COMMIT')
+
+    console.log(`[Database] Successfully deleted all projects and related data for user: ${userIdStr}`)
+  } catch (error) {
+    // Rollback on error
+    try {
+      db.exec('ROLLBACK')
+    } catch (rollbackError) {
+      console.error('[Database] Rollback error:', rollbackError)
+    }
+    console.error(`[Database] Error deleting all projects for user ${userIdStr}:`, error)
+    throw error
+  }
+}
+
 // Task operations
 export const saveTask = task => {
   const stmt = db.prepare(`

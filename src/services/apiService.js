@@ -231,6 +231,24 @@ class ApiService {
     }
   }
 
+  async deleteAllProjects() {
+    try {
+      const response = await this.secureFetch(`${API_URL}/projects`, {
+        method: 'DELETE'
+      })
+      if (!response.ok) {
+        const errorText = await response.text()
+        throw new Error(`Failed to delete all projects: ${errorText}`)
+      }
+      const result = await response.json()
+      console.log('[API] Delete all projects success:', result.message)
+      return true
+    } catch (error) {
+      console.error('[API] Delete all projects error:', error)
+      throw error
+    }
+  }
+
   // Analytics insights caching
   async saveAnalyticsInsights(projectId, insights, taskCount) {
     try {

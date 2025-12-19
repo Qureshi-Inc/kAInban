@@ -4,6 +4,7 @@ import React, { useState } from 'react'
 import apiService from '../services/apiService'
 import openaiService from '../services/openaiService'
 import useAppStore from '../stores/useAppStore'
+import { parseSubtasksFromDescription } from '../lib/utils'
 import { Button } from './ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog'
 
@@ -116,12 +117,14 @@ export default function PasteTextModal({ open, onOpenChange }) {
               updatedCount++
             }
           } else {
-            // Create new task
+            // Create new task with parsed subtasks
+            const subtasks = parseSubtasksFromDescription(task.description || '')
             addTask({
               title: task.title,
               description: task.description || '',
               priority: task.priority || 'medium',
-              status: 'todo'
+              status: 'todo',
+              subtasks
             })
             newCount++
           }

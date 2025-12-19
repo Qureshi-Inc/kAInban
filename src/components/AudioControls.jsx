@@ -1,7 +1,7 @@
 import { motion, AnimatePresence } from 'framer-motion'
 import { Mic, Upload, Square, Pause, Play, FileText } from 'lucide-react'
 import React, { useRef, useEffect, useState } from 'react'
-import { formatTime } from '../lib/utils'
+import { formatTime, parseSubtasksFromDescription } from '../lib/utils'
 import apiService from '../services/apiService'
 import audioService from '../services/audioService'
 import openaiService from '../services/openaiService'
@@ -388,8 +388,12 @@ export default function AudioControls() {
                 updatedCount++
               }
             } else {
-              // Create new task
-              addTask(task)
+              // Create new task with parsed subtasks
+              const subtasks = parseSubtasksFromDescription(task.description || '')
+              addTask({
+                ...task,
+                subtasks
+              })
               newCount++
             }
           }
@@ -598,8 +602,12 @@ export default function AudioControls() {
                 updatedCount++
               }
             } else {
-              // Create new task
-              addTask(task)
+              // Create new task with parsed subtasks
+              const subtasks = parseSubtasksFromDescription(task.description || '')
+              addTask({
+                ...task,
+                subtasks
+              })
               newCount++
             }
           }
