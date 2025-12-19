@@ -20,32 +20,49 @@ export default function MainView() {
   const clearSession = useAppStore((state) => state.clearSession)
   const projects = useAppStore((state) => state.projects)
   const selectMeeting = useAppStore((state) => state.selectMeeting)
+  const selectedMeetingId = useAppStore((state) => state.selectedMeetingId)
   const meetings = useAppStore((state) => state.meetings)
 
-  // Handle project loading
+  // Sync URL to reflect state changes (State -> URL, not URL -> State)
+  useEffect(() => {
+    if (!currentProject) return
+
+    const params = new URLSearchParams()
+    params.set('project', currentProject.id.slice(0, 8)) // Use short ID
+
+    if (selectedMeetingId) {
+      params.set('meeting', selectedMeetingId.slice(0, 8)) // Use short ID
+    }
+
+    const newSearch = `?${params.toString()}`
+    if (window.location.search !== newSearch) {
+      navigate(newSearch, { replace: true })
+    }
+  }, [currentProject, selectedMeetingId, navigate])
+
+  // Handle project loading - ONLY load from backend if switching projects
+  // Don't reload if already on the correct project (prevents overwriting fresh state)
   useEffect(() => {
     if (projectId) {
       // Find project by short ID (match beginning of full ID)
       const project = projects.find((p) => p.id.startsWith(projectId))
 
       if (project) {
-        // If project ID in URL doesn't match current project, load it
-        if (!currentProject || currentProject.id !== project.id) {
+        // ONLY load if currentProject is different
+        // This prevents reloading and overwriting state when URL updates AFTER state changes
+        if (currentProject?.id !== project.id) {
           loadProject(project.id)
         }
       } else {
         // Project not found, redirect to dashboard
         navigate('/')
       }
-    } else {
-      // No project in URL, clear current project
-      if (currentProject) {
-        clearSession()
-      }
     }
-  }, [projectId, currentProject, projects, loadProject, navigate, clearSession])
+    // Don't clear session when no projectId - URL might just not be updated yet
+  }, [projectId, currentProject, projects, loadProject, navigate])
 
-  // Handle meeting selection
+  // Handle meeting selection - ONLY sync FROM URL if user navigated directly
+  // Don't clear selection if URL doesn't have meeting param (URL might be updating)
   useEffect(() => {
     if (meetingId && meetings.length > 0) {
       // Find meeting by short ID (match beginning of full ID)
@@ -59,10 +76,8 @@ export default function MainView() {
         params.delete('meeting')
         navigate(`/?${params.toString()}`)
       }
-    } else if (!meetingId) {
-      // No meeting in URL, clear selection
-      selectMeeting(null)
     }
+    // Don't clear selection when meetingId is empty - state drives selection
   }, [meetingId, meetings, selectMeeting, navigate, searchParams])
 
   // Show dashboard if no project selected
