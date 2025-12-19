@@ -14,11 +14,25 @@ export default function ProjectView() {
   const loadProject = useAppStore((state) => state.loadProject)
   const projects = useAppStore((state) => state.projects)
   const selectMeeting = useAppStore((state) => state.selectMeeting)
+  const selectedMeetingId = useAppStore((state) => state.selectedMeetingId)
   const meetings = useAppStore((state) => state.meetings)
+
+  // Sync URL to match selected meeting (state -> URL, not URL -> state)
+  useEffect(() => {
+    if (!projectId || !currentProject) return
+
+    // Only update URL if it doesn't match current selection
+    if (selectedMeetingId && meetingId !== selectedMeetingId) {
+      navigate(`/project/${projectId}/meeting/${selectedMeetingId}`, { replace: true })
+    } else if (!selectedMeetingId && meetingId) {
+      navigate(`/project/${projectId}`, { replace: true })
+    }
+  }, [selectedMeetingId, projectId, meetingId, currentProject, navigate])
 
   useEffect(() => {
     // If project ID in URL doesn't match current project, load it
-    if (projectId && (!currentProject || currentProject.id !== projectId)) {
+    // BUT only if we need to - don't reload if we're already on the right project
+    if (projectId && currentProject?.id !== projectId) {
       const project = projects.find((p) => p.id === projectId)
       if (project) {
         loadProject(projectId)
@@ -30,20 +44,22 @@ export default function ProjectView() {
   }, [projectId, currentProject, projects, loadProject, navigate])
 
   useEffect(() => {
-    // If meeting ID is in URL, select it
-    if (meetingId && meetings.length > 0) {
+    // Sync URL meeting to state (URL -> state, only for direct navigation)
+    // Don't do anything if state already matches URL
+    if (meetingId && selectedMeetingId !== meetingId) {
       const meeting = meetings.find((m) => m.id === meetingId)
       if (meeting) {
         selectMeeting(meetingId)
-      } else {
-        // Meeting not found in this project, redirect to project without meeting
-        navigate(`/project/${projectId}`)
+      } else if (meetings.length > 0) {
+        // Meeting not found and we have loaded meetings, redirect to project
+        navigate(`/project/${projectId}`, { replace: true })
       }
-    } else if (!meetingId) {
-      // No meeting in URL, clear selection
+      // If meetings.length === 0, we're still loading, so don't redirect
+    } else if (!meetingId && selectedMeetingId) {
+      // URL has no meeting but state does, clear selection
       selectMeeting(null)
     }
-  }, [meetingId, meetings, selectMeeting, navigate, projectId])
+  }, [meetingId, selectedMeetingId, meetings, selectMeeting, navigate, projectId])
 
   // If no project loaded yet, show loading
   if (!currentProject || currentProject.id !== projectId) {
