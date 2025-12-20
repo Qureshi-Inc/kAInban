@@ -48,7 +48,7 @@ const renderWithBold = text => {
 }
 
 // MeetingSource component to display source meeting information
-const MeetingSource = ({ meetingId }) => {
+const MeetingSource = ({ meetingId, onClose }) => {
   const meetings = useAppStore(state => state.meetings)
   const selectMeeting = useAppStore(state => state.selectMeeting)
 
@@ -62,7 +62,19 @@ const MeetingSource = ({ meetingId }) => {
   }
 
   const handleNavigateToMeeting = () => {
+    // Close the task detail modal
+    onClose()
+
+    // Select the meeting
     selectMeeting(meetingId)
+
+    // Scroll to the meeting summary section
+    setTimeout(() => {
+      const summaryElement = document.getElementById('meeting-summary')
+      if (summaryElement) {
+        summaryElement.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }
+    }, 100)
   }
 
   return (
@@ -1666,7 +1678,7 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
             {/* Meeting Source */}
             {task.meetingId && (
               <div className="pt-4 mt-4 border-t border-gray-200 dark:border-gray-700">
-                <MeetingSource meetingId={task.meetingId} />
+                <MeetingSource meetingId={task.meetingId} onClose={onClose} />
               </div>
             )}
           </div>
