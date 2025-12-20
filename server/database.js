@@ -76,6 +76,17 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_meetings_user ON meetings(user_id);
 `)
 
+// Add meeting_id column to tasks table if it doesn't exist
+try {
+  db.exec('ALTER TABLE tasks ADD COLUMN meeting_id TEXT;')
+  console.log('[Database] Added meeting_id column to tasks table')
+} catch (error) {
+  // Column already exists, ignore
+  if (!error.message.includes('duplicate column name')) {
+    console.error('[Database] Error adding meeting_id column:', error)
+  }
+}
+
 // Create users table with both local and OIDC auth support
 db.exec(`
   CREATE TABLE IF NOT EXISTS users (
@@ -538,7 +549,8 @@ export const getProject = projectId => {
         ? JSON.parse(task.rejected_ai_links)
         : [],
       createdAt: task.created_at,
-      projectId: task.project_id
+      projectId: task.project_id,
+      meetingId: task.meeting_id || null
     }))
 
     // Get meetings for this project
@@ -605,8 +617,8 @@ export const saveProject = (userId, project) => {
     const newTasksMap = new Map(project.tasks.map(t => [t.id, t]))
 
     const insertStmt = db.prepare(`
-      INSERT OR REPLACE INTO tasks (id, project_id, title, description, status, priority, due_date, assignee, subtasks, comments, linked_tasks, ai_created_links, ai_discovered_links, rejected_ai_links)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT OR REPLACE INTO tasks (id, project_id, title, description, status, priority, due_date, assignee, subtasks, comments, linked_tasks, ai_created_links, ai_discovered_links, rejected_ai_links, meeting_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `)
 
     for (const task of project.tasks) {
@@ -627,7 +639,8 @@ export const saveProject = (userId, project) => {
         JSON.stringify(task.linkedTasks || []),
         JSON.stringify(task.aiCreatedLinks || []),
         JSON.stringify(task.aiDiscoveredLinks || []),
-        JSON.stringify(task.rejectedAiLinks || [])
+        JSON.stringify(task.rejectedAiLinks || []),
+        task.meetingId || null
       )
 
       // Record changes if task existed before
@@ -725,12 +738,13 @@ export const saveProject = (userId, project) => {
         }
 
         // Only record general update if there were actual changes
-        const hasChanges = (existingTask.status !== task.status) ||
-                          (existingTask.priority !== task.priority) ||
-                          (existingTask.title !== task.title) ||
-                          (existingTask.description !== (task.description || '')) ||
-                          (normalizedExistingAssignee !== normalizedNewAssignee) ||
-                          (existingTask.dueDate !== task.dueDate)
+        const hasChanges =
+          existingTask.status !== task.status ||
+          existingTask.priority !== task.priority ||
+          existingTask.title !== task.title ||
+          existingTask.description !== (task.description || '') ||
+          normalizedExistingAssignee !== normalizedNewAssignee ||
+          existingTask.dueDate !== task.dueDate
 
         // Don't record generic "updated" entries since we have specific change records
         // if (hasChanges) {
@@ -814,11 +828,15 @@ export const deleteProject = projectId => {
     deleteTaskChangesStmt.run(projectId)
 
     // 3. Delete analytics insights (references project)
-    const deleteAnalyticsStmt = db.prepare('DELETE FROM analytics_insights WHERE project_id = ?')
+    const deleteAnalyticsStmt = db.prepare(
+      'DELETE FROM analytics_insights WHERE project_id = ?'
+    )
     deleteAnalyticsStmt.run(projectId)
 
     // 4. Delete meetings (references project)
-    const deleteMeetingsStmt = db.prepare('DELETE FROM meetings WHERE project_id = ?')
+    const deleteMeetingsStmt = db.prepare(
+      'DELETE FROM meetings WHERE project_id = ?'
+    )
     deleteMeetingsStmt.run(projectId)
 
     // 5. Delete tasks (references project)
@@ -832,7 +850,9 @@ export const deleteProject = projectId => {
     // Commit transaction
     db.exec('COMMIT')
 
-    console.log(`[Database] Successfully deleted project and all related data: ${projectId}`)
+    console.log(
+      `[Database] Successfully deleted project and all related data: ${projectId}`
+    )
   } catch (error) {
     // Rollback on error
     try {
@@ -881,7 +901,9 @@ export const deleteAllProjects = userId => {
     deleteAnalyticsStmt.run(userIdStr)
 
     // 4. Delete meetings (references projects, but has ON DELETE SET NULL)
-    const deleteMeetingsStmt = db.prepare('DELETE FROM meetings WHERE project_id IN (SELECT id FROM projects WHERE user_id = ?)')
+    const deleteMeetingsStmt = db.prepare(
+      'DELETE FROM meetings WHERE project_id IN (SELECT id FROM projects WHERE user_id = ?)'
+    )
     deleteMeetingsStmt.run(userIdStr)
 
     // 5. Delete tasks (references projects)
@@ -893,13 +915,17 @@ export const deleteAllProjects = userId => {
     deleteTasksStmt.run(userIdStr)
 
     // 6. Finally delete all projects for the user
-    const deleteProjectsStmt = db.prepare('DELETE FROM projects WHERE user_id = ?')
+    const deleteProjectsStmt = db.prepare(
+      'DELETE FROM projects WHERE user_id = ?'
+    )
     deleteProjectsStmt.run(userIdStr)
 
     // Commit transaction
     db.exec('COMMIT')
 
-    console.log(`[Database] Successfully deleted all projects and related data for user: ${userIdStr}`)
+    console.log(
+      `[Database] Successfully deleted all projects and related data for user: ${userIdStr}`
+    )
   } catch (error) {
     // Rollback on error
     try {
@@ -907,7 +933,10 @@ export const deleteAllProjects = userId => {
     } catch (rollbackError) {
       console.error('[Database] Rollback error:', rollbackError)
     }
-    console.error(`[Database] Error deleting all projects for user ${userIdStr}:`, error)
+    console.error(
+      `[Database] Error deleting all projects for user ${userIdStr}:`,
+      error
+    )
     throw error
   }
 }
