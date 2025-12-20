@@ -119,11 +119,6 @@ const TaskCard = ({ task, onDelete, onClick, onNavigateToMeeting }) => {
           {new Date(task.createdAt).toLocaleDateString()}
         </span>
       </div>
-
-      <TaskSource
-        meetingId={task.meetingId}
-        onNavigateToMeeting={onNavigateToMeeting}
-      />
     </div>
   )
 }

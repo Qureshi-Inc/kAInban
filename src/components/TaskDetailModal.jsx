@@ -47,6 +47,45 @@ const renderWithBold = text => {
   })
 }
 
+// MeetingSource component to display source meeting information
+const MeetingSource = ({ meetingId }) => {
+  const meetings = useAppStore(state => state.meetings)
+  const selectMeeting = useAppStore(state => state.selectMeeting)
+
+  if (!meetingId) {
+    return null
+  }
+
+  const meeting = meetings.find(m => m.id === meetingId)
+  if (!meeting) {
+    return null
+  }
+
+  const handleNavigateToMeeting = () => {
+    selectMeeting(meetingId)
+  }
+
+  return (
+    <div className="flex items-start gap-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+      <FileText className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+      <div className="flex-1 min-w-0">
+        <div className="text-xs font-medium text-blue-900 dark:text-blue-100 mb-1">
+          Source Meeting
+        </div>
+        <button
+          onClick={handleNavigateToMeeting}
+          className="text-sm text-blue-700 dark:text-blue-300 hover:text-blue-900 dark:hover:text-blue-100 hover:underline transition-colors text-left"
+        >
+          {meeting.name}
+        </button>
+        <div className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+          Created: {new Date(meeting.createdAt).toLocaleDateString()}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function TaskDetailModal({ task, isOpen, onClose }) {
   const {
     updateTask,
@@ -1623,6 +1662,13 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                 </Button>
               </div>
             </div>
+
+            {/* Meeting Source */}
+            {task.meetingId && (
+              <div className="pt-4 mt-4 border-t border-gray-200 dark:border-gray-700">
+                <MeetingSource meetingId={task.meetingId} />
+              </div>
+            )}
           </div>
 
           {/* Footer */}
