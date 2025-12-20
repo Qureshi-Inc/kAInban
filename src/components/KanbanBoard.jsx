@@ -1,5 +1,15 @@
 import { motion, AnimatePresence } from 'framer-motion'
-import { Trash2, CheckSquare, Plus, MoreVertical, List, LayoutGrid, ChevronDown, ChevronRight, FileText } from 'lucide-react'
+import {
+  Trash2,
+  CheckSquare,
+  Plus,
+  MoreVertical,
+  List,
+  LayoutGrid,
+  ChevronDown,
+  ChevronRight,
+  FileText
+} from 'lucide-react'
 import React, { useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import openaiService from '../services/openaiService'
@@ -7,16 +17,21 @@ import useAppStore from '../stores/useAppStore'
 import TaskDetailModal from './TaskDetailModal'
 import { Button } from './ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
+import '../styles/mobile-ux.css'
 
-const TaskCard = ({ task, onStatusChange, onDelete, onClick, onNavigateToMeeting }) => {
+const TaskCard = ({ task, onDelete, onClick, onNavigateToMeeting }) => {
   const [isDragging, setIsDragging] = React.useState(false)
 
-  const getPriorityColor = (priority) => {
+  const getPriorityColor = priority => {
     switch (priority) {
-      case 'high': return 'border-red-400 bg-gradient-to-br from-red-50 to-red-100 text-red-900 shadow-red-100'
-      case 'medium': return 'border-amber-400 bg-gradient-to-br from-amber-50 to-amber-100 text-amber-900 shadow-amber-100'
-      case 'low': return 'border-emerald-400 bg-gradient-to-br from-emerald-50 to-emerald-100 text-emerald-900 shadow-emerald-100'
-      default: return 'border-gray-300 bg-gradient-to-br from-gray-50 to-gray-100 text-gray-900 shadow-gray-100'
+      case 'high':
+        return 'border-red-400 bg-gradient-to-br from-red-50 to-red-100 text-red-900 shadow-red-100'
+      case 'medium':
+        return 'border-amber-400 bg-gradient-to-br from-amber-50 to-amber-100 text-amber-900 shadow-amber-100'
+      case 'low':
+        return 'border-emerald-400 bg-gradient-to-br from-emerald-50 to-emerald-100 text-emerald-900 shadow-emerald-100'
+      default:
+        return 'border-gray-300 bg-gradient-to-br from-gray-50 to-gray-100 text-gray-900 shadow-gray-100'
     }
   }
 
@@ -28,35 +43,17 @@ const TaskCard = ({ task, onStatusChange, onDelete, onClick, onNavigateToMeeting
   }
 
   return (
-    <motion.div
-      layout
-      initial={{ opacity: 0, scale: 0.9, y: 20 }}
-      animate={{
-        opacity: isDragging ? 0.8 : 1,
-        scale: 1,
-        y: 0,
-        rotateZ: isDragging ? 3 : 0
-      }}
-      exit={{ opacity: 0, scale: 0.9, y: -20 }}
-      whileHover={{
-        scale: isDragging ? 1.05 : 1.02,
-        y: isDragging ? 0 : -4,
-        rotateZ: isDragging ? 3 : 0
-      }}
-      whileTap={{ scale: 0.98 }}
-      transition={{
-        duration: 0.2,
-        ease: 'easeOut',
-        scale: { type: 'spring', stiffness: 300, damping: 25 }
-      }}
-      className={`group task-card bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-xl p-1 sm:p-4 mb-3 shadow-lg hover:shadow-2xl cursor-grab active:cursor-grabbing backdrop-blur-sm transition-all duration-300 hover:border-primary/40 hover:bg-gradient-to-br hover:from-gray-50/50 hover:to-white dark:hover:from-gray-700/50 dark:hover:to-gray-800 ${getDragStyles()}`}
+    <div
+      role="button"
+      tabIndex={0}
+      className={`group task-card interactive-element bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-xl p-1 sm:p-4 mb-3 shadow-lg hover:shadow-2xl cursor-pointer backdrop-blur-sm transition-all duration-200 hover:border-primary/40 hover:bg-gradient-to-br hover:from-gray-50/50 hover:to-white dark:hover:from-gray-700/50 dark:hover:to-gray-800 focus:ring-2 focus:ring-primary/50 focus:outline-none ${getDragStyles()}`}
       style={{
         transformOrigin: 'center center',
-        transformStyle: 'preserve-3d'
+        contain: 'layout style paint'
       }}
       data-task-id={task.id}
       draggable
-      onDragStart={(e) => {
+      onDragStart={e => {
         e.dataTransfer.setData('text/plain', task.id)
         e.dataTransfer.effectAllowed = 'move'
         setIsDragging(true)
@@ -64,19 +61,33 @@ const TaskCard = ({ task, onStatusChange, onDelete, onClick, onNavigateToMeeting
       onDragEnd={() => {
         setIsDragging(false)
       }}
-      onClick={(e) => {
+      onClick={e => {
+        e.preventDefault()
+        e.stopPropagation()
         if (!isDragging) {
+          // Add small delay to prevent double-taps and ensure smooth interaction
+          setTimeout(() => {
+            onClick(task)
+          }, 50)
+        }
+      }}
+      onKeyDown={e => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
           onClick(task)
         }
       }}
+      aria-label={`Open task: ${task.title}`}
     >
       <div className="flex justify-between items-start mb-3">
-        <h4 className="font-bold text-sm line-clamp-2 flex-1 pr-2 text-gray-900 dark:text-gray-100">{task.title}</h4>
+        <h4 className="font-bold text-sm line-clamp-2 flex-1 pr-2 text-gray-900 dark:text-gray-100">
+          {task.title}
+        </h4>
         <Button
           variant="ghost"
           size="icon"
           className="h-7 w-7 opacity-0 group-hover:opacity-100 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 transition-all"
-          onClick={(e) => {
+          onClick={e => {
             e.stopPropagation()
             onDelete(task.id)
           }}
@@ -93,7 +104,9 @@ const TaskCard = ({ task, onStatusChange, onDelete, onClick, onNavigateToMeeting
 
       <div className="flex justify-between items-end gap-2">
         <div className="flex flex-col gap-2">
-          <span className={`text-xs px-3 py-1.5 rounded-full border-2 font-bold ${getPriorityColor(task.priority)} w-fit shadow-md`}>
+          <span
+            className={`text-xs px-3 py-1.5 rounded-full border-2 font-bold ${getPriorityColor(task.priority)} w-fit shadow-md`}
+          >
             {task.priority.toUpperCase()}
           </span>
           {task.dueDate && (
@@ -111,22 +124,26 @@ const TaskCard = ({ task, onStatusChange, onDelete, onClick, onNavigateToMeeting
         meetingId={task.meetingId}
         onNavigateToMeeting={onNavigateToMeeting}
       />
-    </motion.div>
+    </div>
   )
 }
 
 const TaskSource = ({ meetingId, onNavigateToMeeting }) => {
-  const meetings = useAppStore((state) => state.meetings)
+  const meetings = useAppStore(state => state.meetings)
 
-  if (!meetingId) return null
+  if (!meetingId) {
+    return null
+  }
 
   const meeting = meetings.find(m => m.id === meetingId)
-  if (!meeting) return null
+  if (!meeting) {
+    return null
+  }
 
   return (
     <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-600">
       <button
-        onClick={(e) => {
+        onClick={e => {
           e.stopPropagation()
           onNavigateToMeeting(meetingId)
         }}
@@ -139,16 +156,27 @@ const TaskSource = ({ meetingId, onNavigateToMeeting }) => {
   )
 }
 
-const Column = ({ title, status, tasks, onTaskMove, onTaskReorder, onTaskDelete, onTaskClick, onNavigateToMeeting, count, columnColor, allTasks }) => {
+const Column = ({
+  title,
+  status,
+  tasks,
+  onTaskMove,
+  onTaskReorder,
+  onTaskDelete,
+  onTaskClick,
+  onNavigateToMeeting,
+  count,
+  allTasks
+}) => {
   const [isDragOver, setIsDragOver] = React.useState(false)
 
-  const handleDragOver = (e) => {
+  const handleDragOver = e => {
     e.preventDefault()
     e.dataTransfer.dropEffect = 'move'
     setIsDragOver(true)
   }
 
-  const handleDragLeave = (e) => {
+  const handleDragLeave = e => {
     e.preventDefault()
     // Only remove hover state if we're actually leaving the drop zone
     if (!e.currentTarget.contains(e.relatedTarget)) {
@@ -156,14 +184,16 @@ const Column = ({ title, status, tasks, onTaskMove, onTaskReorder, onTaskDelete,
     }
   }
 
-  const handleDrop = (e) => {
+  const handleDrop = e => {
     e.preventDefault()
     setIsDragOver(false)
 
     const taskId = e.dataTransfer.getData('text/plain')
     const task = allTasks.find(t => t.id === taskId)
 
-    if (!task) {return}
+    if (!task) {
+      return
+    }
 
     // If moving to a different column, just change status
     if (task.status !== status) {
@@ -171,7 +201,10 @@ const Column = ({ title, status, tasks, onTaskMove, onTaskReorder, onTaskDelete,
     } else {
       // Same column - handle reordering
       const dropTarget = e.target.closest('.task-card')
-      if (dropTarget && dropTarget !== e.target.closest(`[data-task-id="${taskId}"]`)) {
+      if (
+        dropTarget &&
+        dropTarget !== e.target.closest(`[data-task-id="${taskId}"]`)
+      ) {
         const targetTaskId = dropTarget.getAttribute('data-task-id')
         if (targetTaskId) {
           onTaskReorder(taskId, targetTaskId, status)
@@ -237,7 +270,7 @@ const Column = ({ title, status, tasks, onTaskMove, onTaskReorder, onTaskDelete,
         onDrop={handleDrop}
       >
         <div className="space-y-2 min-h-[400px] p-2">
-          {tasks.map((task) => (
+          {tasks.map(task => (
             <TaskCard
               key={task.id}
               task={task}
@@ -290,7 +323,15 @@ const Column = ({ title, status, tasks, onTaskMove, onTaskReorder, onTaskDelete,
 export default function KanbanBoard({ taskToOpen }) {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const { tasks, moveTask, updateTask, deleteTask, clearTasks, addTask, addNotification, addAiDiscoveredLinks, reorderTask } = useAppStore()
+  const {
+    tasks,
+    moveTask,
+    updateTask,
+    deleteTask,
+    clearTasks,
+    addNotification,
+    addAiDiscoveredLinks
+  } = useAppStore()
   const [selectedTask, setSelectedTask] = useState(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -315,7 +356,6 @@ export default function KanbanBoard({ taskToOpen }) {
 
   // Add CSS for drag and drop visual feedback
   React.useEffect(() => {
-
     const style = document.createElement('style')
     style.textContent = `
       /* Enhanced task card styles */
@@ -492,23 +532,38 @@ export default function KanbanBoard({ taskToOpen }) {
     }
   }, [])
 
-  const sortTasksByOrder = (tasks) => {
+  const sortTasksByOrder = tasks => {
     return tasks.sort((a, b) => {
       // If both have order, sort by order
-      if (a.order && b.order) {return a.order - b.order}
+      if (a.order && b.order) {
+        return a.order - b.order
+      }
       // If only one has order, prioritize it
-      if (a.order && !b.order) {return -1}
-      if (!a.order && b.order) {return 1}
+      if (a.order && !b.order) {
+        return -1
+      }
+      if (!a.order && b.order) {
+        return 1
+      }
       // If neither has order, sort by creation time
       return new Date(a.createdAt) - new Date(b.createdAt)
     })
   }
 
-  const todoTasks = sortTasksByOrder(tasks.filter(task => task.status === 'todo' || !task.status))
-  const inProgressTasks = sortTasksByOrder(tasks.filter(task => task.status === 'in-progress' || task.status === 'inprogress'))
-  const blockedTasks = sortTasksByOrder(tasks.filter(task => task.status === 'blocked' || task.status === 'on-hold')) // Include legacy on-hold
-  const doneTasks = sortTasksByOrder(tasks.filter(task => task.status === 'done'))
-
+  const todoTasks = sortTasksByOrder(
+    tasks.filter(task => task.status === 'todo' || !task.status)
+  )
+  const inProgressTasks = sortTasksByOrder(
+    tasks.filter(
+      task => task.status === 'in-progress' || task.status === 'inprogress'
+    )
+  )
+  const blockedTasks = sortTasksByOrder(
+    tasks.filter(task => task.status === 'blocked' || task.status === 'on-hold')
+  ) // Include legacy on-hold
+  const doneTasks = sortTasksByOrder(
+    tasks.filter(task => task.status === 'done')
+  )
 
   const handleTaskReorder = (draggedTaskId, targetTaskId, status) => {
     // Get current tasks in this column
@@ -516,7 +571,9 @@ export default function KanbanBoard({ taskToOpen }) {
     const draggedIndex = columnTasks.findIndex(t => t.id === draggedTaskId)
     const targetIndex = columnTasks.findIndex(t => t.id === targetTaskId)
 
-    if (draggedIndex === -1 || targetIndex === -1) {return}
+    if (draggedIndex === -1 || targetIndex === -1) {
+      return
+    }
 
     // Create new order
     const reorderedTasks = [...columnTasks]
@@ -535,9 +592,11 @@ export default function KanbanBoard({ taskToOpen }) {
     })
   }
 
-  const handleTaskMove = async(taskId, newStatus) => {
+  const handleTaskMove = async (taskId, newStatus) => {
     const task = tasks.find(t => t.id === taskId)
-    if (!task) {return}
+    if (!task) {
+      return
+    }
 
     const previousStatus = task.status
 
@@ -582,7 +641,7 @@ export default function KanbanBoard({ taskToOpen }) {
     }
   }
 
-  const handleTaskDelete = (taskId) => {
+  const handleTaskDelete = taskId => {
     const task = tasks.find(t => t.id === taskId)
     if (task && confirm(`Delete task "${task.title}"?`)) {
       deleteTask(taskId)
@@ -594,7 +653,9 @@ export default function KanbanBoard({ taskToOpen }) {
   }
 
   const handleClearAll = () => {
-    if (tasks.length === 0) {return}
+    if (tasks.length === 0) {
+      return
+    }
 
     if (confirm('Clear all tasks? This cannot be undone.')) {
       clearTasks()
@@ -605,7 +666,7 @@ export default function KanbanBoard({ taskToOpen }) {
     }
   }
 
-  const handleTaskClick = (task) => {
+  const handleTaskClick = task => {
     setSelectedTask(task)
     setIsModalOpen(true)
   }
@@ -622,7 +683,7 @@ export default function KanbanBoard({ taskToOpen }) {
     }
   }
 
-  const handleNavigateToMeeting = (meetingId) => {
+  const handleNavigateToMeeting = meetingId => {
     const { selectMeeting } = useAppStore.getState()
 
     // Select the meeting in the store
@@ -648,25 +709,45 @@ export default function KanbanBoard({ taskToOpen }) {
     setIsModalOpen(true)
   }
 
-  const toggleSection = (status) => {
+  const toggleSection = status => {
     setExpandedSections(prev => ({
       ...prev,
       [status]: !prev[status]
     }))
   }
 
-  const getStatusInfo = (status) => {
+  const getStatusInfo = status => {
     switch (status) {
       case 'todo':
-        return { title: '📋 To Do', tasks: todoTasks, color: 'border-l-slate-400 bg-slate-50' }
+        return {
+          title: '📋 To Do',
+          tasks: todoTasks,
+          color: 'border-l-slate-400 bg-slate-50'
+        }
       case 'in-progress':
-        return { title: '⚡ In Progress', tasks: inProgressTasks, color: 'border-l-blue-500 bg-blue-50' }
+        return {
+          title: '⚡ In Progress',
+          tasks: inProgressTasks,
+          color: 'border-l-blue-500 bg-blue-50'
+        }
       case 'blocked':
-        return { title: '🚫 Blocked', tasks: blockedTasks, color: 'border-l-red-500 bg-red-50' }
+        return {
+          title: '🚫 Blocked',
+          tasks: blockedTasks,
+          color: 'border-l-red-500 bg-red-50'
+        }
       case 'done':
-        return { title: '✅ Done', tasks: doneTasks, color: 'border-l-green-500 bg-green-50' }
+        return {
+          title: '✅ Done',
+          tasks: doneTasks,
+          color: 'border-l-green-500 bg-green-50'
+        }
       default:
-        return { title: status, tasks: [], color: 'border-l-gray-400 bg-gray-50' }
+        return {
+          title: status,
+          tasks: [],
+          color: 'border-l-gray-400 bg-gray-50'
+        }
     }
   }
 
@@ -707,7 +788,9 @@ export default function KanbanBoard({ taskToOpen }) {
                 >
                   <CardContent className="pt-0">
                     {statusTasks.length === 0 ? (
-                      <p className="text-gray-500 italic py-4">No tasks in this status</p>
+                      <p className="text-gray-500 italic py-4">
+                        No tasks in this status
+                      </p>
                     ) : (
                       <div className="space-y-1">
                         {statusTasks.map(task => (
@@ -715,8 +798,17 @@ export default function KanbanBoard({ taskToOpen }) {
                             key={task.id}
                             initial={{ opacity: 0, x: -10 }}
                             animate={{ opacity: 1, x: 0 }}
-                            className="group flex items-center justify-between py-2 px-3 hover:bg-gray-50 dark:hover:bg-gray-600 rounded cursor-pointer transition-colors"
+                            role="button"
+                            tabIndex={0}
+                            className="group flex items-center justify-between py-2 px-3 hover:bg-gray-50 dark:hover:bg-gray-600 rounded cursor-pointer transition-colors focus:ring-2 focus:ring-primary/50 focus:outline-none"
                             onClick={() => handleTaskClick(task)}
+                            onKeyDown={e => {
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault()
+                                handleTaskClick(task)
+                              }
+                            }}
+                            aria-label={`Open task: ${task.title}`}
                           >
                             <span className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate flex-1">
                               {task.title}
@@ -724,7 +816,7 @@ export default function KanbanBoard({ taskToOpen }) {
                             <Button
                               variant="ghost"
                               size="icon"
-                              onClick={(e) => {
+                              onClick={e => {
                                 e.stopPropagation()
                                 handleTaskDelete(task.id)
                               }}
@@ -776,7 +868,10 @@ export default function KanbanBoard({ taskToOpen }) {
 
               <div className="flex items-center gap-2">
                 {/* Add Task Button */}
-                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <motion.div
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
                   <Button
                     onClick={handleCreateTask}
                     variant="default"
@@ -790,7 +885,10 @@ export default function KanbanBoard({ taskToOpen }) {
 
                 {/* Menu Button */}
                 <div className="relative">
-                  <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                  <motion.div
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
                     <Button
                       onClick={() => setIsMenuOpen(!isMenuOpen)}
                       variant="outline"
@@ -807,8 +905,16 @@ export default function KanbanBoard({ taskToOpen }) {
                       <>
                         {/* Backdrop to close menu */}
                         <div
+                          role="button"
+                          tabIndex={0}
                           className="fixed inset-0 z-40"
                           onClick={() => setIsMenuOpen(false)}
+                          onKeyDown={e => {
+                            if (e.key === 'Escape') {
+                              setIsMenuOpen(false)
+                            }
+                          }}
+                          aria-label="Close menu"
                         />
 
                         {/* Menu */}
@@ -822,7 +928,9 @@ export default function KanbanBoard({ taskToOpen }) {
                           {/* View Toggle */}
                           <button
                             onClick={() => {
-                              setViewMode(viewMode === 'kanban' ? 'list' : 'kanban')
+                              setViewMode(
+                                viewMode === 'kanban' ? 'list' : 'kanban'
+                              )
                               setIsMenuOpen(false)
                             }}
                             className="w-full px-4 py-3 text-left text-sm hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2 transition-colors border-b border-gray-200 dark:border-gray-700"

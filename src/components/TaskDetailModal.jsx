@@ -23,13 +23,14 @@ import {
   ExternalLink,
   Loader2
 } from 'lucide-react'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { parseSubtasksFromDescription } from '../lib/utils'
 import apiService from '../services/apiService'
 import openaiService from '../services/openaiService'
 import useAppStore from '../stores/useAppStore'
 import { Button } from './ui/button'
 import { Card } from './ui/card'
+import '../styles/mobile-ux.css'
 
 // Helper function to render **text** as bold
 const renderWithBold = text => {
@@ -83,6 +84,9 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
     type: ''
   })
   const [loadingAiAction, setLoadingAiAction] = useState(null) // Track which AI action is loading
+  const [isKeyboardOpen, setIsKeyboardOpen] = useState(false)
+  const modalContentRef = useRef(null)
+  const activeInputRef = useRef(null)
 
   // Clean description by removing bullet points that became subtasks
   const getCleanDescription = (originalDescription, subtasks) => {
@@ -138,6 +142,106 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
       document.removeEventListener('mousedown', handleClickOutside)
     }
   }, [showLinkedTasksDropdown])
+
+  // Keyboard and viewport handling for mobile
+  useEffect(() => {
+    if (!isOpen) {
+      return
+    }
+
+    const initialViewportHeight =
+      window.visualViewport?.height || window.innerHeight
+
+    const handleViewportChange = () => {
+      if (!window.visualViewport) {
+        return
+      }
+
+      const currentHeight = window.visualViewport.height
+      const heightDifference = initialViewportHeight - currentHeight
+
+      // If viewport height decreased by more than 150px, keyboard is likely open
+      const keyboardIsOpen = heightDifference > 150
+
+      setIsKeyboardOpen(keyboardIsOpen)
+
+      // Scroll active input into view when keyboard opens
+      if (keyboardIsOpen && activeInputRef.current) {
+        setTimeout(() => {
+          activeInputRef.current?.scrollIntoView({
+            behavior: 'smooth',
+            block: 'center'
+          })
+        }, 150)
+      }
+    }
+
+    const handleFocusIn = e => {
+      if (e.target.matches('input, textarea, select')) {
+        activeInputRef.current = e.target
+        e.target.classList.add('mobile-input-focus')
+
+        // Small delay to ensure keyboard is shown
+        setTimeout(() => {
+          if (modalContentRef.current) {
+            const rect = e.target.getBoundingClientRect()
+            const modalRect = modalContentRef.current.getBoundingClientRect()
+            const scrollTop = modalContentRef.current.scrollTop
+
+            // Calculate where to scroll to keep input visible
+            const targetScrollTop = scrollTop + rect.top - modalRect.top - 100
+
+            modalContentRef.current.scrollTo({
+              top: Math.max(0, targetScrollTop),
+              behavior: 'smooth'
+            })
+          }
+        }, 150)
+      }
+    }
+
+    const handleFocusOut = e => {
+      if (e.target.matches('input, textarea, select')) {
+        e.target.classList.remove('mobile-input-focus')
+        activeInputRef.current = null
+      }
+    }
+
+    // Add event listeners
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', handleViewportChange)
+    } else {
+      window.addEventListener('resize', handleViewportChange)
+    }
+
+    document.addEventListener('focusin', handleFocusIn)
+    document.addEventListener('focusout', handleFocusOut)
+
+    // Prevent body scroll when modal is open
+    document.body.style.overflow = 'hidden'
+    document.body.style.position = 'fixed'
+    document.body.style.width = '100%'
+
+    return () => {
+      // Cleanup
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener(
+          'resize',
+          handleViewportChange
+        )
+      } else {
+        window.removeEventListener('resize', handleViewportChange)
+      }
+
+      document.removeEventListener('focusin', handleFocusIn)
+      document.removeEventListener('focusout', handleFocusOut)
+
+      // Restore body scroll
+      document.body.style.overflow = ''
+      document.body.style.position = ''
+      document.body.style.width = ''
+    }
+  }, [isOpen])
 
   useEffect(() => {
     if (task) {
@@ -718,33 +822,31 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
 
   return (
     <AnimatePresence>
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className="mobile-modal-overlay modal-overlay fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 overscroll-none"
+      <div
+        className={`task-modal-overlay ${isKeyboardOpen ? 'keyboard-active' : ''}`}
+        role="button"
+        aria-label="Close modal"
         onClick={onClose}
-        style={{
-          position: 'fixed',
-          overflow: 'hidden',
-          WebkitOverflowScrolling: 'touch'
+        onKeyDown={e => {
+          if (e.key === 'Escape') {
+            onClose()
+          }
         }}
+        tabIndex={0}
       >
-        <motion.div
-          initial={{ scale: 0.9, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          exit={{ scale: 0.9, opacity: 0 }}
+        <div
+          ref={modalContentRef}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="task-modal-title"
           onClick={e => e.stopPropagation()}
-          className="mobile-modal-content task-modal-mobile bg-white dark:bg-gray-800 rounded-lg shadow-2xl max-w-4xl w-full max-h-[90vh] md:max-h-[90vh] sm:max-h-[95vh] overflow-hidden flex flex-col"
-          style={{
-            maxHeight: 'calc(100vh - 2rem)',
-            minHeight: '300px'
-          }}
+          className={`task-modal-content layout-stable ${isKeyboardOpen ? 'keyboard-aware-container' : ''}`}
         >
           {/* Header */}
           <div className="flex items-center justify-between p-6 border-b">
             <div className="flex-1">
               <input
+                id="task-modal-title"
                 type="text"
                 value={title}
                 onChange={e => setTitle(e.target.value)}
@@ -763,13 +865,7 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
           </div>
 
           {/* Content - Scrollable */}
-          <div
-            className="flex-1 overflow-y-auto p-6 space-y-6"
-            style={{
-              WebkitOverflowScrolling: 'touch',
-              overscrollBehavior: 'contain'
-            }}
-          >
+          <div className="flex-1 overflow-y-auto p-6 space-y-6 modal-scroll-content">
             {/* Status and Priority Row */}
             <div className="grid grid-cols-2 gap-4">
               {/* Status */}
@@ -1212,13 +1308,15 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                   </span>
                 )}
               </label>
-              <textarea
-                value={getCleanDescription(description, subtasks)}
-                onChange={e => setDescription(e.target.value)}
-                placeholder="Add a detailed description..."
-                rows={4}
-                className="w-full px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 resize-none"
-              />
+              <div className="mobile-input-container">
+                <textarea
+                  value={getCleanDescription(description, subtasks)}
+                  onChange={e => setDescription(e.target.value)}
+                  placeholder="Add a detailed description..."
+                  rows={4}
+                  className="w-full px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 resize-none"
+                />
+              </div>
             </div>
 
             {/* Subtasks/Checklist */}
@@ -1355,14 +1453,16 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
 
               {/* Add Subtask */}
               <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={newSubtask}
-                  onChange={e => setNewSubtask(e.target.value)}
-                  onKeyPress={e => e.key === 'Enter' && addSubtask()}
-                  placeholder="Add a subtask..."
-                  className="flex-1 px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm"
-                />
+                <div className="mobile-input-container flex-1">
+                  <input
+                    type="text"
+                    value={newSubtask}
+                    onChange={e => setNewSubtask(e.target.value)}
+                    onKeyPress={e => e.key === 'Enter' && addSubtask()}
+                    placeholder="Add a subtask..."
+                    className="w-full px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm"
+                  />
+                </div>
                 <Button onClick={addSubtask} size="sm">
                   <Plus className="h-4 w-4" />
                 </Button>
@@ -1418,18 +1518,20 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
 
               {/* Add Comment */}
               <div className="flex gap-2">
-                <textarea
-                  value={newComment}
-                  onChange={e => setNewComment(e.target.value)}
-                  onKeyPress={e =>
-                    e.key === 'Enter' &&
-                    !e.shiftKey &&
-                    (e.preventDefault(), addComment())
-                  }
-                  placeholder="Add a comment... (Press Enter to post)"
-                  rows={2}
-                  className="flex-1 px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm resize-none"
-                />
+                <div className="mobile-input-container flex-1">
+                  <textarea
+                    value={newComment}
+                    onChange={e => setNewComment(e.target.value)}
+                    onKeyPress={e =>
+                      e.key === 'Enter' &&
+                      !e.shiftKey &&
+                      (e.preventDefault(), addComment())
+                    }
+                    placeholder="Add a comment... (Press Enter to post)"
+                    rows={2}
+                    className="w-full px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm resize-none"
+                  />
+                </div>
                 <Button onClick={addComment} size="sm" className="self-end">
                   Post
                 </Button>
@@ -1449,8 +1551,8 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
               <Button onClick={handleSave}>Save Changes</Button>
             </div>
           </div>
-        </motion.div>
-      </motion.div>
+        </div>
+      </div>
 
       {/* AI Content Modal */}
       <AnimatePresence>

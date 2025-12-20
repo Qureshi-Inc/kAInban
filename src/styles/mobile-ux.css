@@ -1,0 +1,254 @@
+/* Mobile UX Improvements - Smooth interactions and keyboard handling */
+
+/* Fix modal glitches and improve performance */
+.task-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background-color: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+
+  /* Prevent body scroll when modal is open */
+  overscroll-behavior: contain;
+  touch-action: none;
+
+  /* Smooth animations */
+  transition: all 0.2s ease-out;
+  animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Modal content container */
+.task-modal-content {
+  background: white;
+  border-radius: 0.75rem;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  max-width: 64rem;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+
+  /* Prevent layout shift */
+  will-change: transform;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+
+  /* Smooth entrance animation */
+  animation: slideInScale 0.25s ease-out;
+}
+
+@keyframes slideInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* Dark mode support */
+.dark .task-modal-content {
+  background: rgb(31, 41, 55);
+  color: white;
+}
+
+/* Mobile-specific modal sizing */
+@media (max-width: 640px) {
+  .task-modal-overlay {
+    padding: 0.5rem;
+    align-items: flex-start;
+    padding-top: 2rem;
+  }
+
+  .task-modal-content {
+    max-height: calc(100vh - 3rem);
+    max-height: calc(100dvh - 3rem); /* Use dvh for better mobile support */
+    min-height: 60vh;
+    border-radius: 0.75rem 0.75rem 0 0;
+  }
+}
+
+/* Keyboard handling for mobile inputs */
+.mobile-input-container {
+  position: relative;
+}
+
+/* When keyboard is open, scroll input into view */
+.keyboard-active {
+  position: relative;
+  z-index: 1000;
+}
+
+/* Input focus handling */
+.mobile-input-focus {
+  transform: translateY(-50px);
+  transition: transform 0.3s ease-out;
+}
+
+/* Smooth scrolling for modal content */
+.modal-scroll-content {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  scroll-behavior: smooth;
+}
+
+/* Improve text input experience on mobile */
+input[type='text'],
+input[type='date'],
+textarea,
+select {
+  /* Prevent zoom on iOS */
+  font-size: 16px !important;
+
+  /* Better touch targets */
+  min-height: 44px;
+
+  /* Smooth focus transitions */
+  transition: all 0.2s ease;
+
+  /* Better visibility when focused */
+  position: relative;
+  z-index: 1;
+}
+
+input[type='text']:focus,
+input[type='date']:focus,
+textarea:focus,
+select:focus {
+  /* Highlight focused input */
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
+  border-color: rgb(59, 130, 246);
+  outline: none;
+
+  /* Scroll into view smoothly */
+  scroll-margin-top: 100px;
+  scroll-margin-bottom: 100px;
+}
+
+/* Task card click improvements */
+.task-card {
+  /* Smooth click response */
+  transition: all 0.15s ease-out !important;
+  will-change: transform, box-shadow;
+
+  /* Prevent text selection during click */
+  -webkit-user-select: none;
+  user-select: none;
+
+  /* Better touch targets */
+  min-height: 44px;
+}
+
+.task-card:active {
+  transform: scale(0.98);
+  transition: transform 0.1s ease-out;
+}
+
+/* Prevent modal backdrop clicks from propagating */
+.task-modal-backdrop {
+  pointer-events: all;
+}
+
+.task-modal-backdrop > * {
+  pointer-events: auto;
+}
+
+/* Keyboard viewport handling */
+@supports (height: 100dvh) {
+  .keyboard-aware-container {
+    height: 100dvh;
+  }
+}
+
+/* iOS Safari specific fixes */
+@supports (-webkit-touch-callout: none) {
+  .task-modal-overlay {
+    /* Fix iOS Safari viewport issues */
+    height: -webkit-fill-available;
+  }
+
+  /* Prevent bounce scrolling */
+  .modal-scroll-content {
+    -webkit-overflow-scrolling: auto;
+    overflow: scroll;
+  }
+
+  /* Fix input focus issues */
+  input:focus,
+  textarea:focus,
+  select:focus {
+    /* Prevent iOS zoom */
+    transform: translateZ(0);
+  }
+}
+
+/* Enhanced button interactions */
+button {
+  /* Prevent double-tap zoom on iOS */
+  touch-action: manipulation;
+
+  /* Smooth press feedback */
+  transition: all 0.1s ease;
+}
+
+button:active {
+  transform: scale(0.95);
+}
+
+/* Smooth animations for all interactive elements */
+.interactive-element {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform;
+}
+
+/* Reduce motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+  .task-modal-content,
+  .task-card,
+  input,
+  textarea,
+  button,
+  .interactive-element {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* Fix for potential layout shifts */
+.layout-stable {
+  contain: layout style paint;
+}
+
+/* Better scrollbar styling */
+.modal-scroll-content::-webkit-scrollbar {
+  width: 4px;
+}
+
+.modal-scroll-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.modal-scroll-content::-webkit-scrollbar-thumb {
+  background: rgba(156, 163, 175, 0.3);
+  border-radius: 2px;
+}
+
+.modal-scroll-content::-webkit-scrollbar-thumb:hover {
+  background: rgba(156, 163, 175, 0.5);
+}
