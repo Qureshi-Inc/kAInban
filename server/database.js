@@ -127,6 +127,7 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS task_changes (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     task_id TEXT NOT NULL,
+    project_id TEXT,           -- Denormalized for activity queries (especially after task deletion)
     user_id TEXT NOT NULL,
     change_type TEXT NOT NULL, -- 'created', 'updated', 'deleted', 'status_changed', 'priority_changed', etc.
     field_name TEXT,           -- specific field that changed (title, description, priority, etc.)
@@ -135,6 +136,7 @@ db.exec(`
     metadata TEXT,             -- additional context (JSON)
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (task_id) REFERENCES tasks(id),
+    FOREIGN KEY (project_id) REFERENCES projects(id),
     FOREIGN KEY (user_id) REFERENCES users(id)
   );
 `)
@@ -346,6 +348,39 @@ try {
     console.log('[Database] User ID format fix completed')
   } catch (userIdFixError) {
     console.log('[Database] User ID format fix not needed or already completed')
+  }
+
+  // Migration: Add project_id to task_changes for better activity tracking
+  try {
+    const taskChangesColumns = db
+      .prepare('PRAGMA table_info(task_changes)')
+      .all()
+    const hasProjectId = taskChangesColumns.some(
+      col => col.name === 'project_id'
+    )
+
+    if (!hasProjectId) {
+      console.log('[Database] Adding project_id to task_changes...')
+
+      // Add the column
+      db.exec('ALTER TABLE task_changes ADD COLUMN project_id TEXT')
+
+      // Populate existing records by joining with tasks table
+      const updateStmt = db.prepare(`
+        UPDATE task_changes
+        SET project_id = (
+          SELECT t.project_id
+          FROM tasks t
+          WHERE t.id = task_changes.task_id
+        )
+        WHERE task_id IS NOT NULL
+      `)
+      updateStmt.run()
+
+      console.log('[Database] project_id added and populated in task_changes')
+    }
+  } catch (projectIdError) {
+    console.log('[Database] project_id migration error:', projectIdError)
   }
 
   console.log('[Database] Migration completed successfully')
@@ -1235,12 +1270,22 @@ export const recordTaskChange = (
   fieldName = null,
   oldValue = null,
   newValue = null,
-  metadata = null
+  metadata = null,
+  projectId = null
 ) => {
+  // If projectId not provided, try to get it from the task
+  let finalProjectId = projectId
+  if (!finalProjectId && taskId) {
+    const task = db
+      .prepare('SELECT project_id FROM tasks WHERE id = ?')
+      .get(taskId)
+    finalProjectId = task?.project_id || null
+  }
+
   const stmt = db.prepare(`
     INSERT INTO task_changes
-    (task_id, user_id, change_type, field_name, old_value, new_value, metadata)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
+    (task_id, project_id, user_id, change_type, field_name, old_value, new_value, metadata)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
   `)
 
   const oldValueStr = oldValue
@@ -1257,6 +1302,7 @@ export const recordTaskChange = (
 
   return stmt.run(
     taskId,
+    finalProjectId,
     userId,
     changeType,
     fieldName,
@@ -1307,27 +1353,32 @@ export const getProjectTaskChanges = (projectId, limit = 100) => {
     FROM task_changes tc
     LEFT JOIN users u ON tc.user_id = u.id
     LEFT JOIN tasks t ON tc.task_id = t.id
-    WHERE t.project_id = ?
+    WHERE tc.project_id = ?
     ORDER BY tc.created_at DESC
     LIMIT ?
   `)
 
   const changes = stmt.all(projectId, limit)
 
-  return changes.map(change => ({
-    ...change,
-    old_value: change.old_value
-      ? change.old_value.startsWith('{') || change.old_value.startsWith('[')
-        ? JSON.parse(change.old_value)
-        : change.old_value
-      : null,
-    new_value: change.new_value
-      ? change.new_value.startsWith('{') || change.new_value.startsWith('[')
-        ? JSON.parse(change.new_value)
-        : change.new_value
-      : null,
-    metadata: change.metadata ? JSON.parse(change.metadata) : null
-  }))
+  return changes.map(change => {
+    const metadata = change.metadata ? JSON.parse(change.metadata) : null
+    return {
+      ...change,
+      // Use task title from metadata if task was deleted (task_title is NULL)
+      task_title: change.task_title || metadata?.title || 'Unknown Task',
+      old_value: change.old_value
+        ? change.old_value.startsWith('{') || change.old_value.startsWith('[')
+          ? JSON.parse(change.old_value)
+          : change.old_value
+        : null,
+      new_value: change.new_value
+        ? change.new_value.startsWith('{') || change.new_value.startsWith('[')
+          ? JSON.parse(change.new_value)
+          : change.new_value
+        : null,
+      metadata
+    }
+  })
 }
 
 // Task comments methods
