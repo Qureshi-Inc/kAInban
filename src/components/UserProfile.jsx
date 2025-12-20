@@ -1,16 +1,18 @@
 import { motion, AnimatePresence } from 'framer-motion'
-import { LogOut, User as UserIcon, Shield, Settings } from 'lucide-react'
-import React, { useState } from 'react'
+import { LogOut, Shield, Settings } from 'lucide-react'
+import { useState } from 'react'
 import useAppStore from '../stores/useAppStore'
 import { Button } from './ui/button'
 
 export default function UserProfile({ collapsed = false }) {
-  const user = useAppStore((state) => state.user)
-  const logout = useAppStore((state) => state.logout)
-  const setSettingsOpen = useAppStore((state) => state.setSettingsOpen)
+  const user = useAppStore(state => state.user)
+  const logout = useAppStore(state => state.logout)
+  const setSettingsOpen = useAppStore(state => state.setSettingsOpen)
   const [isOpen, setIsOpen] = useState(false)
 
-  if (!user) {return null}
+  if (!user) {
+    return null
+  }
 
   const handleLogout = () => {
     if (confirm('Are you sure you want to logout?')) {
@@ -27,7 +29,8 @@ export default function UserProfile({ collapsed = false }) {
       >
         <div className="relative">
           <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-medium text-sm border-2 border-black">
-            {user.name?.charAt(0).toUpperCase() || user.email?.charAt(0).toUpperCase()}
+            {user.name?.charAt(0).toUpperCase() ||
+              user.email?.charAt(0).toUpperCase()}
           </div>
         </div>
         {!collapsed && (
@@ -42,9 +45,11 @@ export default function UserProfile({ collapsed = false }) {
         {isOpen && (
           <>
             {/* Backdrop */}
-            <div
-              className="fixed inset-0 z-40"
+            <button
+              type="button"
+              className="fixed inset-0 z-40 cursor-default"
               onClick={() => setIsOpen(false)}
+              aria-label="Close menu"
             />
 
             {/* Dropdown Menu */}
@@ -56,18 +61,23 @@ export default function UserProfile({ collapsed = false }) {
               className={`${
                 collapsed
                   ? 'absolute left-full bottom-0 ml-2'
-                  : 'fixed sm:absolute left-2 sm:left-auto sm:right-0 bottom-20 sm:bottom-auto sm:top-full sm:mt-2'
+                  : 'fixed sm:absolute left-1 sm:left-auto sm:right-0 bottom-20 sm:bottom-auto sm:top-full sm:mt-2'
               } w-64 max-w-[calc(100vw-2rem)] bg-white dark:bg-gray-800 rounded-lg shadow-xl border-2 border-gray-200 dark:border-gray-700 overflow-hidden z-[9999]`}
             >
               {/* User Info */}
               <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-lg border-2 border-black">
-                    {user.name?.charAt(0).toUpperCase() || user.email?.charAt(0).toUpperCase()}
+                    {user.name?.charAt(0).toUpperCase() ||
+                      user.email?.charAt(0).toUpperCase()}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-sm font-semibold truncate">{user.name}</div>
-                    <div className="text-xs text-muted-foreground truncate">{user.email}</div>
+                    <div className="text-sm font-semibold truncate">
+                      {user.name}
+                    </div>
+                    <div className="text-xs text-muted-foreground truncate">
+                      {user.email}
+                    </div>
                   </div>
                 </div>
                 {user.role === 'admin' && (
