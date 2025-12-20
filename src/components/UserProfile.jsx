@@ -56,7 +56,7 @@ export default function UserProfile({ collapsed = false }) {
               className={`${
                 collapsed
                   ? 'absolute left-full bottom-0 ml-2'
-                  : 'fixed sm:absolute right-4 sm:right-0 bottom-20 sm:bottom-auto sm:top-full sm:mt-2'
+                  : 'fixed sm:absolute left-1/2 -translate-x-1/2 sm:translate-x-0 sm:left-auto sm:right-0 bottom-20 sm:bottom-auto sm:top-full sm:mt-2'
               } w-64 max-w-[calc(100vw-2rem)] bg-white dark:bg-gray-800 rounded-lg shadow-xl border-2 border-gray-200 dark:border-gray-700 overflow-hidden z-[9999]`}
             >
               {/* User Info */}
