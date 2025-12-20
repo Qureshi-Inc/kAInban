@@ -324,6 +324,9 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
           updateTask(task.id, {
             subtasks: parsedSubtasks
           })
+        } else {
+          // Clear subtasks if task has none
+          setSubtasks([])
         }
       }
 
