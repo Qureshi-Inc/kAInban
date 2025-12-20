@@ -9,14 +9,14 @@ import { Button } from './ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
 
 export default function SummaryPanel() {
-  const { getSelectedMeeting, addTask, addNotification } = useAppStore()
+  const { getSelectedMeeting, addNotification } = useAppStore()
   const selectedMeeting = getSelectedMeeting()
   const [summary, setSummary] = useState('')
   const [loading, setLoading] = useState(false)
 
   // Load summary content from backend when meeting changes
   useEffect(() => {
-    const loadSummary = async() => {
+    const loadSummary = async () => {
       if (!selectedMeeting) {
         setSummary('')
         return
@@ -31,7 +31,9 @@ export default function SummaryPanel() {
       // Otherwise, load from backend file
       try {
         setLoading(true)
-        const response = await fetch(`/api/meetings/${selectedMeeting.id}/summary`)
+        const response = await fetch(
+          `/api/meetings/${selectedMeeting.id}/summary`
+        )
 
         if (response.ok) {
           const data = await response.json()
@@ -80,7 +82,7 @@ export default function SummaryPanel() {
     })
   }
 
-  const handleCopySummary = async() => {
+  const handleCopySummary = async () => {
     if (!summary || !summary.trim()) {
       addNotification({
         type: 'error',
@@ -104,7 +106,7 @@ export default function SummaryPanel() {
     }
   }
 
-  const handleShareSummary = async() => {
+  const handleShareSummary = async () => {
     if (!summary || !summary.trim()) {
       addNotification({
         type: 'error',
@@ -138,8 +140,7 @@ export default function SummaryPanel() {
     }
   }
 
-  const handleGenerateTasks = async() => {
-
+  const handleGenerateTasks = async () => {
     // IMPORTANT: Use transcript (not summary) for accurate task extraction
     const transcript = selectedMeeting?.transcript
     console.log('[SummaryPanel] Transcript length:', transcript?.length || 0)
@@ -157,11 +158,19 @@ export default function SummaryPanel() {
     try {
       addNotification({
         type: 'info',
-        message: 'Extracting tasks from transcript using specialized AI agent...'
+        message:
+          'Extracting tasks from transcript using specialized AI agent...'
       })
 
-      const { tasks: existingTasks, updateTask: storeUpdateTask } = useAppStore.getState()
-      const extractedTasks = await openaiService.extractTasks(transcript, existingTasks)
+      const {
+        tasks: existingTasks,
+        addTasks,
+        updateTask: storeUpdateTask
+      } = useAppStore.getState()
+      const extractedTasks = await openaiService.extractTasks(
+        transcript,
+        existingTasks
+      )
 
       if (extractedTasks.length === 0) {
         addNotification({
@@ -173,6 +182,7 @@ export default function SummaryPanel() {
 
       let newCount = 0
       let updatedCount = 0
+      const newTasksToAdd = []
 
       // Process tasks (new or updates)
       extractedTasks.forEach(task => {
@@ -188,29 +198,35 @@ export default function SummaryPanel() {
 
             // Add AI comment if there are updates
             if (task.updates) {
-              apiService.addTaskComment(
-                existingTask.id,
-                task.updates,
-                'ai_update',
-                {
+              apiService
+                .addTaskComment(existingTask.id, task.updates, 'ai_update', {
                   source: 'summary_analysis'
-                }
-              ).catch(error => {
-                console.error('Failed to add AI comment:', error)
-              })
+                })
+                .catch(error => {
+                  console.error('Failed to add AI comment:', error)
+                })
             }
             updatedCount++
           }
         } else {
-          // Create new task
-          addTask(task)
+          // Collect new tasks to add in batch
+          newTasksToAdd.push(task)
           newCount++
         }
       })
 
+      // Batch add all new tasks at once
+      if (newTasksToAdd.length > 0) {
+        addTasks(newTasksToAdd)
+      }
+
       const messages = []
-      if (newCount > 0) {messages.push(`${newCount} new`)}
-      if (updatedCount > 0) {messages.push(`${updatedCount} updated`)}
+      if (newCount > 0) {
+        messages.push(`${newCount} new`)
+      }
+      if (updatedCount > 0) {
+        messages.push(`${updatedCount} updated`)
+      }
 
       addNotification({
         type: 'success',
@@ -289,7 +305,11 @@ export default function SummaryPanel() {
                 >
                   <motion.div
                     animate={{ rotate: 360 }}
-                    transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+                    transition={{
+                      duration: 2,
+                      repeat: Infinity,
+                      ease: 'linear'
+                    }}
                   >
                     <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
                   </motion.div>
@@ -298,16 +318,20 @@ export default function SummaryPanel() {
               </div>
             ) : summary ? (
               <div className="prose prose-sm max-w-none dark:prose-invert text-sm leading-relaxed">
-                <ReactMarkdown>
-                  {summary}
-                </ReactMarkdown>
+                <ReactMarkdown>{summary}</ReactMarkdown>
               </div>
             ) : (
               <div className="flex items-center justify-center h-[300px] text-muted-foreground">
                 <div className="text-center">
                   <FileText className="h-12 w-12 mx-auto mb-4 opacity-30" />
-                  <p className="font-medium">{selectedMeeting ? 'No summary available for this meeting' : 'Meeting summary will appear here...'}</p>
-                  <p className="text-xs mt-2 opacity-60">Record or upload audio to generate a summary</p>
+                  <p className="font-medium">
+                    {selectedMeeting
+                      ? 'No summary available for this meeting'
+                      : 'Meeting summary will appear here...'}
+                  </p>
+                  <p className="text-xs mt-2 opacity-60">
+                    Record or upload audio to generate a summary
+                  </p>
                 </div>
               </div>
             )}

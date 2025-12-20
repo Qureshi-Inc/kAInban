@@ -23,7 +23,6 @@ export default function RecordingModal() {
     setRecordingTime,
     setTranscript,
     setSummary,
-    addTask,
     addNotification,
     setUploadProgress,
     resetUploadProgress
@@ -62,7 +61,9 @@ export default function RecordingModal() {
 
   const startVisualization = () => {
     const canvas = canvasRef.current
-    if (!canvas) {return}
+    if (!canvas) {
+      return
+    }
 
     const ctx = canvas.getContext('2d')
     const { width, height } = canvas
@@ -82,12 +83,22 @@ export default function RecordingModal() {
         for (let i = 0; i < barCount; i++) {
           const x = (i / barCount) * width
           const barHeight = Math.sin(time + i * 0.5) * 20 + 10
-          const gradient = ctx.createLinearGradient(0, centerY - barHeight, 0, centerY + barHeight)
+          const gradient = ctx.createLinearGradient(
+            0,
+            centerY - barHeight,
+            0,
+            centerY + barHeight
+          )
           gradient.addColorStop(0, '#4285f4')
           gradient.addColorStop(1, '#34a853')
 
           ctx.fillStyle = gradient
-          ctx.fillRect(x, centerY - barHeight, width / barCount - 2, barHeight * 2)
+          ctx.fillRect(
+            x,
+            centerY - barHeight,
+            width / barCount - 2,
+            barHeight * 2
+          )
         }
       } else {
         // Draw actual audio data
@@ -100,7 +111,12 @@ export default function RecordingModal() {
         for (let i = 0; i < dataArray.length; i++) {
           const barHeight = (dataArray[i] / 255) * height * 0.8
 
-          const gradient = ctx.createLinearGradient(0, height - barHeight, 0, height)
+          const gradient = ctx.createLinearGradient(
+            0,
+            height - barHeight,
+            0,
+            height
+          )
           gradient.addColorStop(0, '#4285f4')
           gradient.addColorStop(1, '#34a853')
 
@@ -126,7 +142,7 @@ export default function RecordingModal() {
     }
   }
 
-  const handleStop = async() => {
+  const handleStop = async () => {
     try {
       console.log('[RecordingModal] Stopping recording...')
       const audioBlob = await audioService.stopRecording()
@@ -173,29 +189,41 @@ export default function RecordingModal() {
           message: 'Extracting tasks from transcript...'
         })
 
-        const { tasks: existingTasks, addTask, updateTask } = useAppStore.getState()
+        const {
+          tasks: existingTasks,
+          addTasks,
+          updateTask
+        } = useAppStore.getState()
 
-        console.log('[TaskUpdate] Existing tasks:', existingTasks.map(t => ({
-          id: t.id,
-          title: t.title,
-          status: t.status,
-          priority: t.priority
-        })))
+        console.log(
+          '[TaskUpdate] Existing tasks:',
+          existingTasks.map(t => ({
+            id: t.id,
+            title: t.title,
+            status: t.status,
+            priority: t.priority
+          }))
+        )
 
-        const extractedTasks = await openaiService.extractTasks(transcript, existingTasks)
-
+        const extractedTasks = await openaiService.extractTasks(
+          transcript,
+          existingTasks
+        )
 
         let newCount = 0
         let updatedCount = 0
+        const newTasksToAdd = []
 
         for (const [index, task] of extractedTasks.entries()) {
-
           if (task.matchId && task.matchId > 0) {
             // Update existing task
             const existingTask = existingTasks[task.matchId - 1]
 
             if (existingTask) {
-              console.log('[TaskUpdate] Existing task title:', existingTask.title)
+              console.log(
+                '[TaskUpdate] Existing task title:',
+                existingTask.title
+              )
 
               const updates = {
                 status: task.newStatus || existingTask.status,
@@ -229,32 +257,46 @@ export default function RecordingModal() {
 
               updatedCount++
             } else {
-              console.error('[TaskUpdate] ✗ MATCH ID', task.matchId, 'not found in existing tasks!')
+              console.error(
+                '[TaskUpdate] ✗ MATCH ID',
+                task.matchId,
+                'not found in existing tasks!'
+              )
             }
           } else {
-            // Create new task
+            // Collect new tasks to add in batch
             console.log('[TaskUpdate] Title:', task.title)
             console.log('[TaskUpdate] Priority:', task.priority)
 
-            addTask(task)
+            newTasksToAdd.push(task)
             newCount++
-
           }
         }
 
+        // Batch add all new tasks at once
+        if (newTasksToAdd.length > 0) {
+          addTasks(newTasksToAdd)
+        }
+
         console.log('[TaskUpdate] New tasks created:', newCount)
-        console.log('[TaskUpdate] Total tasks in project after updates:', useAppStore.getState().tasks.length)
+        console.log(
+          '[TaskUpdate] Total tasks in project after updates:',
+          useAppStore.getState().tasks.length
+        )
 
         if (newCount > 0 || updatedCount > 0) {
           const messages = []
-          if (newCount > 0) {messages.push(`${newCount} new`)}
-          if (updatedCount > 0) {messages.push(`${updatedCount} updated`)}
+          if (newCount > 0) {
+            messages.push(`${newCount} new`)
+          }
+          if (updatedCount > 0) {
+            messages.push(`${updatedCount} updated`)
+          }
 
           addNotification({
             type: 'success',
             message: `Tasks: ${messages.join(', ')}!`
           })
-        } else {
         }
       } catch (error) {
         console.error('[TaskUpdate] ✗ ERROR during task extraction:', error)

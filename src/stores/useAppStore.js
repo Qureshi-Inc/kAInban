@@ -3,7 +3,7 @@ import { generateId } from '../lib/utils'
 import apiService from '../services/apiService'
 
 // Helper function to invalidate analytics cache when tasks change
-const invalidateAnalyticsCache = async(currentProject) => {
+const invalidateAnalyticsCache = async currentProject => {
   try {
     if (currentProject) {
       await apiService.clearAnalyticsInsights(currentProject.id)
@@ -60,7 +60,7 @@ const useAppStore = create((set, get) => ({
   },
 
   // Authentication Actions
-  checkAuth: async() => {
+  checkAuth: async () => {
     try {
       const user = await apiService.getCurrentUser()
       set({ user, authChecked: true })
@@ -73,22 +73,27 @@ const useAppStore = create((set, get) => ({
     }
   },
 
-  setUser: (user) => {
+  setUser: user => {
     set({ user })
   },
 
-  logout: async() => {
+  logout: async () => {
     try {
       await apiService.logout()
-      set({ user: null, currentProject: null, projects: [], tasks: [], meetings: [] })
+      set({
+        user: null,
+        currentProject: null,
+        projects: [],
+        tasks: [],
+        meetings: []
+      })
     } catch (error) {
       console.error('[Store] Logout error:', error)
     }
   },
 
   // Initialize - Load data from backend
-  initialize: async() => {
-
+  initialize: async () => {
     try {
       // Load settings
       const settings = await apiService.getSettings()
@@ -103,7 +108,7 @@ const useAppStore = create((set, get) => ({
 
       // For each project, if it doesn't have tasks populated, try to load them
       const projectsWithTasks = await Promise.all(
-        projects.map(async(project) => {
+        projects.map(async project => {
           // If the project already has tasks, use it as-is
           if (project.tasks && project.tasks.length > 0) {
             return project
@@ -113,7 +118,11 @@ const useAppStore = create((set, get) => ({
             const fullProject = await apiService.getProject(project.id)
             return fullProject || project
           } catch (error) {
-            console.error('[Store] Error loading project details for', project.id, error)
+            console.error(
+              '[Store] Error loading project details for',
+              project.id,
+              error
+            )
             return project
           }
         })
@@ -124,12 +133,17 @@ const useAppStore = create((set, get) => ({
       // Restore last selected project from localStorage
       const lastProjectId = localStorage.getItem('lastSelectedProject')
       const lastMeetingId = localStorage.getItem('lastSelectedMeeting')
-      if (lastProjectId && projectsWithTasks.some(p => p.id === lastProjectId)) {
+      if (
+        lastProjectId &&
+        projectsWithTasks.some(p => p.id === lastProjectId)
+      ) {
         // Use the already loaded project data
         const project = projectsWithTasks.find(p => p.id === lastProjectId)
         if (project) {
           // Check if the last selected meeting still exists in this project
-          const meetingExists = project.meetings && project.meetings.some(m => m.id === lastMeetingId)
+          const meetingExists =
+            project.meetings &&
+            project.meetings.some(m => m.id === lastMeetingId)
           const selectedMeetingId = meetingExists ? lastMeetingId : null
 
           set({
@@ -143,7 +157,6 @@ const useAppStore = create((set, get) => ({
           }
         }
       }
-
     } catch (error) {
       console.error('[Store] Initialization error:', error)
       console.error('[Store] Error stack:', error.stack)
@@ -153,7 +166,7 @@ const useAppStore = create((set, get) => ({
   },
 
   // Settings Actions
-  updateSettings: async(newSettings) => {
+  updateSettings: async newSettings => {
     const settings = { ...get().settings, ...newSettings }
     set({ settings })
 
@@ -162,7 +175,7 @@ const useAppStore = create((set, get) => ({
   },
 
   // Project Actions
-  createProject: async(name) => {
+  createProject: async name => {
     const project = {
       id: generateId(),
       name,
@@ -173,7 +186,7 @@ const useAppStore = create((set, get) => ({
       summary: ''
     }
 
-    set((state) => ({
+    set(state => ({
       projects: [...state.projects, project],
       currentProject: project,
       tasks: [],
@@ -190,7 +203,7 @@ const useAppStore = create((set, get) => ({
     return project
   },
 
-  loadProject: async(projectId) => {
+  loadProject: async projectId => {
     console.log('[Store] Project ID:', projectId)
 
     const project = await apiService.getProject(projectId)
@@ -199,14 +212,19 @@ const useAppStore = create((set, get) => ({
       console.log('[Store] Project name:', project.name)
       console.log('[Store] Project tasks:', project.tasks)
 
-      set((state) => ({
+      set(state => ({
         currentProject: project,
         tasks: project.tasks || [],
         meetings: project.meetings || [],
         selectedMeetingId: null,
         // Update the projects array with the loaded project data including tasks
         projects: state.projects.map(p =>
-          p.id === projectId ? { ...project, lastModified: project.lastModified || new Date().toISOString() } : p
+          p.id === projectId
+            ? {
+                ...project,
+                lastModified: project.lastModified || new Date().toISOString()
+              }
+            : p
         )
       }))
 
@@ -214,25 +232,24 @@ const useAppStore = create((set, get) => ({
       localStorage.setItem('lastSelectedProject', projectId)
       // Clear last selected meeting when switching projects
       localStorage.removeItem('lastSelectedMeeting')
-
     } else {
       console.error('[Store] ✗ Project not found:', projectId)
     }
   },
 
-  updateCurrentProject: async() => {
+  updateCurrentProject: async () => {
     const { currentProject, tasks, meetings } = get()
     if (!currentProject) {
       console.warn('[Store] updateCurrentProject: No current project to update')
       return
     }
 
-
     // Log some task details to verify linked tasks are included
-    const tasksWithLinks = tasks.filter(t => t.linkedTasks && t.linkedTasks.length > 0)
+    const tasksWithLinks = tasks.filter(
+      t => t.linkedTasks && t.linkedTasks.length > 0
+    )
     if (tasksWithLinks.length > 0) {
-      tasksWithLinks.forEach(task => {
-      })
+      tasksWithLinks.forEach(task => {})
     }
 
     const updatedProject = {
@@ -242,7 +259,7 @@ const useAppStore = create((set, get) => ({
       lastModified: new Date().toISOString()
     }
 
-    set((state) => ({
+    set(state => ({
       currentProject: updatedProject,
       projects: state.projects.map(p =>
         p.id === currentProject.id ? updatedProject : p
@@ -255,7 +272,9 @@ const useAppStore = create((set, get) => ({
       if (success) {
         // Project saved successfully
       } else {
-        console.error('[Store] ✗ Project update failed - apiService returned false')
+        console.error(
+          '[Store] ✗ Project update failed - apiService returned false'
+        )
         throw new Error('API service returned false')
       }
     } catch (error) {
@@ -264,7 +283,7 @@ const useAppStore = create((set, get) => ({
     }
   },
 
-  deleteProject: async(projectId) => {
+  deleteProject: async projectId => {
     const wasCurrentProject = get().currentProject?.id === projectId
 
     try {
@@ -276,12 +295,16 @@ const useAppStore = create((set, get) => ({
       }
 
       // Only update local state if backend deletion succeeded
-      set((state) => ({
+      set(state => ({
         projects: state.projects.filter(p => p.id !== projectId),
-        currentProject: state.currentProject?.id === projectId ? null : state.currentProject,
+        currentProject:
+          state.currentProject?.id === projectId ? null : state.currentProject,
         tasks: state.currentProject?.id === projectId ? [] : state.tasks,
         meetings: state.currentProject?.id === projectId ? [] : state.meetings,
-        selectedMeetingId: state.currentProject?.id === projectId ? null : state.selectedMeetingId
+        selectedMeetingId:
+          state.currentProject?.id === projectId
+            ? null
+            : state.selectedMeetingId
       }))
 
       // Clear localStorage if this was the current project
@@ -296,7 +319,7 @@ const useAppStore = create((set, get) => ({
     }
   },
 
-  deleteAllProjects: async() => {
+  deleteAllProjects: async () => {
     try {
       // Delete all projects from backend in one call
       await apiService.deleteAllProjects()
@@ -323,13 +346,13 @@ const useAppStore = create((set, get) => ({
   },
 
   // Recording Actions
-  setRecording: (isRecording) => set({ isRecording }),
-  setPaused: (isPaused) => set({ isPaused }),
-  setRecordingTime: (time) => set({ recordingTime: time }),
-  setRecordingModalOpen: (open) => set({ isRecordingModalOpen: open }),
+  setRecording: isRecording => set({ isRecording }),
+  setPaused: isPaused => set({ isPaused }),
+  setRecordingTime: time => set({ recordingTime: time }),
+  setRecordingModalOpen: open => set({ isRecordingModalOpen: open }),
 
   // Meeting Actions
-  createMeeting: async(name, transcript, summary) => {
+  createMeeting: async (name, transcript, summary) => {
     const meeting = {
       id: generateId(),
       name,
@@ -339,7 +362,6 @@ const useAppStore = create((set, get) => ({
       projectId: get().currentProject?.id || null,
       summaryFile: null // Will store the file path on backend
     }
-
 
     try {
       // Save summary as file to backend
@@ -364,13 +386,12 @@ const useAppStore = create((set, get) => ({
 
       const savedMeeting = await response.json()
       meeting.summaryFile = savedMeeting.summaryFile // Get file path from backend
-
     } catch (error) {
       console.error('[Store] Failed to save meeting to backend:', error)
       // Continue with local storage for now
     }
 
-    set((state) => ({
+    set(state => ({
       meetings: [...state.meetings, meeting],
       selectedMeetingId: meeting.id
     }))
@@ -379,7 +400,7 @@ const useAppStore = create((set, get) => ({
     return meeting
   },
 
-  selectMeeting: (meetingId) => {
+  selectMeeting: meetingId => {
     set({ selectedMeetingId: meetingId })
 
     // Save to localStorage for persistence across refreshes
@@ -390,7 +411,7 @@ const useAppStore = create((set, get) => ({
     }
   },
 
-  deleteMeeting: async(meetingId) => {
+  deleteMeeting: async meetingId => {
     const wasSelected = get().selectedMeetingId === meetingId
 
     try {
@@ -402,13 +423,12 @@ const useAppStore = create((set, get) => ({
       if (!response.ok) {
         throw new Error('Failed to delete meeting from backend')
       }
-
     } catch (error) {
       console.error('[Store] Failed to delete meeting from backend:', error)
       // Continue with local deletion even if backend fails
     }
 
-    set((state) => ({
+    set(state => ({
       meetings: state.meetings.filter(m => m.id !== meetingId),
       selectedMeetingId: wasSelected ? null : state.selectedMeetingId
     }))
@@ -427,7 +447,7 @@ const useAppStore = create((set, get) => ({
   },
 
   // Task Actions
-  addTask: (task) => {
+  addTask: task => {
     const newTask = {
       id: generateId(),
       title: task.title || 'Untitled Task',
@@ -451,7 +471,7 @@ const useAppStore = create((set, get) => ({
     console.log('[Store] Status:', newTask.status)
     console.log('[Store] Tasks before add:', get().tasks.length)
 
-    set((state) => ({ tasks: [...state.tasks, newTask] }))
+    set(state => ({ tasks: [...state.tasks, newTask] }))
 
     // Invalidate analytics cache since task count changed
     invalidateAnalyticsCache(get().currentProject)
@@ -460,8 +480,45 @@ const useAppStore = create((set, get) => ({
     return newTask
   },
 
+  // Batch add multiple tasks without saving after each one
+  addTasks: tasks => {
+    if (!Array.isArray(tasks) || tasks.length === 0) {
+      return []
+    }
+
+    const newTasks = tasks.map(task => ({
+      id: task.id || generateId(),
+      title: task.title || 'Untitled Task',
+      description: task.description || '',
+      priority: task.priority || 'medium',
+      subtasks: task.subtasks ? JSON.parse(JSON.stringify(task.subtasks)) : [],
+      comments: task.comments || [],
+      status: task.status || 'todo',
+      createdAt: new Date().toISOString(),
+      dueDate: task.dueDate || null,
+      projectId: get().currentProject?.id || null,
+      meetingId: task.meetingId || null,
+      linkedTasks: task.linkedTasks || [],
+      aiCreatedLinks: task.aiCreatedLinks || [],
+      aiDiscoveredLinks: task.aiDiscoveredLinks || [],
+      rejectedAiLinks: task.rejectedAiLinks || [],
+      ...task
+    }))
+
+    console.log('[Store] Batch adding tasks:', newTasks.length)
+
+    set(state => ({ tasks: [...state.tasks, ...newTasks] }))
+
+    // Invalidate analytics cache since task count changed
+    invalidateAnalyticsCache(get().currentProject)
+
+    // Save once after all tasks are added
+    get().updateCurrentProject()
+    return newTasks
+  },
+
   // Alias for consistency with naming convention
-  createTask: (task) => {
+  createTask: task => {
     return get().addTask(task)
   },
 
@@ -476,7 +533,7 @@ const useAppStore = create((set, get) => ({
     console.log('[Store] Task ID:', taskId)
     console.log('[Store] New updates:', updates)
 
-    set((state) => ({
+    set(state => ({
       tasks: state.tasks.map(task =>
         task.id === taskId ? { ...task, ...updates } : task
       )
@@ -488,8 +545,12 @@ const useAppStore = create((set, get) => ({
     console.log('[Store] Task still exists:', !!taskAfter)
 
     // Handle linked task status synchronization
-    if (updates.status && updates.status === 'done' && taskBefore.linkedTasks && taskBefore.linkedTasks.length > 0) {
-
+    if (
+      updates.status &&
+      updates.status === 'done' &&
+      taskBefore.linkedTasks &&
+      taskBefore.linkedTasks.length > 0
+    ) {
       taskBefore.linkedTasks.forEach(linkedTaskId => {
         const linkedTask = get().tasks.find(t => t.id === linkedTaskId)
         if (linkedTask && linkedTask.status !== 'done') {
@@ -507,12 +568,12 @@ const useAppStore = create((set, get) => ({
     get().updateCurrentProject()
   },
 
-  deleteTask: (taskId) => {
+  deleteTask: taskId => {
     const taskToDelete = get().tasks.find(t => t.id === taskId)
 
     console.log('[Store] Task title:', taskToDelete?.title || 'Unknown')
 
-    set((state) => ({
+    set(state => ({
       tasks: state.tasks.filter(task => task.id !== taskId)
     }))
 
@@ -546,29 +607,33 @@ const useAppStore = create((set, get) => ({
         get().updateTask(linkedTaskId, { linkedTasks: uniqueLinkedTasks })
       }
     })
-
   },
 
   unlinkTasks: (taskId, taskToUnlinkId) => {
     // Remove the link from the main task
     const mainTask = get().tasks.find(t => t.id === taskId)
     if (mainTask && mainTask.linkedTasks) {
-      const updatedLinkedTasks = mainTask.linkedTasks.filter(id => id !== taskToUnlinkId)
+      const updatedLinkedTasks = mainTask.linkedTasks.filter(
+        id => id !== taskToUnlinkId
+      )
       get().updateTask(taskId, { linkedTasks: updatedLinkedTasks })
     }
 
     // Remove the reverse link from the other task
     const otherTask = get().tasks.find(t => t.id === taskToUnlinkId)
     if (otherTask && otherTask.linkedTasks) {
-      const updatedLinkedTasks = otherTask.linkedTasks.filter(id => id !== taskId)
+      const updatedLinkedTasks = otherTask.linkedTasks.filter(
+        id => id !== taskId
+      )
       get().updateTask(taskToUnlinkId, { linkedTasks: updatedLinkedTasks })
     }
-
   },
 
-  getLinkedTasks: (taskId) => {
+  getLinkedTasks: taskId => {
     const task = get().tasks.find(t => t.id === taskId)
-    if (!task || !task.linkedTasks) {return []}
+    if (!task || !task.linkedTasks) {
+      return []
+    }
 
     return get().tasks.filter(t => task.linkedTasks.includes(t.id))
   },
@@ -576,7 +641,9 @@ const useAppStore = create((set, get) => ({
   // AI Link Management
   acceptAiSuggestion: (taskId, suggestionId, suggestionType) => {
     const task = get().tasks.find(t => t.id === taskId)
-    if (!task) {return}
+    if (!task) {
+      return
+    }
 
     // Move AI suggestion to manual links
     const updatedLinkedTasks = [...(task.linkedTasks || []), suggestionId]
@@ -587,9 +654,13 @@ const useAppStore = create((set, get) => ({
     let updatedAiDiscoveredLinks = task.aiDiscoveredLinks || []
 
     if (suggestionType === 'created') {
-      updatedAiCreatedLinks = updatedAiCreatedLinks.filter(id => id !== suggestionId)
+      updatedAiCreatedLinks = updatedAiCreatedLinks.filter(
+        id => id !== suggestionId
+      )
     } else if (suggestionType === 'discovered') {
-      updatedAiDiscoveredLinks = updatedAiDiscoveredLinks.filter(id => id !== suggestionId)
+      updatedAiDiscoveredLinks = updatedAiDiscoveredLinks.filter(
+        id => id !== suggestionId
+      )
     }
 
     get().updateTask(taskId, {
@@ -597,15 +668,19 @@ const useAppStore = create((set, get) => ({
       aiCreatedLinks: updatedAiCreatedLinks,
       aiDiscoveredLinks: updatedAiDiscoveredLinks
     })
-
   },
 
   rejectAiSuggestion: (taskId, suggestionId, suggestionType) => {
     const task = get().tasks.find(t => t.id === taskId)
-    if (!task) {return}
+    if (!task) {
+      return
+    }
 
     // Add to rejected list
-    const updatedRejectedAiLinks = [...(task.rejectedAiLinks || []), suggestionId]
+    const updatedRejectedAiLinks = [
+      ...(task.rejectedAiLinks || []),
+      suggestionId
+    ]
     const uniqueRejectedLinks = [...new Set(updatedRejectedAiLinks)]
 
     // Remove from AI suggestions
@@ -613,9 +688,13 @@ const useAppStore = create((set, get) => ({
     let updatedAiDiscoveredLinks = task.aiDiscoveredLinks || []
 
     if (suggestionType === 'created') {
-      updatedAiCreatedLinks = updatedAiCreatedLinks.filter(id => id !== suggestionId)
+      updatedAiCreatedLinks = updatedAiCreatedLinks.filter(
+        id => id !== suggestionId
+      )
     } else if (suggestionType === 'discovered') {
-      updatedAiDiscoveredLinks = updatedAiDiscoveredLinks.filter(id => id !== suggestionId)
+      updatedAiDiscoveredLinks = updatedAiDiscoveredLinks.filter(
+        id => id !== suggestionId
+      )
     }
 
     get().updateTask(taskId, {
@@ -623,41 +702,46 @@ const useAppStore = create((set, get) => ({
       aiDiscoveredLinks: updatedAiDiscoveredLinks,
       rejectedAiLinks: uniqueRejectedLinks
     })
-
   },
 
   // Add AI discovered links (called from KanbanBoard when task completed)
   addAiDiscoveredLinks: (taskId, discoveredTaskIds) => {
     const task = get().tasks.find(t => t.id === taskId)
-    if (!task || !discoveredTaskIds.length) {return}
+    if (!task || !discoveredTaskIds.length) {
+      return
+    }
 
     // Filter out already linked or rejected suggestions
-    const newDiscoveredLinks = discoveredTaskIds.filter(id =>
-      !task.linkedTasks.includes(id) &&
-      !task.aiCreatedLinks.includes(id) &&
-      !task.aiDiscoveredLinks.includes(id) &&
-      !task.rejectedAiLinks.includes(id)
+    const newDiscoveredLinks = discoveredTaskIds.filter(
+      id =>
+        !task.linkedTasks.includes(id) &&
+        !task.aiCreatedLinks.includes(id) &&
+        !task.aiDiscoveredLinks.includes(id) &&
+        !task.rejectedAiLinks.includes(id)
     )
 
     if (newDiscoveredLinks.length > 0) {
-      const updatedAiDiscoveredLinks = [...(task.aiDiscoveredLinks || []), ...newDiscoveredLinks]
+      const updatedAiDiscoveredLinks = [
+        ...(task.aiDiscoveredLinks || []),
+        ...newDiscoveredLinks
+      ]
       get().updateTask(taskId, { aiDiscoveredLinks: updatedAiDiscoveredLinks })
     }
   },
 
   // Summary Actions
-  setSummary: (summary) => {
+  setSummary: summary => {
     set({ summary })
     get().updateCurrentProject()
   },
 
   // UI Actions
-  setSettingsOpen: (open) => set({ isSettingsOpen: open }),
+  setSettingsOpen: open => set({ isSettingsOpen: open }),
 
-  addNotification: (notification) => {
+  addNotification: notification => {
     const id = generateId()
     const newNotification = { id, ...notification, timestamp: Date.now() }
-    set((state) => ({
+    set(state => ({
       notifications: [...state.notifications, newNotification]
     }))
 
@@ -669,9 +753,10 @@ const useAppStore = create((set, get) => ({
     return id
   },
 
-  removeNotification: (id) => set((state) => ({
-    notifications: state.notifications.filter(n => n.id !== id)
-  })),
+  removeNotification: id =>
+    set(state => ({
+      notifications: state.notifications.filter(n => n.id !== id)
+    })),
 
   // Clear current session
   clearSession: () => {
@@ -690,20 +775,25 @@ const useAppStore = create((set, get) => ({
   },
 
   // Update upload progress
-  setUploadProgress: (progress) => {
-    console.log('[Store] Upload progress:', progress.stage, progress.percentage ? `${progress.percentage}%` : '')
+  setUploadProgress: progress => {
+    console.log(
+      '[Store] Upload progress:',
+      progress.stage,
+      progress.percentage ? `${progress.percentage}%` : ''
+    )
     set({ uploadProgress: { ...get().uploadProgress, ...progress } })
   },
 
   // Reset upload progress
-  resetUploadProgress: () => set({
-    uploadProgress: {
-      stage: 'idle',
-      percentage: 0,
-      message: '',
-      error: null
-    }
-  })
+  resetUploadProgress: () =>
+    set({
+      uploadProgress: {
+        stage: 'idle',
+        percentage: 0,
+        message: '',
+        error: null
+      }
+    })
 }))
 
 export default useAppStore

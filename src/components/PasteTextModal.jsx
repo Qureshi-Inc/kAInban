@@ -1,10 +1,10 @@
 import { motion } from 'framer-motion'
 import { FileText, X, Sparkles } from 'lucide-react'
 import React, { useState } from 'react'
+import { parseSubtasksFromDescription } from '../lib/utils'
 import apiService from '../services/apiService'
 import openaiService from '../services/openaiService'
 import useAppStore from '../stores/useAppStore'
-import { parseSubtasksFromDescription } from '../lib/utils'
 import { Button } from './ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog'
 
@@ -15,13 +15,12 @@ export default function PasteTextModal({ open, onOpenChange }) {
   const {
     currentProject,
     createMeeting,
-    addTask,
     addNotification,
     setUploadProgress,
     resetUploadProgress
   } = useAppStore()
 
-  const handleProcess = async() => {
+  const handleProcess = async () => {
     if (!transcript.trim()) {
       addNotification({
         type: 'error',
@@ -78,7 +77,11 @@ export default function PasteTextModal({ open, onOpenChange }) {
         message: 'Extracting tasks from text...'
       })
 
-      const { tasks: existingTasks, updateTask: storeUpdateTask } = useAppStore.getState()
+      const {
+        tasks: existingTasks,
+        addTasks,
+        updateTask: storeUpdateTask
+      } = useAppStore.getState()
       const tasks = await openaiService.extractTasks(transcript, existingTasks)
 
       // Store meeting ID for consistent access during task creation
@@ -86,10 +89,11 @@ export default function PasteTextModal({ open, onOpenChange }) {
 
       let newCount = 0
       let updatedCount = 0
+      const newTasksToAdd = []
 
       // Add extracted tasks
       if (tasks && tasks.length > 0) {
-        tasks.forEach(async task => {
+        for (const task of tasks) {
           if (task.matchId && task.matchId > 0) {
             // Update existing task and add AI comment instead of updating description
             const existingTask = existingTasks[task.matchId - 1]
@@ -120,9 +124,11 @@ export default function PasteTextModal({ open, onOpenChange }) {
               updatedCount++
             }
           } else {
-            // Create new task with parsed subtasks and meeting source
-            const subtasks = parseSubtasksFromDescription(task.description || '')
-            addTask({
+            // Collect new tasks to add in batch
+            const subtasks = parseSubtasksFromDescription(
+              task.description || ''
+            )
+            newTasksToAdd.push({
               title: task.title,
               description: task.description || '',
               priority: task.priority || 'medium',
@@ -132,12 +138,21 @@ export default function PasteTextModal({ open, onOpenChange }) {
             })
             newCount++
           }
-        })
+        }
+
+        // Batch add all new tasks at once
+        if (newTasksToAdd.length > 0) {
+          addTasks(newTasksToAdd)
+        }
 
         // Show success notification
         const messages = []
-        if (newCount > 0) {messages.push(`${newCount} new`)}
-        if (updatedCount > 0) {messages.push(`${updatedCount} updated`)}
+        if (newCount > 0) {
+          messages.push(`${newCount} new`)
+        }
+        if (updatedCount > 0) {
+          messages.push(`${updatedCount} updated`)
+        }
 
         addNotification({
           type: 'success',
@@ -159,7 +174,6 @@ export default function PasteTextModal({ open, onOpenChange }) {
       setTimeout(() => {
         resetUploadProgress()
       }, 3000)
-
     } catch (error) {
       console.error('[PasteText] Error:', error)
 
@@ -204,12 +218,13 @@ export default function PasteTextModal({ open, onOpenChange }) {
 
         <div className="space-y-4">
           <div className="text-sm text-muted-foreground">
-            Paste your meeting notes, transcript, or any text containing tasks. AI will extract action items automatically.
+            Paste your meeting notes, transcript, or any text containing tasks.
+            AI will extract action items automatically.
           </div>
 
           <textarea
             value={transcript}
-            onChange={(e) => setTranscript(e.target.value)}
+            onChange={e => setTranscript(e.target.value)}
             placeholder="Paste your transcript here...
 
 Example:
@@ -224,7 +239,9 @@ Example:
           <div className="flex items-center justify-between text-xs text-muted-foreground">
             <span>{transcript.length} characters</span>
             {transcript.length > 0 && (
-              <span>~{Math.ceil(transcript.split(/\s+/).length / 1)} words</span>
+              <span>
+                ~{Math.ceil(transcript.split(/\s+/).length / 1)} words
+              </span>
             )}
           </div>
 
@@ -245,7 +262,11 @@ Example:
                 <>
                   <motion.div
                     animate={{ rotate: 360 }}
-                    transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                    transition={{
+                      duration: 1,
+                      repeat: Infinity,
+                      ease: 'linear'
+                    }}
                   >
                     <Sparkles className="w-4 h-4" />
                   </motion.div>
