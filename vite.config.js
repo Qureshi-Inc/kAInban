@@ -19,6 +19,9 @@ const httpsConfig = (() => {
 })()
 
 export default defineConfig({
+  esbuild: {
+    drop: process.env.NODE_ENV === 'production' ? ['console', 'debugger'] : []
+  },
   plugins: [
     react(),
     // Disable PWA in development to prevent reload issues

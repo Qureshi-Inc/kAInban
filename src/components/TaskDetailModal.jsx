@@ -149,6 +149,12 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
       return
     }
 
+    // Save current scroll position when modal opens
+    const savedScrollPosition =
+      window.pageYOffset || document.documentElement.scrollTop
+    const savedScrollLeft =
+      window.pageXOffset || document.documentElement.scrollLeft
+
     const initialViewportHeight =
       window.visualViewport?.height || window.innerHeight
 
@@ -165,38 +171,14 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
 
       setIsKeyboardOpen(keyboardIsOpen)
 
-      // Scroll active input into view when keyboard opens
-      if (keyboardIsOpen && activeInputRef.current) {
-        setTimeout(() => {
-          activeInputRef.current?.scrollIntoView({
-            behavior: 'smooth',
-            block: 'center'
-          })
-        }, 150)
-      }
+      // No automatic scrolling - just let the modal adjust its size when keyboard opens
     }
 
     const handleFocusIn = e => {
       if (e.target.matches('input, textarea, select')) {
         activeInputRef.current = e.target
         e.target.classList.add('mobile-input-focus')
-
-        // Small delay to ensure keyboard is shown
-        setTimeout(() => {
-          if (modalContentRef.current) {
-            const rect = e.target.getBoundingClientRect()
-            const modalRect = modalContentRef.current.getBoundingClientRect()
-            const scrollTop = modalContentRef.current.scrollTop
-
-            // Calculate where to scroll to keep input visible
-            const targetScrollTop = scrollTop + rect.top - modalRect.top - 100
-
-            modalContentRef.current.scrollTo({
-              top: Math.max(0, targetScrollTop),
-              behavior: 'smooth'
-            })
-          }
-        }, 150)
+        // No automatic scrolling - just track the active input
       }
     }
 
@@ -217,10 +199,24 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
     document.addEventListener('focusin', handleFocusIn)
     document.addEventListener('focusout', handleFocusOut)
 
-    // Prevent body scroll when modal is open
+    // Prevent body scroll when modal is open (mobile-friendly approach)
     document.body.style.overflow = 'hidden'
-    document.body.style.position = 'fixed'
-    document.body.style.width = '100%'
+
+    // Only use position fixed on non-mobile or when keyboard is not open
+    if (!isKeyboardOpen && window.innerWidth > 768) {
+      // Set body position to fixed and maintain scroll position
+      document.body.style.position = 'fixed'
+      document.body.style.top = `-${savedScrollPosition}px`
+      document.body.style.left = `-${savedScrollLeft}px`
+      document.body.style.width = '100%'
+    } else {
+      // On mobile, use a different approach that doesn't break when keyboard opens
+      document.body.style.position = ''
+      document.body.style.width = ''
+      document.body.style.top = ''
+      document.body.style.left = ''
+      document.body.style.touchAction = 'none'
+    }
 
     return () => {
       // Cleanup
@@ -240,8 +236,21 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
       document.body.style.overflow = ''
       document.body.style.position = ''
       document.body.style.width = ''
+      document.body.style.top = ''
+      document.body.style.left = ''
+      document.body.style.touchAction = ''
+
+      // Restore scroll position when modal closes
+      // Use requestAnimationFrame to ensure DOM has updated
+      requestAnimationFrame(() => {
+        window.scrollTo({
+          top: savedScrollPosition,
+          left: savedScrollLeft,
+          behavior: 'instant' // No smooth scrolling to avoid visual jumping
+        })
+      })
     }
-  }, [isOpen])
+  }, [isOpen, isKeyboardOpen])
 
   useEffect(() => {
     if (task) {
@@ -559,57 +568,56 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
   const progress =
     totalSubtasks > 0 ? (completedSubtasks / totalSubtasks) * 100 : 0
 
-  // AI Helper Functions
+  // Simple AI Detection - Email and Message only
   const getAiSuggestions = subtaskText => {
     const text = subtaskText.toLowerCase()
-    const suggestions = []
+    const originalText = subtaskText
 
-    // Email suggestions
-    if (
-      text.includes('email') ||
-      text.includes('send') ||
-      text.includes('notify') ||
-      text.includes('contact')
-    ) {
-      suggestions.push({
-        type: 'email',
-        icon: Mail,
-        label: 'Generate Email',
-        action: () => generateEmailTemplate(subtaskText)
-      })
+    // Check for email first
+    const hasEmailWord = text.includes('email')
+    const hasEmailAddress =
+      /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/.test(originalText)
+
+    if (hasEmailWord || hasEmailAddress) {
+      return [
+        {
+          type: 'email',
+          icon: Mail,
+          label: 'Generate Email',
+          action: () => generateEmailTemplate(subtaskText)
+        }
+      ]
     }
 
-    // Document suggestions
-    if (
-      text.includes('document') ||
-      text.includes('write') ||
-      text.includes('draft') ||
-      text.includes('proposal')
-    ) {
-      suggestions.push({
-        type: 'document',
-        icon: FileText,
-        label: 'Document Template',
-        action: () => generateDocumentTemplate(subtaskText)
-      })
+    // Check for messaging/communication
+    const messageWords = [
+      'notify',
+      'ping',
+      'reach out',
+      'contact',
+      'inform',
+      'tell',
+      'engage',
+      'slack',
+      'message',
+      'dm',
+      'chat',
+      'communicate'
+    ]
+    const hasMessageWord = messageWords.some(word => text.includes(word))
+
+    if (hasMessageWord) {
+      return [
+        {
+          type: 'message',
+          icon: MessageSquare,
+          label: 'Draft Message',
+          action: () => generateSlackMessage(subtaskText)
+        }
+      ]
     }
 
-    // Code suggestions
-    if (
-      text.includes('code') ||
-      text.includes('script') ||
-      text.includes('develop') ||
-      text.includes('implement')
-    ) {
-      suggestions.push({
-        type: 'code',
-        icon: Code,
-        label: 'Code Template',
-        action: () => generateCodeTemplate(subtaskText)
-      })
-    }
-
-    return suggestions
+    return []
   }
 
   const generateEmailTemplate = async subtaskText => {
@@ -723,6 +731,84 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
       addNotification({
         type: 'error',
         message: `Failed to generate code: ${error.message}`
+      })
+    } finally {
+      setLoadingAiAction(null)
+    }
+  }
+
+  const generateResearchTemplate = async subtaskText => {
+    try {
+      setLoadingAiAction('research')
+
+      const taskContext = {
+        title: task.title,
+        description: task.description,
+        priority: task.priority,
+        status: task.status
+      }
+
+      const researchTemplate = await openaiService.generateResearchTemplate(
+        taskContext,
+        subtaskText
+      )
+
+      // Show in modal for easy copying
+      setAiContentModal({
+        isOpen: true,
+        title: 'AI Generated Research Guide',
+        content: researchTemplate,
+        type: 'research'
+      })
+
+      addNotification({
+        type: 'success',
+        message: 'Research guide generated successfully!'
+      })
+    } catch (error) {
+      console.error('Research generation error:', error)
+      addNotification({
+        type: 'error',
+        message: `Failed to generate research guide: ${error.message}`
+      })
+    } finally {
+      setLoadingAiAction(null)
+    }
+  }
+
+  const generateSlackMessage = async subtaskText => {
+    try {
+      setLoadingAiAction('message')
+
+      const taskContext = {
+        title: task.title,
+        description: task.description,
+        priority: task.priority,
+        status: task.status
+      }
+
+      const slackMessage = await openaiService.generateSlackMessage(
+        taskContext,
+        subtaskText
+      )
+
+      // Show in modal for easy copying
+      setAiContentModal({
+        isOpen: true,
+        title: 'AI Generated Slack Message',
+        content: slackMessage,
+        type: 'message'
+      })
+
+      addNotification({
+        type: 'success',
+        message: 'Slack message generated successfully!'
+      })
+    } catch (error) {
+      console.error('Message generation error:', error)
+      addNotification({
+        type: 'error',
+        message: `Failed to generate message: ${error.message}`
       })
     } finally {
       setLoadingAiAction(null)
@@ -1585,6 +1671,12 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                     )}
                     {aiContentModal.type === 'code' && (
                       <Code className="h-4 w-4 text-blue-600" />
+                    )}
+                    {aiContentModal.type === 'research' && (
+                      <Search className="h-4 w-4 text-blue-600" />
+                    )}
+                    {aiContentModal.type === 'message' && (
+                      <MessageSquare className="h-4 w-4 text-blue-600" />
                     )}
                   </div>
                   {aiContentModal.title}
