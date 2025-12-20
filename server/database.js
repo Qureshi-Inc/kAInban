@@ -792,8 +792,57 @@ export const saveProject = (userId, project) => {
 }
 
 export const deleteProject = projectId => {
-  const stmt = db.prepare('DELETE FROM projects WHERE id = ?')
-  stmt.run(projectId)
+  try {
+    // Start transaction for atomic deletion
+    db.exec('BEGIN TRANSACTION')
+
+    // Delete in order of foreign key dependencies (same as deleteAllProjects):
+    // 1. Delete task comments (references tasks)
+    const deleteTaskCommentsStmt = db.prepare(`
+      DELETE FROM task_comments WHERE task_id IN (
+        SELECT id FROM tasks WHERE project_id = ?
+      )
+    `)
+    deleteTaskCommentsStmt.run(projectId)
+
+    // 2. Delete task changes/activity (references tasks)
+    const deleteTaskChangesStmt = db.prepare(`
+      DELETE FROM task_changes WHERE task_id IN (
+        SELECT id FROM tasks WHERE project_id = ?
+      )
+    `)
+    deleteTaskChangesStmt.run(projectId)
+
+    // 3. Delete analytics insights (references project)
+    const deleteAnalyticsStmt = db.prepare('DELETE FROM analytics_insights WHERE project_id = ?')
+    deleteAnalyticsStmt.run(projectId)
+
+    // 4. Delete meetings (references project)
+    const deleteMeetingsStmt = db.prepare('DELETE FROM meetings WHERE project_id = ?')
+    deleteMeetingsStmt.run(projectId)
+
+    // 5. Delete tasks (references project)
+    const deleteTasksStmt = db.prepare('DELETE FROM tasks WHERE project_id = ?')
+    deleteTasksStmt.run(projectId)
+
+    // 6. Finally delete the project
+    const deleteProjectStmt = db.prepare('DELETE FROM projects WHERE id = ?')
+    deleteProjectStmt.run(projectId)
+
+    // Commit transaction
+    db.exec('COMMIT')
+
+    console.log(`[Database] Successfully deleted project and all related data: ${projectId}`)
+  } catch (error) {
+    // Rollback on error
+    try {
+      db.exec('ROLLBACK')
+    } catch (rollbackError) {
+      console.error('[Database] Rollback error:', rollbackError)
+    }
+    console.error(`[Database] Error deleting project ${projectId}:`, error)
+    throw error
+  }
 }
 
 export const deleteAllProjects = userId => {

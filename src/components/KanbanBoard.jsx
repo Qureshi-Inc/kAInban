@@ -1,13 +1,14 @@
 import { motion, AnimatePresence } from 'framer-motion'
-import { Trash2, CheckSquare, Plus, MoreVertical, List, LayoutGrid, ChevronDown, ChevronRight } from 'lucide-react'
+import { Trash2, CheckSquare, Plus, MoreVertical, List, LayoutGrid, ChevronDown, ChevronRight, FileText } from 'lucide-react'
 import React, { useState } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import openaiService from '../services/openaiService'
 import useAppStore from '../stores/useAppStore'
 import TaskDetailModal from './TaskDetailModal'
 import { Button } from './ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
 
-const TaskCard = ({ task, onStatusChange, onDelete, onClick }) => {
+const TaskCard = ({ task, onStatusChange, onDelete, onClick, onNavigateToMeeting }) => {
   const [isDragging, setIsDragging] = React.useState(false)
 
   const getPriorityColor = (priority) => {
@@ -105,11 +106,40 @@ const TaskCard = ({ task, onStatusChange, onDelete, onClick }) => {
           {new Date(task.createdAt).toLocaleDateString()}
         </span>
       </div>
+
+      <TaskSource
+        meetingId={task.meetingId}
+        onNavigateToMeeting={onNavigateToMeeting}
+      />
     </motion.div>
   )
 }
 
-const Column = ({ title, status, tasks, onTaskMove, onTaskReorder, onTaskDelete, onTaskClick, count, columnColor, allTasks }) => {
+const TaskSource = ({ meetingId, onNavigateToMeeting }) => {
+  const meetings = useAppStore((state) => state.meetings)
+
+  if (!meetingId) return null
+
+  const meeting = meetings.find(m => m.id === meetingId)
+  if (!meeting) return null
+
+  return (
+    <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-600">
+      <button
+        onClick={(e) => {
+          e.stopPropagation()
+          onNavigateToMeeting(meetingId)
+        }}
+        className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors group"
+      >
+        <FileText className="h-3 w-3 group-hover:scale-110 transition-transform" />
+        <span className="group-hover:underline">From: {meeting.name}</span>
+      </button>
+    </div>
+  )
+}
+
+const Column = ({ title, status, tasks, onTaskMove, onTaskReorder, onTaskDelete, onTaskClick, onNavigateToMeeting, count, columnColor, allTasks }) => {
   const [isDragOver, setIsDragOver] = React.useState(false)
 
   const handleDragOver = (e) => {
@@ -214,6 +244,7 @@ const Column = ({ title, status, tasks, onTaskMove, onTaskReorder, onTaskDelete,
               onStatusChange={onTaskMove}
               onDelete={onTaskDelete}
               onClick={onTaskClick}
+              onNavigateToMeeting={onNavigateToMeeting}
             />
           ))}
           {tasks.length === 0 && (
@@ -256,7 +287,9 @@ const Column = ({ title, status, tasks, onTaskMove, onTaskReorder, onTaskDelete,
   )
 }
 
-export default function KanbanBoard() {
+export default function KanbanBoard({ taskToOpen }) {
+  const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const { tasks, moveTask, updateTask, deleteTask, clearTasks, addTask, addNotification, addAiDiscoveredLinks, reorderTask } = useAppStore()
   const [selectedTask, setSelectedTask] = useState(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -268,6 +301,17 @@ export default function KanbanBoard() {
     blocked: true,
     done: true
   })
+
+  // Handle opening specific task from URL
+  React.useEffect(() => {
+    if (taskToOpen && tasks.length > 0) {
+      const task = tasks.find(t => t.id === taskToOpen)
+      if (task) {
+        setSelectedTask(task)
+        setIsModalOpen(true)
+      }
+    }
+  }, [taskToOpen, tasks])
 
   // Add CSS for drag and drop visual feedback
   React.useEffect(() => {
@@ -569,6 +613,27 @@ export default function KanbanBoard() {
   const handleModalClose = () => {
     setIsModalOpen(false)
     setSelectedTask(null)
+
+    // Clear task parameter from URL if it exists
+    if (searchParams.get('task')) {
+      const newParams = new URLSearchParams(searchParams)
+      newParams.delete('task')
+      navigate(`?${newParams.toString()}`, { replace: true })
+    }
+  }
+
+  const handleNavigateToMeeting = (meetingId) => {
+    const { selectMeeting } = useAppStore.getState()
+
+    // Select the meeting in the store
+    selectMeeting(meetingId)
+
+    // Navigate to the project with the meeting parameter
+    const projectId = searchParams.get('project')
+    if (projectId) {
+      const shortMeetingId = meetingId.slice(0, 8)
+      navigate(`/?project=${projectId}&meeting=${shortMeetingId}`)
+    }
   }
 
   const handleCreateTask = () => {
@@ -812,6 +877,7 @@ export default function KanbanBoard() {
                   onTaskReorder={handleTaskReorder}
                   onTaskDelete={handleTaskDelete}
                   onTaskClick={handleTaskClick}
+                  onNavigateToMeeting={handleNavigateToMeeting}
                   allTasks={tasks}
                 />
                 <Column
@@ -823,6 +889,7 @@ export default function KanbanBoard() {
                   onTaskReorder={handleTaskReorder}
                   onTaskDelete={handleTaskDelete}
                   onTaskClick={handleTaskClick}
+                  onNavigateToMeeting={handleNavigateToMeeting}
                   allTasks={tasks}
                 />
                 <Column
@@ -834,6 +901,7 @@ export default function KanbanBoard() {
                   onTaskReorder={handleTaskReorder}
                   onTaskDelete={handleTaskDelete}
                   onTaskClick={handleTaskClick}
+                  onNavigateToMeeting={handleNavigateToMeeting}
                   allTasks={tasks}
                 />
                 <Column
@@ -845,6 +913,7 @@ export default function KanbanBoard() {
                   onTaskReorder={handleTaskReorder}
                   onTaskDelete={handleTaskDelete}
                   onTaskClick={handleTaskClick}
+                  onNavigateToMeeting={handleNavigateToMeeting}
                   allTasks={tasks}
                 />
               </div>

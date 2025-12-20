@@ -12,7 +12,15 @@ export function formatTime(seconds) {
 }
 
 export function generateId() {
-  return `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+  // Use more unique timestamp + longer random to reduce 8-char collisions
+  const timestamp = Date.now()
+  const random = Math.random().toString(36).substr(2, 12) // Longer random part
+  return `${timestamp}_${random}`
+}
+
+export function getShortId(fullId) {
+  // Use first 12 chars instead of 8 to reduce collision probability
+  return fullId.slice(0, 12)
 }
 
 // Parse description for bullet points and convert to subtasks

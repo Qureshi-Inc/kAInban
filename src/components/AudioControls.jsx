@@ -302,13 +302,15 @@ export default function AudioControls() {
       // Auto-generate summary from transcript
       console.log('[AudioControls] Auto-generating summary...')
       let generatedSummary = ''
+      let meeting = null // Declare meeting at function scope
+
       try {
         generatedSummary = await openaiService.generateSummary(transcript)
         console.log('[AudioControls] Summary received:', generatedSummary?.length || 0, 'characters')
 
         // Create meeting file
         const meetingName = `Recording - ${new Date().toLocaleDateString()}`
-        await createMeeting(meetingName, transcript, generatedSummary)
+        meeting = await createMeeting(meetingName, transcript, generatedSummary)
       } catch (summaryError) {
         console.error('[AudioControls] Summary generation error:', summaryError)
         addNotification({
@@ -328,6 +330,9 @@ export default function AudioControls() {
 
         const { tasks: existingTasks, updateTask: storeUpdateTask } = useAppStore.getState()
         const extractedTasks = await openaiService.extractTasks(transcript, existingTasks)
+
+        // Store meeting ID for consistent access during task creation
+        const sourceMeetingId = meeting?.id
 
         let newCount = 0
         let updatedCount = 0
@@ -388,11 +393,12 @@ export default function AudioControls() {
                 updatedCount++
               }
             } else {
-              // Create new task with parsed subtasks
+              // Create new task with parsed subtasks and meeting source
               const subtasks = parseSubtasksFromDescription(task.description || '')
               addTask({
                 ...task,
-                subtasks
+                subtasks,
+                meetingId: sourceMeetingId // Add meeting source reference
               })
               newCount++
             }
@@ -507,13 +513,15 @@ export default function AudioControls() {
 
       // Auto-generate summary from transcript
       let generatedSummary = ''
+      let meeting = null // Declare meeting at function scope
+
       try {
         generatedSummary = await openaiService.generateSummary(transcript)
         console.log('[AudioControls] Summary received:', generatedSummary?.length || 0, 'characters')
 
         // Create meeting file
         const meetingName = `${file.name} - ${new Date().toLocaleDateString()}`
-        await createMeeting(meetingName, transcript, generatedSummary)
+        meeting = await createMeeting(meetingName, transcript, generatedSummary)
       } catch (summaryError) {
         console.error('[AudioControls] Summary generation error:', summaryError)
         addNotification({
@@ -545,6 +553,9 @@ export default function AudioControls() {
 
         const { tasks: existingTasks, updateTask: storeUpdateTask } = useAppStore.getState()
         const extractedTasks = await openaiService.extractTasks(transcript, existingTasks)
+
+        // Store meeting ID for consistent access during task creation
+        const sourceMeetingId = meeting?.id
 
         if (extractedTasks.length > 0) {
           for (const task of extractedTasks) {
@@ -602,11 +613,12 @@ export default function AudioControls() {
                 updatedCount++
               }
             } else {
-              // Create new task with parsed subtasks
+              // Create new task with parsed subtasks and meeting source
               const subtasks = parseSubtasksFromDescription(task.description || '')
               addTask({
                 ...task,
-                subtasks
+                subtasks,
+                meetingId: sourceMeetingId // Add meeting source reference
               })
               newCount++
             }

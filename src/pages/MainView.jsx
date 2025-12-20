@@ -6,6 +6,7 @@ import AudioControls from '../components/AudioControls'
 import KanbanBoard from '../components/KanbanBoard'
 import MeetingFilesPanel from '../components/MeetingFilesPanel'
 import SummaryPanel from '../components/SummaryPanel'
+import { getShortId } from '../lib/utils'
 import useAppStore from '../stores/useAppStore'
 
 export default function MainView() {
@@ -14,6 +15,7 @@ export default function MainView() {
 
   const projectId = searchParams.get('project')
   const meetingId = searchParams.get('meeting')
+  const taskId = searchParams.get('task')
 
   const currentProject = useAppStore((state) => state.currentProject)
   const loadProject = useAppStore((state) => state.loadProject)
@@ -28,21 +30,28 @@ export default function MainView() {
     // If no currentProject, navigate to dashboard (clear URL params)
     if (!currentProject) {
       if (window.location.search !== '') {
+        console.log('[MainView] No current project, navigating to dashboard')
         navigate('/', { replace: true })
       }
       return
     }
 
     const params = new URLSearchParams()
-    params.set('project', currentProject.id.slice(0, 8)) // Use short ID
+    const shortProjectId = getShortId(currentProject.id)
+    params.set('project', shortProjectId) // Use short ID
 
     if (selectedMeetingId) {
-      params.set('meeting', selectedMeetingId.slice(0, 8)) // Use short ID
+      params.set('meeting', getShortId(selectedMeetingId)) // Use short ID
     }
 
     const newSearch = `?${params.toString()}`
-    if (window.location.search !== newSearch) {
+    const currentSearch = window.location.search
+
+    if (currentSearch !== newSearch) {
+      console.log('[MainView] URL sync - updating URL from', currentSearch, 'to', newSearch, 'for project', currentProject.name)
       navigate(newSearch, { replace: true })
+    } else {
+      console.log('[MainView] URL already matches project state')
     }
   }, [currentProject, selectedMeetingId, navigate])
 
@@ -54,13 +63,17 @@ export default function MainView() {
       const project = projects.find((p) => p.id.startsWith(projectId))
 
       if (project) {
-        // ONLY load if currentProject is different
-        // This prevents reloading and overwriting state when URL updates AFTER state changes
+        // ONLY load if currentProject is different AND we need to fetch from backend
+        // Skip loading if the project is already the current one (prevents loops)
         if (currentProject?.id !== project.id) {
+          console.log('[MainView] Loading different project:', project.id, 'current:', currentProject?.id)
           loadProject(project.id)
+        } else {
+          console.log('[MainView] Project already loaded, skipping reload')
         }
       } else {
-        // Project not found, redirect to dashboard
+        // Project not found in local state, redirect to dashboard
+        console.log('[MainView] Project not found:', projectId)
         navigate('/')
       }
     }
@@ -168,7 +181,7 @@ export default function MainView() {
           </div>
         </div>
 
-        <KanbanBoard />
+        <KanbanBoard taskToOpen={taskId} />
       </motion.div>
     </div>
   )

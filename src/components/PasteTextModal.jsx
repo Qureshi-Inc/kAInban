@@ -69,7 +69,7 @@ export default function PasteTextModal({ open, onOpenChange }) {
       })
 
       const meetingName = `Pasted Text - ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`
-      await createMeeting(meetingName, transcript, summary)
+      const meeting = await createMeeting(meetingName, transcript, summary)
 
       // Extract tasks from the pasted text
       setUploadProgress({
@@ -80,6 +80,9 @@ export default function PasteTextModal({ open, onOpenChange }) {
 
       const { tasks: existingTasks, updateTask: storeUpdateTask } = useAppStore.getState()
       const tasks = await openaiService.extractTasks(transcript, existingTasks)
+
+      // Store meeting ID for consistent access during task creation
+      const sourceMeetingId = meeting?.id
 
       let newCount = 0
       let updatedCount = 0
@@ -117,14 +120,15 @@ export default function PasteTextModal({ open, onOpenChange }) {
               updatedCount++
             }
           } else {
-            // Create new task with parsed subtasks
+            // Create new task with parsed subtasks and meeting source
             const subtasks = parseSubtasksFromDescription(task.description || '')
             addTask({
               title: task.title,
               description: task.description || '',
               priority: task.priority || 'medium',
               status: 'todo',
-              subtasks
+              subtasks,
+              meetingId: sourceMeetingId // Add meeting source reference
             })
             newCount++
           }

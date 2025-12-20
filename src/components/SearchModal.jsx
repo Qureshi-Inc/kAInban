@@ -47,11 +47,13 @@ export default function SearchModal({ isOpen, onClose }) {
   }, [searchQuery, projects])
 
   const handleTaskClick = async (result) => {
-    // Load the project
+    // Load the project first
     await loadProject(result.project.id)
-    // Navigate to project
+
+    // Navigate to project with task ID to open the task
     const shortId = result.project.id.slice(0, 8)
-    navigate(`/?project=${shortId}`)
+    navigate(`/?project=${shortId}&task=${result.task.id}`)
+
     // Close search modal
     onClose()
   }

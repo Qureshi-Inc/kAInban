@@ -635,6 +635,7 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
     }
   }, [isOpen, task?.id])
 
+
   if (!isOpen || !task) {return null}
 
   return (
@@ -643,15 +644,24 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+        className="mobile-modal-overlay modal-overlay fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 overscroll-none"
         onClick={onClose}
+        style={{
+          position: 'fixed',
+          overflow: 'hidden',
+          WebkitOverflowScrolling: 'touch'
+        }}
       >
         <motion.div
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.9, opacity: 0 }}
           onClick={(e) => e.stopPropagation()}
-          className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col"
+          className="mobile-modal-content task-modal-mobile bg-white dark:bg-gray-800 rounded-lg shadow-2xl max-w-4xl w-full max-h-[90vh] md:max-h-[90vh] sm:max-h-[95vh] overflow-hidden flex flex-col"
+          style={{
+            maxHeight: 'calc(100vh - 2rem)',
+            minHeight: '300px'
+          }}
         >
           {/* Header */}
           <div className="flex items-center justify-between p-6 border-b">
@@ -675,7 +685,13 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
           </div>
 
           {/* Content - Scrollable */}
-          <div className="flex-1 overflow-y-auto p-6 space-y-6">
+          <div
+            className="flex-1 overflow-y-auto p-6 space-y-6"
+            style={{
+              WebkitOverflowScrolling: 'touch',
+              overscrollBehavior: 'contain'
+            }}
+          >
             {/* Status and Priority Row */}
             <div className="grid grid-cols-2 gap-4">
               {/* Status */}

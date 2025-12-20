@@ -2,6 +2,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Plus, Trash2, MoreVertical, Home, Folder, AlertTriangle, Activity, Menu } from 'lucide-react'
 import React, { useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
+import { getShortId } from '../lib/utils'
 import useAppStore from '../stores/useAppStore'
 import { Button } from './ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from './ui/dialog'
@@ -54,8 +55,8 @@ export default function Header({ onToggleSidebar, onShowActivity }) {
       setIsCreateProjectOpen(true)
     } else {
       loadProject(projectId)
-      // Use short ID (before underscore) in URL
-      const shortId = projectId.split('_')[0]
+      // Use short ID with new collision-resistant approach
+      const shortId = getShortId(projectId)
       navigate(`/?project=${shortId}`)
     }
   }

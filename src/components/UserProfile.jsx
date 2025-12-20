@@ -53,7 +53,15 @@ export default function UserProfile({ collapsed = false }) {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: collapsed ? 10 : -10 }}
               transition={{ duration: 0.15 }}
-              className={`absolute ${collapsed ? 'left-full bottom-0 ml-2' : 'right-0 top-full mt-2'} w-64 bg-white dark:bg-gray-800 rounded-lg shadow-xl border-2 border-gray-200 dark:border-gray-700 overflow-hidden z-[60]`}
+              className={`absolute ${
+                collapsed
+                  ? 'left-full bottom-0 ml-2'
+                  : 'right-0 top-full mt-2 sm:right-0 sm:top-full max-sm:user-dropdown-mobile'
+              } w-64 max-w-[calc(100vw-2rem)] bg-white dark:bg-gray-800 rounded-lg shadow-xl border-2 border-gray-200 dark:border-gray-700 overflow-hidden z-[60]`}
+              style={{
+                position: 'absolute',
+                maxWidth: 'calc(100vw - 2rem)'
+              }}
             >
               {/* User Info */}
               <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700">

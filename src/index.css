@@ -360,3 +360,81 @@
 .dark .task-card:hover {
   box-shadow: 0 4px 12px rgb(0 0 0 / 0.4);
 }
+
+/* Mobile Modal and Keyboard Handling */
+@media (max-width: 768px) {
+  /* Prevent background scroll when modal is open - removed aggressive positioning */
+
+  /* Modal specific styles */
+  .mobile-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    overflow: hidden;
+    overscroll-behavior: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .mobile-modal-content {
+    max-height: calc(100vh - 2rem);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Handle iOS Safari viewport issues */
+  .mobile-modal-container {
+    min-height: -webkit-fill-available;
+    min-height: 100dvh;
+  }
+
+  /* Keyboard handling for input fields */
+  input, textarea, select {
+    font-size: 16px; /* Prevents iOS zoom */
+    -webkit-appearance: none;
+  }
+
+  /* Removed aggressive input positioning that was causing issues */
+
+  /* User dropdown positioning fixes */
+  .user-dropdown-mobile {
+    position: fixed !important;
+    top: auto !important;
+    bottom: 1rem !important;
+    right: 1rem !important;
+    left: 1rem !important;
+    width: auto !important;
+    max-width: none !important;
+    z-index: 9999 !important;
+  }
+
+  /* Task modal mobile improvements */
+  .task-modal-mobile {
+    margin: 0.5rem;
+    max-height: calc(100vh - 1rem);
+    width: calc(100vw - 1rem);
+  }
+
+  /* Prevent pull-to-refresh on modals */
+  .modal-overlay {
+    overscroll-behavior-y: none;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Touch device specific styles */
+@media (hover: none) and (pointer: coarse) {
+  /* Remove hover effects on touch devices */
+  .task-card:hover {
+    transform: none;
+    box-shadow: var(--shadow-sm);
+  }
+
+  /* Better button interaction feedback */
+  button:active, [role="button"]:active {
+    transform: scale(0.98);
+    transition: transform 0.1s ease;
+  }
+}

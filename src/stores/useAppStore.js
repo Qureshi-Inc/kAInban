@@ -439,6 +439,7 @@ const useAppStore = create((set, get) => ({
       createdAt: new Date().toISOString(),
       dueDate: task.dueDate || null,
       projectId: get().currentProject?.id || null,
+      meetingId: task.meetingId || null, // Source meeting reference
       linkedTasks: task.linkedTasks || [], // Manual user-created links - auto-complete
       aiCreatedLinks: task.aiCreatedLinks || [], // AI links from transcript analysis - need user review
       aiDiscoveredLinks: task.aiDiscoveredLinks || [], // AI links from completion - need user review
