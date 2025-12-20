@@ -247,8 +247,8 @@ export default function Header({ onToggleSidebar, onShowActivity }) {
       {/* Modern Create Project Dialog */}
       <Dialog open={isCreateProjectOpen} onOpenChange={setIsCreateProjectOpen}>
         <DialogContent className="sm:max-w-md">
-          <DialogHeader className="text-left">
-            <DialogTitle className="flex items-center gap-2">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 justify-center">
               <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
                 <Plus className="h-4 w-4 text-primary" />
               </div>

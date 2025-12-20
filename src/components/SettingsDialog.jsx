@@ -224,7 +224,7 @@ export default function SettingsDialog() {
     <Dialog open={isSettingsOpen} onOpenChange={setSettingsOpen}>
       <DialogContent className="w-[95vw] max-w-2xl max-h-[90vh] overflow-y-auto p-4 sm:p-6">
         <DialogHeader className="pb-2">
-          <DialogTitle className="flex items-center gap-2 text-lg">
+          <DialogTitle className="flex items-center gap-2 text-lg justify-center">
             <Settings className="h-5 w-5" />
             Settings
           </DialogTitle>
