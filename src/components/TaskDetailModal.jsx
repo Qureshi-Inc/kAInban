@@ -17,25 +17,25 @@ import {
   Brain,
   Search,
   Mail,
-  Phone,
   FileText,
   Code,
-  Zap,
   Copy,
   ExternalLink,
   Loader2
 } from 'lucide-react'
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+import { parseSubtasksFromDescription } from '../lib/utils'
 import apiService from '../services/apiService'
 import openaiService from '../services/openaiService'
 import useAppStore from '../stores/useAppStore'
-import { parseSubtasksFromDescription } from '../lib/utils'
 import { Button } from './ui/button'
 import { Card } from './ui/card'
 
 // Helper function to render **text** as bold
-const renderWithBold = (text) => {
-  if (!text) return text
+const renderWithBold = text => {
+  if (!text) {
+    return text
+  }
 
   const parts = text.split(/(\*\*[^*]+\*\*)/g)
   return parts.map((part, index) => {
@@ -47,7 +47,17 @@ const renderWithBold = (text) => {
 }
 
 export default function TaskDetailModal({ task, isOpen, onClose }) {
-  const { updateTask, deleteTask, addNotification, tasks, linkTasks, unlinkTasks, getLinkedTasks, acceptAiSuggestion, rejectAiSuggestion, updateCurrentProject } = useAppStore()
+  const {
+    updateTask,
+    deleteTask,
+    addNotification,
+    tasks,
+    linkTasks,
+    unlinkTasks,
+    acceptAiSuggestion,
+    rejectAiSuggestion,
+    updateCurrentProject
+  } = useAppStore()
 
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
@@ -66,9 +76,13 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
   const [aiDiscoveredLinks, setAiDiscoveredLinks] = useState([])
   const [showLinkedTasksDropdown, setShowLinkedTasksDropdown] = useState(false)
   const [linkSearchQuery, setLinkSearchQuery] = useState('')
-  const [aiContentModal, setAiContentModal] = useState({ isOpen: false, title: '', content: '', type: '' })
+  const [aiContentModal, setAiContentModal] = useState({
+    isOpen: false,
+    title: '',
+    content: '',
+    type: ''
+  })
   const [loadingAiAction, setLoadingAiAction] = useState(null) // Track which AI action is loading
-
 
   // Clean description by removing bullet points that became subtasks
   const getCleanDescription = (originalDescription, subtasks) => {
@@ -82,8 +96,14 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
     subtasks.forEach(subtask => {
       // Create regex patterns to match the original bullet point lines
       const patterns = [
-        new RegExp(`^[\\s]*[*•-]\\s+${subtask.text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}.*$`, 'gm'),
-        new RegExp(`^[\\s]*\\d+[\\.)]\s+${subtask.text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}.*$`, 'gm')
+        new RegExp(
+          `^[ \\t]*[*•-][ \\t]+${subtask.text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}.*$`,
+          'gm'
+        ),
+        new RegExp(
+          `^[ \\t]*[0-9]+[.)][ \\t]+${subtask.text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}.*$`,
+          'gm'
+        )
       ]
 
       patterns.forEach(pattern => {
@@ -101,11 +121,13 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
     return cleanDescription
   }
 
-  // Initialize form from task
   // Close dropdown when clicking outside
   useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (showLinkedTasksDropdown && !event.target.closest('.task-link-dropdown')) {
+    const handleClickOutside = event => {
+      if (
+        showLinkedTasksDropdown &&
+        !event.target.closest('.task-link-dropdown')
+      ) {
         setShowLinkedTasksDropdown(false)
         setLinkSearchQuery('') // Clear search when closing
       }
@@ -126,10 +148,10 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
       setDueDate(task.dueDate || '')
       setAssignee(task.assignee || '')
 
-      // If task already has subtasks, use them
+      // If task already has subtasks, use them (deep clone to prevent reference sharing)
       // Otherwise, parse from description
       if (task.subtasks && task.subtasks.length > 0) {
-        setSubtasks(task.subtasks)
+        setSubtasks(JSON.parse(JSON.stringify(task.subtasks)))
       } else {
         const parsedSubtasks = parseSubtasksFromDescription(task.description)
         if (parsedSubtasks.length > 0) {
@@ -146,10 +168,12 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
       setAiCreatedLinks(task.aiCreatedLinks || [])
       setAiDiscoveredLinks(task.aiDiscoveredLinks || [])
     }
-  }, [task])
+  }, [task, updateTask])
 
-  const handleSave = async() => {
-    if (!task) {return}
+  const handleSave = async () => {
+    if (!task) {
+      return
+    }
 
     const updates = {
       title,
@@ -168,11 +192,14 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
     updateTask(task.id, updates)
 
     // Force save to backend
-    setTimeout(async() => {
+    setTimeout(async () => {
       try {
         await updateCurrentProject()
       } catch (error) {
-        console.error('[TaskDetailModal] ✗ Failed to save task to backend:', error)
+        console.error(
+          '[TaskDetailModal] ✗ Failed to save task to backend:',
+          error
+        )
         addNotification({
           type: 'error',
           message: 'Failed to save to backend. Changes may be lost on refresh.'
@@ -188,7 +215,9 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
   }
 
   const handleDelete = () => {
-    if (!task) {return}
+    if (!task) {
+      return
+    }
 
     if (confirm('Are you sure you want to delete this task?')) {
       deleteTask(task.id)
@@ -201,7 +230,9 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
   }
 
   const addSubtask = () => {
-    if (!newSubtask.trim()) {return}
+    if (!newSubtask.trim()) {
+      return
+    }
 
     const subtask = {
       id: `subtask-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -213,19 +244,19 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
     setNewSubtask('')
   }
 
-  const toggleSubtask = (subtaskId) => {
-    setSubtasks(subtasks.map(st =>
-      st.id === subtaskId ? { ...st, completed: !st.completed } : st
-    ))
+  const toggleSubtask = subtaskId => {
+    setSubtasks(
+      subtasks.map(st =>
+        st.id === subtaskId ? { ...st, completed: !st.completed } : st
+      )
+    )
   }
 
-  const deleteSubtask = (subtaskId) => {
+  const deleteSubtask = subtaskId => {
     setSubtasks(subtasks.filter(st => st.id !== subtaskId))
   }
 
-
-  const handleLinkTask = (taskToLinkId) => {
-
+  const handleLinkTask = taskToLinkId => {
     if (!linkedTasks.includes(taskToLinkId)) {
       const updatedLinkedTasks = [...linkedTasks, taskToLinkId]
       setLinkedTasks(updatedLinkedTasks)
@@ -235,14 +266,18 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
         linkTasks(task.id, updatedLinkedTasks)
 
         // Force save to backend
-        setTimeout(async() => {
+        setTimeout(async () => {
           try {
             await updateCurrentProject()
           } catch (error) {
-            console.error('[TaskDetailModal] ✗ Failed to save project to backend:', error)
+            console.error(
+              '[TaskDetailModal] ✗ Failed to save project to backend:',
+              error
+            )
             addNotification({
               type: 'error',
-              message: 'Failed to save to backend. Changes may be lost on refresh.'
+              message:
+                'Failed to save to backend. Changes may be lost on refresh.'
             })
           }
         }, 100)
@@ -254,13 +289,12 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
       } else {
         console.error('[TaskDetailModal] No task to update!')
       }
-    } else {
     }
     setShowLinkedTasksDropdown(false)
     setLinkSearchQuery('') // Clear search when closing
   }
 
-  const handleUnlinkTask = (taskToUnlinkId) => {
+  const handleUnlinkTask = taskToUnlinkId => {
     const updatedLinkedTasks = linkedTasks.filter(id => id !== taskToUnlinkId)
     setLinkedTasks(updatedLinkedTasks)
 
@@ -269,14 +303,18 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
       unlinkTasks(task.id, taskToUnlinkId)
 
       // Force save to backend
-      setTimeout(async() => {
+      setTimeout(async () => {
         try {
           await updateCurrentProject()
         } catch (error) {
-          console.error('[TaskDetailModal] ✗ Failed to save project to backend after unlink:', error)
+          console.error(
+            '[TaskDetailModal] ✗ Failed to save project to backend after unlink:',
+            error
+          )
           addNotification({
             type: 'error',
-            message: 'Failed to save to backend. Changes may be lost on refresh.'
+            message:
+              'Failed to save to backend. Changes may be lost on refresh.'
           })
         }
       }, 100)
@@ -290,20 +328,24 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
 
   // Get available tasks for linking (exclude current task and already linked tasks)
   const getAvailableTasksForLinking = () => {
-    if (!task) {return []}
-    let availableTasks = tasks.filter(t =>
-      t.id !== task.id &&
-      !linkedTasks.includes(t.id) &&
-      !aiCreatedLinks.includes(t.id) &&
-      !aiDiscoveredLinks.includes(t.id)
+    if (!task) {
+      return []
+    }
+    let availableTasks = tasks.filter(
+      t =>
+        t.id !== task.id &&
+        !linkedTasks.includes(t.id) &&
+        !aiCreatedLinks.includes(t.id) &&
+        !aiDiscoveredLinks.includes(t.id)
     )
 
     // Filter by search query if provided
     if (linkSearchQuery.trim()) {
       const query = linkSearchQuery.toLowerCase().trim()
-      availableTasks = availableTasks.filter(t =>
-        t.title.toLowerCase().includes(query) ||
-        (t.description && t.description.toLowerCase().includes(query))
+      availableTasks = availableTasks.filter(
+        t =>
+          t.title.toLowerCase().includes(query) ||
+          (t.description && t.description.toLowerCase().includes(query))
       )
     }
 
@@ -343,33 +385,49 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
     })
   }
 
-  const getPriorityColor = (priority) => {
+  const getPriorityColor = priority => {
     switch (priority) {
-      case 'high': return 'text-red-600 bg-red-50 border-red-200'
-      case 'medium': return 'text-yellow-600 bg-yellow-50 border-yellow-200'
-      case 'low': return 'text-blue-600 bg-blue-50 border-blue-200'
-      default: return 'text-gray-600 bg-gray-50 border-gray-200'
+      case 'high':
+        return 'text-red-600 bg-red-50 border-red-200'
+      case 'medium':
+        return 'text-yellow-600 bg-yellow-50 border-yellow-200'
+      case 'low':
+        return 'text-blue-600 bg-blue-50 border-blue-200'
+      default:
+        return 'text-gray-600 bg-gray-50 border-gray-200'
     }
   }
 
-  const getStatusColor = (status) => {
+  const getStatusColor = status => {
     switch (status) {
-      case 'done': return 'text-green-600 bg-green-50 border-green-200'
-      case 'in-progress': return 'text-blue-600 bg-blue-50 border-blue-200'
-      case 'blocked': return 'text-red-600 bg-red-50 border-red-200'
-      case 'on-hold': return 'text-red-600 bg-red-50 border-red-200' // Legacy support, treated as blocked
-      case 'todo': return 'text-gray-600 bg-gray-50 border-gray-200'
-      default: return 'text-gray-600 bg-gray-50 border-gray-200'
+      case 'done':
+        return 'text-green-600 bg-green-50 border-green-200'
+      case 'in-progress':
+        return 'text-blue-600 bg-blue-50 border-blue-200'
+      case 'blocked':
+        return 'text-red-600 bg-red-50 border-red-200'
+      case 'on-hold':
+        return 'text-red-600 bg-red-50 border-red-200' // Legacy support, treated as blocked
+      case 'todo':
+        return 'text-gray-600 bg-gray-50 border-gray-200'
+      default:
+        return 'text-gray-600 bg-gray-50 border-gray-200'
     }
   }
 
-  const formatDate = (dateString) => {
-    if (!dateString) {return 'Not set'}
+  const formatDate = dateString => {
+    if (!dateString) {
+      return 'Not set'
+    }
     const date = new Date(dateString)
-    return date.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })
+    return date.toLocaleDateString([], {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    })
   }
 
-  const formatTimestamp = (timestamp) => {
+  const formatTimestamp = timestamp => {
     const date = new Date(timestamp)
     const now = new Date()
     const diffMs = now - date
@@ -377,24 +435,38 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
     const diffHours = Math.floor(diffMs / 3600000)
     const diffDays = Math.floor(diffMs / 86400000)
 
-    if (diffMins < 1) {return 'Just now'}
-    if (diffMins < 60) {return `${diffMins}m ago`}
-    if (diffHours < 24) {return `${diffHours}h ago`}
-    if (diffDays < 7) {return `${diffDays}d ago`}
+    if (diffMins < 1) {
+      return 'Just now'
+    }
+    if (diffMins < 60) {
+      return `${diffMins}m ago`
+    }
+    if (diffHours < 24) {
+      return `${diffHours}h ago`
+    }
+    if (diffDays < 7) {
+      return `${diffDays}d ago`
+    }
     return date.toLocaleDateString([], { month: 'short', day: 'numeric' })
   }
 
   const completedSubtasks = subtasks.filter(st => st.completed).length
   const totalSubtasks = subtasks.length
-  const progress = totalSubtasks > 0 ? (completedSubtasks / totalSubtasks) * 100 : 0
+  const progress =
+    totalSubtasks > 0 ? (completedSubtasks / totalSubtasks) * 100 : 0
 
   // AI Helper Functions
-  const getAiSuggestions = (subtaskText) => {
+  const getAiSuggestions = subtaskText => {
     const text = subtaskText.toLowerCase()
     const suggestions = []
 
     // Email suggestions
-    if (text.includes('email') || text.includes('send') || text.includes('notify') || text.includes('contact')) {
+    if (
+      text.includes('email') ||
+      text.includes('send') ||
+      text.includes('notify') ||
+      text.includes('contact')
+    ) {
       suggestions.push({
         type: 'email',
         icon: Mail,
@@ -404,7 +476,12 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
     }
 
     // Document suggestions
-    if (text.includes('document') || text.includes('write') || text.includes('draft') || text.includes('proposal')) {
+    if (
+      text.includes('document') ||
+      text.includes('write') ||
+      text.includes('draft') ||
+      text.includes('proposal')
+    ) {
       suggestions.push({
         type: 'document',
         icon: FileText,
@@ -414,7 +491,12 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
     }
 
     // Code suggestions
-    if (text.includes('code') || text.includes('script') || text.includes('develop') || text.includes('implement')) {
+    if (
+      text.includes('code') ||
+      text.includes('script') ||
+      text.includes('develop') ||
+      text.includes('implement')
+    ) {
       suggestions.push({
         type: 'code',
         icon: Code,
@@ -426,7 +508,7 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
     return suggestions
   }
 
-  const generateEmailTemplate = async(subtaskText) => {
+  const generateEmailTemplate = async subtaskText => {
     try {
       setLoadingAiAction('email')
 
@@ -437,7 +519,10 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
         status: task.status
       }
 
-      const emailTemplate = await openaiService.generateEmailTemplate(taskContext, subtaskText)
+      const emailTemplate = await openaiService.generateEmailTemplate(
+        taskContext,
+        subtaskText
+      )
 
       // Show in modal for easy copying
       setAiContentModal({
@@ -462,7 +547,7 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
     }
   }
 
-  const generateDocumentTemplate = async(subtaskText) => {
+  const generateDocumentTemplate = async subtaskText => {
     try {
       setLoadingAiAction('document')
 
@@ -473,7 +558,10 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
         status: task.status
       }
 
-      const docTemplate = await openaiService.generateDocumentTemplate(taskContext, subtaskText)
+      const docTemplate = await openaiService.generateDocumentTemplate(
+        taskContext,
+        subtaskText
+      )
 
       // Show in modal for easy copying
       setAiContentModal({
@@ -498,7 +586,7 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
     }
   }
 
-  const generateCodeTemplate = async(subtaskText) => {
+  const generateCodeTemplate = async subtaskText => {
     try {
       setLoadingAiAction('code')
 
@@ -509,7 +597,10 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
         status: task.status
       }
 
-      const codeTemplate = await openaiService.generateCodeTemplate(taskContext, subtaskText)
+      const codeTemplate = await openaiService.generateCodeTemplate(
+        taskContext,
+        subtaskText
+      )
 
       // Show in modal for easy copying
       setAiContentModal({
@@ -534,7 +625,7 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
     }
   }
 
-  const createTaskFromSubtask = (subtask) => {
+  const createTaskFromSubtask = subtask => {
     const { createTask } = useAppStore.getState()
 
     // Create nested subtasks from the parsed nested items
@@ -563,8 +654,10 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
   }
 
   // Load comments from server
-  const loadServerComments = async() => {
-    if (!task?.id) {return}
+  const loadServerComments = useCallback(async () => {
+    if (!task?.id) {
+      return
+    }
 
     setLoadingComments(true)
     try {
@@ -579,13 +672,19 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
     } finally {
       setLoadingComments(false)
     }
-  }
+  }, [task?.id, addNotification])
 
-  const addComment = async() => {
-    if (!newComment.trim() || !task?.id) {return}
+  const addComment = async () => {
+    if (!newComment.trim() || !task?.id) {
+      return
+    }
 
     try {
-      const result = await apiService.addTaskComment(task.id, newComment.trim(), 'user')
+      const result = await apiService.addTaskComment(
+        task.id,
+        newComment.trim(),
+        'user'
+      )
       if (result.success) {
         setNewComment('')
         // Reload comments to get the updated list
@@ -606,37 +705,16 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
     }
   }
 
-  const addAiComment = async(content, metadata = null) => {
-    if (!task?.id) {return}
-
-    try {
-      const result = await apiService.addTaskComment(task.id, content, 'ai_update', metadata)
-      if (result.success) {
-        // Reload comments to get the updated list
-        await loadServerComments()
-        return result
-      } else {
-        throw new Error(result.error || 'Failed to add AI comment')
-      }
-    } catch (error) {
-      console.error('Failed to add AI comment:', error)
-      addNotification({
-        type: 'error',
-        message: `Failed to record AI update: ${error.message}`
-      })
-      return { success: false, error: error.message }
-    }
-  }
-
   // Load comments when task changes
   useEffect(() => {
     if (isOpen && task?.id) {
       loadServerComments()
     }
-  }, [isOpen, task?.id])
+  }, [isOpen, task?.id, loadServerComments])
 
-
-  if (!isOpen || !task) {return null}
+  if (!isOpen || !task) {
+    return null
+  }
 
   return (
     <AnimatePresence>
@@ -656,7 +734,7 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.9, opacity: 0 }}
-          onClick={(e) => e.stopPropagation()}
+          onClick={e => e.stopPropagation()}
           className="mobile-modal-content task-modal-mobile bg-white dark:bg-gray-800 rounded-lg shadow-2xl max-w-4xl w-full max-h-[90vh] md:max-h-[90vh] sm:max-h-[95vh] overflow-hidden flex flex-col"
           style={{
             maxHeight: 'calc(100vh - 2rem)',
@@ -669,7 +747,7 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
               <input
                 type="text"
                 value={title}
-                onChange={(e) => setTitle(e.target.value)}
+                onChange={e => setTitle(e.target.value)}
                 className="text-2xl font-bold w-full bg-transparent border-none focus:outline-none focus:ring-0"
                 placeholder="Task title..."
               />
@@ -696,12 +774,16 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
             <div className="grid grid-cols-2 gap-4">
               {/* Status */}
               <div>
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">
+                <label
+                  htmlFor="task-status"
+                  className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block"
+                >
                   Status
                 </label>
                 <select
+                  id="task-status"
                   value={status}
-                  onChange={(e) => setStatus(e.target.value)}
+                  onChange={e => setStatus(e.target.value)}
                   className={`w-full px-3 py-2 rounded-md border font-medium ${getStatusColor(status)}`}
                 >
                   <option value="todo">To Do</option>
@@ -713,13 +795,17 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
 
               {/* Priority */}
               <div>
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block flex items-center gap-2">
+                <label
+                  htmlFor="task-priority"
+                  className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block flex items-center gap-2"
+                >
                   <Flag className="h-4 w-4" />
                   Priority
                 </label>
                 <select
+                  id="task-priority"
                   value={priority}
-                  onChange={(e) => setPriority(e.target.value)}
+                  onChange={e => setPriority(e.target.value)}
                   className={`w-full px-3 py-2 rounded-md border font-medium ${getPriorityColor(priority)}`}
                 >
                   <option value="low">Low</option>
@@ -733,14 +819,18 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
             <div className="grid grid-cols-2 gap-4">
               {/* Due Date */}
               <div>
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block flex items-center gap-2">
+                <label
+                  htmlFor="task-due-date"
+                  className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block flex items-center gap-2"
+                >
                   <Calendar className="h-4 w-4" />
                   Due Date
                 </label>
                 <input
+                  id="task-due-date"
                   type="date"
                   value={dueDate}
-                  onChange={(e) => setDueDate(e.target.value)}
+                  onChange={e => setDueDate(e.target.value)}
                   className="w-full px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700"
                 />
                 {dueDate && (
@@ -752,14 +842,18 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
 
               {/* Assignee */}
               <div>
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block flex items-center gap-2">
+                <label
+                  htmlFor="task-assignee"
+                  className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block flex items-center gap-2"
+                >
                   <User className="h-4 w-4" />
                   Assignee
                 </label>
                 <input
+                  id="task-assignee"
                   type="text"
                   value={assignee}
-                  onChange={(e) => setAssignee(e.target.value)}
+                  onChange={e => setAssignee(e.target.value)}
                   placeholder="Enter name..."
                   className="w-full px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700"
                 />
@@ -770,7 +864,11 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
             <div>
               <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3 block flex items-center gap-2">
                 <Link className="h-4 w-4" />
-                Task Relationships ({linkedTasks.length + aiCreatedLinks.length + aiDiscoveredLinks.length})
+                Task Relationships (
+                {linkedTasks.length +
+                  aiCreatedLinks.length +
+                  aiDiscoveredLinks.length}
+                )
               </label>
 
               <div className="space-y-4">
@@ -783,25 +881,41 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                     </h4>
                     <div className="space-y-1">
                       {linkedTasks.map(linkedTaskId => {
-                        const linkedTask = tasks.find(t => t.id === linkedTaskId)
-                        if (!linkedTask) {return null}
+                        const linkedTask = tasks.find(
+                          t => t.id === linkedTaskId
+                        )
+                        if (!linkedTask) {
+                          return null
+                        }
 
                         return (
-                          <div key={linkedTaskId} className="flex items-center justify-between p-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md">
+                          <div
+                            key={linkedTaskId}
+                            className="flex items-center justify-between p-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md"
+                          >
                             <div className="flex items-center gap-2 flex-1 min-w-0">
-                              <div className={`w-2 h-2 rounded-full ${
-                                linkedTask.status === 'done' ? 'bg-green-500' :
-                                  linkedTask.status === 'in-progress' ? 'bg-blue-500' :
-                                    linkedTask.status === 'blocked' ? 'bg-red-500' :
-                                      'bg-gray-400'
-                              }`}
+                              <div
+                                className={`w-2 h-2 rounded-full ${
+                                  linkedTask.status === 'done'
+                                    ? 'bg-green-500'
+                                    : linkedTask.status === 'in-progress'
+                                      ? 'bg-blue-500'
+                                      : linkedTask.status === 'blocked'
+                                        ? 'bg-red-500'
+                                        : 'bg-gray-400'
+                                }`}
                               />
-                              <span className="text-sm truncate">{linkedTask.title}</span>
-                              <span className={`text-xs px-1.5 py-0.5 rounded ${
-                                linkedTask.priority === 'high' ? 'bg-red-100 text-red-600' :
-                                  linkedTask.priority === 'medium' ? 'bg-yellow-100 text-yellow-600' :
-                                    'bg-blue-100 text-blue-600'
-                              }`}
+                              <span className="text-sm truncate">
+                                {linkedTask.title}
+                              </span>
+                              <span
+                                className={`text-xs px-1.5 py-0.5 rounded ${
+                                  linkedTask.priority === 'high'
+                                    ? 'bg-red-100 text-red-600'
+                                    : linkedTask.priority === 'medium'
+                                      ? 'bg-yellow-100 text-yellow-600'
+                                      : 'bg-blue-100 text-blue-600'
+                                }`}
                               >
                                 {linkedTask.priority}
                               </span>
@@ -826,29 +940,44 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                   <div>
                     <h4 className="text-xs font-semibold text-purple-600 dark:text-purple-400 mb-2 flex items-center gap-1">
                       <Brain className="h-3 w-3" />
-                      AI Created Links ({aiCreatedLinks.length}) - From transcript analysis
+                      AI Created Links ({aiCreatedLinks.length}) - From
+                      transcript analysis
                     </h4>
                     <div className="space-y-1">
                       {aiCreatedLinks.map(aiLinkId => {
                         const aiLinkedTask = tasks.find(t => t.id === aiLinkId)
-                        if (!aiLinkedTask) {return null}
+                        if (!aiLinkedTask) {
+                          return null
+                        }
 
                         return (
-                          <div key={aiLinkId} className="flex items-center justify-between p-2 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-md">
+                          <div
+                            key={aiLinkId}
+                            className="flex items-center justify-between p-2 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-md"
+                          >
                             <div className="flex items-center gap-2 flex-1 min-w-0">
-                              <div className={`w-2 h-2 rounded-full ${
-                                aiLinkedTask.status === 'done' ? 'bg-green-500' :
-                                  aiLinkedTask.status === 'in-progress' ? 'bg-blue-500' :
-                                    aiLinkedTask.status === 'blocked' ? 'bg-red-500' :
-                                      'bg-gray-400'
-                              }`}
+                              <div
+                                className={`w-2 h-2 rounded-full ${
+                                  aiLinkedTask.status === 'done'
+                                    ? 'bg-green-500'
+                                    : aiLinkedTask.status === 'in-progress'
+                                      ? 'bg-blue-500'
+                                      : aiLinkedTask.status === 'blocked'
+                                        ? 'bg-red-500'
+                                        : 'bg-gray-400'
+                                }`}
                               />
-                              <span className="text-sm truncate">{aiLinkedTask.title}</span>
-                              <span className={`text-xs px-1.5 py-0.5 rounded ${
-                                aiLinkedTask.priority === 'high' ? 'bg-red-100 text-red-600' :
-                                  aiLinkedTask.priority === 'medium' ? 'bg-yellow-100 text-yellow-600' :
-                                    'bg-blue-100 text-blue-600'
-                              }`}
+                              <span className="text-sm truncate">
+                                {aiLinkedTask.title}
+                              </span>
+                              <span
+                                className={`text-xs px-1.5 py-0.5 rounded ${
+                                  aiLinkedTask.priority === 'high'
+                                    ? 'bg-red-100 text-red-600'
+                                    : aiLinkedTask.priority === 'medium'
+                                      ? 'bg-yellow-100 text-yellow-600'
+                                      : 'bg-blue-100 text-blue-600'
+                                }`}
                               >
                                 {aiLinkedTask.priority}
                               </span>
@@ -857,7 +986,9 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => handleAcceptAiSuggestion(aiLinkId, 'created')}
+                                onClick={() =>
+                                  handleAcceptAiSuggestion(aiLinkId, 'created')
+                                }
                                 className="h-6 w-6 p-0 hover:bg-green-100 text-green-600"
                                 title="Accept and promote to manual link"
                               >
@@ -866,7 +997,9 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => handleRejectAiSuggestion(aiLinkId, 'created')}
+                                onClick={() =>
+                                  handleRejectAiSuggestion(aiLinkId, 'created')
+                                }
                                 className="h-6 w-6 p-0 hover:bg-red-100 text-red-500"
                                 title="Reject AI suggestion"
                               >
@@ -885,29 +1018,46 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                   <div>
                     <h4 className="text-xs font-semibold text-amber-600 dark:text-amber-400 mb-2 flex items-center gap-1">
                       <Sparkles className="h-3 w-3" />
-                      AI Discovered Links ({aiDiscoveredLinks.length}) - Found when completing tasks
+                      AI Discovered Links ({aiDiscoveredLinks.length}) - Found
+                      when completing tasks
                     </h4>
                     <div className="space-y-1">
                       {aiDiscoveredLinks.map(aiDiscoveredId => {
-                        const aiDiscoveredTask = tasks.find(t => t.id === aiDiscoveredId)
-                        if (!aiDiscoveredTask) {return null}
+                        const aiDiscoveredTask = tasks.find(
+                          t => t.id === aiDiscoveredId
+                        )
+                        if (!aiDiscoveredTask) {
+                          return null
+                        }
 
                         return (
-                          <div key={aiDiscoveredId} className="flex items-center justify-between p-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-md">
+                          <div
+                            key={aiDiscoveredId}
+                            className="flex items-center justify-between p-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-md"
+                          >
                             <div className="flex items-center gap-2 flex-1 min-w-0">
-                              <div className={`w-2 h-2 rounded-full ${
-                                aiDiscoveredTask.status === 'done' ? 'bg-green-500' :
-                                  aiDiscoveredTask.status === 'in-progress' ? 'bg-blue-500' :
-                                    aiDiscoveredTask.status === 'blocked' ? 'bg-red-500' :
-                                      'bg-gray-400'
-                              }`}
+                              <div
+                                className={`w-2 h-2 rounded-full ${
+                                  aiDiscoveredTask.status === 'done'
+                                    ? 'bg-green-500'
+                                    : aiDiscoveredTask.status === 'in-progress'
+                                      ? 'bg-blue-500'
+                                      : aiDiscoveredTask.status === 'blocked'
+                                        ? 'bg-red-500'
+                                        : 'bg-gray-400'
+                                }`}
                               />
-                              <span className="text-sm truncate">{aiDiscoveredTask.title}</span>
-                              <span className={`text-xs px-1.5 py-0.5 rounded ${
-                                aiDiscoveredTask.priority === 'high' ? 'bg-red-100 text-red-600' :
-                                  aiDiscoveredTask.priority === 'medium' ? 'bg-yellow-100 text-yellow-600' :
-                                    'bg-blue-100 text-blue-600'
-                              }`}
+                              <span className="text-sm truncate">
+                                {aiDiscoveredTask.title}
+                              </span>
+                              <span
+                                className={`text-xs px-1.5 py-0.5 rounded ${
+                                  aiDiscoveredTask.priority === 'high'
+                                    ? 'bg-red-100 text-red-600'
+                                    : aiDiscoveredTask.priority === 'medium'
+                                      ? 'bg-yellow-100 text-yellow-600'
+                                      : 'bg-blue-100 text-blue-600'
+                                }`}
                               >
                                 {aiDiscoveredTask.priority}
                               </span>
@@ -916,7 +1066,12 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => handleAcceptAiSuggestion(aiDiscoveredId, 'discovered')}
+                                onClick={() =>
+                                  handleAcceptAiSuggestion(
+                                    aiDiscoveredId,
+                                    'discovered'
+                                  )
+                                }
                                 className="h-6 w-6 p-0 hover:bg-green-100 text-green-600"
                                 title="Accept and promote to manual link"
                               >
@@ -925,7 +1080,12 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => handleRejectAiSuggestion(aiDiscoveredId, 'discovered')}
+                                onClick={() =>
+                                  handleRejectAiSuggestion(
+                                    aiDiscoveredId,
+                                    'discovered'
+                                  )
+                                }
                                 className="h-6 w-6 p-0 hover:bg-red-100 text-red-500"
                                 title="Reject AI suggestion"
                               >
@@ -941,18 +1101,24 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
 
                 {/* Add Manual Link Dropdown */}
                 <div>
-                  <h4 className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-2">Add Manual Link</h4>
+                  <h4 className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-2">
+                    Add Manual Link
+                  </h4>
                   <div className="relative">
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setShowLinkedTasksDropdown(!showLinkedTasksDropdown)}
+                      onClick={() =>
+                        setShowLinkedTasksDropdown(!showLinkedTasksDropdown)
+                      }
                       className="w-full justify-between"
                       disabled={getAvailableTasksForLinking().length === 0}
                     >
                       <span className="flex items-center gap-2">
                         <Plus className="h-4 w-4" />
-                        {getAvailableTasksForLinking().length === 0 ? 'No tasks available to link' : 'Link a task'}
+                        {getAvailableTasksForLinking().length === 0
+                          ? 'No tasks available to link'
+                          : 'Link a task'}
                       </span>
                       <ChevronDown className="h-4 w-4" />
                     </Button>
@@ -966,11 +1132,11 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                             <input
                               type="text"
                               value={linkSearchQuery}
-                              onChange={(e) => setLinkSearchQuery(e.target.value)}
+                              onChange={e => setLinkSearchQuery(e.target.value)}
                               placeholder="Search tasks..."
                               className="w-full pl-10 pr-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-primary/50"
                               autoFocus
-                              onClick={(e) => e.stopPropagation()}
+                              onClick={e => e.stopPropagation()}
                             />
                           </div>
                         </div>
@@ -981,29 +1147,41 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                             getAvailableTasksForLinking().map(availableTask => (
                               <button
                                 key={availableTask.id}
-                                onClick={(e) => {
+                                onClick={e => {
                                   e.preventDefault()
                                   e.stopPropagation()
                                   handleLinkTask(availableTask.id)
                                 }}
                                 className="w-full text-left px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2 border-b border-gray-100 dark:border-gray-700 last:border-b-0 cursor-pointer"
                               >
-                                <div className={`w-2 h-2 rounded-full ${
-                                  availableTask.status === 'done' ? 'bg-green-500' :
-                                    availableTask.status === 'in-progress' ? 'bg-blue-500' :
-                                      availableTask.status === 'blocked' ? 'bg-red-500' :
-                                        'bg-gray-400'
-                                }`}
+                                <div
+                                  className={`w-2 h-2 rounded-full ${
+                                    availableTask.status === 'done'
+                                      ? 'bg-green-500'
+                                      : availableTask.status === 'in-progress'
+                                        ? 'bg-blue-500'
+                                        : availableTask.status === 'blocked'
+                                          ? 'bg-red-500'
+                                          : 'bg-gray-400'
+                                  }`}
                                 />
                                 <div className="flex-1 min-w-0">
-                                  <div className="text-sm font-medium truncate">{availableTask.title}</div>
-                                  <div className="text-xs text-gray-500 truncate">{availableTask.description || 'No description'}</div>
+                                  <div className="text-sm font-medium truncate">
+                                    {availableTask.title}
+                                  </div>
+                                  <div className="text-xs text-gray-500 truncate">
+                                    {availableTask.description ||
+                                      'No description'}
+                                  </div>
                                 </div>
-                                <span className={`text-xs px-1.5 py-0.5 rounded ${
-                                  availableTask.priority === 'high' ? 'bg-red-100 text-red-600' :
-                                    availableTask.priority === 'medium' ? 'bg-yellow-100 text-yellow-600' :
-                                      'bg-blue-100 text-blue-600'
-                                }`}
+                                <span
+                                  className={`text-xs px-1.5 py-0.5 rounded ${
+                                    availableTask.priority === 'high'
+                                      ? 'bg-red-100 text-red-600'
+                                      : availableTask.priority === 'medium'
+                                        ? 'bg-yellow-100 text-yellow-600'
+                                        : 'bg-blue-100 text-blue-600'
+                                  }`}
                                 >
                                   {availableTask.priority}
                                 </span>
@@ -1011,10 +1189,9 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                             ))
                           ) : (
                             <div className="px-3 py-6 text-center text-sm text-gray-500">
-                              {linkSearchQuery.trim() ?
-                                `No tasks found matching "${linkSearchQuery}"` :
-                                'No tasks available to link'
-                              }
+                              {linkSearchQuery.trim()
+                                ? `No tasks found matching "${linkSearchQuery}"`
+                                : 'No tasks available to link'}
                             </div>
                           )}
                         </div>
@@ -1030,12 +1207,14 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
               <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">
                 Description
                 {subtasks.length > 0 && (
-                  <span className="text-xs text-blue-600 ml-2">(Bullet points moved to subtasks)</span>
+                  <span className="text-xs text-blue-600 ml-2">
+                    (Bullet points moved to subtasks)
+                  </span>
                 )}
               </label>
               <textarea
                 value={getCleanDescription(description, subtasks)}
-                onChange={(e) => setDescription(e.target.value)}
+                onChange={e => setDescription(e.target.value)}
                 placeholder="Add a detailed description..."
                 rows={4}
                 className="w-full px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 resize-none"
@@ -1068,7 +1247,7 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
 
               {/* Subtask List */}
               <div className="space-y-2 mb-3">
-                {subtasks.map((subtask) => {
+                {subtasks.map(subtask => {
                   const aiSuggestions = getAiSuggestions(subtask.text)
 
                   return (
@@ -1088,7 +1267,9 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                       </button>
 
                       <div className="flex-1 min-w-0">
-                        <div className={`${subtask.completed ? 'line-through text-gray-500' : ''}`}>
+                        <div
+                          className={`${subtask.completed ? 'line-through text-gray-500' : ''}`}
+                        >
                           {subtask.text}
                         </div>
 
@@ -1098,21 +1279,30 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                             {/* AI Actions Header */}
                             <div className="flex items-center gap-1">
                               <Sparkles className="h-3 w-3 text-blue-500 flex-shrink-0" />
-                              <span className="text-xs text-gray-600 font-medium">AI Actions</span>
+                              <span className="text-xs text-gray-600 font-medium">
+                                AI Actions
+                              </span>
                             </div>
                             {/* AI Action Buttons */}
                             <div className="flex flex-wrap items-center gap-1">
                               {aiSuggestions.map((suggestion, index) => {
-                                const isLoading = loadingAiAction === suggestion.type
+                                const isLoading =
+                                  loadingAiAction === suggestion.type
                                 return (
                                   <Button
                                     key={index}
                                     variant="ghost"
                                     size="sm"
                                     onClick={suggestion.action}
-                                    disabled={isLoading || loadingAiAction !== null}
+                                    disabled={
+                                      isLoading || loadingAiAction !== null
+                                    }
                                     className="h-7 px-2 text-xs bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 hover:border-blue-300 flex items-center gap-1.5 min-w-0 disabled:opacity-50"
-                                    title={isLoading ? 'Generating...' : suggestion.label}
+                                    title={
+                                      isLoading
+                                        ? 'Generating...'
+                                        : suggestion.label
+                                    }
                                   >
                                     {isLoading ? (
                                       <Loader2 className="h-3 w-3 flex-shrink-0 animate-spin" />
@@ -1120,7 +1310,9 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                                       <suggestion.icon className="h-3 w-3 flex-shrink-0" />
                                     )}
                                     <span className="truncate">
-                                      {isLoading ? 'Generating...' : suggestion.label}
+                                      {isLoading
+                                        ? 'Generating...'
+                                        : suggestion.label}
                                     </span>
                                   </Button>
                                 )
@@ -1132,17 +1324,19 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
 
                       <div className="flex items-center gap-1 flex-shrink-0">
                         {/* Create Task from Subtask (if has nested content) */}
-                        {subtask.hasNested && subtask.nestedItems && subtask.nestedItems.length > 0 && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => createTaskFromSubtask(subtask)}
-                            className="h-8 w-8 text-purple-500 hover:text-purple-600 hover:bg-purple-50"
-                            title="Create task from this subtask"
-                          >
-                            <ExternalLink className="h-4 w-4" />
-                          </Button>
-                        )}
+                        {subtask.hasNested &&
+                          subtask.nestedItems &&
+                          subtask.nestedItems.length > 0 && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => createTaskFromSubtask(subtask)}
+                              className="h-8 w-8 text-purple-500 hover:text-purple-600 hover:bg-purple-50"
+                              title="Create task from this subtask"
+                            >
+                              <ExternalLink className="h-4 w-4" />
+                            </Button>
+                          )}
 
                         {/* Delete Subtask */}
                         <Button
@@ -1164,8 +1358,8 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                 <input
                   type="text"
                   value={newSubtask}
-                  onChange={(e) => setNewSubtask(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && addSubtask()}
+                  onChange={e => setNewSubtask(e.target.value)}
+                  onKeyPress={e => e.key === 'Enter' && addSubtask()}
                   placeholder="Add a subtask..."
                   className="flex-1 px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm"
                 />
@@ -1180,20 +1374,29 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
               <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3 block flex items-center gap-2">
                 <MessageSquare className="h-4 w-4" />
                 Comments ({serverComments.length})
-                {loadingComments && <div className="animate-spin h-3 w-3 border border-gray-300 border-t-gray-600 rounded-full" />}
+                {loadingComments && (
+                  <div className="animate-spin h-3 w-3 border border-gray-300 border-t-gray-600 rounded-full" />
+                )}
               </label>
 
               {/* Comment List */}
               <div className="space-y-3 mb-3 max-h-60 overflow-y-auto">
-                {serverComments.map((comment) => (
-                  <Card key={comment.id} className={`p-3 ${comment.comment_type === 'ai_update' ? 'border-blue-200 bg-blue-50 dark:bg-blue-900/20' : ''}`}>
+                {serverComments.map(comment => (
+                  <Card
+                    key={comment.id}
+                    className={`p-3 ${comment.comment_type === 'ai_update' ? 'border-blue-200 bg-blue-50 dark:bg-blue-900/20' : ''}`}
+                  >
                     <div className="flex items-start justify-between mb-1">
                       <div className="flex items-center gap-2">
                         {comment.comment_type !== 'ai_update' && (
-                          <span className="font-medium text-sm">{comment.author_name}</span>
+                          <span className="font-medium text-sm">
+                            {comment.author_name}
+                          </span>
                         )}
                         {comment.comment_type === 'ai_update' && (
-                          <span className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">AI Update</span>
+                          <span className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">
+                            AI Update
+                          </span>
                         )}
                       </div>
                       <span className="text-xs text-gray-500 flex items-center gap-1">
@@ -1207,7 +1410,9 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                   </Card>
                 ))}
                 {serverComments.length === 0 && !loadingComments && (
-                  <p className="text-sm text-gray-500 text-center py-4">No comments yet. Add the first comment below.</p>
+                  <p className="text-sm text-gray-500 text-center py-4">
+                    No comments yet. Add the first comment below.
+                  </p>
                 )}
               </div>
 
@@ -1215,8 +1420,12 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
               <div className="flex gap-2">
                 <textarea
                   value={newComment}
-                  onChange={(e) => setNewComment(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), addComment())}
+                  onChange={e => setNewComment(e.target.value)}
+                  onKeyPress={e =>
+                    e.key === 'Enter' &&
+                    !e.shiftKey &&
+                    (e.preventDefault(), addComment())
+                  }
                   placeholder="Add a comment... (Press Enter to post)"
                   rows={2}
                   className="flex-1 px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm resize-none"
@@ -1230,19 +1439,14 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
 
           {/* Footer */}
           <div className="flex items-center justify-between p-6 border-t bg-gray-50 dark:bg-gray-900">
-            <Button
-              variant="destructive"
-              onClick={handleDelete}
-            >
+            <Button variant="destructive" onClick={handleDelete}>
               Delete Task
             </Button>
             <div className="flex gap-2">
               <Button variant="outline" onClick={onClose}>
                 Cancel
               </Button>
-              <Button onClick={handleSave}>
-                Save Changes
-              </Button>
+              <Button onClick={handleSave}>Save Changes</Button>
             </div>
           </div>
         </motion.div>
@@ -1256,29 +1460,39 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 bg-black/50 z-[70] flex items-center justify-center p-4"
-            onClick={() => setAiContentModal({ ...aiContentModal, isOpen: false })}
+            onClick={() =>
+              setAiContentModal({ ...aiContentModal, isOpen: false })
+            }
           >
             <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              onClick={(e) => e.stopPropagation()}
+              onClick={e => e.stopPropagation()}
               className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-hidden flex flex-col"
             >
               {/* Header */}
               <div className="flex items-center justify-between p-4 border-b">
                 <h3 className="text-lg font-semibold flex items-center gap-2">
                   <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
-                    {aiContentModal.type === 'email' && <Mail className="h-4 w-4 text-blue-600" />}
-                    {aiContentModal.type === 'document' && <FileText className="h-4 w-4 text-blue-600" />}
-                    {aiContentModal.type === 'code' && <Code className="h-4 w-4 text-blue-600" />}
+                    {aiContentModal.type === 'email' && (
+                      <Mail className="h-4 w-4 text-blue-600" />
+                    )}
+                    {aiContentModal.type === 'document' && (
+                      <FileText className="h-4 w-4 text-blue-600" />
+                    )}
+                    {aiContentModal.type === 'code' && (
+                      <Code className="h-4 w-4 text-blue-600" />
+                    )}
                   </div>
                   {aiContentModal.title}
                 </h3>
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={() => setAiContentModal({ ...aiContentModal, isOpen: false })}
+                  onClick={() =>
+                    setAiContentModal({ ...aiContentModal, isOpen: false })
+                  }
                 >
                   <X className="h-5 w-5" />
                 </Button>
@@ -1301,14 +1515,18 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                 <div className="flex gap-2">
                   <Button
                     variant="outline"
-                    onClick={() => setAiContentModal({ ...aiContentModal, isOpen: false })}
+                    onClick={() =>
+                      setAiContentModal({ ...aiContentModal, isOpen: false })
+                    }
                   >
                     Close
                   </Button>
                   <Button
-                    onClick={async() => {
+                    onClick={async () => {
                       try {
-                        await navigator.clipboard.writeText(aiContentModal.content)
+                        await navigator.clipboard.writeText(
+                          aiContentModal.content
+                        )
                         addNotification({
                           type: 'success',
                           message: 'Content copied to clipboard!'
@@ -1327,11 +1545,15 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                             type: 'success',
                             message: 'Content copied to clipboard!'
                           })
-                          setAiContentModal({ ...aiContentModal, isOpen: false })
+                          setAiContentModal({
+                            ...aiContentModal,
+                            isOpen: false
+                          })
                         } catch (err) {
                           addNotification({
                             type: 'info',
-                            message: 'Please manually select and copy the text above.'
+                            message:
+                              'Please manually select and copy the text above.'
                           })
                         } finally {
                           document.body.removeChild(textArea)
