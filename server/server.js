@@ -1176,7 +1176,7 @@ app.post(
     try {
       const { taskId } = req.params
       const { content, commentType = 'user', metadata = null } = req.body
-      const userId = req.session.user.id
+      const userId = String(Math.floor(parseFloat(req.session.user.id)))
       const user = req.session.user
 
       if (!content || !content.trim()) {

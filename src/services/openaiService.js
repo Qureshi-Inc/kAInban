@@ -892,6 +892,86 @@ Format the email with clear sections (Subject, Body with greeting, main content,
     }
   }
 
+  async generateSlackMessage(taskContext, subtaskText) {
+    this.validateConfig()
+
+    try {
+      console.log('[OpenAI] Generating Slack message...')
+
+      const prompt = `Based on the following task context, generate a professional yet conversational Slack message for the specific subtask action.
+
+**MAIN TASK:**
+Title: ${taskContext.title}
+Description: ${taskContext.description || 'No description'}
+Priority: ${taskContext.priority}
+Status: ${taskContext.status}
+
+**SPECIFIC SUBTASK TO CREATE SLACK MESSAGE FOR:**
+${subtaskText}
+
+Please generate a Slack message that:
+1. Is concise and conversational (Slack-appropriate tone)
+2. Is contextually relevant to both the main task and the specific subtask
+3. Uses appropriate emojis where they enhance clarity (but don't overdo it)
+4. Includes formatting like *bold*, _italic_, or \`code\` where appropriate
+5. Is engaging but professional
+6. Can be sent as-is or easily customized
+
+Keep the message focused and to-the-point, as Slack messages should be shorter than emails.`
+
+      const url = `${this.baseUrl}/openai/deployments/${this.gptDeployment}/chat/completions?api-version=${this.apiVersion}`
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'api-key': this.apiKey
+        },
+        body: JSON.stringify({
+          messages: [
+            {
+              role: 'system',
+              content: 'You are a helpful Slack messaging assistant. Generate clear, concise, and conversational Slack messages based on task information. Use appropriate Slack formatting and emojis where helpful.'
+            },
+            {
+              role: 'user',
+              content: prompt
+            }
+          ],
+          max_tokens: 500,
+          temperature: 0.7
+        })
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        let errorMessage = `HTTP ${response.status}: Failed to generate Slack message`
+
+        try {
+          const errorData = JSON.parse(errorText)
+          if (errorData.error && errorData.error.message) {
+            errorMessage = errorData.error.message
+          }
+        } catch (e) {
+          if (errorText) {
+            errorMessage = errorText
+          }
+        }
+
+        throw new Error(errorMessage)
+      }
+
+      const result = await response.json()
+      return result.choices?.[0]?.message?.content || 'Unable to generate Slack message'
+    } catch (error) {
+      console.error('[OpenAI] Slack message generation error:', error)
+      if (error.message.includes('fetch')) {
+        throw new Error('Network error: Unable to connect to Azure OpenAI. Please check your endpoint and internet connection.')
+      }
+      throw error
+    }
+  }
+
   async generateDocumentTemplate(taskContext, subtaskText) {
     this.validateConfig()
 
