@@ -11,14 +11,16 @@ import {
   ArrowRight,
   MessageSquare
 } from 'lucide-react'
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import apiService from '../services/apiService'
 import useAppStore from '../stores/useAppStore'
 import { Button } from './ui/button'
 
 // Helper function to render **text** as bold
-const renderWithBold = (text) => {
-  if (!text) return text
+const renderWithBold = text => {
+  if (!text) {
+    return text
+  }
 
   const parts = text.split(/(\*\*[^*]+\*\*)/g)
   return parts.map((part, index) => {
@@ -29,6 +31,44 @@ const renderWithBold = (text) => {
   })
 }
 
+// Component to fetch and display comment content by ID
+const CommentContent = ({ commentId, fallbackText }) => {
+  const [comment, setComment] = useState(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchComment = async () => {
+      try {
+        const response = await fetch(`/api/comments/${commentId}`)
+        if (response.ok) {
+          const commentData = await response.json()
+          setComment(commentData)
+        }
+      } catch (error) {
+        console.error('Failed to fetch comment:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    if (commentId) {
+      fetchComment()
+    } else {
+      setLoading(false)
+    }
+  }, [commentId])
+
+  if (loading) {
+    return <span className="text-gray-500">Loading comment...</span>
+  }
+
+  if (comment?.content) {
+    return renderWithBold(comment.content)
+  }
+
+  return fallbackText || 'AI analysis added'
+}
+
 export default function ActivityPanel({ isOpen, onClose }) {
   const currentProject = useAppStore(state => state.currentProject)
   const [activities, setActivities] = useState([])
@@ -36,7 +76,7 @@ export default function ActivityPanel({ isOpen, onClose }) {
 
   // Load real change tracking data
   useEffect(() => {
-    const loadActivities = async() => {
+    const loadActivities = async () => {
       if (!isOpen || !currentProject?.id) {
         return
       }
@@ -78,7 +118,7 @@ export default function ActivityPanel({ isOpen, onClose }) {
   }, [isOpen, currentProject?.id])
 
   // Helper functions to format change data
-  const formatChangeTitle = (changeType, fieldName) => {
+  const formatChangeTitle = (changeType, _fieldName) => {
     switch (changeType) {
       case 'created':
         return 'Task Created'
@@ -114,7 +154,10 @@ export default function ActivityPanel({ isOpen, onClose }) {
     }
     if (change.change_type === 'ai_comment_added') {
       // Show the actual AI comment content instead of generic message
-      return renderWithBold(change.new_value) || `AI analysis added to "${change.task_title}"`
+      return (
+        renderWithBold(change.new_value) ||
+        `AI analysis added to "${change.task_title}"`
+      )
     }
     if (change.field_name && change.old_value && change.new_value) {
       return `Task "${change.task_title}" ${change.field_name} changed from "${change.old_value}" to "${change.new_value}"`
@@ -256,17 +299,57 @@ export default function ActivityPanel({ isOpen, onClose }) {
       )
     }
 
-    // Show metadata if available
+    // Show metadata if available (enhanced for AI comments)
     if (activity.details?.metadata) {
       const metadata = activity.details.metadata
       return (
         <div className="mt-2 text-xs bg-muted/50 rounded p-2 space-y-1">
-          {metadata.source && (
-            <div>
-              <span className="font-medium">Source:</span> {metadata.source}
+          {/* Show task title prominently for AI comments */}
+          {metadata.taskTitle && (
+            <div className="bg-blue-50 dark:bg-blue-900/20 p-2 rounded border-l-2 border-blue-400">
+              <span className="font-medium text-blue-700 dark:text-blue-300">
+                📝 Task:
+              </span>
+              <span className="ml-1 font-semibold text-blue-800 dark:text-blue-200">
+                {metadata.taskTitle}
+              </span>
             </div>
           )}
-          {metadata.title && (
+
+          {/* Show task ID for reference */}
+          {metadata.taskId && (
+            <div>
+              <span className="font-medium">Task ID:</span>
+              <code className="ml-1 px-1 bg-gray-100 dark:bg-gray-800 rounded text-xs">
+                {metadata.taskId}
+              </code>
+            </div>
+          )}
+
+          {/* Show comment type */}
+          {metadata.commentType && (
+            <div>
+              <span className="font-medium">Type:</span>
+              <span className="ml-1 px-2 py-0.5 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded text-xs">
+                {metadata.commentType === 'ai_update'
+                  ? 'AI Analysis'
+                  : metadata.commentType}
+              </span>
+            </div>
+          )}
+
+          {/* Show source */}
+          {metadata.source && (
+            <div>
+              <span className="font-medium">Source:</span>
+              <span className="ml-1 text-gray-600 dark:text-gray-400">
+                {metadata.source}
+              </span>
+            </div>
+          )}
+
+          {/* Legacy metadata fields */}
+          {metadata.title && !metadata.taskTitle && (
             <div>
               <span className="font-medium">Task:</span> {metadata.title}
             </div>

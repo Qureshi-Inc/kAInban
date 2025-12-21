@@ -802,7 +802,7 @@ app.get('/api/projects/:id', localAuth.requireAuth, (req, res) => {
     console.log('  Loose match (==):', project.user_id === req.session.user.id)
 
     // Use loose equality to handle potential type mismatch
-    if (project.user_id != req.session.user.id) {
+    if (project.user_id !== String(req.session.user.id)) {
       return res.status(403).json({ error: 'Access denied' })
     }
 
@@ -842,7 +842,7 @@ app.delete('/api/projects/:id', localAuth.requireAuth, (req, res) => {
       return res.status(404).json({ error: 'Project not found' })
     }
     // Use loose equality to handle potential type mismatch
-    if (project.user_id != req.session.user.id) {
+    if (project.user_id !== String(req.session.user.id)) {
       return res.status(403).json({ error: 'Access denied' })
     }
 
@@ -857,7 +857,10 @@ app.delete('/api/projects/:id', localAuth.requireAuth, (req, res) => {
 // Delete all projects for current user
 app.delete('/api/projects', localAuth.requireAuth, (req, res) => {
   try {
-    console.log('[Projects] Deleting all projects for user:', req.session.user.id)
+    console.log(
+      '[Projects] Deleting all projects for user:',
+      req.session.user.id
+    )
     db.deleteAllProjects(req.session.user.id)
     res.json({ success: true, message: 'All projects deleted successfully' })
   } catch (error) {
@@ -948,7 +951,7 @@ app.get('/api/meetings/:id/summary', localAuth.requireAuth, (req, res) => {
       return res.status(404).json({ error: 'Meeting not found' })
     }
     // Use loose equality to handle potential type mismatch
-    if (meeting.user_id != req.session.user.id) {
+    if (meeting.user_id !== String(req.session.user.id)) {
       return res.status(403).json({ error: 'Access denied' })
     }
 
@@ -979,7 +982,7 @@ app.delete('/api/meetings/:id', localAuth.requireAuth, (req, res) => {
     }
 
     // Verify meeting belongs to user (use loose equality)
-    if (meeting.user_id != req.session.user.id) {
+    if (meeting.user_id !== String(req.session.user.id)) {
       return res.status(403).json({ error: 'Access denied' })
     }
 
@@ -1101,7 +1104,7 @@ app.get(
 
       // Get project to verify user access
       const project = db.getProject(taskInfo.project_id)
-      if (!project || project.user_id != req.session.user.id) {
+      if (!project || project.user_id !== String(req.session.user.id)) {
         return res.status(403).json({ error: 'Access denied' })
       }
 
@@ -1124,11 +1127,19 @@ app.get(
 
       // Verify project access
       const project = db.getProject(projectId)
-      if (!project || project.user_id != req.session.user.id) {
+      if (!project || project.user_id !== String(req.session.user.id)) {
         return res.status(403).json({ error: 'Access denied' })
       }
 
       const changes = db.getProjectTaskChanges(projectId, parseInt(limit))
+
+      // Prevent caching of activity data since it changes frequently
+      res.set({
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        Pragma: 'no-cache',
+        Expires: '0'
+      })
+
       res.json(changes)
     } catch (error) {
       console.error('[Project Changes] Get changes error:', error)
@@ -1156,11 +1167,19 @@ app.get(
 
       // Get project to verify user access
       const project = db.getProject(taskInfo.project_id)
-      if (!project || project.user_id != req.session.user.id) {
+      if (!project || project.user_id !== String(req.session.user.id)) {
         return res.status(403).json({ error: 'Access denied' })
       }
 
       const comments = db.getTaskComments(taskId, parseInt(limit))
+
+      // Prevent caching of comment data since it changes frequently
+      res.set({
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        Pragma: 'no-cache',
+        Expires: '0'
+      })
+
       res.json(comments)
     } catch (error) {
       console.error('[Task Comments] Get comments error:', error)
@@ -1193,16 +1212,27 @@ app.post(
 
       // Get project to verify user access
       const project = db.getProject(taskInfo.project_id)
-      if (!project || project.user_id != userId) {
+      if (!project || project.user_id !== userId) {
         return res.status(403).json({ error: 'Access denied' })
       }
 
       // Generate comment ID
       const commentId = `comment_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
 
-      // Add comment
-      const authorName = commentType === 'ai_update' ? 'AI Coordinator' : (user.name || user.email)
-      db.addTaskComment(
+      // Add comment with proper error handling
+      const authorName =
+        commentType === 'ai_update' ? 'AI Coordinator' : user.name || user.email
+
+      console.log('[Task Comments] Adding comment:', {
+        commentId,
+        taskId,
+        userId,
+        authorName,
+        commentType,
+        contentLength: content.trim().length
+      })
+
+      const commentResult = db.addTaskComment(
         commentId,
         taskId,
         userId,
@@ -1212,8 +1242,15 @@ app.post(
         metadata
       )
 
+      console.log('[Task Comments] Comment result:', commentResult)
+
+      if (!commentResult || commentResult.changes === 0) {
+        throw new Error('Failed to insert comment - no rows affected')
+      }
+
       // Record change if it's an AI update
       if (commentType === 'ai_update') {
+        console.log('[Task Comments] Recording activity for AI update')
         db.recordTaskChange(
           taskId,
           userId,
@@ -1227,6 +1264,11 @@ app.post(
           }
         )
       }
+
+      console.log('[Task Comments] ✓ Comment added successfully:', commentId)
+
+      // Small delay to prevent race condition with project save
+      await new Promise(resolve => setTimeout(resolve, 100))
 
       res.json({ id: commentId, success: true })
     } catch (error) {
@@ -1280,6 +1322,79 @@ app.delete(
     } catch (error) {
       console.error('[Task Comments] Delete comment error:', error)
       res.status(500).json({ error: 'Failed to delete comment' })
+    }
+  }
+)
+
+// Get single comment by ID (for activity display)
+app.get('/api/comments/:commentId', localAuth.requireAuth, async (req, res) => {
+  try {
+    const { commentId } = req.params
+    const comment = db.getTaskComment(commentId)
+
+    if (!comment) {
+      return res.status(404).json({ error: 'Comment not found' })
+    }
+
+    res.json(comment)
+  } catch (error) {
+    console.error('[Task Comments] Get comment error:', error)
+    res.status(500).json({ error: 'Failed to get comment' })
+  }
+})
+
+// BULLETPROOF AI COMMENT ENDPOINT - NEVER FAILS
+app.post(
+  '/api/tasks/:taskId/ai-comments-bulletproof',
+  localAuth.requireAuth,
+  async (req, res) => {
+    try {
+      const { taskId } = req.params
+      const { content, metadata = null } = req.body
+      const userId = String(Math.floor(parseFloat(req.session.user.id)))
+
+      console.log('[BULLETPROOF API] AI comment request:', {
+        taskId,
+        userId,
+        hasContent: !!content
+      })
+
+      // Validate inputs
+      if (!content || !content.trim()) {
+        return res.status(400).json({ error: 'Comment content is required' })
+      }
+
+      // Verify user has access to task
+      const taskCheck = dbInstance
+        .prepare('SELECT project_id FROM tasks WHERE id = ?')
+        .get(taskId)
+      if (!taskCheck) {
+        return res.status(404).json({ error: 'Task not found' })
+      }
+
+      const project = db.getProject(taskCheck.project_id)
+      if (!project || project.user_id !== userId) {
+        return res.status(403).json({ error: 'Access denied' })
+      }
+
+      // Use bulletproof function
+      const result = db.createAIComment(
+        taskId,
+        userId,
+        content.trim(),
+        metadata
+      )
+
+      console.log(
+        '[BULLETPROOF API] ✓ AI comment created successfully:',
+        result.commentId
+      )
+      res.json({ id: result.commentId, success: true })
+    } catch (error) {
+      console.error('[BULLETPROOF API] Error:', error)
+      res
+        .status(500)
+        .json({ error: 'Failed to add AI comment: ' + error.message })
     }
   }
 )

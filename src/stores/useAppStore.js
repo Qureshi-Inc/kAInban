@@ -15,6 +15,22 @@ const invalidateAnalyticsCache = async currentProject => {
   }
 }
 
+// Debounce helper to prevent concurrent project saves
+let updateProjectTimeout = null
+const debouncedUpdateCurrentProject = (projectData, callback) => {
+  if (updateProjectTimeout) {
+    clearTimeout(updateProjectTimeout)
+  }
+  updateProjectTimeout = setTimeout(async () => {
+    try {
+      await callback(projectData)
+    } catch (error) {
+      console.error('[Store] Debounced project save error:', error)
+    }
+    updateProjectTimeout = null
+  }, 100) // 100ms debounce
+}
+
 const useAppStore = create((set, get) => ({
   // Authentication
   user: null,
@@ -237,7 +253,7 @@ const useAppStore = create((set, get) => ({
     }
   },
 
-  updateCurrentProject: async () => {
+  updateCurrentProject: () => {
     const { currentProject, tasks, meetings } = get()
     if (!currentProject) {
       console.warn('[Store] updateCurrentProject: No current project to update')
@@ -266,21 +282,23 @@ const useAppStore = create((set, get) => ({
       )
     }))
 
-    // Save to backend
-    try {
-      const success = await apiService.saveProject(updatedProject)
-      if (success) {
-        // Project saved successfully
-      } else {
-        console.error(
-          '[Store] ✗ Project update failed - apiService returned false'
-        )
-        throw new Error('API service returned false')
+    // Use debounced save to prevent concurrent API calls
+    debouncedUpdateCurrentProject(updatedProject, async projectData => {
+      try {
+        const success = await apiService.saveProject(projectData)
+        if (success) {
+          console.log('[Store] ✓ Project saved successfully (debounced)')
+        } else {
+          console.error(
+            '[Store] ✗ Project update failed - apiService returned false'
+          )
+          throw new Error('API service returned false')
+        }
+      } catch (error) {
+        console.error('[Store] ✗ Project update failed:', error)
+        throw error
       }
-    } catch (error) {
-      console.error('[Store] ✗ Project update failed:', error)
-      throw error // Re-throw so the caller can handle it
-    }
+    })
   },
 
   deleteProject: async projectId => {

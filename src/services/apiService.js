@@ -19,7 +19,9 @@ class ApiService {
       const response = await fetch(`${API_URL}/auth/status`, {
         credentials: 'include'
       })
-      if (!response.ok) {throw new Error('Failed to get auth status')}
+      if (!response.ok) {
+        throw new Error('Failed to get auth status')
+      }
       return await response.json()
     } catch (error) {
       console.error('[API] Get auth status error:', error)
@@ -32,10 +34,10 @@ class ApiService {
       const response = await fetch(`${API_URL}/auth/me`, {
         credentials: 'include',
         headers: {
-          'Accept': 'application/json'
+          Accept: 'application/json'
         }
       })
-      
+
       if (!response.ok) {
         if (response.status === 401) {
           return null
@@ -95,7 +97,9 @@ class ApiService {
       const response = await this.secureFetch(`${API_URL}/auth/logout`, {
         method: 'POST'
       })
-      if (!response.ok) {throw new Error('Logout failed')}
+      if (!response.ok) {
+        throw new Error('Logout failed')
+      }
       return true
     } catch (error) {
       console.error('[API] Logout error:', error)
@@ -108,7 +112,9 @@ class ApiService {
       const response = await fetch(`${API_URL}/auth/oidc/status`, {
         credentials: 'include'
       })
-      if (!response.ok) {throw new Error('Failed to get OIDC status')}
+      if (!response.ok) {
+        throw new Error('Failed to get OIDC status')
+      }
       return await response.json()
     } catch (error) {
       console.error('[API] Get OIDC status error:', error)
@@ -139,7 +145,9 @@ class ApiService {
       const response = await fetch(`${API_URL}/settings`, {
         credentials: 'include'
       })
-      if (!response.ok) {throw new Error('Failed to get settings')}
+      if (!response.ok) {
+        throw new Error('Failed to get settings')
+      }
       return await response.json()
     } catch (error) {
       console.error('[API] Get settings error:', error)
@@ -153,7 +161,9 @@ class ApiService {
         method: 'POST',
         body: JSON.stringify(settings)
       })
-      if (!response.ok) {throw new Error('Failed to save settings')}
+      if (!response.ok) {
+        throw new Error('Failed to save settings')
+      }
       return true
     } catch (error) {
       console.error('[API] Save settings error:', error)
@@ -167,7 +177,9 @@ class ApiService {
       const response = await fetch(`${API_URL}/projects`, {
         credentials: 'include'
       })
-      if (!response.ok) {throw new Error('Failed to get projects')}
+      if (!response.ok) {
+        throw new Error('Failed to get projects')
+      }
       return await response.json()
     } catch (error) {
       console.error('[API] Get projects error:', error)
@@ -180,7 +192,9 @@ class ApiService {
       const response = await fetch(`${API_URL}/projects/${projectId}`, {
         credentials: 'include'
       })
-      if (!response.ok) {throw new Error('Failed to get project')}
+      if (!response.ok) {
+        throw new Error('Failed to get project')
+      }
       return await response.json()
     } catch (error) {
       console.error('[API] Get project error:', error)
@@ -190,7 +204,6 @@ class ApiService {
 
   async saveProject(project) {
     try {
-
       // Filter out meetings since they're saved separately via /api/meetings
       const projectData = {
         ...project,
@@ -206,10 +219,12 @@ class ApiService {
         const errorText = await response.text()
         console.error('[API] Save project failed - Status:', response.status)
         console.error('[API] Error response:', errorText)
-        throw new Error(`Failed to save project: ${response.status} - ${errorText}`)
+        throw new Error(
+          `Failed to save project: ${response.status} - ${errorText}`
+        )
       }
 
-      const result = await response.json()
+      await response.json()
       return true
     } catch (error) {
       console.error('[API] Save project error:', error)
@@ -220,10 +235,15 @@ class ApiService {
 
   async deleteProject(projectId) {
     try {
-      const response = await this.secureFetch(`${API_URL}/projects/${projectId}`, {
-        method: 'DELETE'
-      })
-      if (!response.ok) {throw new Error('Failed to delete project')}
+      const response = await this.secureFetch(
+        `${API_URL}/projects/${projectId}`,
+        {
+          method: 'DELETE'
+        }
+      )
+      if (!response.ok) {
+        throw new Error('Failed to delete project')
+      }
       return true
     } catch (error) {
       console.error('[API] Delete project error:', error)
@@ -241,7 +261,6 @@ class ApiService {
         throw new Error(`Failed to delete all projects: ${errorText}`)
       }
       const result = await response.json()
-      console.log('[API] Delete all projects success:', result.message)
       return true
     } catch (error) {
       console.error('[API] Delete all projects error:', error)
@@ -262,14 +281,19 @@ class ApiService {
         })
       })
       if (!response.ok) {
-        console.warn('[API] Failed to save analytics insights to server, using localStorage fallback')
+        console.warn(
+          '[API] Failed to save analytics insights to server, using localStorage fallback'
+        )
         // Fallback to localStorage
         const cacheKey = `analytics_insights_cache_${projectId}`
-        localStorage.setItem(cacheKey, JSON.stringify({
-          insights,
-          timestamp: Date.now(),
-          taskCount
-        }))
+        localStorage.setItem(
+          cacheKey,
+          JSON.stringify({
+            insights,
+            timestamp: Date.now(),
+            taskCount
+          })
+        )
         return true
       }
       return await response.json()
@@ -278,11 +302,14 @@ class ApiService {
       // Fallback to localStorage
       try {
         const cacheKey = `analytics_insights_cache_${projectId}`
-        localStorage.setItem(cacheKey, JSON.stringify({
-          insights,
-          timestamp: Date.now(),
-          taskCount
-        }))
+        localStorage.setItem(
+          cacheKey,
+          JSON.stringify({
+            insights,
+            timestamp: Date.now(),
+            taskCount
+          })
+        )
         return true
       } catch (localError) {
         console.error('[API] localStorage fallback failed:', localError)
@@ -293,13 +320,18 @@ class ApiService {
 
   async loadAnalyticsInsights(projectId) {
     try {
-      const response = await this.secureFetch(`${API_URL}/analytics/insights/${projectId === 'all' ? 'all' : projectId}`)
+      const response = await this.secureFetch(
+        `${API_URL}/analytics/insights/${projectId === 'all' ? 'all' : projectId}`
+      )
       if (response.ok) {
         const data = await response.json()
         return data
       }
     } catch (error) {
-      console.warn('[API] Failed to load analytics insights from server, trying localStorage:', error)
+      console.warn(
+        '[API] Failed to load analytics insights from server, trying localStorage:',
+        error
+      )
     }
 
     // Fallback to localStorage
@@ -319,11 +351,17 @@ class ApiService {
   async clearAnalyticsInsights(projectId) {
     try {
       // Clear from server
-      await this.secureFetch(`${API_URL}/analytics/insights/${projectId === 'all' ? 'all' : projectId}`, {
-        method: 'DELETE'
-      })
+      await this.secureFetch(
+        `${API_URL}/analytics/insights/${projectId === 'all' ? 'all' : projectId}`,
+        {
+          method: 'DELETE'
+        }
+      )
     } catch (error) {
-      console.warn('[API] Failed to clear analytics insights from server:', error)
+      console.warn(
+        '[API] Failed to clear analytics insights from server:',
+        error
+      )
     }
 
     // Always clear from localStorage as well
@@ -342,7 +380,10 @@ class ApiService {
         method: 'DELETE'
       })
     } catch (error) {
-      console.warn('[API] Failed to clear all analytics insights from server:', error)
+      console.warn(
+        '[API] Failed to clear all analytics insights from server:',
+        error
+      )
     }
 
     // Clear all localStorage analytics caches
@@ -361,8 +402,12 @@ class ApiService {
   // Task change tracking methods
   async getTaskChanges(taskId, limit = 50) {
     try {
-      const response = await this.secureFetch(`${API_URL}/tasks/${taskId}/changes?limit=${limit}`)
-      if (!response.ok) {throw new Error('Failed to get task changes')}
+      const response = await this.secureFetch(
+        `${API_URL}/tasks/${taskId}/changes?limit=${limit}`
+      )
+      if (!response.ok) {
+        throw new Error('Failed to get task changes')
+      }
       return await response.json()
     } catch (error) {
       console.error('[API] Get task changes error:', error)
@@ -372,8 +417,12 @@ class ApiService {
 
   async getProjectChanges(projectId, limit = 100) {
     try {
-      const response = await this.secureFetch(`${API_URL}/projects/${projectId}/changes?limit=${limit}`)
-      if (!response.ok) {throw new Error('Failed to get project changes')}
+      const response = await this.secureFetch(
+        `${API_URL}/projects/${projectId}/changes?limit=${limit}`
+      )
+      if (!response.ok) {
+        throw new Error('Failed to get project changes')
+      }
       return await response.json()
     } catch (error) {
       console.error('[API] Get project changes error:', error)
@@ -384,8 +433,12 @@ class ApiService {
   // Task comments methods
   async getTaskComments(taskId, limit = 50) {
     try {
-      const response = await this.secureFetch(`${API_URL}/tasks/${taskId}/comments?limit=${limit}`)
-      if (!response.ok) {throw new Error('Failed to get task comments')}
+      const response = await this.secureFetch(
+        `${API_URL}/tasks/${taskId}/comments?limit=${limit}`
+      )
+      if (!response.ok) {
+        throw new Error('Failed to get task comments')
+      }
       return await response.json()
     } catch (error) {
       console.error('[API] Get task comments error:', error)
@@ -395,11 +448,33 @@ class ApiService {
 
   async addTaskComment(taskId, content, commentType = 'user', metadata = null) {
     try {
-      const response = await this.secureFetch(`${API_URL}/tasks/${taskId}/comments`, {
-        method: 'POST',
-        body: JSON.stringify({ content, commentType, metadata })
-      })
-      if (!response.ok) {throw new Error('Failed to add comment')}
+      // Use bulletproof endpoint for AI comments
+      if (commentType === 'ai_update') {
+        const response = await this.secureFetch(
+          `${API_URL}/tasks/${taskId}/ai-comments-bulletproof`,
+          {
+            method: 'POST',
+            body: JSON.stringify({ content, metadata })
+          }
+        )
+        if (!response.ok) {
+          throw new Error(`AI comment failed: ${response.status}`)
+        }
+        const result = await response.json()
+        return result
+      }
+
+      // Use regular endpoint for user comments
+      const response = await this.secureFetch(
+        `${API_URL}/tasks/${taskId}/comments`,
+        {
+          method: 'POST',
+          body: JSON.stringify({ content, commentType, metadata })
+        }
+      )
+      if (!response.ok) {
+        throw new Error('Failed to add comment')
+      }
       return await response.json()
     } catch (error) {
       console.error('[API] Add comment error:', error)
@@ -407,13 +482,39 @@ class ApiService {
     }
   }
 
+  async addAtomicAIComment(taskId, content, metadata = null) {
+    try {
+      const response = await this.secureFetch(
+        `${API_URL}/tasks/${taskId}/ai-comments`,
+        {
+          method: 'POST',
+          body: JSON.stringify({ content, metadata })
+        }
+      )
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to add AI comment')
+      }
+      const result = await response.json()
+      return result
+    } catch (error) {
+      console.error('[API] Atomic AI comment error:', error)
+      return { success: false, error: error.message }
+    }
+  }
+
   async updateTaskComment(commentId, content) {
     try {
-      const response = await this.secureFetch(`${API_URL}/comments/${commentId}`, {
-        method: 'PUT',
-        body: JSON.stringify({ content })
-      })
-      if (!response.ok) {throw new Error('Failed to update comment')}
+      const response = await this.secureFetch(
+        `${API_URL}/comments/${commentId}`,
+        {
+          method: 'PUT',
+          body: JSON.stringify({ content })
+        }
+      )
+      if (!response.ok) {
+        throw new Error('Failed to update comment')
+      }
       return await response.json()
     } catch (error) {
       console.error('[API] Update comment error:', error)
@@ -423,10 +524,15 @@ class ApiService {
 
   async deleteTaskComment(commentId) {
     try {
-      const response = await this.secureFetch(`${API_URL}/comments/${commentId}`, {
-        method: 'DELETE'
-      })
-      if (!response.ok) {throw new Error('Failed to delete comment')}
+      const response = await this.secureFetch(
+        `${API_URL}/comments/${commentId}`,
+        {
+          method: 'DELETE'
+        }
+      )
+      if (!response.ok) {
+        throw new Error('Failed to delete comment')
+      }
       return await response.json()
     } catch (error) {
       console.error('[API] Delete comment error:', error)

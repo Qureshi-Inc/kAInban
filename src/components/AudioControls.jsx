@@ -409,6 +409,14 @@ export default function AudioControls() {
 
                 // Only add AI comment if there are actual changes AND updates text
                 if (task.updates && hasActualChanges) {
+                  console.log(
+                    '[TaskUpdate] Attempting to add AI comment for task:',
+                    existingTask.id
+                  )
+                  console.log(
+                    '[TaskUpdate] Comment text:',
+                    task.updates.substring(0, 100) + '...'
+                  )
                   try {
                     const commentResult = await apiService.addTaskComment(
                       existingTask.id,
@@ -419,6 +427,10 @@ export default function AudioControls() {
                         originalTranscript: transcript.substring(0, 200) + '...'
                       }
                     )
+                    console.log(
+                      '[TaskUpdate] Raw comment result:',
+                      commentResult
+                    )
                     if (commentResult && commentResult.success) {
                       console.log(
                         '[TaskUpdate] ✓ AI comment added successfully:',
@@ -426,23 +438,40 @@ export default function AudioControls() {
                       )
                     } else {
                       console.error(
-                        '[TaskUpdate] ✗ AI comment failed:',
-                        commentResult?.error || 'Unknown error'
+                        '[TaskUpdate] ✗ AI comment failed - no success flag:',
+                        commentResult
                       )
                       addNotification({
-                        type: 'warning',
-                        message: `AI update added to "${existingTask.title}" but comment creation failed`
+                        type: 'error',
+                        message: `⚠️ AI update added to "${existingTask.title}" but comment creation failed. Check activity panel.`
                       })
                     }
                   } catch (error) {
-                    console.error('[TaskUpdate] ✗ AI comment error:', error)
+                    console.error('[TaskUpdate] ✗ AI comment exception:', error)
+                    console.error(
+                      '[TaskUpdate] ✗ Error details:',
+                      error.message,
+                      error.stack
+                    )
                     addNotification({
-                      type: 'warning',
-                      message: `AI update added to "${existingTask.title}" but comment creation failed: ${error.message}`
+                      type: 'error',
+                      message: `⚠️ AI update added to "${existingTask.title}" but comment creation failed: ${error.message}`
                     })
                   }
+                  // Count as updated regardless of comment status for now
+                  updatedCount++
+                } else {
+                  console.log(
+                    '[TaskUpdate] Skipping AI comment - no updates text or no actual changes'
+                  )
+                  console.log('[TaskUpdate] Updates text:', task.updates)
+                  console.log(
+                    '[TaskUpdate] Has actual changes:',
+                    hasActualChanges
+                  )
+                  // Still count as updated since task data was modified
+                  updatedCount++
                 }
-                updatedCount++
               }
             } else {
               // Collect new tasks to add in batch
@@ -668,6 +697,14 @@ export default function AudioControls() {
 
                 // Only add AI comment if there are actual changes AND updates text
                 if (task.updates && hasActualChanges) {
+                  console.log(
+                    '[TaskUpdate] Attempting to add AI comment for task:',
+                    existingTask.id
+                  )
+                  console.log(
+                    '[TaskUpdate] Comment text:',
+                    task.updates.substring(0, 100) + '...'
+                  )
                   try {
                     const commentResult = await apiService.addTaskComment(
                       existingTask.id,
@@ -678,6 +715,10 @@ export default function AudioControls() {
                         originalTranscript: transcript.substring(0, 200) + '...'
                       }
                     )
+                    console.log(
+                      '[TaskUpdate] Raw comment result:',
+                      commentResult
+                    )
                     if (commentResult && commentResult.success) {
                       console.log(
                         '[TaskUpdate] ✓ AI comment added successfully:',
@@ -685,23 +726,40 @@ export default function AudioControls() {
                       )
                     } else {
                       console.error(
-                        '[TaskUpdate] ✗ AI comment failed:',
-                        commentResult?.error || 'Unknown error'
+                        '[TaskUpdate] ✗ AI comment failed - no success flag:',
+                        commentResult
                       )
                       addNotification({
-                        type: 'warning',
-                        message: `AI update added to "${existingTask.title}" but comment creation failed`
+                        type: 'error',
+                        message: `⚠️ AI update added to "${existingTask.title}" but comment creation failed. Check activity panel.`
                       })
                     }
                   } catch (error) {
-                    console.error('[TaskUpdate] ✗ AI comment error:', error)
+                    console.error('[TaskUpdate] ✗ AI comment exception:', error)
+                    console.error(
+                      '[TaskUpdate] ✗ Error details:',
+                      error.message,
+                      error.stack
+                    )
                     addNotification({
-                      type: 'warning',
-                      message: `AI update added to "${existingTask.title}" but comment creation failed: ${error.message}`
+                      type: 'error',
+                      message: `⚠️ AI update added to "${existingTask.title}" but comment creation failed: ${error.message}`
                     })
                   }
+                  // Count as updated regardless of comment status for now
+                  updatedCount++
+                } else {
+                  console.log(
+                    '[TaskUpdate] Skipping AI comment - no updates text or no actual changes'
+                  )
+                  console.log('[TaskUpdate] Updates text:', task.updates)
+                  console.log(
+                    '[TaskUpdate] Has actual changes:',
+                    hasActualChanges
+                  )
+                  // Still count as updated since task data was modified
+                  updatedCount++
                 }
-                updatedCount++
               }
             } else {
               // Collect new tasks to add in batch

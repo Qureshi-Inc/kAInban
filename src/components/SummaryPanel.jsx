@@ -184,8 +184,8 @@ export default function SummaryPanel() {
       let updatedCount = 0
       const newTasksToAdd = []
 
-      // Process tasks (new or updates)
-      extractedTasks.forEach(task => {
+      // Process tasks sequentially to avoid race conditions
+      for (const task of extractedTasks) {
         if (task.matchId && task.matchId > 0) {
           // Update existing task
           const existingTask = existingTasks[task.matchId - 1]
@@ -196,15 +196,20 @@ export default function SummaryPanel() {
               assignee: task.assignee || existingTask.assignee
             })
 
-            // Add AI comment if there are updates
+            // Add AI comment if there are updates (wait for completion)
             if (task.updates) {
-              apiService
-                .addTaskComment(existingTask.id, task.updates, 'ai_update', {
-                  source: 'summary_analysis'
-                })
-                .catch(error => {
-                  console.error('Failed to add AI comment:', error)
-                })
+              try {
+                await apiService.addTaskComment(
+                  existingTask.id,
+                  task.updates,
+                  'ai_update',
+                  {
+                    source: 'summary_analysis'
+                  }
+                )
+              } catch (error) {
+                console.error('Failed to add AI comment:', error)
+              }
             }
             updatedCount++
           }
@@ -213,7 +218,7 @@ export default function SummaryPanel() {
           newTasksToAdd.push(task)
           newCount++
         }
-      })
+      }
 
       // Batch add all new tasks at once
       if (newTasksToAdd.length > 0) {

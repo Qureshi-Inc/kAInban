@@ -2,7 +2,7 @@ class OpenAIService {
   constructor() {
     this.baseUrl = ''
     this.apiKey = ''
-    this.apiVersion = '2024-06-01'  // Updated to latest stable version
+    this.apiVersion = '2024-06-01' // Updated to latest stable version
     this.whisperDeployment = 'whisper-1'
     this.gptDeployment = 'gpt-4'
   }
@@ -10,15 +10,16 @@ class OpenAIService {
   configure(settings) {
     this.baseUrl = settings.azureEndpoint?.replace(/\/$/, '') || ''
     this.apiKey = settings.apiKey || ''
-    this.apiVersion = settings.apiVersion || '2024-06-01'  // Updated default
+    this.apiVersion = settings.apiVersion || '2024-06-01' // Updated default
     this.whisperDeployment = settings.whisperDeployment || 'whisper-1'
     this.gptDeployment = settings.gptDeployment || 'gpt-4'
-
   }
 
   validateConfig() {
     if (!this.baseUrl || !this.apiKey) {
-      throw new Error('Azure OpenAI endpoint and API key are required. Please configure them in settings.')
+      throw new Error(
+        'Azure OpenAI endpoint and API key are required. Please configure them in settings.'
+      )
     }
   }
 
@@ -29,7 +30,9 @@ class OpenAIService {
     try {
       // Check if this is a chunked audio object
       if (audioBlob.needsChunking) {
-        console.log('[OpenAI] Large file detected - using chunked transcription')
+        console.log(
+          '[OpenAI] Large file detected - using chunked transcription'
+        )
         return await this.transcribeChunked(audioBlob, progressCallback)
       }
 
@@ -65,10 +68,18 @@ class OpenAIService {
         // Clean codec specifications from MP4 MIME type (e.g., "audio/mp4;codecs=opus" -> "audio/mp4")
         // Azure rejects MP4 with codec specifications in MIME type
         if (audioBlob.type !== 'audio/mp4') {
-          console.log('[OpenAI] Cleaning MP4 MIME type from:', audioBlob.type, 'to: audio/mp4')
+          console.log(
+            '[OpenAI] Cleaning MP4 MIME type from:',
+            audioBlob.type,
+            'to: audio/mp4'
+          )
           processedBlob = new Blob([audioBlob], { type: 'audio/mp4' })
         }
-      } else if (audioBlob.type.includes('webm') || !audioBlob.type || audioBlob.type === '') {
+      } else if (
+        audioBlob.type.includes('webm') ||
+        !audioBlob.type ||
+        audioBlob.type === ''
+      ) {
         // Handle WebM or empty MIME type (default for recordings)
         filename = 'audio.webm'
         console.log('[OpenAI] Detected webm (or no type) - cleaning MIME type')
@@ -96,12 +107,18 @@ class OpenAIService {
       // Create timeout controller for mobile
       const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
       const controller = new AbortController()
-      const timeoutId = setTimeout(() => {
-        console.error('[OpenAI] Request timeout - aborting')
-        controller.abort()
-      }, isMobile ? 300000 : 600000) // 5 min mobile, 10 min desktop
+      const timeoutId = setTimeout(
+        () => {
+          console.error('[OpenAI] Request timeout - aborting')
+          controller.abort()
+        },
+        isMobile ? 300000 : 600000
+      ) // 5 min mobile, 10 min desktop
 
-      console.log('[OpenAI] Sending request with timeout:', isMobile ? '5 min (mobile)' : '10 min (desktop)')
+      console.log(
+        '[OpenAI] Sending request with timeout:',
+        isMobile ? '5 min (mobile)' : '10 min (desktop)'
+      )
 
       const response = await fetch(url, {
         method: 'POST',
@@ -126,7 +143,10 @@ class OpenAIService {
 
         try {
           const errorData = JSON.parse(errorText)
-          console.error('[OpenAI] Parsed error data:', JSON.stringify(errorData, null, 2))
+          console.error(
+            '[OpenAI] Parsed error data:',
+            JSON.stringify(errorData, null, 2)
+          )
           if (errorData.error && errorData.error.message) {
             errorMessage = errorData.error.message
           }
@@ -144,7 +164,11 @@ class OpenAIService {
 
       console.log('[OpenAI] Parsing JSON response...')
       const result = await response.json()
-      console.log('[OpenAI] ✓ Transcription successful, length:', result.text?.length || 0, 'characters')
+      console.log(
+        '[OpenAI] ✓ Transcription successful, length:',
+        result.text?.length || 0,
+        'characters'
+      )
       return result.text || ''
     } catch (error) {
       console.error('[OpenAI] Transcription error:', error)
@@ -156,17 +180,25 @@ class OpenAIService {
       const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
       if (isMobile) {
         console.error('[OpenAI] ⚠️ ERROR ON MOBILE DEVICE')
-        console.error('[OpenAI] File size being uploaded:', audioBlob?.size || 'unknown', 'bytes')
+        console.error(
+          '[OpenAI] File size being uploaded:',
+          audioBlob?.size || 'unknown',
+          'bytes'
+        )
         console.error('[OpenAI] File type:', audioBlob?.type || 'unknown')
       }
 
       // Handle specific error types
       if (error.name === 'AbortError') {
-        throw new Error(`Transcription timeout: The audio file took too long to transcribe (>${isMobile ? '5' : '10'} minutes). ${isMobile ? 'Mobile devices have stricter timeouts. ' : ''}Try uploading a shorter audio file or using a faster connection.`)
+        throw new Error(
+          `Transcription timeout: The audio file took too long to transcribe (>${isMobile ? '5' : '10'} minutes). ${isMobile ? 'Mobile devices have stricter timeouts. ' : ''}Try uploading a shorter audio file or using a faster connection.`
+        )
       }
 
       if (error.message.includes('fetch') || error.name === 'TypeError') {
-        throw new Error(`Network error: Unable to connect to Azure OpenAI. ${isMobile ? 'Mobile connection may be unstable. ' : ''}Please check your endpoint and internet connection. (${error.message})`)
+        throw new Error(
+          `Network error: Unable to connect to Azure OpenAI. ${isMobile ? 'Mobile connection may be unstable. ' : ''}Please check your endpoint and internet connection. (${error.message})`
+        )
       }
       throw error
     }
@@ -174,7 +206,11 @@ class OpenAIService {
 
   async transcribeChunked(chunkedAudio, progressCallback = null) {
     console.log('[OpenAI] === CHUNKED TRANSCRIPTION START ===')
-    console.log('[OpenAI] Audio duration:', chunkedAudio.duration.toFixed(2), 'seconds')
+    console.log(
+      '[OpenAI] Audio duration:',
+      chunkedAudio.duration.toFixed(2),
+      'seconds'
+    )
     console.log('[OpenAI] Original file size:', chunkedAudio.sizeMB, 'MB')
 
     // Import audioService dynamically to avoid circular dependency
@@ -183,14 +219,25 @@ class OpenAIService {
     // Split into 10-minute chunks (600 seconds)
     // At 16kHz mono, 10 minutes ≈ 19MB, safely under 25MB limit
     const chunkDuration = 600 // 10 minutes in seconds
-    const audioChunks = audioService.splitAudioBuffer(chunkedAudio.buffer, chunkDuration)
+    const audioChunks = audioService.splitAudioBuffer(
+      chunkedAudio.buffer,
+      chunkDuration
+    )
 
-    console.log('[OpenAI] Split into', audioChunks.length, 'chunks of', chunkDuration, 'seconds each')
+    console.log(
+      '[OpenAI] Split into',
+      audioChunks.length,
+      'chunks of',
+      chunkDuration,
+      'seconds each'
+    )
 
     const transcripts = []
 
     for (let i = 0; i < audioChunks.length; i++) {
-      console.log(`[OpenAI] Transcribing chunk ${i + 1}/${audioChunks.length}...`)
+      console.log(
+        `[OpenAI] Transcribing chunk ${i + 1}/${audioChunks.length}...`
+      )
 
       // Update progress if callback provided
       if (progressCallback) {
@@ -204,21 +251,34 @@ class OpenAIService {
 
       // Convert chunk to WAV blob
       const chunkBlob = audioService.audioBufferToWav(audioChunks[i])
-      const chunkFile = new File([chunkBlob], `chunk-${i}.wav`, { type: 'audio/wav' })
+      const chunkFile = new File([chunkBlob], `chunk-${i}.wav`, {
+        type: 'audio/wav'
+      })
 
-      console.log(`[OpenAI] Chunk ${i + 1} size:`, (chunkFile.size / 1024 / 1024).toFixed(2), 'MB')
+      console.log(
+        `[OpenAI] Chunk ${i + 1} size:`,
+        (chunkFile.size / 1024 / 1024).toFixed(2),
+        'MB'
+      )
 
       // Transcribe this chunk
       const chunkTranscript = await this.transcribeAudio(chunkFile)
       transcripts.push(chunkTranscript)
 
-      console.log(`[OpenAI] ✓ Chunk ${i + 1} transcribed:`, chunkTranscript.substring(0, 100) + '...')
+      console.log(
+        `[OpenAI] ✓ Chunk ${i + 1} transcribed:`,
+        chunkTranscript.substring(0, 100) + '...'
+      )
     }
 
     // Combine all transcripts
     const fullTranscript = transcripts.join(' ')
     console.log('[OpenAI] === CHUNKED TRANSCRIPTION COMPLETE ===')
-    console.log('[OpenAI] Total transcript length:', fullTranscript.length, 'characters')
+    console.log(
+      '[OpenAI] Total transcript length:',
+      fullTranscript.length,
+      'characters'
+    )
 
     return fullTranscript
   }
@@ -234,10 +294,14 @@ class OpenAIService {
       // Build context about existing tasks
       let existingTasksContext = ''
       if (existingTasks && existingTasks.length > 0) {
-        existingTasksContext = '\n\nEXISTING TASKS IN PROJECT:\n' +
-          existingTasks.map((task, idx) =>
-            `${idx + 1}. "${task.title}" (Status: ${task.status || 'todo'}, Priority: ${task.priority || 'medium'})\n   Description: ${task.description || 'No description'}`
-          ).join('\n')
+        existingTasksContext =
+          '\n\nEXISTING TASKS IN PROJECT:\n' +
+          existingTasks
+            .map(
+              (task, idx) =>
+                `${idx + 1}. "${task.title}" (Status: ${task.status || 'todo'}, Priority: ${task.priority || 'medium'})\n   Description: ${task.description || 'No description'}`
+            )
+            .join('\n')
       }
 
       const prompt = `You are a SPECIALIZED TASK EXTRACTION AGENT. Your ONLY job is to extract tasks and their status from meeting transcripts.
@@ -317,7 +381,8 @@ ${transcript}`
           messages: [
             {
               role: 'system',
-              content: 'You are a SPECIALIZED TASK EXTRACTION AGENT. Your sole purpose is to analyze meeting transcripts and extract tasks with ACCURATE status detection. You must listen carefully for status keywords (blocked, in progress, done, etc.) and assign the correct status. Always respond with valid JSON only.'
+              content:
+                'You are a SPECIALIZED TASK EXTRACTION AGENT. Your sole purpose is to analyze meeting transcripts and extract tasks with ACCURATE status detection. You must listen carefully for status keywords (blocked, in progress, done, etc.) and assign the correct status. Always respond with valid JSON only.'
             },
             {
               role: 'user',
@@ -377,12 +442,21 @@ ${transcript}`
         }
 
         console.log('[OpenAI] Number of tasks parsed:', tasks.length)
-        console.log('[OpenAI] Raw tasks from AI:', JSON.stringify(tasks, null, 2))
+        console.log(
+          '[OpenAI] Raw tasks from AI:',
+          JSON.stringify(tasks, null, 2)
+        )
 
         // Debug: Check if AI is putting updates in description field
         tasks.forEach((task, idx) => {
-          if (task.matchId && task.description && task.description.includes('AI Analysis')) {
-            console.error(`[OpenAI] ⚠️ PROBLEM: Task ${idx + 1} has AI update in description field instead of updates field!`)
+          if (
+            task.matchId &&
+            task.description &&
+            task.description.includes('AI Analysis')
+          ) {
+            console.error(
+              `[OpenAI] ⚠️ PROBLEM: Task ${idx + 1} has AI update in description field instead of updates field!`
+            )
             console.error(`[OpenAI] Description: ${task.description}`)
             console.error(`[OpenAI] Updates: ${task.updates || 'NONE'}`)
           }
@@ -390,12 +464,17 @@ ${transcript}`
 
         // Validate and sanitize tasks
         return tasks.map((task, index) => {
-          console.log(`[OpenAI] Processing task ${index + 1}:`, JSON.stringify(task, null, 2))
+          console.log(
+            `[OpenAI] Processing task ${index + 1}:`,
+            JSON.stringify(task, null, 2)
+          )
 
           const sanitized = {
             title: (task.title || 'Untitled Task').substring(0, 50),
             description: task.description || '',
-            priority: ['high', 'medium', 'low'].includes(task.priority) ? task.priority : 'medium'
+            priority: ['high', 'medium', 'low'].includes(task.priority)
+              ? task.priority
+              : 'medium'
           }
 
           console.log(`[OpenAI] Base sanitized task ${index + 1}:`, sanitized)
@@ -403,31 +482,59 @@ ${transcript}`
           // Include matching and update information if present
           if (task.matchId) {
             sanitized.matchId = parseInt(task.matchId)
-            console.log(`[OpenAI] Task ${index + 1} has matchId:`, sanitized.matchId)
+            console.log(
+              `[OpenAI] Task ${index + 1} has matchId:`,
+              sanitized.matchId
+            )
           }
           if (task.updates) {
             sanitized.updates = task.updates
-            console.log(`[OpenAI] Task ${index + 1} has updates:`, sanitized.updates)
+            console.log(
+              `[OpenAI] Task ${index + 1} has updates:`,
+              sanitized.updates
+            )
           }
-          if (task.newStatus && ['todo', 'in-progress', 'done', 'blocked'].includes(task.newStatus)) {
+          if (
+            task.newStatus &&
+            ['todo', 'in-progress', 'done', 'blocked'].includes(task.newStatus)
+          ) {
             sanitized.newStatus = task.newStatus
-            console.log(`[OpenAI] Task ${index + 1} has newStatus:`, sanitized.newStatus)
+            console.log(
+              `[OpenAI] Task ${index + 1} has newStatus:`,
+              sanitized.newStatus
+            )
           } else if (task.newStatus === 'on-hold') {
             sanitized.newStatus = 'blocked' // Map on-hold to blocked
-            console.log(`[OpenAI] Task ${index + 1} newStatus mapped on-hold → blocked`)
+            console.log(
+              `[OpenAI] Task ${index + 1} newStatus mapped on-hold → blocked`
+            )
           }
-          if (task.newPriority && ['high', 'medium', 'low'].includes(task.newPriority)) {
+          if (
+            task.newPriority &&
+            ['high', 'medium', 'low'].includes(task.newPriority)
+          ) {
             sanitized.newPriority = task.newPriority
-            console.log(`[OpenAI] Task ${index + 1} has newPriority:`, sanitized.newPriority)
+            console.log(
+              `[OpenAI] Task ${index + 1} has newPriority:`,
+              sanitized.newPriority
+            )
           }
 
           // CRITICAL: Always set status field, defaulting to 'todo' if not provided
-          if (task.status && ['todo', 'in-progress', 'done', 'blocked'].includes(task.status)) {
+          if (
+            task.status &&
+            ['todo', 'in-progress', 'done', 'blocked'].includes(task.status)
+          ) {
             sanitized.status = task.status
-            console.log(`[OpenAI] Task ${index + 1} status set:`, sanitized.status)
+            console.log(
+              `[OpenAI] Task ${index + 1} status set:`,
+              sanitized.status
+            )
           } else if (task.status === 'on-hold') {
             sanitized.status = 'blocked' // Map on-hold to blocked
-            console.log(`[OpenAI] Task ${index + 1} status mapped on-hold → blocked`)
+            console.log(
+              `[OpenAI] Task ${index + 1} status mapped on-hold → blocked`
+            )
           } else {
             sanitized.status = 'todo' // Default status if none provided
             console.log(`[OpenAI] Task ${index + 1} status defaulted to: todo`)
@@ -435,7 +542,10 @@ ${transcript}`
 
           if (task.assignee) {
             sanitized.assignee = task.assignee
-            console.log(`[OpenAI] Task ${index + 1} has assignee:`, sanitized.assignee)
+            console.log(
+              `[OpenAI] Task ${index + 1} has assignee:`,
+              sanitized.assignee
+            )
           }
 
           // Validate and include dueDate if present
@@ -444,22 +554,33 @@ ${transcript}`
             const dateRegex = /^\d{4}-\d{2}-\d{2}$/
             if (dateRegex.test(task.dueDate)) {
               sanitized.dueDate = task.dueDate
-              console.log(`[OpenAI] Task ${index + 1} has dueDate:`, sanitized.dueDate)
+              console.log(
+                `[OpenAI] Task ${index + 1} has dueDate:`,
+                sanitized.dueDate
+              )
             }
           }
 
-          console.log(`[OpenAI] ✓ Final sanitized task ${index + 1}:`, JSON.stringify(sanitized, null, 2))
+          console.log(
+            `[OpenAI] ✓ Final sanitized task ${index + 1}:`,
+            JSON.stringify(sanitized, null, 2)
+          )
           return sanitized
         })
       } catch (parseError) {
-        console.warn('Failed to parse JSON response, attempting text extraction:', parseError)
+        console.warn(
+          'Failed to parse JSON response, attempting text extraction:',
+          parseError
+        )
         // Fallback: try to extract tasks from text
         return this.extractTasksFromText(content)
       }
     } catch (error) {
       console.error('Task extraction error:', error)
       if (error.message.includes('fetch')) {
-        throw new Error('Network error: Unable to connect to Azure OpenAI. Please check your endpoint and internet connection.')
+        throw new Error(
+          'Network error: Unable to connect to Azure OpenAI. Please check your endpoint and internet connection.'
+        )
       }
       throw error
     }
@@ -467,7 +588,9 @@ ${transcript}`
 
   // Find related tasks that should be updated together
   async findRelatedTasks(tasks, completedTaskTitle, completedTaskDescription) {
-    if (!tasks || tasks.length === 0) {return []}
+    if (!tasks || tasks.length === 0) {
+      return []
+    }
 
     try {
       const prompt = `Given that this task has been completed:
@@ -477,9 +600,9 @@ Title: "${completedTaskTitle}"
 Description: "${completedTaskDescription}"
 
 EXISTING TASKS:
-${tasks.map((task, idx) =>
-    `${idx + 1}. "${task.title}" - ${task.description}`
-  ).join('\n')}
+${tasks
+  .map((task, idx) => `${idx + 1}. "${task.title}" - ${task.description}`)
+  .join('\n')}
 
 Return ONLY a JSON array of task indices (1-based) that are related to the completed task and should also be marked as completed or updated. Tasks are related if they:
 1. Are part of the same project/topic
@@ -504,7 +627,8 @@ JSON array:`
           messages: [
             {
               role: 'system',
-              content: 'You are a task relationship analyzer. Return only JSON arrays.'
+              content:
+                'You are a task relationship analyzer. Return only JSON arrays.'
             },
             {
               role: 'user',
@@ -539,13 +663,16 @@ JSON array:`
 
   extractTasksFromText(text) {
     const tasks = []
-    const lines = text.split('\n').map(line => line.trim()).filter(line => line)
+    const lines = text
+      .split('\n')
+      .map(line => line.trim())
+      .filter(line => line)
 
     let currentTask = {}
 
     for (const line of lines) {
       // Look for task indicators
-      if (line.match(/^\d+\.|\-|\*/) || line.toLowerCase().includes('task')) {
+      if (line.match(/^\d+\.|-|\*/) || line.toLowerCase().includes('task')) {
         // Save previous task if exists
         if (currentTask.title) {
           tasks.push({
@@ -557,15 +684,23 @@ JSON array:`
 
         // Start new task
         currentTask = {
-          title: line.replace(/^\d+\.|\-|\*/, '').trim().substring(0, 50),
+          title: line
+            .replace(/^\d+\.|-|\*/, '')
+            .trim()
+            .substring(0, 50),
           description: '',
           priority: 'medium'
         }
       } else if (line.toLowerCase().includes('description:')) {
         currentTask.description = line.replace(/description:/i, '').trim()
       } else if (line.toLowerCase().includes('priority:')) {
-        const priority = line.replace(/priority:/i, '').trim().toLowerCase()
-        currentTask.priority = ['high', 'medium', 'low'].includes(priority) ? priority : 'medium'
+        const priority = line
+          .replace(/priority:/i, '')
+          .trim()
+          .toLowerCase()
+        currentTask.priority = ['high', 'medium', 'low'].includes(priority)
+          ? priority
+          : 'medium'
       } else if (currentTask.title && line.length > 10) {
         // Add to description if we have a task started
         currentTask.description = (currentTask.description + ' ' + line).trim()
@@ -636,7 +771,8 @@ ${transcript}`
           messages: [
             {
               role: 'system',
-              content: 'You are a professional meeting secretary who creates clear, structured meeting summaries.'
+              content:
+                'You are a professional meeting secretary who creates clear, structured meeting summaries.'
             },
             {
               role: 'user',
@@ -667,11 +803,15 @@ ${transcript}`
       }
 
       const result = await response.json()
-      return result.choices?.[0]?.message?.content || 'Unable to generate summary'
+      return (
+        result.choices?.[0]?.message?.content || 'Unable to generate summary'
+      )
     } catch (error) {
       console.error('Summary generation error:', error)
       if (error.message.includes('fetch')) {
-        throw new Error('Network error: Unable to connect to Azure OpenAI. Please check your endpoint and internet connection.')
+        throw new Error(
+          'Network error: Unable to connect to Azure OpenAI. Please check your endpoint and internet connection.'
+        )
       }
       throw error
     }
@@ -711,26 +851,30 @@ ${transcript}`
       })
 
       // Separate tasks by urgency/status for better analysis
-      const urgentTasks = tasksWithContext.filter(t =>
-        t.status !== 'done' && (
-          t.dueContext.includes('OVERDUE') ||
-          t.dueContext.includes('DUE TODAY') ||
-          t.priority === 'high'
-        )
+      const urgentTasks = tasksWithContext.filter(
+        t =>
+          t.status !== 'done' &&
+          (t.dueContext.includes('OVERDUE') ||
+            t.dueContext.includes('DUE TODAY') ||
+            t.priority === 'high')
       )
-      const lowEffortTasks = tasksWithContext.filter(t =>
-        t.status !== 'done' && t.priority === 'low'
+      const lowEffortTasks = tasksWithContext.filter(
+        t => t.status !== 'done' && t.priority === 'low'
       )
-      const activeTasks = tasksWithContext.filter(t =>
-        t.status === 'in-progress' || t.status === 'todo'
+      const activeTasks = tasksWithContext.filter(
+        t => t.status === 'in-progress' || t.status === 'todo'
       )
 
       const prompt = `You are a productivity coach reviewing someone's task list. Provide brief, actionable insights to help them prioritize their work.
 
 CURRENT TASKS:
-${tasksWithContext.slice(0, 25).map((task, idx) =>
-    `${idx + 1}. "${task.title}" - Status: ${task.status}, Priority: ${task.priority}${task.dueContext}${task.description ? ` - ${task.description.substring(0, 100)}` : ''}`
-  ).join('\n')}
+${tasksWithContext
+  .slice(0, 25)
+  .map(
+    (task, idx) =>
+      `${idx + 1}. "${task.title}" - Status: ${task.status}, Priority: ${task.priority}${task.dueContext}${task.description ? ` - ${task.description.substring(0, 100)}` : ''}`
+  )
+  .join('\n')}
 ${tasksWithContext.length > 25 ? `\n...and ${tasksWithContext.length - 25} more tasks` : ''}
 
 CONTEXT:
@@ -766,7 +910,8 @@ Keep each insight concise and reference specific task titles. Be encouraging but
           messages: [
             {
               role: 'system',
-              content: 'You are a helpful productivity coach who provides brief, actionable insights. You reference specific tasks by their titles and keep your advice concise and practical.'
+              content:
+                'You are a helpful productivity coach who provides brief, actionable insights. You reference specific tasks by their titles and keep your advice concise and practical.'
             },
             {
               role: 'user',
@@ -798,7 +943,8 @@ Keep each insight concise and reference specific task titles. Be encouraging but
       }
 
       const result = await response.json()
-      const insights = result.choices?.[0]?.message?.content || 'Unable to generate insights'
+      const insights =
+        result.choices?.[0]?.message?.content || 'Unable to generate insights'
 
       console.log('[OpenAI] ✓ Task insights generated successfully')
       console.log('[OpenAI] Insights length:', insights.length, 'characters')
@@ -807,7 +953,9 @@ Keep each insight concise and reference specific task titles. Be encouraging but
     } catch (error) {
       console.error('[OpenAI] Insights generation error:', error)
       if (error.message.includes('fetch')) {
-        throw new Error('Network error: Unable to connect to Azure OpenAI. Please check your endpoint and internet connection.')
+        throw new Error(
+          'Network error: Unable to connect to Azure OpenAI. Please check your endpoint and internet connection.'
+        )
       }
       throw error
     }
@@ -851,7 +999,8 @@ Format the email with clear sections (Subject, Body with greeting, main content,
           messages: [
             {
               role: 'system',
-              content: 'You are a professional email writing assistant. Generate clear, concise, and contextually appropriate email templates based on task information.'
+              content:
+                'You are a professional email writing assistant. Generate clear, concise, and contextually appropriate email templates based on task information.'
             },
             {
               role: 'user',
@@ -882,11 +1031,16 @@ Format the email with clear sections (Subject, Body with greeting, main content,
       }
 
       const result = await response.json()
-      return result.choices?.[0]?.message?.content || 'Unable to generate email template'
+      return (
+        result.choices?.[0]?.message?.content ||
+        'Unable to generate email template'
+      )
     } catch (error) {
       console.error('[OpenAI] Email template generation error:', error)
       if (error.message.includes('fetch')) {
-        throw new Error('Network error: Unable to connect to Azure OpenAI. Please check your endpoint and internet connection.')
+        throw new Error(
+          'Network error: Unable to connect to Azure OpenAI. Please check your endpoint and internet connection.'
+        )
       }
       throw error
     }
@@ -931,7 +1085,8 @@ Keep the message focused and to-the-point, as Slack messages should be shorter t
           messages: [
             {
               role: 'system',
-              content: 'You are a helpful Slack messaging assistant. Generate clear, concise, and conversational Slack messages based on task information. Use appropriate Slack formatting and emojis where helpful.'
+              content:
+                'You are a helpful Slack messaging assistant. Generate clear, concise, and conversational Slack messages based on task information. Use appropriate Slack formatting and emojis where helpful.'
             },
             {
               role: 'user',
@@ -962,11 +1117,16 @@ Keep the message focused and to-the-point, as Slack messages should be shorter t
       }
 
       const result = await response.json()
-      return result.choices?.[0]?.message?.content || 'Unable to generate Slack message'
+      return (
+        result.choices?.[0]?.message?.content ||
+        'Unable to generate Slack message'
+      )
     } catch (error) {
       console.error('[OpenAI] Slack message generation error:', error)
       if (error.message.includes('fetch')) {
-        throw new Error('Network error: Unable to connect to Azure OpenAI. Please check your endpoint and internet connection.')
+        throw new Error(
+          'Network error: Unable to connect to Azure OpenAI. Please check your endpoint and internet connection.'
+        )
       }
       throw error
     }
@@ -1010,7 +1170,8 @@ Use proper Markdown formatting with headers, bullet points, and checkboxes where
           messages: [
             {
               role: 'system',
-              content: 'You are a professional document writing assistant. Generate well-structured, comprehensive document templates based on task information using Markdown formatting.'
+              content:
+                'You are a professional document writing assistant. Generate well-structured, comprehensive document templates based on task information using Markdown formatting.'
             },
             {
               role: 'user',
@@ -1041,11 +1202,16 @@ Use proper Markdown formatting with headers, bullet points, and checkboxes where
       }
 
       const result = await response.json()
-      return result.choices?.[0]?.message?.content || 'Unable to generate document template'
+      return (
+        result.choices?.[0]?.message?.content ||
+        'Unable to generate document template'
+      )
     } catch (error) {
       console.error('[OpenAI] Document template generation error:', error)
       if (error.message.includes('fetch')) {
-        throw new Error('Network error: Unable to connect to Azure OpenAI. Please check your endpoint and internet connection.')
+        throw new Error(
+          'Network error: Unable to connect to Azure OpenAI. Please check your endpoint and internet connection.'
+        )
       }
       throw error
     }
@@ -1089,7 +1255,8 @@ If the language cannot be determined from context, default to JavaScript. Includ
           messages: [
             {
               role: 'system',
-              content: 'You are a professional software development assistant. Generate clean, well-commented code templates based on task information. Follow best practices and include helpful explanatory comments.'
+              content:
+                'You are a professional software development assistant. Generate clean, well-commented code templates based on task information. Follow best practices and include helpful explanatory comments.'
             },
             {
               role: 'user',
@@ -1120,11 +1287,16 @@ If the language cannot be determined from context, default to JavaScript. Includ
       }
 
       const result = await response.json()
-      return result.choices?.[0]?.message?.content || 'Unable to generate code template'
+      return (
+        result.choices?.[0]?.message?.content ||
+        'Unable to generate code template'
+      )
     } catch (error) {
       console.error('[OpenAI] Code template generation error:', error)
       if (error.message.includes('fetch')) {
-        throw new Error('Network error: Unable to connect to Azure OpenAI. Please check your endpoint and internet connection.')
+        throw new Error(
+          'Network error: Unable to connect to Azure OpenAI. Please check your endpoint and internet connection.'
+        )
       }
       throw error
     }

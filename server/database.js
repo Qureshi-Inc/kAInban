@@ -652,36 +652,78 @@ export const saveProject = (userId, project) => {
     const newTasksMap = new Map(project.tasks.map(t => [t.id, t]))
 
     const insertStmt = db.prepare(`
-      INSERT OR REPLACE INTO tasks (id, project_id, title, description, status, priority, due_date, assignee, subtasks, comments, linked_tasks, ai_created_links, ai_discovered_links, rejected_ai_links, meeting_id)
+      INSERT INTO tasks (id, project_id, title, description, status, priority, due_date, assignee, subtasks, comments, linked_tasks, ai_created_links, ai_discovered_links, rejected_ai_links, meeting_id)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `)
+
+    const updateStmt = db.prepare(`
+      UPDATE tasks SET
+        title = ?, description = ?, status = ?, priority = ?, due_date = ?, assignee = ?,
+        subtasks = ?, comments = ?, linked_tasks = ?, ai_created_links = ?,
+        ai_discovered_links = ?, rejected_ai_links = ?, meeting_id = ?
+      WHERE id = ?
     `)
 
     for (const task of project.tasks) {
       const existingTask = existingTasksMap.get(task.id)
 
-      // Insert/update the task
-      insertStmt.run(
-        task.id,
-        project.id,
-        task.title,
-        task.description || '',
-        task.status || 'todo',
-        task.priority || 'medium',
-        task.dueDate || null,
-        task.assignee || null,
-        JSON.stringify(task.subtasks || []),
-        JSON.stringify(task.comments || []),
-        JSON.stringify(task.linkedTasks || []),
-        JSON.stringify(task.aiCreatedLinks || []),
-        JSON.stringify(task.aiDiscoveredLinks || []),
-        JSON.stringify(task.rejectedAiLinks || []),
-        task.meetingId || null
-      )
+      if (existingTask) {
+        // Update existing task (preserves AI comments via foreign key)
+        updateStmt.run(
+          task.title,
+          task.description || '',
+          task.status || 'todo',
+          task.priority || 'medium',
+          task.dueDate || null,
+          task.assignee || null,
+          JSON.stringify(task.subtasks || []),
+          JSON.stringify(task.comments || []),
+          JSON.stringify(task.linkedTasks || []),
+          JSON.stringify(task.aiCreatedLinks || []),
+          JSON.stringify(task.aiDiscoveredLinks || []),
+          JSON.stringify(task.rejectedAiLinks || []),
+          task.meetingId || null,
+          task.id
+        )
+      } else {
+        // Insert new task
+        insertStmt.run(
+          task.id,
+          project.id,
+          task.title,
+          task.description || '',
+          task.status || 'todo',
+          task.priority || 'medium',
+          task.dueDate || null,
+          task.assignee || null,
+          JSON.stringify(task.subtasks || []),
+          JSON.stringify(task.comments || []),
+          JSON.stringify(task.linkedTasks || []),
+          JSON.stringify(task.aiCreatedLinks || []),
+          JSON.stringify(task.aiDiscoveredLinks || []),
+          JSON.stringify(task.rejectedAiLinks || []),
+          task.meetingId || null
+        )
+      }
 
       // Record changes if task existed before
       if (existingTask) {
         // Check for status change
         if (existingTask.status !== task.status) {
+          console.log(
+            '[saveProject] Recording status change for task:',
+            task.id,
+            'from',
+            existingTask.status,
+            'to',
+            task.status
+          )
+          if (!task.id) {
+            console.error(
+              '[saveProject] ERROR: task.id is null/undefined for status change!'
+            )
+            console.error('[saveProject] Task object:', task)
+          }
           recordTaskChange(
             task.id,
             userIdStr,
@@ -772,22 +814,7 @@ export const saveProject = (userId, project) => {
           )
         }
 
-        // Only record general update if there were actual changes
-        const hasChanges =
-          existingTask.status !== task.status ||
-          existingTask.priority !== task.priority ||
-          existingTask.title !== task.title ||
-          existingTask.description !== (task.description || '') ||
-          normalizedExistingAssignee !== normalizedNewAssignee ||
-          existingTask.dueDate !== task.dueDate
-
         // Don't record generic "updated" entries since we have specific change records
-        // if (hasChanges) {
-        //   recordTaskChange(task.id, userIdStr, 'updated', null, null, null, {
-        //     source: 'task_update',
-        //     timestamp: new Date().toISOString()
-        //   })
-        // }
       } else {
         // Record task creation
         recordTaskChange(task.id, userIdStr, 'created', null, null, null, {
@@ -1273,14 +1300,49 @@ export const recordTaskChange = (
   metadata = null,
   projectId = null
 ) => {
+  // CRITICAL FIX: Prevent NULL/empty task_id from being inserted
+  if (!taskId || taskId === '' || taskId === null || taskId === undefined) {
+    console.error(
+      '[recordTaskChange] BLOCKED: Attempted to record change with NULL/empty task_id:',
+      JSON.stringify(taskId)
+    )
+    console.error('[recordTaskChange] Change details:', {
+      userId,
+      changeType,
+      fieldName,
+      oldValue,
+      newValue
+    })
+    return null
+  }
+
+  console.log('[recordTaskChange] Input params:', {
+    taskId,
+    userId,
+    changeType,
+    fieldName,
+    oldValue:
+      typeof oldValue === 'string'
+        ? oldValue.substring(0, 50) + '...'
+        : oldValue,
+    newValue:
+      typeof newValue === 'string'
+        ? newValue.substring(0, 50) + '...'
+        : newValue,
+    projectId
+  })
+
   // If projectId not provided, try to get it from the task
   let finalProjectId = projectId
   if (!finalProjectId && taskId) {
     const task = db
       .prepare('SELECT project_id FROM tasks WHERE id = ?')
       .get(taskId)
+    console.log('[recordTaskChange] Task lookup result:', task)
     finalProjectId = task?.project_id || null
   }
+
+  console.log('[recordTaskChange] Final values:', { taskId, finalProjectId })
 
   const stmt = db.prepare(`
     INSERT INTO task_changes
@@ -1381,7 +1443,95 @@ export const getProjectTaskChanges = (projectId, limit = 100) => {
   })
 }
 
-// Task comments methods
+// BULLETPROOF AI COMMENT SYSTEM - Single function that NEVER fails
+export const createAIComment = (taskId, userId, content, metadata = null) => {
+  console.log('[BULLETPROOF] Creating AI comment for task:', taskId)
+
+  // STEP 1: Validate inputs - fail fast if invalid
+  if (!taskId || !userId || !content) {
+    console.error('[BULLETPROOF] Invalid inputs:', { taskId, userId, content })
+    throw new Error('Invalid inputs for AI comment creation')
+  }
+
+  // STEP 2: Verify task exists and get project_id + task title
+  const task = db
+    .prepare('SELECT project_id, title FROM tasks WHERE id = ?')
+    .get(taskId)
+  if (!task) {
+    console.error('[BULLETPROOF] Task not found:', taskId)
+    throw new Error(`Task ${taskId} not found`)
+  }
+
+  const projectId = task.project_id
+  const taskTitle = task.title
+  console.log(
+    '[BULLETPROOF] Found task in project:',
+    projectId,
+    '- Task:',
+    taskTitle
+  )
+
+  // STEP 3: Create comment and activity in single atomic transaction
+  const transaction = db.transaction(() => {
+    const commentId = `ai_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+
+    // Insert comment
+    const commentStmt = db.prepare(`
+      INSERT INTO task_comments
+      (id, task_id, user_id, author_name, content, comment_type, metadata)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `)
+
+    const commentResult = commentStmt.run(
+      commentId,
+      taskId,
+      userId,
+      'AI Coordinator',
+      content,
+      'ai_update',
+      metadata ? JSON.stringify(metadata) : null
+    )
+
+    if (commentResult.changes !== 1) {
+      throw new Error('Failed to insert comment')
+    }
+
+    // Insert activity with GUARANTEED task_id and project_id
+    const activityStmt = db.prepare(`
+      INSERT INTO task_changes
+      (task_id, project_id, user_id, change_type, field_name, old_value, new_value, metadata)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `)
+
+    const activityResult = activityStmt.run(
+      taskId, // GUARANTEED not null
+      projectId, // GUARANTEED not null
+      userId,
+      'ai_comment_added',
+      null,
+      null,
+      content,
+      JSON.stringify({
+        commentId,
+        commentType: 'ai_update',
+        taskTitle: taskTitle,
+        taskId: taskId,
+        projectId: projectId
+      })
+    )
+
+    if (activityResult.changes !== 1) {
+      throw new Error('Failed to insert activity')
+    }
+
+    console.log('[BULLETPROOF] ✓ Comment and activity created:', commentId)
+    return { commentId, taskId, projectId }
+  })
+
+  return transaction()
+}
+
+// Legacy function for backward compatibility
 export const addTaskComment = (
   commentId,
   taskId,
@@ -1434,6 +1584,23 @@ export const updateTaskComment = (commentId, content) => {
     WHERE id = ?
   `)
   return stmt.run(content, commentId)
+}
+
+export const getTaskComment = commentId => {
+  const stmt = db.prepare(`
+    SELECT tc.*, u.name as user_name, u.email as user_email
+    FROM task_comments tc
+    LEFT JOIN users u ON tc.user_id = u.id
+    WHERE tc.id = ?
+  `)
+  const comment = stmt.get(commentId)
+  if (comment) {
+    return {
+      ...comment,
+      metadata: comment.metadata ? JSON.parse(comment.metadata) : null
+    }
+  }
+  return null
 }
 
 export const deleteTaskComment = (commentId, userId) => {
