@@ -10,8 +10,8 @@ import {
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import useAppStore from '../stores/useAppStore'
-import { Button } from './ui/button'
 import SearchModal from './SearchModal'
+import { Button } from './ui/button'
 import UserProfile from './UserProfile'
 
 export default function LeftSidebar({ isOpen, onClose }) {

@@ -47,7 +47,7 @@ export default function SearchModal({ isOpen, onClose }) {
     setSearchResults(results)
   }, [searchQuery, projects])
 
-  const handleTaskClick = async (result) => {
+  const handleTaskClick = async(result) => {
     // Load the project first
     await loadProject(result.project.id)
 

@@ -36,10 +36,12 @@ export default function Header({ onToggleSidebar, onShowActivity }) {
     }
 
     const project = await createProject(newProjectName.trim())
-    console.log('[Header] Project name:', project?.name)
+    console.log('[Header] Project created:', project?.name)
 
     setNewProjectName('')
     setIsCreateProjectOpen(false)
+
+    // Let MainView handle URL navigation automatically via its URL sync effect
 
     addNotification({
       type: 'success',

@@ -147,9 +147,12 @@ const useAppStore = create((set, get) => ({
       set({ projects: projectsWithTasks })
 
       // Restore last selected project from localStorage
+      // BUT only if we don't already have a current project (prevents conflicts with project creation)
+      const currentState = get()
       const lastProjectId = localStorage.getItem('lastSelectedProject')
       const lastMeetingId = localStorage.getItem('lastSelectedMeeting')
       if (
+        !currentState.currentProject && // Only restore if no project is currently selected
         lastProjectId &&
         projectsWithTasks.some(p => p.id === lastProjectId)
       ) {

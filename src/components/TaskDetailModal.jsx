@@ -1,5 +1,4 @@
 import { motion, AnimatePresence } from 'framer-motion'
-import { createPortal } from 'react-dom'
 import {
   X,
   Calendar,
@@ -25,6 +24,7 @@ import {
   Loader2
 } from 'lucide-react'
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { parseSubtasksFromDescription } from '../lib/utils'
 import apiService from '../services/apiService'
 import openaiService from '../services/openaiService'
@@ -340,7 +340,7 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
     }
   }, [task, updateTask])
 
-  const handleSave = async () => {
+  const handleSave = async() => {
     if (!task) {
       return
     }
@@ -362,7 +362,7 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
     updateTask(task.id, updates)
 
     // Force save to backend
-    setTimeout(async () => {
+    setTimeout(async() => {
       try {
         await updateCurrentProject()
       } catch (error) {
@@ -436,7 +436,7 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
         linkTasks(task.id, updatedLinkedTasks)
 
         // Force save to backend
-        setTimeout(async () => {
+        setTimeout(async() => {
           try {
             await updateCurrentProject()
           } catch (error) {
@@ -473,7 +473,7 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
       unlinkTasks(task.id, taskToUnlinkId)
 
       // Force save to backend
-      setTimeout(async () => {
+      setTimeout(async() => {
         try {
           await updateCurrentProject()
         } catch (error) {
@@ -916,7 +916,7 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
   }
 
   // Load comments from server
-  const loadServerComments = useCallback(async () => {
+  const loadServerComments = useCallback(async() => {
     if (!task?.id) {
       return
     }
@@ -936,7 +936,7 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
     }
   }, [task?.id, addNotification])
 
-  const addComment = async () => {
+  const addComment = async() => {
     if (!newComment.trim() || !task?.id) {
       return
     }
@@ -983,607 +983,608 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
 
   return createPortal(
     <AnimatePresence>
-      {isOpen && <div
-        className={`task-modal-overlay ${isKeyboardOpen ? 'keyboard-active' : ''} ${isMobile ? 'mobile-modal' : ''}`}
-        role="button"
-        aria-label="Close modal"
-        onClick={onClose}
-        onKeyDown={e => {
-          if (e.key === 'Escape') {
-            onClose()
-          }
-        }}
-        tabIndex={0}
-      >
+      {isOpen && (
         <div
-          ref={modalContentRef}
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="task-modal-title"
-          onClick={e => e.stopPropagation()}
-          className={`task-modal-content layout-stable ${isKeyboardOpen ? 'keyboard-aware-container' : ''}`}
+          className={`task-modal-overlay ${isKeyboardOpen ? 'keyboard-active' : ''} ${isMobile ? 'mobile-modal' : ''}`}
+          role="button"
+          aria-label="Close modal"
+          onClick={onClose}
+          onKeyDown={e => {
+            if (e.key === 'Escape') {
+              onClose()
+            }
+          }}
+          tabIndex={0}
         >
-          {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b">
-            <div className="flex-1">
-              <input
-                id="task-modal-title"
-                type="text"
-                value={title}
-                onChange={e => setTitle(e.target.value)}
-                className="text-2xl font-bold w-full bg-transparent border-none focus:outline-none focus:ring-0"
-                placeholder="Task title..."
-              />
-            </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onClose}
-              className="ml-4"
-            >
-              <X className="h-5 w-5" />
-            </Button>
-          </div>
-
-          {/* Content - Scrollable */}
-          <div className="flex-1 overflow-y-auto p-6 space-y-6 modal-scroll-content">
-            {/* Status and Priority Row */}
-            <div className="grid grid-cols-2 gap-4">
-              {/* Status */}
-              <div>
-                <label
-                  htmlFor="task-status"
-                  className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block"
-                >
-                  Status
-                </label>
-                <select
-                  id="task-status"
-                  value={status}
-                  onChange={e => setStatus(e.target.value)}
-                  className={`w-full px-3 py-2 rounded-md border font-medium ${getStatusColor(status)}`}
-                >
-                  <option value="todo">To Do</option>
-                  <option value="in-progress">In Progress</option>
-                  <option value="blocked">Blocked</option>
-                  <option value="done">Done</option>
-                </select>
-              </div>
-
-              {/* Priority */}
-              <div>
-                <label
-                  htmlFor="task-priority"
-                  className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block flex items-center gap-2"
-                >
-                  <Flag className="h-4 w-4" />
-                  Priority
-                </label>
-                <select
-                  id="task-priority"
-                  value={priority}
-                  onChange={e => setPriority(e.target.value)}
-                  className={`w-full px-3 py-2 rounded-md border font-medium ${getPriorityColor(priority)}`}
-                >
-                  <option value="low">Low</option>
-                  <option value="medium">Medium</option>
-                  <option value="high">High</option>
-                </select>
-              </div>
-            </div>
-
-            {/* Due Date and Assignee Row */}
-            <div className="grid grid-cols-2 gap-4">
-              {/* Due Date */}
-              <div>
-                <label
-                  htmlFor="task-due-date"
-                  className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block flex items-center gap-2"
-                >
-                  <Calendar className="h-4 w-4" />
-                  Due Date
-                </label>
+          <div
+            ref={modalContentRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="task-modal-title"
+            onClick={e => e.stopPropagation()}
+            className={`task-modal-content layout-stable ${isKeyboardOpen ? 'keyboard-aware-container' : ''}`}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between p-6 border-b">
+              <div className="flex-1">
                 <input
-                  id="task-due-date"
-                  type="date"
-                  value={dueDate}
-                  onChange={e => setDueDate(e.target.value)}
-                  className="w-full px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700"
-                />
-                {dueDate && (
-                  <p className="text-xs text-gray-500 mt-1">
-                    {formatDate(dueDate)}
-                  </p>
-                )}
-              </div>
-
-              {/* Assignee */}
-              <div>
-                <label
-                  htmlFor="task-assignee"
-                  className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block flex items-center gap-2"
-                >
-                  <User className="h-4 w-4" />
-                  Assignee
-                </label>
-                <input
-                  id="task-assignee"
+                  id="task-modal-title"
                   type="text"
-                  value={assignee}
-                  onChange={e => setAssignee(e.target.value)}
-                  placeholder="Enter name..."
-                  className="w-full px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700"
+                  value={title}
+                  onChange={e => setTitle(e.target.value)}
+                  className="text-2xl font-bold w-full bg-transparent border-none focus:outline-none focus:ring-0"
+                  placeholder="Task title..."
                 />
               </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={onClose}
+                className="ml-4"
+              >
+                <X className="h-5 w-5" />
+              </Button>
             </div>
 
-            {/* Task Relationships */}
-            <div>
-              <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3 block flex items-center gap-2">
-                <Link className="h-4 w-4" />
-                Task Relationships (
-                {linkedTasks.length +
+            {/* Content - Scrollable */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-6 modal-scroll-content">
+              {/* Status and Priority Row */}
+              <div className="grid grid-cols-2 gap-4">
+                {/* Status */}
+                <div>
+                  <label
+                    htmlFor="task-status"
+                    className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block"
+                  >
+                    Status
+                  </label>
+                  <select
+                    id="task-status"
+                    value={status}
+                    onChange={e => setStatus(e.target.value)}
+                    className={`w-full px-3 py-2 rounded-md border font-medium ${getStatusColor(status)}`}
+                  >
+                    <option value="todo">To Do</option>
+                    <option value="in-progress">In Progress</option>
+                    <option value="blocked">Blocked</option>
+                    <option value="done">Done</option>
+                  </select>
+                </div>
+
+                {/* Priority */}
+                <div>
+                  <label
+                    htmlFor="task-priority"
+                    className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block flex items-center gap-2"
+                  >
+                    <Flag className="h-4 w-4" />
+                    Priority
+                  </label>
+                  <select
+                    id="task-priority"
+                    value={priority}
+                    onChange={e => setPriority(e.target.value)}
+                    className={`w-full px-3 py-2 rounded-md border font-medium ${getPriorityColor(priority)}`}
+                  >
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Due Date and Assignee Row */}
+              <div className="grid grid-cols-2 gap-4">
+                {/* Due Date */}
+                <div>
+                  <label
+                    htmlFor="task-due-date"
+                    className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block flex items-center gap-2"
+                  >
+                    <Calendar className="h-4 w-4" />
+                    Due Date
+                  </label>
+                  <input
+                    id="task-due-date"
+                    type="date"
+                    value={dueDate}
+                    onChange={e => setDueDate(e.target.value)}
+                    className="w-full px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700"
+                  />
+                  {dueDate && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      {formatDate(dueDate)}
+                    </p>
+                  )}
+                </div>
+
+                {/* Assignee */}
+                <div>
+                  <label
+                    htmlFor="task-assignee"
+                    className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block flex items-center gap-2"
+                  >
+                    <User className="h-4 w-4" />
+                    Assignee
+                  </label>
+                  <input
+                    id="task-assignee"
+                    type="text"
+                    value={assignee}
+                    onChange={e => setAssignee(e.target.value)}
+                    placeholder="Enter name..."
+                    className="w-full px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700"
+                  />
+                </div>
+              </div>
+
+              {/* Task Relationships */}
+              <div>
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3 block flex items-center gap-2">
+                  <Link className="h-4 w-4" />
+                  Task Relationships (
+                  {linkedTasks.length +
                   aiCreatedLinks.length +
                   aiDiscoveredLinks.length}
-                )
-              </label>
+                  )
+                </label>
 
-              <div className="space-y-4">
-                {/* Manual Linked Tasks */}
-                {linkedTasks.length > 0 && (
-                  <div>
-                    <h4 className="text-xs font-semibold text-blue-600 dark:text-blue-400 mb-2 flex items-center gap-1">
-                      <Link className="h-3 w-3" />
-                      Manual Links ({linkedTasks.length}) - Auto-complete
-                    </h4>
-                    <div className="space-y-1">
-                      {linkedTasks.map(linkedTaskId => {
-                        const linkedTask = tasks.find(
-                          t => t.id === linkedTaskId
-                        )
-                        if (!linkedTask) {
-                          return null
-                        }
-
-                        return (
-                          <div
-                            key={linkedTaskId}
-                            className="flex items-center justify-between p-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md"
-                          >
-                            <div className="flex items-center gap-2 flex-1 min-w-0">
-                              <div
-                                className={`w-2 h-2 rounded-full ${
-                                  linkedTask.status === 'done'
-                                    ? 'bg-green-500'
-                                    : linkedTask.status === 'in-progress'
-                                      ? 'bg-blue-500'
-                                      : linkedTask.status === 'blocked'
-                                        ? 'bg-red-500'
-                                        : 'bg-gray-400'
-                                }`}
-                              />
-                              <span className="text-sm truncate">
-                                {linkedTask.title}
-                              </span>
-                              <span
-                                className={`text-xs px-1.5 py-0.5 rounded ${
-                                  linkedTask.priority === 'high'
-                                    ? 'bg-red-100 text-red-600'
-                                    : linkedTask.priority === 'medium'
-                                      ? 'bg-yellow-100 text-yellow-600'
-                                      : 'bg-blue-100 text-blue-600'
-                                }`}
-                              >
-                                {linkedTask.priority}
-                              </span>
-                            </div>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleUnlinkTask(linkedTaskId)}
-                              className="h-6 w-6 p-0 hover:bg-red-100 text-red-500"
-                            >
-                              <X className="h-3 w-3" />
-                            </Button>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  </div>
-                )}
-
-                {/* AI Created Links */}
-                {aiCreatedLinks.length > 0 && (
-                  <div>
-                    <h4 className="text-xs font-semibold text-purple-600 dark:text-purple-400 mb-2 flex items-center gap-1">
-                      <Brain className="h-3 w-3" />
-                      AI Created Links ({aiCreatedLinks.length}) - From
-                      transcript analysis
-                    </h4>
-                    <div className="space-y-1">
-                      {aiCreatedLinks.map(aiLinkId => {
-                        const aiLinkedTask = tasks.find(t => t.id === aiLinkId)
-                        if (!aiLinkedTask) {
-                          return null
-                        }
-
-                        return (
-                          <div
-                            key={aiLinkId}
-                            className="flex items-center justify-between p-2 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-md"
-                          >
-                            <div className="flex items-center gap-2 flex-1 min-w-0">
-                              <div
-                                className={`w-2 h-2 rounded-full ${
-                                  aiLinkedTask.status === 'done'
-                                    ? 'bg-green-500'
-                                    : aiLinkedTask.status === 'in-progress'
-                                      ? 'bg-blue-500'
-                                      : aiLinkedTask.status === 'blocked'
-                                        ? 'bg-red-500'
-                                        : 'bg-gray-400'
-                                }`}
-                              />
-                              <span className="text-sm truncate">
-                                {aiLinkedTask.title}
-                              </span>
-                              <span
-                                className={`text-xs px-1.5 py-0.5 rounded ${
-                                  aiLinkedTask.priority === 'high'
-                                    ? 'bg-red-100 text-red-600'
-                                    : aiLinkedTask.priority === 'medium'
-                                      ? 'bg-yellow-100 text-yellow-600'
-                                      : 'bg-blue-100 text-blue-600'
-                                }`}
-                              >
-                                {aiLinkedTask.priority}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() =>
-                                  handleAcceptAiSuggestion(aiLinkId, 'created')
-                                }
-                                className="h-6 w-6 p-0 hover:bg-green-100 text-green-600"
-                                title="Accept and promote to manual link"
-                              >
-                                <Check className="h-3 w-3" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() =>
-                                  handleRejectAiSuggestion(aiLinkId, 'created')
-                                }
-                                className="h-6 w-6 p-0 hover:bg-red-100 text-red-500"
-                                title="Reject AI suggestion"
-                              >
-                                <X className="h-3 w-3" />
-                              </Button>
-                            </div>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  </div>
-                )}
-
-                {/* AI Discovered Links */}
-                {aiDiscoveredLinks.length > 0 && (
-                  <div>
-                    <h4 className="text-xs font-semibold text-amber-600 dark:text-amber-400 mb-2 flex items-center gap-1">
-                      <Sparkles className="h-3 w-3" />
-                      AI Discovered Links ({aiDiscoveredLinks.length}) - Found
-                      when completing tasks
-                    </h4>
-                    <div className="space-y-1">
-                      {aiDiscoveredLinks.map(aiDiscoveredId => {
-                        const aiDiscoveredTask = tasks.find(
-                          t => t.id === aiDiscoveredId
-                        )
-                        if (!aiDiscoveredTask) {
-                          return null
-                        }
-
-                        return (
-                          <div
-                            key={aiDiscoveredId}
-                            className="flex items-center justify-between p-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-md"
-                          >
-                            <div className="flex items-center gap-2 flex-1 min-w-0">
-                              <div
-                                className={`w-2 h-2 rounded-full ${
-                                  aiDiscoveredTask.status === 'done'
-                                    ? 'bg-green-500'
-                                    : aiDiscoveredTask.status === 'in-progress'
-                                      ? 'bg-blue-500'
-                                      : aiDiscoveredTask.status === 'blocked'
-                                        ? 'bg-red-500'
-                                        : 'bg-gray-400'
-                                }`}
-                              />
-                              <span className="text-sm truncate">
-                                {aiDiscoveredTask.title}
-                              </span>
-                              <span
-                                className={`text-xs px-1.5 py-0.5 rounded ${
-                                  aiDiscoveredTask.priority === 'high'
-                                    ? 'bg-red-100 text-red-600'
-                                    : aiDiscoveredTask.priority === 'medium'
-                                      ? 'bg-yellow-100 text-yellow-600'
-                                      : 'bg-blue-100 text-blue-600'
-                                }`}
-                              >
-                                {aiDiscoveredTask.priority}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() =>
-                                  handleAcceptAiSuggestion(
-                                    aiDiscoveredId,
-                                    'discovered'
-                                  )
-                                }
-                                className="h-6 w-6 p-0 hover:bg-green-100 text-green-600"
-                                title="Accept and promote to manual link"
-                              >
-                                <Check className="h-3 w-3" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() =>
-                                  handleRejectAiSuggestion(
-                                    aiDiscoveredId,
-                                    'discovered'
-                                  )
-                                }
-                                className="h-6 w-6 p-0 hover:bg-red-100 text-red-500"
-                                title="Reject AI suggestion"
-                              >
-                                <X className="h-3 w-3" />
-                              </Button>
-                            </div>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  </div>
-                )}
-
-                {/* Add Manual Link Dropdown */}
-                <div>
-                  <h4 className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-2">
-                    Add Manual Link
+                <div className="space-y-4">
+                  {/* Manual Linked Tasks */}
+                  {linkedTasks.length > 0 && (
+                    <div>
+                      <h4 className="text-xs font-semibold text-blue-600 dark:text-blue-400 mb-2 flex items-center gap-1">
+                    <Link className="h-3 w-3" />
+                    Manual Links ({linkedTasks.length}) - Auto-complete
                   </h4>
-                  <div className="relative">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() =>
-                        setShowLinkedTasksDropdown(!showLinkedTasksDropdown)
-                      }
-                      className="w-full justify-between"
-                      disabled={getAvailableTasksForLinking().length === 0}
-                    >
-                      <span className="flex items-center gap-2">
-                        <Plus className="h-4 w-4" />
-                        {getAvailableTasksForLinking().length === 0
-                          ? 'No tasks available to link'
-                          : 'Link a task'}
-                      </span>
-                      <ChevronDown className="h-4 w-4" />
-                    </Button>
+                      <div className="space-y-1">
+                    {linkedTasks.map(linkedTaskId => {
+                          const linkedTask = tasks.find(
+                            t => t.id === linkedTaskId
+                          )
+                          if (!linkedTask) {
+                            return null
+                          }
 
-                    {showLinkedTasksDropdown && (
-                      <div className="task-link-dropdown absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg max-h-64 overflow-hidden">
-                        {/* Search Input */}
-                        <div className="p-3 border-b border-gray-200 dark:border-gray-700">
-                          <div className="relative">
-                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                            <input
-                              type="text"
-                              value={linkSearchQuery}
-                              onChange={e => setLinkSearchQuery(e.target.value)}
-                              placeholder="Search tasks..."
-                              className="w-full pl-10 pr-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-primary/50"
-                              autoFocus
-                              onClick={e => e.stopPropagation()}
-                            />
-                          </div>
-                        </div>
-
-                        {/* Task List */}
-                        <div className="max-h-48 overflow-y-auto">
-                          {getAvailableTasksForLinking().length > 0 ? (
-                            getAvailableTasksForLinking().map(availableTask => (
-                              <button
-                                key={availableTask.id}
-                                onClick={e => {
-                                  e.preventDefault()
-                                  e.stopPropagation()
-                                  handleLinkTask(availableTask.id)
-                                }}
-                                className="w-full text-left px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2 border-b border-gray-100 dark:border-gray-700 last:border-b-0 cursor-pointer"
-                              >
+                          return (
+                            <div
+                              key={linkedTaskId}
+                              className="flex items-center justify-between p-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md"
+                            >
+                              <div className="flex items-center gap-2 flex-1 min-w-0">
                                 <div
                                   className={`w-2 h-2 rounded-full ${
-                                    availableTask.status === 'done'
+                                    linkedTask.status === 'done'
                                       ? 'bg-green-500'
-                                      : availableTask.status === 'in-progress'
+                                      : linkedTask.status === 'in-progress'
                                         ? 'bg-blue-500'
-                                        : availableTask.status === 'blocked'
+                                        : linkedTask.status === 'blocked'
                                           ? 'bg-red-500'
                                           : 'bg-gray-400'
                                   }`}
                                 />
-                                <div className="flex-1 min-w-0">
-                                  <div className="text-sm font-medium truncate">
-                                    {availableTask.title}
-                                  </div>
-                                  <div className="text-xs text-gray-500 truncate">
-                                    {availableTask.description ||
-                                      'No description'}
-                                  </div>
-                                </div>
+                                <span className="text-sm truncate">
+                                  {linkedTask.title}
+                                </span>
                                 <span
                                   className={`text-xs px-1.5 py-0.5 rounded ${
-                                    availableTask.priority === 'high'
+                                    linkedTask.priority === 'high'
                                       ? 'bg-red-100 text-red-600'
-                                      : availableTask.priority === 'medium'
+                                      : linkedTask.priority === 'medium'
                                         ? 'bg-yellow-100 text-yellow-600'
                                         : 'bg-blue-100 text-blue-600'
                                   }`}
                                 >
-                                  {availableTask.priority}
+                                  {linkedTask.priority}
                                 </span>
-                              </button>
-                            ))
-                          ) : (
-                            <div className="px-3 py-6 text-center text-sm text-gray-500">
-                              {linkSearchQuery.trim()
-                                ? `No tasks found matching "${linkSearchQuery}"`
-                                : 'No tasks available to link'}
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleUnlinkTask(linkedTaskId)}
+                                className="h-6 w-6 p-0 hover:bg-red-100 text-red-500"
+                              >
+                                <X className="h-3 w-3" />
+                              </Button>
                             </div>
-                          )}
+                          )
+                        })}
+                  </div>
+                    </div>
+                  )}
+
+                  {/* AI Created Links */}
+                  {aiCreatedLinks.length > 0 && (
+                    <div>
+                      <h4 className="text-xs font-semibold text-purple-600 dark:text-purple-400 mb-2 flex items-center gap-1">
+                    <Brain className="h-3 w-3" />
+                    AI Created Links ({aiCreatedLinks.length}) - From
+                    transcript analysis
+                      </h4>
+                      <div className="space-y-1">
+                    {aiCreatedLinks.map(aiLinkId => {
+                          const aiLinkedTask = tasks.find(t => t.id === aiLinkId)
+                          if (!aiLinkedTask) {
+                            return null
+                          }
+
+                          return (
+                            <div
+                              key={aiLinkId}
+                              className="flex items-center justify-between p-2 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-md"
+                            >
+                              <div className="flex items-center gap-2 flex-1 min-w-0">
+                                <div
+                                  className={`w-2 h-2 rounded-full ${
+                                    aiLinkedTask.status === 'done'
+                                      ? 'bg-green-500'
+                                      : aiLinkedTask.status === 'in-progress'
+                                        ? 'bg-blue-500'
+                                        : aiLinkedTask.status === 'blocked'
+                                          ? 'bg-red-500'
+                                          : 'bg-gray-400'
+                                  }`}
+                                />
+                                <span className="text-sm truncate">
+                                  {aiLinkedTask.title}
+                                </span>
+                                <span
+                                  className={`text-xs px-1.5 py-0.5 rounded ${
+                                    aiLinkedTask.priority === 'high'
+                                      ? 'bg-red-100 text-red-600'
+                                      : aiLinkedTask.priority === 'medium'
+                                        ? 'bg-yellow-100 text-yellow-600'
+                                        : 'bg-blue-100 text-blue-600'
+                                  }`}
+                                >
+                                  {aiLinkedTask.priority}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() =>
+                                    handleAcceptAiSuggestion(aiLinkId, 'created')
+                                  }
+                                  className="h-6 w-6 p-0 hover:bg-green-100 text-green-600"
+                                  title="Accept and promote to manual link"
+                                >
+                                  <Check className="h-3 w-3" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() =>
+                                    handleRejectAiSuggestion(aiLinkId, 'created')
+                                  }
+                                  className="h-6 w-6 p-0 hover:bg-red-100 text-red-500"
+                                  title="Reject AI suggestion"
+                                >
+                                  <X className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            </div>
+                          )
+                        })}
+                  </div>
+                    </div>
+                  )}
+
+                  {/* AI Discovered Links */}
+                  {aiDiscoveredLinks.length > 0 && (
+                    <div>
+                      <h4 className="text-xs font-semibold text-amber-600 dark:text-amber-400 mb-2 flex items-center gap-1">
+                    <Sparkles className="h-3 w-3" />
+                    AI Discovered Links ({aiDiscoveredLinks.length}) - Found
+                    when completing tasks
+                      </h4>
+                      <div className="space-y-1">
+                    {aiDiscoveredLinks.map(aiDiscoveredId => {
+                          const aiDiscoveredTask = tasks.find(
+                            t => t.id === aiDiscoveredId
+                          )
+                          if (!aiDiscoveredTask) {
+                            return null
+                          }
+
+                          return (
+                            <div
+                              key={aiDiscoveredId}
+                              className="flex items-center justify-between p-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-md"
+                            >
+                              <div className="flex items-center gap-2 flex-1 min-w-0">
+                                <div
+                                  className={`w-2 h-2 rounded-full ${
+                                    aiDiscoveredTask.status === 'done'
+                                      ? 'bg-green-500'
+                                      : aiDiscoveredTask.status === 'in-progress'
+                                        ? 'bg-blue-500'
+                                        : aiDiscoveredTask.status === 'blocked'
+                                          ? 'bg-red-500'
+                                          : 'bg-gray-400'
+                                  }`}
+                                />
+                                <span className="text-sm truncate">
+                                  {aiDiscoveredTask.title}
+                                </span>
+                                <span
+                                  className={`text-xs px-1.5 py-0.5 rounded ${
+                                    aiDiscoveredTask.priority === 'high'
+                                      ? 'bg-red-100 text-red-600'
+                                      : aiDiscoveredTask.priority === 'medium'
+                                        ? 'bg-yellow-100 text-yellow-600'
+                                        : 'bg-blue-100 text-blue-600'
+                                  }`}
+                                >
+                                  {aiDiscoveredTask.priority}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() =>
+                                    handleAcceptAiSuggestion(
+                                      aiDiscoveredId,
+                                      'discovered'
+                                    )
+                                  }
+                                  className="h-6 w-6 p-0 hover:bg-green-100 text-green-600"
+                                  title="Accept and promote to manual link"
+                                >
+                                  <Check className="h-3 w-3" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() =>
+                                    handleRejectAiSuggestion(
+                                      aiDiscoveredId,
+                                      'discovered'
+                                    )
+                                  }
+                                  className="h-6 w-6 p-0 hover:bg-red-100 text-red-500"
+                                  title="Reject AI suggestion"
+                                >
+                                  <X className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            </div>
+                          )
+                        })}
+                  </div>
+                    </div>
+                  )}
+
+                  {/* Add Manual Link Dropdown */}
+                  <div>
+                    <h4 className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-2">
+                      Add Manual Link
+                    </h4>
+                    <div className="relative">
+                      <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                          setShowLinkedTasksDropdown(!showLinkedTasksDropdown)
+                        }
+                      className="w-full justify-between"
+                      disabled={getAvailableTasksForLinking().length === 0}
+                    >
+                      <span className="flex items-center gap-2">
+                          <Plus className="h-4 w-4" />
+                          {getAvailableTasksForLinking().length === 0
+                            ? 'No tasks available to link'
+                            : 'Link a task'}
+                        </span>
+                      <ChevronDown className="h-4 w-4" />
+                    </Button>
+
+                      {showLinkedTasksDropdown && (
+                    <div className="task-link-dropdown absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg max-h-64 overflow-hidden">
+                          {/* Search Input */}
+                          <div className="p-3 border-b border-gray-200 dark:border-gray-700">
+                            <div className="relative">
+                              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                              <input
+                                type="text"
+                                value={linkSearchQuery}
+                                onChange={e => setLinkSearchQuery(e.target.value)}
+                                placeholder="Search tasks..."
+                                className="w-full pl-10 pr-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-primary/50"
+                                autoFocus
+                                onClick={e => e.stopPropagation()}
+                              />
+                            </div>
+                          </div>
+
+                          {/* Task List */}
+                          <div className="max-h-48 overflow-y-auto">
+                            {getAvailableTasksForLinking().length > 0 ? (
+                              getAvailableTasksForLinking().map(availableTask => (
+                                <button
+                                  key={availableTask.id}
+                                  onClick={e => {
+                                    e.preventDefault()
+                                    e.stopPropagation()
+                                    handleLinkTask(availableTask.id)
+                                  }}
+                                  className="w-full text-left px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2 border-b border-gray-100 dark:border-gray-700 last:border-b-0 cursor-pointer"
+                                >
+                                  <div
+                                    className={`w-2 h-2 rounded-full ${
+                                      availableTask.status === 'done'
+                                        ? 'bg-green-500'
+                                        : availableTask.status === 'in-progress'
+                                          ? 'bg-blue-500'
+                                          : availableTask.status === 'blocked'
+                                            ? 'bg-red-500'
+                                            : 'bg-gray-400'
+                                    }`}
+                                  />
+                                  <div className="flex-1 min-w-0">
+                                    <div className="text-sm font-medium truncate">
+                                      {availableTask.title}
+                                    </div>
+                                    <div className="text-xs text-gray-500 truncate">
+                                      {availableTask.description ||
+                                      'No description'}
+                                    </div>
+                                  </div>
+                                  <span
+                                    className={`text-xs px-1.5 py-0.5 rounded ${
+                                      availableTask.priority === 'high'
+                                        ? 'bg-red-100 text-red-600'
+                                        : availableTask.priority === 'medium'
+                                          ? 'bg-yellow-100 text-yellow-600'
+                                          : 'bg-blue-100 text-blue-600'
+                                    }`}
+                                  >
+                                    {availableTask.priority}
+                                  </span>
+                                </button>
+                              ))
+                            ) : (
+                              <div className="px-3 py-6 text-center text-sm text-gray-500">
+                                {linkSearchQuery.trim()
+                                  ? `No tasks found matching "${linkSearchQuery}"`
+                                  : 'No tasks available to link'}
+                              </div>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
 
-            {/* Description */}
-            <div>
-              <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">
-                Description
-                {subtasks.length > 0 && (
-                  <span className="text-xs text-blue-600 ml-2">
-                    (Bullet points moved to subtasks)
-                  </span>
-                )}
-              </label>
-              <div className="mobile-input-container">
-                <textarea
-                  value={getCleanDescription(description, subtasks)}
-                  onChange={e => setDescription(e.target.value)}
-                  placeholder="Add a detailed description..."
-                  rows={4}
-                  className="w-full px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 resize-none"
-                />
-              </div>
-            </div>
-
-            {/* Subtasks/Checklist */}
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
-                  <CheckSquare className="h-4 w-4" />
-                  Subtasks ({completedSubtasks}/{totalSubtasks})
+              {/* Description */}
+              <div>
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">
+                  Description
+                  {subtasks.length > 0 && (
+                    <span className="text-xs text-blue-600 ml-2">
+                      (Bullet points moved to subtasks)
+                    </span>
+                  )}
                 </label>
-                {totalSubtasks > 0 && (
-                  <span className="text-xs text-gray-500">
-                    {Math.round(progress)}% complete
-                  </span>
-                )}
-              </div>
-
-              {/* Progress Bar */}
-              {totalSubtasks > 0 && (
-                <div className="w-full h-2 bg-gray-200 rounded-full mb-3">
-                  <div
-                    className="h-full bg-green-500 rounded-full transition-all duration-300"
-                    style={{ width: `${progress}%` }}
+                <div className="mobile-input-container">
+                  <textarea
+                    value={getCleanDescription(description, subtasks)}
+                    onChange={e => setDescription(e.target.value)}
+                    placeholder="Add a detailed description..."
+                    rows={4}
+                    className="w-full px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 resize-none"
                   />
                 </div>
-              )}
+              </div>
 
-              {/* Subtask List */}
-              <div className="space-y-2 mb-3">
-                {subtasks.map(subtask => {
-                  const aiSuggestions = getAiSuggestions(subtask.text)
+              {/* Subtasks/Checklist */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                    <CheckSquare className="h-4 w-4" />
+                    Subtasks ({completedSubtasks}/{totalSubtasks})
+                  </label>
+                  {totalSubtasks > 0 && (
+                    <span className="text-xs text-gray-500">
+                      {Math.round(progress)}% complete
+                    </span>
+                  )}
+                </div>
 
-                  return (
+                {/* Progress Bar */}
+                {totalSubtasks > 0 && (
+                  <div className="w-full h-2 bg-gray-200 rounded-full mb-3">
                     <div
-                      key={subtask.id}
-                      className="flex items-start gap-2 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 border border-transparent hover:border-gray-200 dark:hover:border-gray-600 transition-all"
-                    >
-                      <button
-                        onClick={() => toggleSubtask(subtask.id)}
-                        className="flex-shrink-0 mt-1"
-                      >
-                        {subtask.completed ? (
-                          <CheckSquare className="h-5 w-5 text-green-600" />
-                        ) : (
-                          <Square className="h-5 w-5 text-gray-400" />
-                        )}
-                      </button>
+                      className="h-full bg-green-500 rounded-full transition-all duration-300"
+                      style={{ width: `${progress}%` }}
+                    />
+                  </div>
+                )}
 
-                      <div className="flex-1 min-w-0">
-                        <div
-                          className={`${subtask.completed ? 'line-through text-gray-500' : ''}`}
+                {/* Subtask List */}
+                <div className="space-y-2 mb-3">
+                  {subtasks.map(subtask => {
+                    const aiSuggestions = getAiSuggestions(subtask.text)
+
+                    return (
+                      <div
+                        key={subtask.id}
+                        className="flex items-start gap-2 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 border border-transparent hover:border-gray-200 dark:hover:border-gray-600 transition-all"
+                      >
+                        <button
+                          onClick={() => toggleSubtask(subtask.id)}
+                          className="flex-shrink-0 mt-1"
                         >
-                          {subtask.text}
+                          {subtask.completed ? (
+                            <CheckSquare className="h-5 w-5 text-green-600" />
+                          ) : (
+                            <Square className="h-5 w-5 text-gray-400" />
+                          )}
+                        </button>
+
+                        <div className="flex-1 min-w-0">
+                          <div
+                            className={`${subtask.completed ? 'line-through text-gray-500' : ''}`}
+                          >
+                            {subtask.text}
+                          </div>
+
+                          {/* AI Action Icons */}
+                          {aiSuggestions.length > 0 && !subtask.completed && (
+                            <div className="mt-2 space-y-1">
+                              {/* AI Actions Header */}
+                              <div className="flex items-center gap-1">
+                                <Sparkles className="h-3 w-3 text-blue-500 flex-shrink-0" />
+                                <span className="text-xs text-gray-600 font-medium">
+                                  AI Actions
+                                </span>
+                              </div>
+                              {/* AI Action Buttons */}
+                              <div className="flex flex-wrap items-center gap-1">
+                                {aiSuggestions.map((suggestion, index) => {
+                                  const isLoading =
+                                  loadingAiAction === suggestion.type
+                                  return (
+                                    <Button
+                                      key={index}
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={suggestion.action}
+                                      disabled={
+                                        isLoading || loadingAiAction !== null
+                                      }
+                                      className="h-7 px-2 text-xs bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 hover:border-blue-300 flex items-center gap-1.5 min-w-0 disabled:opacity-50"
+                                      title={
+                                        isLoading
+                                          ? 'Generating...'
+                                          : suggestion.label
+                                      }
+                                    >
+                                      {isLoading ? (
+                                        <Loader2 className="h-3 w-3 flex-shrink-0 animate-spin" />
+                                      ) : (
+                                        <suggestion.icon className="h-3 w-3 flex-shrink-0" />
+                                      )}
+                                      <span className="truncate">
+                                        {isLoading
+                                          ? 'Generating...'
+                                          : suggestion.label}
+                                      </span>
+                                    </Button>
+                                  )
+                                })}
+                              </div>
+                            </div>
+                          )}
                         </div>
 
-                        {/* AI Action Icons */}
-                        {aiSuggestions.length > 0 && !subtask.completed && (
-                          <div className="mt-2 space-y-1">
-                            {/* AI Actions Header */}
-                            <div className="flex items-center gap-1">
-                              <Sparkles className="h-3 w-3 text-blue-500 flex-shrink-0" />
-                              <span className="text-xs text-gray-600 font-medium">
-                                AI Actions
-                              </span>
-                            </div>
-                            {/* AI Action Buttons */}
-                            <div className="flex flex-wrap items-center gap-1">
-                              {aiSuggestions.map((suggestion, index) => {
-                                const isLoading =
-                                  loadingAiAction === suggestion.type
-                                return (
-                                  <Button
-                                    key={index}
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={suggestion.action}
-                                    disabled={
-                                      isLoading || loadingAiAction !== null
-                                    }
-                                    className="h-7 px-2 text-xs bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 hover:border-blue-300 flex items-center gap-1.5 min-w-0 disabled:opacity-50"
-                                    title={
-                                      isLoading
-                                        ? 'Generating...'
-                                        : suggestion.label
-                                    }
-                                  >
-                                    {isLoading ? (
-                                      <Loader2 className="h-3 w-3 flex-shrink-0 animate-spin" />
-                                    ) : (
-                                      <suggestion.icon className="h-3 w-3 flex-shrink-0" />
-                                    )}
-                                    <span className="truncate">
-                                      {isLoading
-                                        ? 'Generating...'
-                                        : suggestion.label}
-                                    </span>
-                                  </Button>
-                                )
-                              })}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="flex items-center gap-1 flex-shrink-0">
-                        {/* Create Task from Subtask (if has nested content) */}
-                        {subtask.hasNested &&
+                        <div className="flex items-center gap-1 flex-shrink-0">
+                          {/* Create Task from Subtask (if has nested content) */}
+                          {subtask.hasNested &&
                           subtask.nestedItems &&
                           subtask.nestedItems.length > 0 && (
                             <Button
@@ -1597,256 +1598,257 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                             </Button>
                           )}
 
-                        {/* Delete Subtask */}
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => deleteSubtask(subtask.id)}
-                          className="h-8 w-8 text-gray-400 hover:text-red-600 hover:bg-red-50"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                          {/* Delete Subtask */}
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => deleteSubtask(subtask.id)}
+                            className="h-8 w-8 text-gray-400 hover:text-red-600 hover:bg-red-50"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
-                    </div>
-                  )
-                })}
-              </div>
-
-              {/* Add Subtask */}
-              <div className="flex gap-2">
-                <div className="mobile-input-container flex-1">
-                  <input
-                    type="text"
-                    value={newSubtask}
-                    onChange={e => setNewSubtask(e.target.value)}
-                    onKeyPress={e => e.key === 'Enter' && addSubtask()}
-                    placeholder="Add a subtask..."
-                    className="w-full px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm"
-                  />
+                    )
+                  })}
                 </div>
-                <Button onClick={addSubtask} size="sm">
-                  <Plus className="h-4 w-4" />
-                </Button>
+
+                {/* Add Subtask */}
+                <div className="flex gap-2">
+                  <div className="mobile-input-container flex-1">
+                    <input
+                      type="text"
+                      value={newSubtask}
+                      onChange={e => setNewSubtask(e.target.value)}
+                      onKeyPress={e => e.key === 'Enter' && addSubtask()}
+                      placeholder="Add a subtask..."
+                      className="w-full px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm"
+                    />
+                  </div>
+                  <Button onClick={addSubtask} size="sm">
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
-            </div>
 
-            {/* Comments/Activity */}
-            <div>
-              <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3 block flex items-center gap-2">
-                <MessageSquare className="h-4 w-4" />
-                Comments ({serverComments.length})
-                {loadingComments && (
-                  <div className="animate-spin h-3 w-3 border border-gray-300 border-t-gray-600 rounded-full" />
-                )}
-              </label>
+              {/* Comments/Activity */}
+              <div>
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3 block flex items-center gap-2">
+                  <MessageSquare className="h-4 w-4" />
+                  Comments ({serverComments.length})
+                  {loadingComments && (
+                    <div className="animate-spin h-3 w-3 border border-gray-300 border-t-gray-600 rounded-full" />
+                  )}
+                </label>
 
-              {/* Comment List */}
-              <div className="space-y-3 mb-3 max-h-60 overflow-y-auto">
-                {serverComments.map(comment => (
-                  <Card
-                    key={comment.id}
-                    className={`p-3 ${comment.comment_type === 'ai_update' ? 'border-blue-200 bg-blue-50 dark:bg-blue-900/20' : ''}`}
-                  >
-                    <div className="flex items-start justify-between mb-1">
+                {/* Comment List */}
+                <div className="space-y-3 mb-3 max-h-60 overflow-y-auto">
+                  {serverComments.map(comment => (
+                    <Card
+                      key={comment.id}
+                      className={`p-3 ${comment.comment_type === 'ai_update' ? 'border-blue-200 bg-blue-50 dark:bg-blue-900/20' : ''}`}
+                    >
+                      <div className="flex items-start justify-between mb-1">
                       <div className="flex items-center gap-2">
-                        {comment.comment_type !== 'ai_update' && (
-                          <span className="font-medium text-sm">
-                            {comment.author_name}
-                          </span>
-                        )}
-                        {comment.comment_type === 'ai_update' && (
-                          <span className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">
-                            AI Update
-                          </span>
-                        )}
-                      </div>
+                          {comment.comment_type !== 'ai_update' && (
+                            <span className="font-medium text-sm">
+                              {comment.author_name}
+                            </span>
+                          )}
+                          {comment.comment_type === 'ai_update' && (
+                            <span className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">
+                              AI Update
+                            </span>
+                          )}
+                        </div>
                       <span className="text-xs text-gray-500 flex items-center gap-1">
-                        <Clock className="h-3 w-3" />
-                        {formatTimestamp(comment.created_at)}
-                      </span>
+                          <Clock className="h-3 w-3" />
+                          {formatTimestamp(comment.created_at)}
+                        </span>
                     </div>
-                    <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
+                      <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
                       {renderWithBold(comment.content)}
                     </p>
-                  </Card>
-                ))}
-                {serverComments.length === 0 && !loadingComments && (
-                  <p className="text-sm text-gray-500 text-center py-4">
-                    No comments yet. Add the first comment below.
-                  </p>
-                )}
-              </div>
+                    </Card>
+                  ))}
+                  {serverComments.length === 0 && !loadingComments && (
+                    <p className="text-sm text-gray-500 text-center py-4">
+                      No comments yet. Add the first comment below.
+                    </p>
+                  )}
+                </div>
 
-              {/* Add Comment */}
-              <div className="flex gap-2">
-                <div className="mobile-input-container flex-1">
-                  <textarea
-                    value={newComment}
-                    onChange={e => setNewComment(e.target.value)}
-                    onKeyPress={e =>
-                      e.key === 'Enter' &&
+                {/* Add Comment */}
+                <div className="flex gap-2">
+                  <div className="mobile-input-container flex-1">
+                    <textarea
+                      value={newComment}
+                      onChange={e => setNewComment(e.target.value)}
+                      onKeyPress={e =>
+                        e.key === 'Enter' &&
                       !e.shiftKey &&
                       (e.preventDefault(), addComment())
-                    }
-                    placeholder="Add a comment... (Press Enter to post)"
-                    rows={2}
-                    className="w-full px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm resize-none"
-                  />
-                </div>
-                <Button onClick={addComment} size="sm" className="self-end">
-                  Post
-                </Button>
-              </div>
-            </div>
-
-            {/* Meeting Source */}
-            {task.meetingId && (
-              <div className="pt-4 mt-4 border-t border-gray-200 dark:border-gray-700">
-                <MeetingSource meetingId={task.meetingId} onClose={onClose} />
-              </div>
-            )}
-          </div>
-
-          {/* Footer */}
-          <div className="flex items-center justify-between p-6 border-t bg-gray-50 dark:bg-gray-900">
-            <Button variant="destructive" onClick={handleDelete}>
-              Delete Task
-            </Button>
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={onClose}>
-                Cancel
-              </Button>
-              <Button onClick={handleSave}>Save Changes</Button>
-            </div>
-          </div>
-        </div>
-
-        {/* AI Content Modal */}
-        <AnimatePresence>
-        {aiContentModal.isOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 z-[999998] flex items-center justify-center p-4"
-            onClick={() =>
-              setAiContentModal({ ...aiContentModal, isOpen: false })
-            }
-          >
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              onClick={e => e.stopPropagation()}
-              className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-hidden flex flex-col"
-            >
-              {/* Header */}
-              <div className="flex items-center justify-between p-4 border-b">
-                <h3 className="text-lg font-semibold flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
-                    {aiContentModal.type === 'email' && (
-                      <Mail className="h-4 w-4 text-blue-600" />
-                    )}
-                    {aiContentModal.type === 'document' && (
-                      <FileText className="h-4 w-4 text-blue-600" />
-                    )}
-                    {aiContentModal.type === 'code' && (
-                      <Code className="h-4 w-4 text-blue-600" />
-                    )}
-                    {aiContentModal.type === 'research' && (
-                      <Search className="h-4 w-4 text-blue-600" />
-                    )}
-                    {aiContentModal.type === 'message' && (
-                      <MessageSquare className="h-4 w-4 text-blue-600" />
-                    )}
+                      }
+                      placeholder="Add a comment... (Press Enter to post)"
+                      rows={2}
+                      className="w-full px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm resize-none"
+                    />
                   </div>
-                  {aiContentModal.title}
-                </h3>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() =>
-                    setAiContentModal({ ...aiContentModal, isOpen: false })
-                  }
-                >
-                  <X className="h-5 w-5" />
-                </Button>
+                  <Button onClick={addComment} size="sm" className="self-end">
+                    Post
+                  </Button>
+                </div>
               </div>
 
-              {/* Content */}
-              <div className="flex-1 overflow-y-auto p-4">
-                <div className="relative">
-                  <pre className="whitespace-pre-wrap text-sm bg-gray-50 dark:bg-gray-900 p-4 rounded-lg border overflow-x-auto">
+              {/* Meeting Source */}
+              {task.meetingId && (
+                <div className="pt-4 mt-4 border-t border-gray-200 dark:border-gray-700">
+                  <MeetingSource meetingId={task.meetingId} onClose={onClose} />
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="flex items-center justify-between p-6 border-t bg-gray-50 dark:bg-gray-900">
+              <Button variant="destructive" onClick={handleDelete}>
+                Delete Task
+              </Button>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={onClose}>
+                  Cancel
+                </Button>
+                <Button onClick={handleSave}>Save Changes</Button>
+              </div>
+            </div>
+          </div>
+
+          {/* AI Content Modal */}
+          <AnimatePresence>
+            {aiContentModal.isOpen && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 bg-black/50 z-[999998] flex items-center justify-center p-4"
+                onClick={() =>
+                  setAiContentModal({ ...aiContentModal, isOpen: false })
+                }
+              >
+                <motion.div
+                  initial={{ scale: 0.9, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0.9, opacity: 0 }}
+                  onClick={e => e.stopPropagation()}
+                  className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-hidden flex flex-col"
+                >
+                  {/* Header */}
+                  <div className="flex items-center justify-between p-4 border-b">
+                    <h3 className="text-lg font-semibold flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
+                    {aiContentModal.type === 'email' && (
+                          <Mail className="h-4 w-4 text-blue-600" />
+                        )}
+                    {aiContentModal.type === 'document' && (
+                          <FileText className="h-4 w-4 text-blue-600" />
+                        )}
+                    {aiContentModal.type === 'code' && (
+                          <Code className="h-4 w-4 text-blue-600" />
+                        )}
+                    {aiContentModal.type === 'research' && (
+                          <Search className="h-4 w-4 text-blue-600" />
+                        )}
+                    {aiContentModal.type === 'message' && (
+                          <MessageSquare className="h-4 w-4 text-blue-600" />
+                        )}
+                  </div>
+                      {aiContentModal.title}
+                    </h3>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() =>
+                        setAiContentModal({ ...aiContentModal, isOpen: false })
+                      }
+                    >
+                      <X className="h-5 w-5" />
+                    </Button>
+                  </div>
+
+                  {/* Content */}
+                  <div className="flex-1 overflow-y-auto p-4">
+                    <div className="relative">
+                      <pre className="whitespace-pre-wrap text-sm bg-gray-50 dark:bg-gray-900 p-4 rounded-lg border overflow-x-auto">
                     {aiContentModal.content}
                   </pre>
-                </div>
-              </div>
+                    </div>
+                  </div>
 
-              {/* Footer with Copy Button */}
-              <div className="p-4 border-t bg-gray-50 dark:bg-gray-900 flex justify-between items-center">
-                <span className="text-sm text-gray-600 dark:text-gray-400">
-                  Generated by AI • Ready to use
-                </span>
-                <div className="flex gap-2">
-                  <Button
+                  {/* Footer with Copy Button */}
+                  <div className="p-4 border-t bg-gray-50 dark:bg-gray-900 flex justify-between items-center">
+                    <span className="text-sm text-gray-600 dark:text-gray-400">
+                      Generated by AI • Ready to use
+                    </span>
+                    <div className="flex gap-2">
+                      <Button
                     variant="outline"
                     onClick={() =>
-                      setAiContentModal({ ...aiContentModal, isOpen: false })
-                    }
-                  >
-                    Close
-                  </Button>
-                  <Button
-                    onClick={async () => {
-                      try {
-                        await navigator.clipboard.writeText(
-                          aiContentModal.content
-                        )
-                        addNotification({
-                          type: 'success',
-                          message: 'Content copied to clipboard!'
-                        })
-                        setAiContentModal({ ...aiContentModal, isOpen: false })
-                      } catch (error) {
-                        // If clipboard fails, try to select the text
-                        const textArea = document.createElement('textarea')
-                        textArea.value = aiContentModal.content
-                        document.body.appendChild(textArea)
-                        textArea.select()
-                        textArea.setSelectionRange(0, 99999) // For mobile devices
-                        try {
-                          document.execCommand('copy')
-                          addNotification({
-                            type: 'success',
-                            message: 'Content copied to clipboard!'
-                          })
-                          setAiContentModal({
-                            ...aiContentModal,
-                            isOpen: false
-                          })
-                        } catch (err) {
-                          addNotification({
-                            type: 'info',
-                            message:
-                              'Please manually select and copy the text above.'
-                          })
-                        } finally {
-                          document.body.removeChild(textArea)
+                          setAiContentModal({ ...aiContentModal, isOpen: false })
                         }
-                      }
-                    }}
+                  >
+                        Close
+                  </Button>
+                      <Button
+                    onClick={async() => {
+                          try {
+                            await navigator.clipboard.writeText(
+                              aiContentModal.content
+                            )
+                            addNotification({
+                              type: 'success',
+                              message: 'Content copied to clipboard!'
+                            })
+                            setAiContentModal({ ...aiContentModal, isOpen: false })
+                          } catch (error) {
+                            // If clipboard fails, try to select the text
+                            const textArea = document.createElement('textarea')
+                            textArea.value = aiContentModal.content
+                            document.body.appendChild(textArea)
+                            textArea.select()
+                            textArea.setSelectionRange(0, 99999) // For mobile devices
+                            try {
+                              document.execCommand('copy')
+                              addNotification({
+                                type: 'success',
+                                message: 'Content copied to clipboard!'
+                              })
+                              setAiContentModal({
+                                ...aiContentModal,
+                                isOpen: false
+                              })
+                            } catch (err) {
+                              addNotification({
+                                type: 'info',
+                                message:
+                              'Please manually select and copy the text above.'
+                              })
+                            } finally {
+                              document.body.removeChild(textArea)
+                            }
+                          }
+                        }}
                     className="flex items-center gap-2"
                   >
                     <Copy className="h-4 w-4" />
                     Copy to Clipboard
-                  </Button>
-                </div>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-        </AnimatePresence>
-      </div>}
+                      </Button>
+                    </div>
+                  </div>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      )}
     </AnimatePresence>,
     document.body
   )

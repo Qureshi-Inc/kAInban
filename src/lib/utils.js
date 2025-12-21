@@ -19,13 +19,13 @@ export function generateId() {
 }
 
 export function getShortId(fullId) {
-  // Use first 8 chars for consistent, clean URLs
-  return fullId.slice(0, 8)
+  // Use first 12 chars to avoid timestamp collisions for projects created quickly
+  return fullId.slice(0, 12)
 }
 
 // Parse description for bullet points and convert to subtasks
 export function parseSubtasksFromDescription(description) {
-  if (!description) return []
+  if (!description) {return []}
 
   // Split by lines and look for bullet patterns
   const lines = description.split('\n')

@@ -12,8 +12,8 @@ import {
 } from 'lucide-react'
 import React, { useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import openaiService from '../services/openaiService'
 import { getShortId } from '../lib/utils'
+import openaiService from '../services/openaiService'
 import useAppStore from '../stores/useAppStore'
 import TaskDetailModal from './TaskDetailModal'
 import { Button } from './ui/button'
@@ -646,7 +646,7 @@ export default function KanbanBoard({ taskToOpen }) {
     })
   }
 
-  const handleTaskMove = async (taskId, newStatus) => {
+  const handleTaskMove = async(taskId, newStatus) => {
     const task = tasks.find(t => t.id === taskId)
     if (!task) {
       return

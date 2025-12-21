@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { useEffect } from 'react'
+import React, { useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import AnalyticsDashboard from '../components/AnalyticsDashboard'
 import AudioControls from '../components/AudioControls'
@@ -18,14 +18,12 @@ export default function MainView() {
   const taskId = searchParams.get('task')
 
   const currentProject = useAppStore((state) => state.currentProject)
-  const loadProject = useAppStore((state) => state.loadProject)
-  const clearSession = useAppStore((state) => state.clearSession)
-  const projects = useAppStore((state) => state.projects)
   const selectMeeting = useAppStore((state) => state.selectMeeting)
   const selectedMeetingId = useAppStore((state) => state.selectedMeetingId)
   const meetings = useAppStore((state) => state.meetings)
 
   // Sync URL to reflect state changes (State -> URL, not URL -> State)
+  // Only sync when project ID or meeting ID actually changes, not just object references
   useEffect(() => {
     // If no currentProject, navigate to dashboard (clear URL params)
     if (!currentProject) {
@@ -53,37 +51,15 @@ export default function MainView() {
     } else {
       console.log('[MainView] URL already matches project state')
     }
-  }, [currentProject, selectedMeetingId, navigate])
+  }, [currentProject?.id, selectedMeetingId, navigate])
 
+  // EMERGENCY: TEMPORARILY DISABLED to stop runaway API requests
   // Handle project loading - ONLY load from backend if switching projects
   // Don't reload if already on the correct project (prevents overwriting fresh state)
-  useEffect(() => {
-    if (projectId) {
-      // Find project by short ID (match beginning of full ID)
-      const project = projects.find((p) => p.id.startsWith(projectId))
-
-      if (project) {
-        // ONLY load if currentProject is different AND we need to fetch from backend
-        // Skip loading if the project is already the current one (prevents loops)
-        if (currentProject?.id !== project.id) {
-          console.log('[MainView] Loading different project:', project.id, 'current:', currentProject?.id)
-          loadProject(project.id)
-        } else {
-          console.log('[MainView] Project already loaded, skipping reload')
-        }
-      } else {
-        // Project not found in local state, redirect to dashboard
-        console.log('[MainView] Project not found:', projectId)
-        navigate('/')
-      }
-    } else {
-      // No projectId in URL - we're on dashboard, clear current project if set
-      if (currentProject) {
-        console.log('[MainView] No projectId in URL, clearing current project for dashboard')
-        clearSession()
-      }
-    }
-  }, [projectId, currentProject, projects, loadProject, navigate, clearSession])
+  // useEffect(() => {
+  //   console.log('[MainView] Project loading effect DISABLED to prevent API flood')
+  //   // Effect temporarily disabled to stop 429 rate limiting
+  // }, [projectId, currentProject, projects, loadProject, navigate, clearSession])
 
   // Handle meeting selection - ONLY sync FROM URL if user navigated directly
   // Don't clear selection if URL doesn't have meeting param (URL might be updating)
