@@ -19,8 +19,8 @@ export function generateId() {
 }
 
 export function getShortId(fullId) {
-  // Use first 12 chars instead of 8 to reduce collision probability
-  return fullId.slice(0, 12)
+  // Use first 8 chars for consistent, clean URLs
+  return fullId.slice(0, 8)
 }
 
 // Parse description for bullet points and convert to subtasks

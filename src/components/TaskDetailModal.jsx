@@ -1,4 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion'
+import { createPortal } from 'react-dom'
 import {
   X,
   Calendar,
@@ -252,6 +253,7 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
 
     // Prevent body scroll when modal is open (mobile-friendly approach)
     document.body.style.overflow = 'hidden'
+    document.body.classList.add('modal-open')
 
     // Only use position fixed on non-mobile or when keyboard is not open
     if (!isKeyboardOpen && window.innerWidth > 768) {
@@ -290,6 +292,7 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
       document.body.style.top = ''
       document.body.style.left = ''
       document.body.style.touchAction = ''
+      document.body.classList.remove('modal-open')
 
       // Restore scroll position when modal closes
       // Use requestAnimationFrame to ensure DOM has updated
@@ -595,12 +598,27 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
   }
 
   const formatTimestamp = timestamp => {
-    const date = new Date(timestamp)
+    // Handle the timestamp properly - database stores UTC timestamps in format "YYYY-MM-DD HH:mm:ss"
+    // Need to explicitly treat them as UTC
+    let date
+    if (typeof timestamp === 'string' && timestamp.includes(' ') && !timestamp.includes('T')) {
+      // Database format: "2025-12-21 17:39:39" - treat as UTC
+      date = new Date(timestamp + ' UTC')
+    } else {
+      // Standard ISO format or already a Date object
+      date = new Date(timestamp)
+    }
+
     const now = new Date()
     const diffMs = now - date
     const diffMins = Math.floor(diffMs / 60000)
     const diffHours = Math.floor(diffMs / 3600000)
     const diffDays = Math.floor(diffMs / 86400000)
+
+    // Handle invalid dates
+    if (isNaN(date.getTime())) {
+      return 'Invalid date'
+    }
 
     if (diffMins < 1) {
       return 'Just now'
@@ -960,10 +978,13 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
     return null
   }
 
-  return (
+  // Detect mobile for specific styling
+  const isMobile = window.innerWidth <= 640
+
+  return createPortal(
     <AnimatePresence>
-      <div
-        className={`task-modal-overlay ${isKeyboardOpen ? 'keyboard-active' : ''}`}
+      {isOpen && <div
+        className={`task-modal-overlay ${isKeyboardOpen ? 'keyboard-active' : ''} ${isMobile ? 'mobile-modal' : ''}`}
         role="button"
         aria-label="Close modal"
         onClick={onClose}
@@ -1641,7 +1662,7 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                       </div>
                       <span className="text-xs text-gray-500 flex items-center gap-1">
                         <Clock className="h-3 w-3" />
-                        {formatTimestamp(new Date(comment.created_at))}
+                        {formatTimestamp(comment.created_at)}
                       </span>
                     </div>
                     <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
@@ -1699,16 +1720,15 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
             </div>
           </div>
         </div>
-      </div>
 
-      {/* AI Content Modal */}
-      <AnimatePresence>
+        {/* AI Content Modal */}
+        <AnimatePresence>
         {aiContentModal.isOpen && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 z-[70] flex items-center justify-center p-4"
+            className="fixed inset-0 bg-black/50 z-[999998] flex items-center justify-center p-4"
             onClick={() =>
               setAiContentModal({ ...aiContentModal, isOpen: false })
             }
@@ -1825,7 +1845,9 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
             </motion.div>
           </motion.div>
         )}
-      </AnimatePresence>
-    </AnimatePresence>
+        </AnimatePresence>
+      </div>}
+    </AnimatePresence>,
+    document.body
   )
 }

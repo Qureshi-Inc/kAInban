@@ -13,6 +13,7 @@ import {
 import React, { useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import openaiService from '../services/openaiService'
+import { getShortId } from '../lib/utils'
 import useAppStore from '../stores/useAppStore'
 import TaskDetailModal from './TaskDetailModal'
 import { Button } from './ui/button'
@@ -21,6 +22,14 @@ import '../styles/mobile-ux.css'
 
 const TaskCard = ({ task, onDelete, onClick, onNavigateToMeeting }) => {
   const [isDragging, setIsDragging] = React.useState(false)
+  const [isTouchDevice, setIsTouchDevice] = React.useState(false)
+  const [touchStart, setTouchStart] = React.useState({ x: 0, y: 0, time: 0 })
+  const [isScrolling, setIsScrolling] = React.useState(false)
+
+  React.useEffect(() => {
+    // Detect if this is a touch device
+    setIsTouchDevice('ontouchstart' in window)
+  }, [])
 
   const getPriorityColor = priority => {
     switch (priority) {
@@ -52,8 +61,12 @@ const TaskCard = ({ task, onDelete, onClick, onNavigateToMeeting }) => {
         contain: 'layout style paint'
       }}
       data-task-id={task.id}
-      draggable
+      draggable={!isTouchDevice}
       onDragStart={e => {
+        if (isTouchDevice) {
+          e.preventDefault()
+          return
+        }
         e.dataTransfer.setData('text/plain', task.id)
         e.dataTransfer.effectAllowed = 'move'
         setIsDragging(true)
@@ -70,6 +83,51 @@ const TaskCard = ({ task, onDelete, onClick, onNavigateToMeeting }) => {
             onClick(task)
           }, 50)
         }
+      }}
+      onTouchStart={e => {
+        // Record touch start position and time for scroll detection
+        if (e.touches.length === 1) {
+          setIsDragging(false)
+          setIsScrolling(false)
+          const touch = e.touches[0]
+          setTouchStart({
+            x: touch.clientX,
+            y: touch.clientY,
+            time: Date.now()
+          })
+        }
+      }}
+      onTouchMove={e => {
+        // Detect if this is a scroll gesture
+        if (e.touches.length === 1 && touchStart.time > 0) {
+          const touch = e.touches[0]
+          const deltaX = Math.abs(touch.clientX - touchStart.x)
+          const deltaY = Math.abs(touch.clientY - touchStart.y)
+
+          // If finger moved more than 10px, consider it scrolling
+          if (deltaX > 10 || deltaY > 10) {
+            setIsScrolling(true)
+          }
+        }
+      }}
+      onTouchEnd={e => {
+        // Only handle touch end if not scrolling and was a quick tap
+        if (!isScrolling && touchStart.time > 0) {
+          const touchDuration = Date.now() - touchStart.time
+
+          // Only trigger onClick for quick taps (less than 300ms) that didn't move much
+          if (touchDuration < 300 && e.touches.length === 0) {
+            e.preventDefault()
+            e.stopPropagation()
+            setTimeout(() => {
+              onClick(task)
+            }, 50)
+          }
+        }
+
+        // Reset touch tracking
+        setTouchStart({ x: 0, y: 0, time: 0 })
+        setIsScrolling(false)
       }}
       onKeyDown={e => {
         if (e.key === 'Enter' || e.key === ' ') {
@@ -341,6 +399,7 @@ export default function KanbanBoard({ taskToOpen }) {
   // Handle opening specific task from URL
   React.useEffect(() => {
     if (taskToOpen && tasks.length > 0) {
+      // Find task by exact ID match (taskToOpen is now full ID)
       const task = tasks.find(t => t.id === taskToOpen)
       if (task) {
         setSelectedTask(task)
@@ -664,6 +723,11 @@ export default function KanbanBoard({ taskToOpen }) {
   const handleTaskClick = task => {
     setSelectedTask(task)
     setIsModalOpen(true)
+
+    // Add full task ID to URL for bookmarking and sharing
+    const newParams = new URLSearchParams(searchParams)
+    newParams.set('task', task.id)
+    navigate(`?${newParams.toString()}`, { replace: false })
   }
 
   const handleModalClose = () => {
@@ -687,7 +751,7 @@ export default function KanbanBoard({ taskToOpen }) {
     // Navigate to the project with the meeting parameter
     const projectId = searchParams.get('project')
     if (projectId) {
-      const shortMeetingId = meetingId.slice(0, 8)
+      const shortMeetingId = getShortId(meetingId)
       navigate(`/?project=${projectId}&meeting=${shortMeetingId}`)
     }
   }

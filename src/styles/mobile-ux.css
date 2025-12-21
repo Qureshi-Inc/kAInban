@@ -2,24 +2,33 @@
 
 /* Fix modal glitches and improve performance */
 .task-modal-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 50;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 1rem;
-  background-color: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  /* FORCE ABOVE EVERYTHING */
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  height: 100dvh !important;
+  z-index: 2147483647 !important; /* Maximum possible z-index */
 
-  /* Prevent body scroll when modal is open */
-  overscroll-behavior: contain;
-  touch-action: none;
+  /* Layout */
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 !important;
+  margin: 0 !important;
 
-  /* Smooth animations */
-  transition: all 0.2s ease-out;
-  animation: fadeIn 0.2s ease-out;
+  /* Visual */
+  background-color: rgba(0, 0, 0, 0.8) !important;
+  backdrop-filter: blur(4px) !important;
+  -webkit-backdrop-filter: blur(4px) !important;
+
+  /* Behavior */
+  overscroll-behavior: contain !important;
+  touch-action: none !important;
+  isolation: isolate !important;
 }
 
 @keyframes fadeIn {
@@ -33,22 +42,33 @@
 
 /* Modal content container */
 .task-modal-content {
-  background: white;
-  border-radius: 0.75rem;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-  max-width: 64rem;
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
+  /* Size and position */
+  width: 100vw !important;
+  height: 100vh !important;
+  height: 100dvh !important;
+  max-width: 100vw !important;
+  max-height: 100vh !important;
+  max-height: 100dvh !important;
 
-  /* Prevent layout shift */
+  /* Layout */
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+
+  /* Visual */
+  background: white !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+
+  /* Position */
+  position: relative !important;
+  margin: 0 !important;
+  z-index: 1 !important;
+
+  /* Performance */
   will-change: transform;
   transform: translateZ(0);
   backface-visibility: hidden;
-
-  /* Smooth entrance animation */
-  animation: slideInScale 0.25s ease-out;
 }
 
 @keyframes slideInScale {
@@ -68,19 +88,21 @@
   color: white;
 }
 
-/* Mobile-specific modal sizing */
-@media (max-width: 640px) {
+/* Responsive modal sizing - simpler approach */
+@media (min-width: 768px) {
   .task-modal-overlay {
-    padding: 0.5rem;
-    align-items: flex-start;
-    padding-top: 2rem;
+    padding: 2rem !important;
   }
 
   .task-modal-content {
-    max-height: calc(100vh - 3rem);
-    max-height: calc(100dvh - 3rem); /* Use dvh for better mobile support */
-    min-height: 60vh;
-    border-radius: 0.75rem 0.75rem 0 0;
+    width: 90vw !important;
+    height: 90vh !important;
+    height: 90dvh !important;
+    max-width: 64rem !important;
+    max-height: 90vh !important;
+    max-height: 90dvh !important;
+    border-radius: 0.75rem !important;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important;
   }
 }
 
@@ -106,6 +128,10 @@
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
   scroll-behavior: smooth;
+  /* Ensure proper scrolling on all devices */
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
 }
 
 /* Improve text input experience on mobile */
@@ -153,11 +179,29 @@ select:focus {
 
   /* Better touch targets */
   min-height: 44px;
+
+  /* Improve tablet/touch interaction */
+  cursor: pointer;
+  touch-action: manipulation;
 }
 
-.task-card:active {
+.task-card:active,
+.task-card:focus {
   transform: scale(0.98);
   transition: transform 0.1s ease-out;
+}
+
+/* Tablet-specific improvements */
+@media (hover: none) and (pointer: coarse) {
+  .task-card {
+    /* Better touch feedback on tablets */
+    -webkit-tap-highlight-color: rgba(59, 130, 246, 0.3);
+    tap-highlight-color: rgba(59, 130, 246, 0.3);
+  }
+
+  .task-card:active {
+    background-color: rgba(59, 130, 246, 0.1) !important;
+  }
 }
 
 /* Prevent modal backdrop clicks from propagating */
@@ -181,6 +225,17 @@ select:focus {
   .task-modal-overlay {
     /* Fix iOS Safari viewport issues */
     height: -webkit-fill-available;
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+
+  /* Mobile Safari modal positioning fix */
+  @media (max-width: 640px) {
+    .task-modal-overlay {
+      align-items: center;
+      justify-content: center;
+      padding: 0.5rem;
+    }
   }
 
   /* Prevent bounce scrolling */
@@ -234,6 +289,25 @@ button:active {
 .layout-stable {
   contain: layout style paint;
 }
+
+/* Ensure modal creates proper stacking context above all other content */
+.task-modal-overlay,
+.task-modal-content {
+  /* Force hardware acceleration */
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+
+  /* Create stacking context */
+  position: relative;
+  z-index: auto;
+}
+
+/* Prevent interference from other positioned elements */
+body.modal-open {
+  overflow: hidden !important;
+}
+
+/* Remove conflicting old CSS - now handled in main modal styles */
 
 /* Better scrollbar styling */
 .modal-scroll-content::-webkit-scrollbar {

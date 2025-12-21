@@ -2,6 +2,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Search, X, FolderOpen } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { getShortId } from '../lib/utils'
 import useAppStore from '../stores/useAppStore'
 import { Button } from './ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog'
@@ -50,9 +51,9 @@ export default function SearchModal({ isOpen, onClose }) {
     // Load the project first
     await loadProject(result.project.id)
 
-    // Navigate to project with task ID to open the task
-    const shortId = result.project.id.slice(0, 8)
-    navigate(`/?project=${shortId}&task=${result.task.id}`)
+    // Navigate to project with full task ID to open the task
+    const shortProjectId = getShortId(result.project.id)
+    navigate(`/?project=${shortProjectId}&task=${result.task.id}`)
 
     // Close search modal
     onClose()

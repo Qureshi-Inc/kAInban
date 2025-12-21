@@ -76,9 +76,14 @@ export default function MainView() {
         console.log('[MainView] Project not found:', projectId)
         navigate('/')
       }
+    } else {
+      // No projectId in URL - we're on dashboard, clear current project if set
+      if (currentProject) {
+        console.log('[MainView] No projectId in URL, clearing current project for dashboard')
+        clearSession()
+      }
     }
-    // Don't clear session when no projectId - URL might just not be updated yet
-  }, [projectId, currentProject, projects, loadProject, navigate])
+  }, [projectId, currentProject, projects, loadProject, navigate, clearSession])
 
   // Handle meeting selection - ONLY sync FROM URL if user navigated directly
   // Don't clear selection if URL doesn't have meeting param (URL might be updating)

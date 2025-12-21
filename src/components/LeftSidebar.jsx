@@ -22,8 +22,8 @@ export default function LeftSidebar({ isOpen, onClose }) {
   const [isSearchOpen, setIsSearchOpen] = useState(false)
 
   const handleDashboard = () => {
-    clearSession()
     navigate('/')
+    onClose() // Close the sidebar after navigation
   }
 
   const handleComingSoon = (feature) => {
