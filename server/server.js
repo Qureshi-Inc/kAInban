@@ -1204,7 +1204,7 @@ app.post(
 
       // Get task info directly from database to verify access
       const taskInfo = dbInstance
-        .prepare('SELECT project_id FROM tasks WHERE id = ?')
+        .prepare('SELECT project_id, title FROM tasks WHERE id = ?')
         .get(taskId)
       if (!taskInfo) {
         return res.status(404).json({ error: 'Task not found' })
@@ -1260,7 +1260,13 @@ app.post(
           content.trim(),
           {
             commentId,
-            commentType: 'ai_update'
+            commentType: 'ai_update',
+            authorName: 'AI Coordinator',
+            taskTitle: taskInfo.title,
+            taskId: taskId,
+            projectId: taskInfo.project_id,
+            userId: userId,
+            source: 'ai_comment'
           }
         )
       } else if (commentType === 'user') {
@@ -1275,7 +1281,13 @@ app.post(
           {
             commentId,
             commentType: 'user',
-            authorName
+            authorName,
+            taskTitle: taskInfo.title,
+            taskId: taskId,
+            projectId: taskInfo.project_id,
+            userEmail: user.email,
+            userId: userId,
+            source: 'manual_comment'
           }
         )
       }
