@@ -9,7 +9,8 @@ import {
   ChevronDown,
   ChevronRight,
   FileText,
-  User
+  User,
+  Sparkles
 } from 'lucide-react'
 import React, { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
@@ -18,11 +19,18 @@ import apiService from '../services/apiService'
 import openaiService from '../services/openaiService'
 import useAppStore from '../stores/useAppStore'
 import TaskDetailModal from './TaskDetailModal'
+import TaskGroupingModal from './TaskGroupingModal'
 import { Button } from './ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
 import '../styles/mobile-ux.css'
 
-const TaskCard = ({ task, onDelete, onClick, onNavigateToMeeting, users = [] }) => {
+const TaskCard = ({
+  task,
+  onDelete,
+  onClick,
+  onNavigateToMeeting,
+  users = []
+}) => {
   const [isDragging, setIsDragging] = React.useState(false)
   const [isTouchDevice, setIsTouchDevice] = React.useState(false)
   const [touchStart, setTouchStart] = React.useState({ x: 0, y: 0, time: 0 })
@@ -34,15 +42,18 @@ const TaskCard = ({ task, onDelete, onClick, onNavigateToMeeting, users = [] }) 
   }, [])
 
   // Check if assignee is a database user
-  const isAssigneeDbUser = (assigneeName) => {
-    if (!assigneeName || !users.length) return false
-    return users.some(user =>
-      user.name.toLowerCase() === assigneeName.toLowerCase() ||
-      user.email.toLowerCase() === assigneeName.toLowerCase()
+  const isAssigneeDbUser = assigneeName => {
+    if (!assigneeName || !users.length) {
+      return false
+    }
+    return users.some(
+      user =>
+        user.name.toLowerCase() === assigneeName.toLowerCase() ||
+        user.email.toLowerCase() === assigneeName.toLowerCase()
     )
   }
 
-  const getAssigneesDisplay = (task) => {
+  const getAssigneesDisplay = task => {
     // Handle both new assignees array and legacy assignee string
     let assigneesList = []
     if (task.assignees && Array.isArray(task.assignees)) {
@@ -51,28 +62,42 @@ const TaskCard = ({ task, onDelete, onClick, onNavigateToMeeting, users = [] }) 
       assigneesList = [task.assignee]
     }
 
-    if (assigneesList.length === 0) return null
+    if (assigneesList.length === 0) {
+      return null
+    }
 
     return (
       <div className="flex flex-wrap gap-1">
         {assigneesList.slice(0, 2).map((assigneeName, index) => {
           const isDbUser = isAssigneeDbUser(assigneeName)
-          const user = users.find(u =>
-            u.name.toLowerCase() === assigneeName.toLowerCase() ||
-            u.email.toLowerCase() === assigneeName.toLowerCase()
+          const user = users.find(
+            u =>
+              u.name.toLowerCase() === assigneeName.toLowerCase() ||
+              u.email.toLowerCase() === assigneeName.toLowerCase()
           )
 
           return (
-            <div key={assigneeName} className={`flex items-center gap-1 text-xs px-1.5 py-0.5 rounded border ${
-              isDbUser
-                ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800'
-                : 'bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-600'
-            }`}>
+            <div
+              key={assigneeName}
+              className={`flex items-center gap-1 text-xs px-1.5 py-0.5 rounded border ${
+                isDbUser
+                  ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800'
+                  : 'bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-600'
+              }`}
+            >
               <User className="h-2.5 w-2.5" />
-              <span className="truncate max-w-16" title={user ? `${user.name} (${user.email})` : assigneeName}>
+              <span
+                className="truncate max-w-16"
+                title={user ? `${user.name} (${user.email})` : assigneeName}
+              >
                 {isDbUser && user ? user.name : assigneeName}
               </span>
-              {isDbUser && <div className="w-1 h-1 bg-green-500 rounded-full" title="Database User" />}
+              {isDbUser && (
+                <div
+                  className="w-1 h-1 bg-green-500 rounded-full"
+                  title="Database User"
+                />
+              )}
             </div>
           )
         })}
@@ -223,7 +248,8 @@ const TaskCard = ({ task, onDelete, onClick, onNavigateToMeeting, users = [] }) 
           </span>
           {task.dueDate && (
             <span className="text-xs text-orange-600 dark:text-orange-400 font-semibold bg-orange-50 dark:bg-orange-900/20 px-2 py-1 rounded-md border border-orange-200 dark:border-orange-800">
-              📅 {(() => {
+              📅{' '}
+              {(() => {
                 // Parse as local date to avoid timezone issues
                 const parts = task.dueDate.split('-')
                 if (parts.length === 3) {
@@ -452,19 +478,22 @@ export default function KanbanBoard({ taskToOpen }) {
     deleteTask,
     clearTasks,
     addNotification,
-    addAiDiscoveredLinks
+    addAiDiscoveredLinks,
+    currentProject
   } = useAppStore()
   const [selectedTask, setSelectedTask] = useState(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [viewMode, setViewMode] = useState('kanban') // 'kanban' or 'list'
   const [users, setUsers] = useState([])
+  const [isGroupingModalOpen, setIsGroupingModalOpen] = useState(false)
   const [expandedSections, setExpandedSections] = useState({
     todo: true,
     'in-progress': true,
     blocked: true,
     done: true
   })
+  const [hasRecentMerges, setHasRecentMerges] = useState(false)
 
   // Load users for assignee display
   useEffect(() => {
@@ -479,6 +508,25 @@ export default function KanbanBoard({ taskToOpen }) {
     }
     loadUsers()
   }, [])
+
+  // Check for recent merges to determine button visibility
+  useEffect(() => {
+    const checkRecentMerges = async () => {
+      if (!currentProject?.id) {
+        setHasRecentMerges(false)
+        return
+      }
+
+      try {
+        const recentMerges = await apiService.getRecentMerges(currentProject.id)
+        setHasRecentMerges(recentMerges && recentMerges.length > 0)
+      } catch (error) {
+        console.warn('[KanbanBoard] Failed to check recent merges:', error)
+        setHasRecentMerges(false)
+      }
+    }
+    checkRecentMerges()
+  }, [currentProject?.id, tasks]) // Re-check when project or tasks change
 
   // Handle opening specific task from URL
   React.useEffect(() => {
@@ -730,7 +778,7 @@ export default function KanbanBoard({ taskToOpen }) {
     })
   }
 
-  const handleTaskMove = async(taskId, newStatus) => {
+  const handleTaskMove = async (taskId, newStatus) => {
     const task = tasks.find(t => t.id === taskId)
     if (!task) {
       return
@@ -1091,6 +1139,19 @@ export default function KanbanBoard({ taskToOpen }) {
                             )}
                           </button>
 
+                          {(tasks.length > 1 || hasRecentMerges) && (
+                            <button
+                              onClick={() => {
+                                setIsMenuOpen(false)
+                                setIsGroupingModalOpen(true)
+                              }}
+                              className="w-full px-4 py-3 text-left text-sm hover:bg-purple-50 dark:hover:bg-purple-900/20 text-purple-600 dark:text-purple-400 flex items-center gap-2 transition-colors"
+                            >
+                              <Sparkles className="h-4 w-4" />
+                              Group Similar Tasks
+                            </button>
+                          )}
+
                           {tasks.length > 0 && (
                             <button
                               onClick={() => {
@@ -1184,6 +1245,12 @@ export default function KanbanBoard({ taskToOpen }) {
         task={selectedTask}
         isOpen={isModalOpen}
         onClose={handleModalClose}
+      />
+
+      {/* Task Grouping Modal */}
+      <TaskGroupingModal
+        open={isGroupingModalOpen}
+        onOpenChange={setIsGroupingModalOpen}
       />
     </>
   )
