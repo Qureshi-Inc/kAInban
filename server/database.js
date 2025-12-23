@@ -675,7 +675,10 @@ export const saveProject = (userId, project) => {
           task.status || 'todo',
           task.priority || 'medium',
           task.dueDate || null,
-          task.assignee || null,
+          // Handle both assignees array and legacy assignee field
+          (task.assignees && Array.isArray(task.assignees) && task.assignees.length > 0)
+            ? task.assignees.join(', ')
+            : (task.assignee || null),
           JSON.stringify(task.subtasks || []),
           JSON.stringify(task.comments || []),
           JSON.stringify(task.linkedTasks || []),
@@ -695,7 +698,10 @@ export const saveProject = (userId, project) => {
           task.status || 'todo',
           task.priority || 'medium',
           task.dueDate || null,
-          task.assignee || null,
+          // Handle both assignees array and legacy assignee field
+          (task.assignees && Array.isArray(task.assignees) && task.assignees.length > 0)
+            ? task.assignees.join(', ')
+            : (task.assignee || null),
           JSON.stringify(task.subtasks || []),
           JSON.stringify(task.comments || []),
           JSON.stringify(task.linkedTasks || []),
@@ -833,6 +839,70 @@ export const saveProject = (userId, project) => {
             }
           )
         }
+
+        // Check for subtask changes (completion status changes)
+        const existingSubtasks = existingTask.subtasks ? JSON.parse(existingTask.subtasks) : []
+        const newSubtasks = task.subtasks || []
+
+        // Compare subtask completion states
+        const existingCompletionMap = {}
+        const newCompletionMap = {}
+
+        existingSubtasks.forEach(subtask => {
+          existingCompletionMap[subtask.text] = subtask.completed || false
+        })
+
+        newSubtasks.forEach(subtask => {
+          newCompletionMap[subtask.text] = subtask.completed || false
+        })
+
+        // Find completed or uncompleted subtasks
+        const completedSubtasks = []
+        const uncompletedSubtasks = []
+
+        Object.keys(newCompletionMap).forEach(subtaskText => {
+          const wasCompleted = existingCompletionMap[subtaskText] || false
+          const isCompleted = newCompletionMap[subtaskText] || false
+
+          if (!wasCompleted && isCompleted) {
+            completedSubtasks.push(subtaskText)
+          } else if (wasCompleted && !isCompleted) {
+            uncompletedSubtasks.push(subtaskText)
+          }
+        })
+
+        // Record subtask completion activities
+        completedSubtasks.forEach(subtaskText => {
+          recordTaskChange(
+            task.id,
+            userIdStr,
+            'subtask_completed',
+            'subtasks',
+            `Subtask incomplete: ${subtaskText}`,
+            `Subtask completed: ${subtaskText}`,
+            {
+              source: 'subtask_completion',
+              taskTitle: task.title || existingTask.title,
+              subtaskText
+            }
+          )
+        })
+
+        uncompletedSubtasks.forEach(subtaskText => {
+          recordTaskChange(
+            task.id,
+            userIdStr,
+            'subtask_uncompleted',
+            'subtasks',
+            `Subtask completed: ${subtaskText}`,
+            `Subtask incomplete: ${subtaskText}`,
+            {
+              source: 'subtask_completion',
+              taskTitle: task.title || existingTask.title,
+              subtaskText
+            }
+          )
+        })
 
         // Don't record generic "updated" entries since we have specific change records
       } else {
@@ -1037,7 +1107,10 @@ export const saveTask = task => {
     task.status || 'todo',
     task.priority || 'medium',
     task.dueDate || null,
-    task.assignee || null,
+    // Handle both assignees array and legacy assignee field
+    (task.assignees && Array.isArray(task.assignees) && task.assignees.length > 0)
+      ? task.assignees.join(', ')
+      : (task.assignee || null),
     JSON.stringify(task.subtasks || []),
     JSON.stringify(task.comments || []),
     JSON.stringify(task.linkedTasks || []),
