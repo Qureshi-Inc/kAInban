@@ -1655,13 +1655,21 @@ function calculateTaskSimilarity(task1, task2) {
   let score = 0
   const reasons = []
 
-  // Entity-based similarity (company names, project terms)
-  const entities1 = extractEntities(
-    task1.title + ' ' + (task1.description || '')
-  )
-  const entities2 = extractEntities(
-    task2.title + ' ' + (task2.description || '')
-  )
+  // Entity-based similarity (company names, project terms) - include comments
+  const getTaskText = task => {
+    let text = task.title + ' ' + (task.description || '')
+
+    // Include comments in similarity analysis
+    if (task.comments && Array.isArray(task.comments)) {
+      const commentTexts = task.comments.map(c => c.content || '').join(' ')
+      text += ' ' + commentTexts
+    }
+
+    return text
+  }
+
+  const entities1 = extractEntities(getTaskText(task1))
+  const entities2 = extractEntities(getTaskText(task2))
 
   const commonEntities = entities1.filter(entity => entities2.includes(entity))
   if (commonEntities.length > 0) {
@@ -1669,13 +1677,9 @@ function calculateTaskSimilarity(task1, task2) {
     reasons.push(`Shared entities: ${commonEntities.join(', ')}`)
   }
 
-  // Keyword similarity
-  const keywords1 = extractKeywords(
-    task1.title + ' ' + (task1.description || '')
-  )
-  const keywords2 = extractKeywords(
-    task2.title + ' ' + (task2.description || '')
-  )
+  // Keyword similarity - include comments
+  const keywords1 = extractKeywords(getTaskText(task1))
+  const keywords2 = extractKeywords(getTaskText(task2))
 
   const commonKeywords = keywords1.filter(kw => keywords2.includes(kw))
   const keywordSimilarity =

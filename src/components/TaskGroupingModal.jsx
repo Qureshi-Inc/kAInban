@@ -225,6 +225,35 @@ export default function TaskGroupingModal({ open, onOpenChange }) {
                 </p>
               </div>
             </div>
+
+            {/* Merge History Button */}
+            <div className="flex items-center gap-3">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  // Force scroll to Recent Merges section
+                  const recentMergesSection = document.querySelector(
+                    '[data-section="recent-merges"]'
+                  )
+                  if (recentMergesSection) {
+                    recentMergesSection.scrollIntoView({
+                      behavior: 'smooth',
+                      block: 'start'
+                    })
+                  }
+                }}
+                className="flex items-center gap-2 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+              >
+                <Clock className="h-4 w-4" />
+                Merge History (24h)
+                {recentMerges.length > 0 && (
+                  <span className="bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300 text-xs px-1.5 py-0.5 rounded-full font-medium">
+                    {recentMerges.length}
+                  </span>
+                )}
+              </Button>
+            </div>
             <Button
               variant="ghost"
               size="icon"
@@ -246,12 +275,20 @@ export default function TaskGroupingModal({ open, onOpenChange }) {
             ) : (
               <div className="space-y-6">
                 {/* Recent Merges - Undo Section */}
-                {recentMerges.length > 0 && (
-                  <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
-                    <h3 className="text-sm font-semibold text-blue-700 dark:text-blue-300 mb-3 flex items-center gap-2">
-                      <Undo2 className="h-4 w-4" />
-                      Recent Merges (24h undo window)
-                    </h3>
+                <div
+                  data-section="recent-merges"
+                  className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800"
+                >
+                  <h3 className="text-sm font-semibold text-blue-700 dark:text-blue-300 mb-3 flex items-center gap-2">
+                    <Undo2 className="h-4 w-4" />
+                    Merge History (24h undo window)
+                    {recentMerges.length > 0 && (
+                      <span className="bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300 text-xs px-1.5 py-0.5 rounded-full font-medium ml-2">
+                        {recentMerges.length}
+                      </span>
+                    )}
+                  </h3>
+                  {recentMerges.length > 0 ? (
                     <div className="space-y-2">
                       {recentMerges.map(merge => (
                         <div
@@ -279,8 +316,17 @@ export default function TaskGroupingModal({ open, onOpenChange }) {
                         </div>
                       ))}
                     </div>
-                  </div>
-                )}
+                  ) : (
+                    <div className="text-center py-4">
+                      <p className="text-sm text-blue-600 dark:text-blue-400">
+                        No recent merges in the last 24 hours
+                      </p>
+                      <p className="text-xs text-blue-500 dark:text-blue-500 mt-1">
+                        Merged tasks will appear here with undo options
+                      </p>
+                    </div>
+                  )}
+                </div>
 
                 {/* Similar Task Groups */}
                 {similarGroups.length > 0 ? (
