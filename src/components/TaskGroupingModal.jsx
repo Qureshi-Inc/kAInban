@@ -1,0 +1,457 @@
+import { motion, AnimatePresence } from 'framer-motion'
+import {
+  X,
+  Merge,
+  Undo2,
+  Sparkles,
+  AlertCircle,
+  CheckCircle,
+  Clock
+} from 'lucide-react'
+import React, { useState, useEffect } from 'react'
+import apiService from '../services/apiService'
+import useAppStore from '../stores/useAppStore'
+import { Button } from './ui/button'
+
+export default function TaskGroupingModal({ open, onOpenChange }) {
+  const { currentProject, addNotification, loadProject } = useAppStore()
+  const [loading, setLoading] = useState(false)
+  const [similarGroups, setSimilarGroups] = useState([])
+  const [selectedGroups, setSelectedGroups] = useState(new Set())
+  const [merging, setMerging] = useState(new Set())
+  const [recentMerges, setRecentMerges] = useState([])
+
+  // Load similar task groups when modal opens
+  useEffect(() => {
+    if (open && currentProject?.id) {
+      loadSimilarTasks()
+    }
+  }, [open, currentProject?.id])
+
+  const loadSimilarTasks = async () => {
+    if (!currentProject?.id) {
+      return
+    }
+
+    setLoading(true)
+    try {
+      // Load both similar tasks and recent merges in parallel
+      const [groups, recentMergesData] = await Promise.all([
+        apiService.detectSimilarTasks(currentProject.id),
+        apiService.getRecentMerges(currentProject.id)
+      ])
+
+      setSimilarGroups(groups)
+      setRecentMerges(recentMergesData)
+      setSelectedGroups(new Set())
+
+      if (groups.length === 0) {
+        addNotification({
+          type: 'info',
+          message: 'No similar tasks detected. Your tasks are well organized!'
+        })
+      }
+    } catch (error) {
+      console.error('[TaskGrouping] Load error:', error)
+      addNotification({
+        type: 'error',
+        message: `Failed to load task data: ${error.message}`
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleGroupSelection = (groupId, selected) => {
+    const newSelection = new Set(selectedGroups)
+    if (selected) {
+      newSelection.add(groupId)
+    } else {
+      newSelection.delete(groupId)
+    }
+    setSelectedGroups(newSelection)
+  }
+
+  const mergeTasks = async group => {
+    if (!currentProject?.id || group.tasks.length < 2) {
+      return
+    }
+
+    const groupId = group.id
+    setMerging(prev => new Set([...prev, groupId]))
+
+    try {
+      const taskIds = group.tasks.map(task => task.id)
+      const result = await apiService.mergeTasks(
+        currentProject.id,
+        taskIds,
+        'smart'
+      )
+
+      // Track recent merge for undo functionality
+      const mergeRecord = {
+        id: result.mergeId,
+        title: result.mergedTask.title,
+        originalTasks: group.tasks.map(t => ({ id: t.id, title: t.title })),
+        timestamp: new Date().toISOString()
+      }
+      setRecentMerges(prev => [mergeRecord, ...prev.slice(0, 4)]) // Keep last 5
+
+      // Remove merged group from similar groups
+      setSimilarGroups(prev => prev.filter(g => g.id !== groupId))
+      setSelectedGroups(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(groupId)
+        return newSet
+      })
+
+      // Reload project to show updated tasks
+      await loadProject(currentProject.id)
+
+      addNotification({
+        type: 'success',
+        message: `Successfully merged ${group.tasks.length} tasks into "${result.mergedTask.title}"`
+      })
+    } catch (error) {
+      console.error('[TaskGrouping] Merge error:', error)
+      addNotification({
+        type: 'error',
+        message: `Failed to merge tasks: ${error.message}`
+      })
+    } finally {
+      setMerging(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(groupId)
+        return newSet
+      })
+    }
+  }
+
+  const undoMerge = async mergeRecord => {
+    if (!currentProject?.id) {
+      return
+    }
+
+    try {
+      const result = await apiService.undoMerge(
+        currentProject.id,
+        mergeRecord.id
+      )
+
+      // Remove from recent merges
+      setRecentMerges(prev => prev.filter(m => m.id !== mergeRecord.id))
+
+      // Reload project to show restored tasks
+      await loadProject(currentProject.id)
+
+      addNotification({
+        type: 'success',
+        message: `Undid merge - restored ${result.restoredTasks.length} original tasks`
+      })
+
+      // Reload similar tasks to potentially show new groups
+      await loadSimilarTasks()
+    } catch (error) {
+      console.error('[TaskGrouping] Undo error:', error)
+      addNotification({
+        type: 'error',
+        message: `Failed to undo merge: ${error.message}`
+      })
+    }
+  }
+
+  const mergeSelectedGroups = async () => {
+    const groupsToMerge = similarGroups.filter(g => selectedGroups.has(g.id))
+
+    for (const group of groupsToMerge) {
+      await mergeTasks(group)
+    }
+  }
+
+  const getConfidenceColor = confidence => {
+    switch (confidence) {
+      case 'high':
+        return 'text-green-600 dark:text-green-400'
+      case 'medium':
+        return 'text-yellow-600 dark:text-yellow-400'
+      default:
+        return 'text-gray-600 dark:text-gray-400'
+    }
+  }
+
+  const getConfidenceIcon = confidence => {
+    switch (confidence) {
+      case 'high':
+        return <CheckCircle className="h-4 w-4" />
+      case 'medium':
+        return <AlertCircle className="h-4 w-4" />
+      default:
+        return <Clock className="h-4 w-4" />
+    }
+  }
+
+  if (!open) {
+    return null
+  }
+
+  return (
+    <AnimatePresence>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
+        onClick={() => onOpenChange(false)}
+      >
+        <motion.div
+          initial={{ scale: 0.95, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          exit={{ scale: 0.95, opacity: 0 }}
+          onClick={e => e.stopPropagation()}
+          className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col"
+        >
+          {/* Header */}
+          <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-purple-100 dark:bg-purple-900 flex items-center justify-center">
+                <Sparkles className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+              </div>
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                  Smart Task Grouping
+                </h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  AI-detected similar tasks that can be merged
+                </p>
+              </div>
+            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => onOpenChange(false)}
+            >
+              <X className="h-5 w-5" />
+            </Button>
+          </div>
+
+          {/* Content */}
+          <div className="flex-1 overflow-y-auto p-6">
+            {loading ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+                <span className="ml-3 text-gray-600 dark:text-gray-400">
+                  Analyzing tasks for similarities...
+                </span>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {/* Recent Merges - Undo Section */}
+                {recentMerges.length > 0 && (
+                  <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
+                    <h3 className="text-sm font-semibold text-blue-700 dark:text-blue-300 mb-3 flex items-center gap-2">
+                      <Undo2 className="h-4 w-4" />
+                      Recent Merges (24h undo window)
+                    </h3>
+                    <div className="space-y-2">
+                      {recentMerges.map(merge => (
+                        <div
+                          key={merge.id}
+                          className="flex items-center justify-between p-2 bg-white dark:bg-gray-800 rounded border border-blue-200 dark:border-blue-700"
+                        >
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium truncate">
+                              {merge.title}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              Merged {merge.originalTasks.length} tasks •{' '}
+                              {new Date(merge.timestamp).toLocaleTimeString()}
+                            </p>
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => undoMerge(merge)}
+                            className="ml-2 flex items-center gap-1"
+                          >
+                            <Undo2 className="h-3 w-3" />
+                            Undo
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Similar Task Groups */}
+                {similarGroups.length > 0 ? (
+                  <>
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        Found {similarGroups.length} group(s) of similar tasks
+                      </p>
+                      {selectedGroups.size > 0 && (
+                        <Button
+                          onClick={mergeSelectedGroups}
+                          className="flex items-center gap-2"
+                          disabled={Array.from(selectedGroups).some(groupId =>
+                            merging.has(groupId)
+                          )}
+                        >
+                          <Merge className="h-4 w-4" />
+                          Merge Selected ({selectedGroups.size})
+                        </Button>
+                      )}
+                    </div>
+
+                    <div className="space-y-4">
+                      {similarGroups.map(group => (
+                        <div
+                          key={group.id}
+                          className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:border-purple-300 dark:hover:border-purple-600 transition-colors"
+                        >
+                          <div className="flex items-start justify-between mb-3">
+                            <div className="flex items-center gap-3">
+                              <input
+                                type="checkbox"
+                                checked={selectedGroups.has(group.id)}
+                                onChange={e =>
+                                  handleGroupSelection(
+                                    group.id,
+                                    e.target.checked
+                                  )
+                                }
+                                className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+                              />
+                              <div>
+                                <div
+                                  className={`flex items-center gap-2 ${getConfidenceColor(group.similarity.confidence)}`}
+                                >
+                                  {getConfidenceIcon(
+                                    group.similarity.confidence
+                                  )}
+                                  <span className="text-sm font-medium capitalize">
+                                    {group.similarity.confidence} confidence
+                                  </span>
+                                  <span className="text-xs">
+                                    ({Math.round(group.similarity.score * 100)}%
+                                    match)
+                                  </span>
+                                </div>
+                                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                                  {group.reason}
+                                </p>
+                              </div>
+                            </div>
+                            <Button
+                              size="sm"
+                              onClick={() => mergeTasks(group)}
+                              disabled={merging.has(group.id)}
+                              className="flex items-center gap-2"
+                            >
+                              {merging.has(group.id) ? (
+                                <>
+                                  <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
+                                  Merging...
+                                </>
+                              ) : (
+                                <>
+                                  <Merge className="h-3 w-3" />
+                                  Merge
+                                </>
+                              )}
+                            </Button>
+                          </div>
+
+                          {/* Task List */}
+                          <div className="space-y-2">
+                            {group.tasks.map((task, index) => (
+                              <div
+                                key={task.id}
+                                className="flex items-center gap-3 p-2 bg-gray-50 dark:bg-gray-900 rounded"
+                              >
+                                <div className="w-6 h-6 rounded bg-purple-100 dark:bg-purple-900 flex items-center justify-center text-xs font-semibold text-purple-600 dark:text-purple-400">
+                                  {index + 1}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium truncate">
+                                    {task.title}
+                                  </p>
+                                  {task.description && (
+                                    <p className="text-xs text-gray-500 truncate">
+                                      {task.description}
+                                    </p>
+                                  )}
+                                  <div className="flex items-center gap-2 mt-1">
+                                    <span
+                                      className={`text-xs px-1.5 py-0.5 rounded ${
+                                        task.status === 'done'
+                                          ? 'bg-green-100 text-green-700'
+                                          : task.status === 'in-progress'
+                                            ? 'bg-blue-100 text-blue-700'
+                                            : task.status === 'blocked'
+                                              ? 'bg-red-100 text-red-700'
+                                              : 'bg-gray-100 text-gray-700'
+                                      }`}
+                                    >
+                                      {task.status}
+                                    </span>
+                                    <span
+                                      className={`text-xs px-1.5 py-0.5 rounded ${
+                                        task.priority === 'high'
+                                          ? 'bg-red-100 text-red-700'
+                                          : task.priority === 'medium'
+                                            ? 'bg-yellow-100 text-yellow-700'
+                                            : 'bg-gray-100 text-gray-700'
+                                      }`}
+                                    >
+                                      {task.priority}
+                                    </span>
+                                    {task.assignee && (
+                                      <span className="text-xs px-1.5 py-0.5 rounded bg-blue-100 text-blue-700">
+                                        {task.assignee}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-center py-12">
+                    <div className="w-16 h-16 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center mx-auto mb-4">
+                      <CheckCircle className="h-8 w-8 text-green-600 dark:text-green-400" />
+                    </div>
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                      No Similar Tasks Found
+                    </h3>
+                    <p className="text-gray-500 dark:text-gray-400">
+                      Your tasks are already well organized! No duplicates or
+                      similar tasks detected.
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Footer */}
+          <div className="p-6 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
+            <div className="flex items-center justify-between">
+              <p className="text-xs text-gray-500">
+                AI analyzes task titles, descriptions, assignees, and workflow
+                patterns
+              </p>
+              <Button variant="outline" onClick={() => loadSimilarTasks()}>
+                Refresh Analysis
+              </Button>
+            </div>
+          </div>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
+  )
+}

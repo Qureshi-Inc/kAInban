@@ -787,14 +787,23 @@ export const saveProject = (userId, project) => {
         }
 
         // Check for assignees change (handle both legacy assignee and new assignees array)
-        const existingAssignees = existingTask.assignees && Array.isArray(existingTask.assignees)
-          ? existingTask.assignees
-          : (existingTask.assignee ? [existingTask.assignee] : [])
-        const newAssignees = task.assignees && Array.isArray(task.assignees)
-          ? task.assignees
-          : (task.assignee ? [task.assignee] : [])
+        const existingAssignees =
+          existingTask.assignees && Array.isArray(existingTask.assignees)
+            ? existingTask.assignees
+            : existingTask.assignee
+              ? [existingTask.assignee]
+              : []
+        const newAssignees =
+          task.assignees && Array.isArray(task.assignees)
+            ? task.assignees
+            : task.assignee
+              ? [task.assignee]
+              : []
 
-        if (JSON.stringify(existingAssignees.sort()) !== JSON.stringify(newAssignees.sort())) {
+        if (
+          JSON.stringify(existingAssignees.sort()) !==
+          JSON.stringify(newAssignees.sort())
+        ) {
           recordTaskChange(
             task.id,
             userIdStr,
@@ -1628,6 +1637,94 @@ export const exportAll = userId => {
     settings: getSettings(userId),
     projects: getAllProjects(userId).map(p => getProject(p.id))
   }
+}
+
+// Task merge undo functionality
+export const storeMergeUndoData = (userId, projectId, mergeMetadata) => {
+  // Create table if it doesn't exist
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS task_merge_undo (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      project_id TEXT NOT NULL,
+      merge_id TEXT NOT NULL,
+      metadata TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      expires_at DATETIME DEFAULT (datetime('now', '+24 hours'))
+    )
+  `)
+
+  const stmt = db.prepare(`
+    INSERT INTO task_merge_undo (id, user_id, project_id, merge_id, metadata)
+    VALUES (?, ?, ?, ?, ?)
+  `)
+
+  const undoId = `undo_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+
+  stmt.run(
+    undoId,
+    String(userId),
+    projectId,
+    mergeMetadata.id,
+    JSON.stringify(mergeMetadata)
+  )
+
+  // Clean up expired undo data
+  cleanupExpiredUndoData()
+
+  return undoId
+}
+
+export const getMergeUndoData = (userId, projectId, mergeId) => {
+  const stmt = db.prepare(`
+    SELECT * FROM task_merge_undo
+    WHERE user_id = ? AND project_id = ? AND merge_id = ?
+    AND expires_at > datetime('now')
+    ORDER BY created_at DESC
+    LIMIT 1
+  `)
+
+  return stmt.get(String(userId), projectId, mergeId)
+}
+
+export const deleteMergeUndoData = (userId, projectId, mergeId) => {
+  const stmt = db.prepare(`
+    DELETE FROM task_merge_undo
+    WHERE user_id = ? AND project_id = ? AND merge_id = ?
+  `)
+
+  return stmt.run(String(userId), projectId, mergeId)
+}
+
+export const getRecentMerges = (userId, projectId) => {
+  const stmt = db.prepare(`
+    SELECT id, merge_id, metadata, created_at
+    FROM task_merge_undo
+    WHERE user_id = ? AND project_id = ?
+    AND expires_at > datetime('now')
+    ORDER BY created_at DESC
+    LIMIT 10
+  `)
+
+  const rows = stmt.all(userId, projectId)
+  return rows.map(row => {
+    const metadata = JSON.parse(row.metadata)
+    return {
+      id: row.merge_id,
+      title: metadata.mergedTask.title,
+      originalTasks: metadata.originalTasks,
+      timestamp: row.created_at
+    }
+  })
+}
+
+export const cleanupExpiredUndoData = () => {
+  const stmt = db.prepare(`
+    DELETE FROM task_merge_undo
+    WHERE expires_at <= datetime('now')
+  `)
+
+  return stmt.run()
 }
 
 export default db

@@ -1358,7 +1358,6 @@ app.get('/api/comments/:commentId', localAuth.requireAuth, async (req, res) => {
   }
 })
 
-
 // BULLETPROOF AI COMMENT ENDPOINT - NEVER FAILS
 app.post(
   '/api/tasks/:taskId/ai-comments-bulletproof',
@@ -1401,7 +1400,6 @@ app.post(
         metadata
       )
 
-
       console.log(
         '[BULLETPROOF API] ✓ AI comment created successfully:',
         result.commentId
@@ -1415,6 +1413,524 @@ app.post(
     }
   }
 )
+
+// Task similarity detection and merging endpoints
+app.post(
+  '/api/tasks/detect-similar',
+  localAuth.requireAuth,
+  async (req, res) => {
+    try {
+      const { projectId } = req.body
+      const userId = req.session.user.id
+
+      // Get project tasks
+      const project = db.getProject(projectId)
+      if (!project || project.user_id !== String(userId)) {
+        return res.status(403).json({ error: 'Access denied' })
+      }
+
+      const tasks = project.tasks || []
+      if (tasks.length < 2) {
+        return res.json({ groups: [] })
+      }
+
+      // Detect similar task groups
+      const similarGroups = await detectSimilarTasks(tasks)
+
+      res.json({ groups: similarGroups })
+    } catch (error) {
+      console.error('[Task Similarity] Detection error:', error)
+      res.status(500).json({ error: 'Failed to detect similar tasks' })
+    }
+  }
+)
+
+app.post('/api/tasks/merge', localAuth.requireAuth, async (req, res) => {
+  try {
+    const { projectId, taskIds, mergeStrategy = 'smart' } = req.body
+    const userId = req.session.user.id
+
+    // Get project
+    const project = db.getProject(projectId)
+    if (!project || project.user_id !== String(userId)) {
+      return res.status(403).json({ error: 'Access denied' })
+    }
+
+    const tasks = project.tasks || []
+    const tasksToMerge = tasks.filter(task => taskIds.includes(task.id))
+
+    if (tasksToMerge.length < 2) {
+      return res.status(400).json({ error: 'Need at least 2 tasks to merge' })
+    }
+
+    // Merge tasks using AI
+    const mergedTask = await mergeTasksWithAI(tasksToMerge, mergeStrategy)
+
+    // Store merge metadata for undo functionality
+    const mergeMetadata = {
+      id: mergedTask.id,
+      timestamp: new Date().toISOString(),
+      originalTasks: tasksToMerge,
+      mergedTask: { ...mergedTask }
+    }
+
+    // Update project with merged task
+    const updatedTasks = tasks.filter(task => !taskIds.includes(task.id))
+    updatedTasks.push(mergedTask)
+
+    const updatedProject = { ...project, tasks: updatedTasks }
+    db.saveProject(userId, updatedProject)
+
+    // Store undo data in database for later retrieval
+    db.storeMergeUndoData(userId, projectId, mergeMetadata)
+
+    // Record merge activity
+    db.recordTaskChange(
+      mergedTask.id,
+      String(userId),
+      'tasks_merged',
+      null,
+      null,
+      `Merged ${tasksToMerge.length} tasks: ${tasksToMerge.map(t => t.title).join(', ')}`,
+      {
+        source: 'task_merge',
+        mergedTaskIds: taskIds,
+        taskTitle: mergedTask.title,
+        originalTasks: tasksToMerge.map(t => ({ id: t.id, title: t.title }))
+      }
+    )
+
+    res.json({
+      success: true,
+      mergedTask,
+      removedTaskIds: taskIds,
+      mergeId: mergedTask.id // For undo reference
+    })
+  } catch (error) {
+    console.error('[Task Merge] Error:', error)
+    res.status(500).json({ error: 'Failed to merge tasks' })
+  }
+})
+
+app.post('/api/tasks/undo-merge', localAuth.requireAuth, async (req, res) => {
+  try {
+    const { projectId, mergeId } = req.body
+    const userId = req.session.user.id
+
+    // Get project
+    const project = db.getProject(projectId)
+    if (!project || project.user_id !== String(userId)) {
+      return res.status(403).json({ error: 'Access denied' })
+    }
+
+    // Get merge undo data
+    const mergeData = db.getMergeUndoData(userId, projectId, mergeId)
+    if (!mergeData) {
+      return res.status(404).json({ error: 'Merge data not found or expired' })
+    }
+
+    const { originalTasks, mergedTask } = JSON.parse(mergeData.metadata)
+
+    // Restore original tasks and remove merged task
+    const tasks = project.tasks || []
+    const updatedTasks = tasks.filter(task => task.id !== mergeId)
+    updatedTasks.push(...originalTasks)
+
+    const updatedProject = { ...project, tasks: updatedTasks }
+    db.saveProject(userId, updatedProject)
+
+    // Record undo activity
+    db.recordTaskChange(
+      mergeId,
+      String(userId),
+      'merge_undone',
+      null,
+      null,
+      `Undid merge, restored ${originalTasks.length} original tasks`,
+      {
+        source: 'merge_undo',
+        restoredTaskIds: originalTasks.map(t => t.id),
+        taskTitle: mergedTask.title,
+        restoredTasks: originalTasks.map(t => ({ id: t.id, title: t.title }))
+      }
+    )
+
+    // Clean up undo data
+    db.deleteMergeUndoData(userId, projectId, mergeId)
+
+    res.json({
+      success: true,
+      restoredTasks: originalTasks,
+      removedMergeId: mergeId
+    })
+  } catch (error) {
+    console.error('[Task Undo] Error:', error)
+    res.status(500).json({ error: 'Failed to undo merge' })
+  }
+})
+
+// Get recent merges for undo functionality
+app.get(
+  '/api/tasks/recent-merges/:projectId',
+  localAuth.requireAuth,
+  async (req, res) => {
+    try {
+      const { projectId } = req.params
+      const userId = req.session.user.id
+
+      // Verify project access
+      const project = db.getProject(projectId)
+      if (!project || project.user_id !== String(userId)) {
+        return res.status(403).json({ error: 'Access denied' })
+      }
+
+      // Get recent merges that can still be undone
+      const recentMerges = db.getRecentMerges(userId, projectId)
+
+      res.json({ merges: recentMerges })
+    } catch (error) {
+      console.error('[Recent Merges] Error:', error)
+      res.status(500).json({ error: 'Failed to get recent merges' })
+    }
+  }
+)
+
+// Helper function to detect similar tasks
+async function detectSimilarTasks(tasks) {
+  const groups = []
+  const processed = new Set()
+
+  for (let i = 0; i < tasks.length; i++) {
+    if (processed.has(i)) {
+      continue
+    }
+
+    const task1 = tasks[i]
+    const similarTasks = [{ task: task1, index: i }]
+
+    for (let j = i + 1; j < tasks.length; j++) {
+      if (processed.has(j)) {
+        continue
+      }
+
+      const task2 = tasks[j]
+      const similarity = calculateTaskSimilarity(task1, task2)
+
+      if (similarity.score >= 0.7) {
+        similarTasks.push({ task: task2, index: j })
+        processed.add(j)
+      }
+    }
+
+    if (similarTasks.length >= 2) {
+      processed.add(i)
+      groups.push({
+        id: `group_${i}`,
+        tasks: similarTasks.map(item => item.task),
+        similarity: calculateGroupSimilarity(
+          similarTasks.map(item => item.task)
+        ),
+        reason: getSimilarityReason(similarTasks.map(item => item.task))
+      })
+    }
+  }
+
+  return groups
+}
+
+// Calculate similarity between two tasks
+function calculateTaskSimilarity(task1, task2) {
+  let score = 0
+  const reasons = []
+
+  // Entity-based similarity (company names, project terms)
+  const entities1 = extractEntities(
+    task1.title + ' ' + (task1.description || '')
+  )
+  const entities2 = extractEntities(
+    task2.title + ' ' + (task2.description || '')
+  )
+
+  const commonEntities = entities1.filter(entity => entities2.includes(entity))
+  if (commonEntities.length > 0) {
+    score += 0.4
+    reasons.push(`Shared entities: ${commonEntities.join(', ')}`)
+  }
+
+  // Keyword similarity
+  const keywords1 = extractKeywords(
+    task1.title + ' ' + (task1.description || '')
+  )
+  const keywords2 = extractKeywords(
+    task2.title + ' ' + (task2.description || '')
+  )
+
+  const commonKeywords = keywords1.filter(kw => keywords2.includes(kw))
+  const keywordSimilarity =
+    commonKeywords.length / Math.max(keywords1.length, keywords2.length)
+
+  if (keywordSimilarity >= 0.3) {
+    score += keywordSimilarity * 0.4
+    reasons.push(`Common keywords: ${commonKeywords.slice(0, 3).join(', ')}`)
+  }
+
+  // Same assignee
+  if (task1.assignee && task2.assignee && task1.assignee === task2.assignee) {
+    score += 0.2
+    reasons.push(`Same assignee: ${task1.assignee}`)
+  }
+
+  // Sequential workflow detection
+  if (isSequentialTasks(task1, task2)) {
+    score += 0.3
+    reasons.push('Sequential workflow detected')
+  }
+
+  return { score, reasons }
+}
+
+// Extract entities (company names, project names, document types)
+function extractEntities(text) {
+  const entities = []
+  const upperText = text.toUpperCase()
+
+  // Common company/project patterns
+  const entityPatterns = [
+    /\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\s+(?:CONTRACT|AGREEMENT|RENEWAL|PROJECT|TASK)\b/gi,
+    /\b(CERTINIA|SALESFORCE|MICROSOFT|ADOBE|GOOGLE|AMAZON)\b/gi,
+    /\b([A-Z]{2,})\b/g // Acronyms
+  ]
+
+  entityPatterns.forEach(pattern => {
+    const matches = text.match(pattern)
+    if (matches) {
+      entities.push(...matches.map(m => m.trim().toLowerCase()))
+    }
+  })
+
+  return [...new Set(entities)] // Remove duplicates
+}
+
+// Extract keywords
+function extractKeywords(text) {
+  const stopWords = [
+    'the',
+    'and',
+    'or',
+    'but',
+    'in',
+    'on',
+    'at',
+    'to',
+    'for',
+    'of',
+    'with',
+    'by',
+    'from',
+    'up',
+    'about',
+    'into',
+    'through',
+    'during',
+    'before',
+    'after',
+    'above',
+    'below',
+    'between',
+    'among',
+    'around',
+    'through',
+    'during',
+    'before',
+    'after',
+    'above',
+    'below',
+    'between'
+  ]
+
+  return text
+    .toLowerCase()
+    .replace(/[^\w\s]/g, ' ')
+    .split(/\s+/)
+    .filter(word => word.length > 2 && !stopWords.includes(word))
+    .filter(word => isNaN(word)) // Remove numbers
+}
+
+// Detect sequential tasks
+function isSequentialTasks(task1, task2) {
+  const sequentialPatterns = [
+    ['review', 'approve'],
+    ['create', 'sign'],
+    ['draft', 'finalize'],
+    ['plan', 'execute'],
+    ['design', 'implement'],
+    ['research', 'write'],
+    ['contract', 'agreement'],
+    ['renewal', 'tpsa']
+  ]
+
+  const text1 = (task1.title + ' ' + (task1.description || '')).toLowerCase()
+  const text2 = (task2.title + ' ' + (task2.description || '')).toLowerCase()
+
+  return sequentialPatterns.some(
+    ([first, second]) =>
+      (text1.includes(first) && text2.includes(second)) ||
+      (text1.includes(second) && text2.includes(first))
+  )
+}
+
+// Calculate group similarity metrics
+function calculateGroupSimilarity(tasks) {
+  if (tasks.length < 2) {
+    return { score: 0, confidence: 'low' }
+  }
+
+  let totalScore = 0
+  let comparisons = 0
+
+  for (let i = 0; i < tasks.length; i++) {
+    for (let j = i + 1; j < tasks.length; j++) {
+      totalScore += calculateTaskSimilarity(tasks[i], tasks[j]).score
+      comparisons++
+    }
+  }
+
+  const avgScore = totalScore / comparisons
+  let confidence = 'low'
+  if (avgScore >= 0.8) {
+    confidence = 'high'
+  } else if (avgScore >= 0.7) {
+    confidence = 'medium'
+  }
+
+  return { score: avgScore, confidence }
+}
+
+// Get human-readable similarity reason
+function getSimilarityReason(tasks) {
+  if (tasks.length < 2) {
+    return 'Unknown'
+  }
+
+  // Check for common entities
+  const allEntities = tasks.flatMap(task =>
+    extractEntities(task.title + ' ' + (task.description || ''))
+  )
+  const entityCounts = allEntities.reduce((acc, entity) => {
+    acc[entity] = (acc[entity] || 0) + 1
+    return acc
+  }, {})
+
+  const commonEntities = Object.entries(entityCounts)
+    .filter(([, count]) => count >= 2)
+    .map(([entity]) => entity)
+
+  if (commonEntities.length > 0) {
+    return `Related to ${commonEntities[0]}`
+  }
+
+  // Check for workflow patterns
+  const hasSequential = tasks.some((task1, i) =>
+    tasks.slice(i + 1).some(task2 => isSequentialTasks(task1, task2))
+  )
+
+  if (hasSequential) {
+    return 'Sequential workflow tasks'
+  }
+
+  return 'Similar content detected'
+}
+
+// AI-powered task merging
+async function mergeTasksWithAI(tasks, strategy = 'smart') {
+  try {
+    // Import the openai service
+    const openaiService = await import('../src/services/openaiService.js')
+
+    const prompt = `You are merging multiple related tasks into a single, comprehensive task.
+
+TASKS TO MERGE:
+${tasks
+  .map(
+    (task, idx) => `
+${idx + 1}. "${task.title}"
+   Description: ${task.description || 'No description'}
+   Status: ${task.status}
+   Priority: ${task.priority}
+   Assignee: ${task.assignee || 'Unassigned'}
+   Due Date: ${task.dueDate || 'No due date'}
+`
+  )
+  .join('')}
+
+Please merge these tasks intelligently by:
+1. Creating a comprehensive title that encompasses all tasks
+2. Combining descriptions while removing redundancy
+3. Choosing the highest priority level
+4. Selecting the most appropriate status
+5. Keeping the earliest due date if any
+6. Preserving assignee information
+
+Return ONLY a JSON object with this structure:
+{
+  "title": "Merged task title",
+  "description": "Combined description with all relevant details",
+  "status": "most appropriate status",
+  "priority": "highest priority from merged tasks",
+  "assignee": "assignee if consistent, or primary assignee",
+  "dueDate": "earliest due date or null"
+}`
+
+    const response = await openaiService.default.getCompletion(prompt)
+    const mergedTaskData = JSON.parse(response)
+
+    // Create merged task with metadata
+    const mergedTask = {
+      id: `merged_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      ...mergedTaskData,
+      createdAt: new Date().toISOString(),
+      mergedFrom: tasks.map(task => ({
+        id: task.id,
+        title: task.title
+      })),
+      subtasks: tasks.flatMap(task => task.subtasks || []),
+      comments: []
+    }
+
+    return mergedTask
+  } catch (error) {
+    console.error('[Task Merge AI] Error:', error)
+
+    // Fallback to simple merge if AI fails
+    const mergedTask = {
+      id: `merged_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      title: tasks.map(t => t.title).join(' + '),
+      description: tasks
+        .map(t => `• ${t.title}${t.description ? `: ${t.description}` : ''}`)
+        .join('\n'),
+      status:
+        tasks.find(t => t.status === 'in-progress')?.status || tasks[0].status,
+      priority: tasks.reduce((highest, task) => {
+        const priorities = { low: 1, medium: 2, high: 3 }
+        return priorities[task.priority] > priorities[highest]
+          ? task.priority
+          : highest
+      }, 'low'),
+      assignee: tasks.find(t => t.assignee)?.assignee || '',
+      dueDate:
+        tasks
+          .map(t => t.dueDate)
+          .filter(Boolean)
+          .sort()[0] || null,
+      createdAt: new Date().toISOString(),
+      mergedFrom: tasks.map(task => ({ id: task.id, title: task.title })),
+      subtasks: tasks.flatMap(task => task.subtasks || []),
+      comments: []
+    }
+
+    return mergedTask
+  }
+}
 
 // Start server
 app.listen(PORT, '0.0.0.0', () => {

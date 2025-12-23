@@ -552,6 +552,99 @@ class ApiService {
       return []
     }
   }
+
+  // Task similarity and merging endpoints
+  async detectSimilarTasks(projectId) {
+    try {
+      const response = await this.secureFetch(
+        `${API_URL}/tasks/detect-similar`,
+        {
+          method: 'POST',
+          body: JSON.stringify({ projectId })
+        }
+      )
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const data = await response.json()
+      return data.groups || []
+    } catch (error) {
+      console.error('[API] Detect similar tasks error:', error)
+      throw error
+    }
+  }
+
+  async mergeTasks(projectId, taskIds, mergeStrategy = 'smart') {
+    try {
+      const response = await this.secureFetch(`${API_URL}/tasks/merge`, {
+        method: 'POST',
+        body: JSON.stringify({
+          projectId,
+          taskIds,
+          mergeStrategy
+        })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(
+          errorData.error || `HTTP error! status: ${response.status}`
+        )
+      }
+
+      return await response.json()
+    } catch (error) {
+      console.error('[API] Merge tasks error:', error)
+      throw error
+    }
+  }
+
+  async undoMerge(projectId, mergeId) {
+    try {
+      const response = await this.secureFetch(`${API_URL}/tasks/undo-merge`, {
+        method: 'POST',
+        body: JSON.stringify({
+          projectId,
+          mergeId
+        })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(
+          errorData.error || `HTTP error! status: ${response.status}`
+        )
+      }
+
+      return await response.json()
+    } catch (error) {
+      console.error('[API] Undo merge error:', error)
+      throw error
+    }
+  }
+
+  async getRecentMerges(projectId) {
+    try {
+      const response = await this.secureFetch(
+        `${API_URL}/tasks/recent-merges/${projectId}`
+      )
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(
+          errorData.error || `HTTP error! status: ${response.status}`
+        )
+      }
+
+      const result = await response.json()
+      return result.merges || []
+    } catch (error) {
+      console.error('[API] Get recent merges error:', error)
+      throw error
+    }
+  }
 }
 
 export default new ApiService()
