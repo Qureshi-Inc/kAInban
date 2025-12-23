@@ -330,6 +330,8 @@ MATCHING EXISTING TASKS:
    - "updates": new information to add as an AI comment (do NOT modify existing description)
    - "newStatus": update status if mentioned
    - "newPriority": update priority if mentioned
+   - "newAssignee": update assignee if mentioned
+   - "newDueDate": update due date if mentioned (YYYY-MM-DD format)
 
 2. If creating NEW consolidated task, do NOT use "matchId"
 
@@ -518,6 +520,24 @@ ${transcript}`
               `[OpenAI] Task ${index + 1} has newPriority:`,
               sanitized.newPriority
             )
+          }
+          if (task.newAssignee) {
+            sanitized.newAssignee = task.newAssignee
+            console.log(
+              `[OpenAI] Task ${index + 1} has newAssignee:`,
+              sanitized.newAssignee
+            )
+          }
+          if (task.newDueDate) {
+            // Validate ISO date format (YYYY-MM-DD)
+            const dateRegex = /^\d{4}-\d{2}-\d{2}$/
+            if (dateRegex.test(task.newDueDate)) {
+              sanitized.newDueDate = task.newDueDate
+              console.log(
+                `[OpenAI] Task ${index + 1} has newDueDate:`,
+                sanitized.newDueDate
+              )
+            }
           }
 
           // CRITICAL: Always set status field, defaulting to 'todo' if not provided

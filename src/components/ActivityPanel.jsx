@@ -89,21 +89,39 @@ export default function ActivityPanel({ isOpen, onClose }) {
         )
 
         // Convert change tracking data to activity format
-        const formattedActivities = changes.map(change => ({
-          id: change.id,
-          type: change.change_type,
-          title: formatChangeTitle(change.change_type, change.field_name),
-          description: formatChangeDescription(change),
-          details: {
-            taskTitle: change.task_title,
-            field: change.field_name,
-            oldValue: change.old_value,
-            newValue: change.new_value,
-            metadata: change.metadata
-          },
-          timestamp: new Date(change.created_at),
-          user: change.user_name || change.user_email || 'Unknown User'
-        }))
+        const formattedActivities = changes.map(change => {
+          // Parse metadata if it's a JSON string
+          let parsedMetadata = null
+          try {
+            parsedMetadata = typeof change.metadata === 'string'
+              ? JSON.parse(change.metadata)
+              : change.metadata
+          } catch (e) {
+            parsedMetadata = change.metadata
+          }
+
+          // Create change object with parsed metadata for formatChangeDescription
+          const changeWithParsedMetadata = {
+            ...change,
+            metadata: parsedMetadata
+          }
+
+          return {
+            id: change.id,
+            type: change.change_type,
+            title: formatChangeTitle(change.change_type, change.field_name),
+            description: formatChangeDescription(changeWithParsedMetadata),
+            details: {
+              taskTitle: change.task_title,
+              field: change.field_name,
+              oldValue: change.old_value,
+              newValue: change.new_value,
+              metadata: parsedMetadata
+            },
+            timestamp: new Date(change.created_at),
+            user: change.user_name || change.user_email || 'Unknown User'
+          }
+        })
 
         setActivities(formattedActivities)
       } catch (error) {
@@ -136,9 +154,13 @@ export default function ActivityPanel({ isOpen, onClose }) {
         return 'Description Updated'
       case 'assignee_changed':
         return 'Assignee Changed'
+      case 'assignees_changed':
+        return 'Assignees Changed'
       case 'due_date_changed':
         return 'Due Date Changed'
       case 'ai_comment_added':
+        return 'AI Comment Posted'
+      case 'user_comment_added':
         return 'Comment Posted'
       default:
         return 'Task Modified'
@@ -146,23 +168,45 @@ export default function ActivityPanel({ isOpen, onClose }) {
   }
 
   const formatChangeDescription = change => {
+    // Extract task title from metadata or fallback to task_title field
+    const taskTitle = change.metadata?.taskTitle || change.task_title || 'Unknown Task'
+
     if (change.change_type === 'created') {
-      return `New task "${change.task_title}" was created`
+      return `New task "${taskTitle}" was created`
     }
     if (change.change_type === 'deleted') {
-      return `Task "${change.task_title}" was deleted`
+      return `Task "${taskTitle}" was deleted`
     }
     if (change.change_type === 'ai_comment_added') {
       // Show the actual AI comment content instead of generic message
       return (
         renderWithBold(change.new_value) ||
-        `AI analysis added to "${change.task_title}"`
+        `AI analysis added to "${taskTitle}"`
       )
     }
-    if (change.field_name && change.old_value && change.new_value) {
-      return `Task "${change.task_title}" ${change.field_name} changed from "${change.old_value}" to "${change.new_value}"`
+    if (change.change_type === 'user_comment_added') {
+      // Show the actual user comment content
+      return (
+        renderWithBold(change.new_value) ||
+        `Comment added to "${taskTitle}"`
+      )
     }
-    return `Task "${change.task_title}" was modified`
+    if (change.change_type === 'assignees_changed') {
+      const oldAssignees = change.old_value || 'No assignees'
+      const newAssignees = change.new_value || 'No assignees'
+
+      if (!change.old_value && change.new_value) {
+        return `Task "${taskTitle}" assigned to ${change.new_value}`
+      }
+      if (change.old_value && !change.new_value) {
+        return `Task "${taskTitle}" unassigned from ${change.old_value}`
+      }
+      return `Task "${taskTitle}" assignees changed from "${oldAssignees}" to "${newAssignees}"`
+    }
+    if (change.field_name && change.old_value && change.new_value) {
+      return `Task "${taskTitle}" ${change.field_name} changed from "${change.old_value}" to "${change.new_value}"`
+    }
+    return `Task "${taskTitle}" was modified`
   }
 
   // Fallback mock activities for demo purposes (shown when no real data)
@@ -248,10 +292,14 @@ export default function ActivityPanel({ isOpen, onClose }) {
         return <AlertCircle className="h-4 w-4 text-orange-500" />
       case 'assignee_changed':
         return <User className="h-4 w-4 text-blue-500" />
+      case 'assignees_changed':
+        return <User className="h-4 w-4 text-blue-500" />
       case 'due_date_changed':
         return <Calendar className="h-4 w-4 text-purple-500" />
       case 'ai_comment_added':
         return <MessageSquare className="h-4 w-4 text-purple-500" />
+      case 'user_comment_added':
+        return <MessageSquare className="h-4 w-4 text-blue-500" />
       case 'deleted':
         return <X className="h-4 w-4 text-red-500" />
       default:
@@ -344,6 +392,51 @@ export default function ActivityPanel({ isOpen, onClose }) {
               <span className="font-medium">Source:</span>
               <span className="ml-1 text-gray-600 dark:text-gray-400">
                 {metadata.source}
+              </span>
+            </div>
+          )}
+
+          {/* Enhanced labels for specific change types */}
+          {activity.type === 'status_changed' && (metadata.taskTitle || activity.details?.taskTitle) && (
+            <div className="bg-green-50 dark:bg-green-900/20 p-2 rounded border-l-2 border-green-400">
+              <span className="font-medium text-green-700 dark:text-green-300">
+                📋 Task:
+              </span>
+              <span className="ml-1 font-semibold text-green-800 dark:text-green-200">
+                {metadata.taskTitle || activity.details.taskTitle}
+              </span>
+            </div>
+          )}
+
+          {activity.type === 'due_date_changed' && (activity.details?.oldValue || activity.details?.newValue) && (
+            <div className="bg-purple-50 dark:bg-purple-900/20 p-2 rounded border-l-2 border-purple-400">
+              <span className="font-medium text-purple-700 dark:text-purple-300">
+                📅 Date Change:
+              </span>
+              <span className="ml-1 font-semibold text-purple-800 dark:text-purple-200">
+                {(() => {
+                  const formatDate = (dateStr) => {
+                    if (!dateStr) return 'None'
+                    try {
+                      // Parse as local date to avoid timezone issues
+                      const parts = dateStr.split('-')
+                      if (parts.length === 3) {
+                        const date = new Date(parts[0], parts[1] - 1, parts[2])
+                        return date.toLocaleDateString([], {
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric'
+                        })
+                      }
+                      return new Date(dateStr).toLocaleDateString()
+                    } catch {
+                      return dateStr
+                    }
+                  }
+                  const fromDate = formatDate(activity.details.oldValue)
+                  const toDate = formatDate(activity.details.newValue)
+                  return `${fromDate} → ${toDate}`
+                })()}
               </span>
             </div>
           )}

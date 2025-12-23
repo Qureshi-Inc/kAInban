@@ -1248,7 +1248,7 @@ app.post(
         throw new Error('Failed to insert comment - no rows affected')
       }
 
-      // Record change if it's an AI update
+      // Record change for both AI and user comments
       if (commentType === 'ai_update') {
         console.log('[Task Comments] Recording activity for AI update')
         db.recordTaskChange(
@@ -1261,6 +1261,21 @@ app.post(
           {
             commentId,
             commentType: 'ai_update'
+          }
+        )
+      } else if (commentType === 'user') {
+        console.log('[Task Comments] Recording activity for user comment')
+        db.recordTaskChange(
+          taskId,
+          userId,
+          'user_comment_added',
+          null,
+          null,
+          content.trim(),
+          {
+            commentId,
+            commentType: 'user',
+            authorName
           }
         )
       }
@@ -1343,6 +1358,7 @@ app.get('/api/comments/:commentId', localAuth.requireAuth, async (req, res) => {
   }
 })
 
+
 // BULLETPROOF AI COMMENT ENDPOINT - NEVER FAILS
 app.post(
   '/api/tasks/:taskId/ai-comments-bulletproof',
@@ -1384,6 +1400,7 @@ app.post(
         content.trim(),
         metadata
       )
+
 
       console.log(
         '[BULLETPROOF API] ✓ AI comment created successfully:',

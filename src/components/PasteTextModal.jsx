@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion'
 import { FileText, X, Sparkles } from 'lucide-react'
 import React, { useState } from 'react'
-import { parseSubtasksFromDescription } from '../lib/utils'
+import { parseSubtasksFromDescription, processAssignees } from '../lib/utils'
 import apiService from '../services/apiService'
 import openaiService from '../services/openaiService'
 import useAppStore from '../stores/useAppStore'
@@ -77,6 +77,14 @@ export default function PasteTextModal({ open, onOpenChange }) {
         message: 'Extracting tasks from text...'
       })
 
+      // Load users for assignee matching
+      let users = []
+      try {
+        users = await apiService.getUsers()
+      } catch (error) {
+        console.warn('[PasteTextModal] Failed to load users for assignee matching:', error)
+      }
+
       const {
         tasks: existingTasks,
         addTasks,
@@ -99,10 +107,14 @@ export default function PasteTextModal({ open, onOpenChange }) {
             const existingTask = existingTasks[task.matchId - 1]
             if (existingTask) {
               // Update task properties (status, priority, etc.) but not description
+              const newAssignees = task.assignee ? processAssignees(task.assignee, users) : []
+              const currentAssignees = existingTask.assignees && Array.isArray(existingTask.assignees) ? existingTask.assignees : (existingTask.assignee ? [existingTask.assignee] : [])
+
               storeUpdateTask(existingTask.id, {
                 status: task.newStatus || existingTask.status,
                 priority: task.newPriority || existingTask.priority,
-                assignee: task.assignee || existingTask.assignee
+                assignees: newAssignees.length > 0 ? newAssignees : currentAssignees,
+                assignee: newAssignees.length > 0 ? newAssignees[0] : (currentAssignees.length > 0 ? currentAssignees[0] : '')
               })
 
               // Add AI comment with the updates instead of appending to description
@@ -128,10 +140,13 @@ export default function PasteTextModal({ open, onOpenChange }) {
             const subtasks = parseSubtasksFromDescription(
               task.description || ''
             )
+            const taskAssignees = processAssignees(task.assignee, users)
             newTasksToAdd.push({
               title: task.title,
               description: task.description || '',
               priority: task.priority || 'medium',
+              assignees: taskAssignees,
+              assignee: taskAssignees.length > 0 ? taskAssignees[0] : '', // Keep legacy field
               status: 'todo',
               subtasks,
               meetingId: sourceMeetingId // Add meeting source reference

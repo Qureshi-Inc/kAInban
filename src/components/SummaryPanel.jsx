@@ -2,6 +2,7 @@ import { motion } from 'framer-motion'
 import { FileText, Download, Share2, Copy } from 'lucide-react'
 import React, { useState, useEffect } from 'react'
 import ReactMarkdown from 'react-markdown'
+import { processAssignees } from '../lib/utils'
 import apiService from '../services/apiService'
 import openaiService from '../services/openaiService'
 import useAppStore from '../stores/useAppStore'
@@ -162,6 +163,14 @@ export default function SummaryPanel() {
           'Extracting tasks from transcript using specialized AI agent...'
       })
 
+      // Load users for assignee matching
+      let users = []
+      try {
+        users = await apiService.getUsers()
+      } catch (error) {
+        console.warn('[SummaryPanel] Failed to load users for assignee matching:', error)
+      }
+
       const {
         tasks: existingTasks,
         addTasks,
@@ -190,10 +199,14 @@ export default function SummaryPanel() {
           // Update existing task
           const existingTask = existingTasks[task.matchId - 1]
           if (existingTask) {
+            const newAssignees = task.assignee ? processAssignees(task.assignee, users) : []
+            const currentAssignees = existingTask.assignees && Array.isArray(existingTask.assignees) ? existingTask.assignees : (existingTask.assignee ? [existingTask.assignee] : [])
+
             storeUpdateTask(existingTask.id, {
               status: task.newStatus || existingTask.status,
               priority: task.newPriority || existingTask.priority,
-              assignee: task.assignee || existingTask.assignee
+              assignees: newAssignees.length > 0 ? newAssignees : currentAssignees,
+              assignee: newAssignees.length > 0 ? newAssignees[0] : (currentAssignees.length > 0 ? currentAssignees[0] : '')
             })
 
             // Add AI comment if there are updates (wait for completion)
@@ -215,7 +228,12 @@ export default function SummaryPanel() {
           }
         } else {
           // Collect new tasks to add in batch
-          newTasksToAdd.push(task)
+          const taskAssignees = processAssignees(task.assignee, users)
+          newTasksToAdd.push({
+            ...task,
+            assignees: taskAssignees,
+            assignee: taskAssignees.length > 0 ? taskAssignees[0] : '' // Keep legacy field
+          })
           newCount++
         }
       }

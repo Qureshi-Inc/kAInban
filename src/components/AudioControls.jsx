@@ -1,7 +1,7 @@
 import { motion, AnimatePresence } from 'framer-motion'
 import { Mic, Upload, Square, Pause, Play, FileText } from 'lucide-react'
 import React, { useRef, useEffect, useState } from 'react'
-import { formatTime, parseSubtasksFromDescription } from '../lib/utils'
+import { formatTime, parseSubtasksFromDescription, processAssignees } from '../lib/utils'
 import apiService from '../services/apiService'
 import audioService from '../services/audioService'
 import openaiService from '../services/openaiService'
@@ -360,6 +360,16 @@ export default function AudioControls() {
           message: 'Extracting tasks from transcript...'
         })
 
+        // Load users for assignee matching
+        let users = []
+        try {
+          const loadedUsers = await apiService.getUsers()
+          users = Array.isArray(loadedUsers) ? loadedUsers : []
+        } catch (error) {
+          console.warn('[AudioControls] Failed to load users for assignee matching:', error)
+          users = [] // Ensure users is always an array
+        }
+
         const { tasks: existingTasks, updateTask: storeUpdateTask } =
           useAppStore.getState()
         const extractedTasks = await openaiService.extractTasks(
@@ -393,17 +403,27 @@ export default function AudioControls() {
                 const updates = {
                   status: task.newStatus || existingTask.status,
                   priority: task.newPriority || existingTask.priority,
-                  assignee: task.assignee || existingTask.assignee
+                  dueDate: task.newDueDate || existingTask.dueDate,
+                  ...(() => {
+                    const newAssignees = task.newAssignee ? processAssignees(task.newAssignee, users) : []
+                    const currentAssignees = existingTask.assignees && Array.isArray(existingTask.assignees) ? existingTask.assignees : (existingTask.assignee ? [existingTask.assignee] : [])
+                    return {
+                      assignees: newAssignees.length > 0 ? newAssignees : currentAssignees,
+                      assignee: newAssignees.length > 0 ? newAssignees[0] : (currentAssignees.length > 0 ? currentAssignees[0] : '')
+                    }
+                  })()
                 }
 
                 // Check if there are actual changes
                 const hasStatusChange = updates.status !== existingTask.status
                 const hasPriorityChange =
                   updates.priority !== existingTask.priority
+                const hasDueDateChange =
+                  (updates.dueDate || '') !== (existingTask.dueDate || '')
                 const hasAssigneeChange =
                   updates.assignee !== existingTask.assignee
                 const hasActualChanges =
-                  hasStatusChange || hasPriorityChange || hasAssigneeChange
+                  hasStatusChange || hasPriorityChange || hasDueDateChange || hasAssigneeChange
 
                 storeUpdateTask(existingTask.id, updates)
 
@@ -480,6 +500,13 @@ export default function AudioControls() {
               )
               newTasksToAdd.push({
                 ...task,
+                ...(() => {
+                  const taskAssignees = processAssignees(task.assignee, users)
+                  return {
+                    assignees: taskAssignees,
+                    assignee: taskAssignees.length > 0 ? taskAssignees[0] : ''
+                  }
+                })(),
                 subtasks,
                 meetingId: sourceMeetingId // Add meeting source reference
               })
@@ -651,6 +678,16 @@ export default function AudioControls() {
           message: 'Extracting tasks from transcript...'
         })
 
+        // Load users for assignee matching
+        let users = []
+        try {
+          const loadedUsers = await apiService.getUsers()
+          users = Array.isArray(loadedUsers) ? loadedUsers : []
+        } catch (error) {
+          console.warn('[AudioControls] Failed to load users for assignee matching:', error)
+          users = [] // Ensure users is always an array
+        }
+
         const { tasks: existingTasks, updateTask: storeUpdateTask } =
           useAppStore.getState()
         const extractedTasks = await openaiService.extractTasks(
@@ -681,17 +718,27 @@ export default function AudioControls() {
                 const updates = {
                   status: task.newStatus || existingTask.status,
                   priority: task.newPriority || existingTask.priority,
-                  assignee: task.assignee || existingTask.assignee
+                  dueDate: task.newDueDate || existingTask.dueDate,
+                  ...(() => {
+                    const newAssignees = task.newAssignee ? processAssignees(task.newAssignee, users) : []
+                    const currentAssignees = existingTask.assignees && Array.isArray(existingTask.assignees) ? existingTask.assignees : (existingTask.assignee ? [existingTask.assignee] : [])
+                    return {
+                      assignees: newAssignees.length > 0 ? newAssignees : currentAssignees,
+                      assignee: newAssignees.length > 0 ? newAssignees[0] : (currentAssignees.length > 0 ? currentAssignees[0] : '')
+                    }
+                  })()
                 }
 
                 // Check if there are actual changes
                 const hasStatusChange = updates.status !== existingTask.status
                 const hasPriorityChange =
                   updates.priority !== existingTask.priority
+                const hasDueDateChange =
+                  (updates.dueDate || '') !== (existingTask.dueDate || '')
                 const hasAssigneeChange =
                   updates.assignee !== existingTask.assignee
                 const hasActualChanges =
-                  hasStatusChange || hasPriorityChange || hasAssigneeChange
+                  hasStatusChange || hasPriorityChange || hasDueDateChange || hasAssigneeChange
 
                 storeUpdateTask(existingTask.id, updates)
 
@@ -768,6 +815,13 @@ export default function AudioControls() {
               )
               newTasksToAdd.push({
                 ...task,
+                ...(() => {
+                  const taskAssignees = processAssignees(task.assignee, users)
+                  return {
+                    assignees: taskAssignees,
+                    assignee: taskAssignees.length > 0 ? taskAssignees[0] : ''
+                  }
+                })(),
                 subtasks,
                 meetingId: sourceMeetingId // Add meeting source reference
               })

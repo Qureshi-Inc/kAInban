@@ -8,11 +8,13 @@ import {
   LayoutGrid,
   ChevronDown,
   ChevronRight,
-  FileText
+  FileText,
+  User
 } from 'lucide-react'
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { getShortId } from '../lib/utils'
+import apiService from '../services/apiService'
 import openaiService from '../services/openaiService'
 import useAppStore from '../stores/useAppStore'
 import TaskDetailModal from './TaskDetailModal'
@@ -20,7 +22,7 @@ import { Button } from './ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
 import '../styles/mobile-ux.css'
 
-const TaskCard = ({ task, onDelete, onClick, onNavigateToMeeting }) => {
+const TaskCard = ({ task, onDelete, onClick, onNavigateToMeeting, users = [] }) => {
   const [isDragging, setIsDragging] = React.useState(false)
   const [isTouchDevice, setIsTouchDevice] = React.useState(false)
   const [touchStart, setTouchStart] = React.useState({ x: 0, y: 0, time: 0 })
@@ -30,6 +32,58 @@ const TaskCard = ({ task, onDelete, onClick, onNavigateToMeeting }) => {
     // Detect if this is a touch device
     setIsTouchDevice('ontouchstart' in window)
   }, [])
+
+  // Check if assignee is a database user
+  const isAssigneeDbUser = (assigneeName) => {
+    if (!assigneeName || !users.length) return false
+    return users.some(user =>
+      user.name.toLowerCase() === assigneeName.toLowerCase() ||
+      user.email.toLowerCase() === assigneeName.toLowerCase()
+    )
+  }
+
+  const getAssigneesDisplay = (task) => {
+    // Handle both new assignees array and legacy assignee string
+    let assigneesList = []
+    if (task.assignees && Array.isArray(task.assignees)) {
+      assigneesList = task.assignees
+    } else if (task.assignee) {
+      assigneesList = [task.assignee]
+    }
+
+    if (assigneesList.length === 0) return null
+
+    return (
+      <div className="flex flex-wrap gap-1">
+        {assigneesList.slice(0, 2).map((assigneeName, index) => {
+          const isDbUser = isAssigneeDbUser(assigneeName)
+          const user = users.find(u =>
+            u.name.toLowerCase() === assigneeName.toLowerCase() ||
+            u.email.toLowerCase() === assigneeName.toLowerCase()
+          )
+
+          return (
+            <div key={assigneeName} className={`flex items-center gap-1 text-xs px-1.5 py-0.5 rounded border ${
+              isDbUser
+                ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800'
+                : 'bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-600'
+            }`}>
+              <User className="h-2.5 w-2.5" />
+              <span className="truncate max-w-16" title={user ? `${user.name} (${user.email})` : assigneeName}>
+                {isDbUser && user ? user.name : assigneeName}
+              </span>
+              {isDbUser && <div className="w-1 h-1 bg-green-500 rounded-full" title="Database User" />}
+            </div>
+          )
+        })}
+        {assigneesList.length > 2 && (
+          <div className="flex items-center justify-center text-xs px-1.5 py-0.5 rounded border bg-gray-100 dark:bg-gray-600 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-500">
+            +{assigneesList.length - 2}
+          </div>
+        )}
+      </div>
+    )
+  }
 
   const getPriorityColor = priority => {
     switch (priority) {
@@ -169,9 +223,22 @@ const TaskCard = ({ task, onDelete, onClick, onNavigateToMeeting }) => {
           </span>
           {task.dueDate && (
             <span className="text-xs text-orange-600 dark:text-orange-400 font-semibold bg-orange-50 dark:bg-orange-900/20 px-2 py-1 rounded-md border border-orange-200 dark:border-orange-800">
-              📅 {new Date(task.dueDate).toLocaleDateString()}
+              📅 {(() => {
+                // Parse as local date to avoid timezone issues
+                const parts = task.dueDate.split('-')
+                if (parts.length === 3) {
+                  const date = new Date(parts[0], parts[1] - 1, parts[2])
+                  return date.toLocaleDateString([], {
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric'
+                  })
+                }
+                return new Date(task.dueDate).toLocaleDateString()
+              })()}
             </span>
           )}
+          {getAssigneesDisplay(task)}
         </div>
         <span className="text-xs text-muted-foreground bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-md border border-gray-200 dark:border-gray-600">
           {new Date(task.createdAt).toLocaleDateString()}
@@ -219,7 +286,8 @@ const Column = ({
   onTaskClick,
   onNavigateToMeeting,
   count,
-  allTasks
+  allTasks,
+  users
 }) => {
   const [isDragOver, setIsDragOver] = React.useState(false)
 
@@ -331,6 +399,7 @@ const Column = ({
               onDelete={onTaskDelete}
               onClick={onTaskClick}
               onNavigateToMeeting={onNavigateToMeeting}
+              users={users}
             />
           ))}
           {tasks.length === 0 && (
@@ -389,12 +458,27 @@ export default function KanbanBoard({ taskToOpen }) {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [viewMode, setViewMode] = useState('kanban') // 'kanban' or 'list'
+  const [users, setUsers] = useState([])
   const [expandedSections, setExpandedSections] = useState({
     todo: true,
     'in-progress': true,
     blocked: true,
     done: true
   })
+
+  // Load users for assignee display
+  useEffect(() => {
+    const loadUsers = async () => {
+      try {
+        const usersData = await apiService.getUsers()
+        setUsers(usersData || [])
+      } catch (error) {
+        console.warn('[KanbanBoard] Failed to load users:', error)
+        setUsers([])
+      }
+    }
+    loadUsers()
+  }, [])
 
   // Handle opening specific task from URL
   React.useEffect(() => {
@@ -1046,6 +1130,7 @@ export default function KanbanBoard({ taskToOpen }) {
                   onTaskClick={handleTaskClick}
                   onNavigateToMeeting={handleNavigateToMeeting}
                   allTasks={tasks}
+                  users={users}
                 />
                 <Column
                   title="⚡ In Progress"
@@ -1058,6 +1143,7 @@ export default function KanbanBoard({ taskToOpen }) {
                   onTaskClick={handleTaskClick}
                   onNavigateToMeeting={handleNavigateToMeeting}
                   allTasks={tasks}
+                  users={users}
                 />
                 <Column
                   title="✅ Done"
@@ -1070,6 +1156,7 @@ export default function KanbanBoard({ taskToOpen }) {
                   onTaskClick={handleTaskClick}
                   onNavigateToMeeting={handleNavigateToMeeting}
                   allTasks={tasks}
+                  users={users}
                 />
                 <Column
                   title="🚫 Blocked"
@@ -1082,6 +1169,7 @@ export default function KanbanBoard({ taskToOpen }) {
                   onTaskClick={handleTaskClick}
                   onNavigateToMeeting={handleNavigateToMeeting}
                   allTasks={tasks}
+                  users={users}
                 />
               </div>
             ) : (

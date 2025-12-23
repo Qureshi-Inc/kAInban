@@ -732,7 +732,8 @@ export const saveProject = (userId, project) => {
             existingTask.status,
             task.status,
             {
-              source: 'task_update'
+              source: 'task_update',
+              taskTitle: task.title || existingTask.title
             }
           )
         }
@@ -747,7 +748,8 @@ export const saveProject = (userId, project) => {
             existingTask.priority,
             task.priority,
             {
-              source: 'task_update'
+              source: 'task_update',
+              taskTitle: task.title || existingTask.title
             }
           )
         }
@@ -762,7 +764,8 @@ export const saveProject = (userId, project) => {
             existingTask.title,
             task.title,
             {
-              source: 'task_update'
+              source: 'task_update',
+              taskTitle: task.title || existingTask.title
             }
           )
         }
@@ -777,24 +780,31 @@ export const saveProject = (userId, project) => {
             existingTask.description,
             task.description || '',
             {
-              source: 'task_update'
+              source: 'task_update',
+              taskTitle: task.title || existingTask.title
             }
           )
         }
 
-        // Check for assignee change (normalize null/undefined)
-        const normalizedExistingAssignee = existingTask.assignee || null
-        const normalizedNewAssignee = task.assignee || null
-        if (normalizedExistingAssignee !== normalizedNewAssignee) {
+        // Check for assignees change (handle both legacy assignee and new assignees array)
+        const existingAssignees = existingTask.assignees && Array.isArray(existingTask.assignees)
+          ? existingTask.assignees
+          : (existingTask.assignee ? [existingTask.assignee] : [])
+        const newAssignees = task.assignees && Array.isArray(task.assignees)
+          ? task.assignees
+          : (task.assignee ? [task.assignee] : [])
+
+        if (JSON.stringify(existingAssignees.sort()) !== JSON.stringify(newAssignees.sort())) {
           recordTaskChange(
             task.id,
             userIdStr,
-            'assignee_changed',
-            'assignee',
-            existingTask.assignee,
-            task.assignee,
+            'assignees_changed',
+            'assignees',
+            existingAssignees.join(', ') || null,
+            newAssignees.join(', ') || null,
             {
-              source: 'task_update'
+              source: 'task_update',
+              taskTitle: task.title || existingTask.title
             }
           )
         }
@@ -809,7 +819,8 @@ export const saveProject = (userId, project) => {
             existingTask.dueDate,
             task.dueDate,
             {
-              source: 'task_update'
+              source: 'task_update',
+              taskTitle: task.title || existingTask.title
             }
           )
         }
@@ -819,7 +830,7 @@ export const saveProject = (userId, project) => {
         // Record task creation
         recordTaskChange(task.id, userIdStr, 'created', null, null, null, {
           source: 'task_creation',
-          title: task.title,
+          taskTitle: task.title,
           status: task.status,
           priority: task.priority
         })
@@ -839,7 +850,7 @@ export const saveProject = (userId, project) => {
           null,
           {
             source: 'task_deletion',
-            title: existingTask.title
+            taskTitle: existingTask.title
           }
         )
 
@@ -855,7 +866,7 @@ export const saveProject = (userId, project) => {
       for (const task of existingProject.tasks) {
         recordTaskChange(task.id, userIdStr, 'deleted', null, null, null, {
           source: 'project_clear',
-          title: task.title
+          taskTitle: task.title
         })
       }
       // Delete all tasks for this project

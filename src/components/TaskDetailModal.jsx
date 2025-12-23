@@ -117,18 +117,28 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
   const [status, setStatus] = useState('todo')
   const [priority, setPriority] = useState('medium')
   const [dueDate, setDueDate] = useState('')
-  const [assignee, setAssignee] = useState('')
+  const [assignees, setAssignees] = useState([])
   const [subtasks, setSubtasks] = useState([])
   const [newSubtask, setNewSubtask] = useState('')
   const [comments, setComments] = useState([])
   const [newComment, setNewComment] = useState('')
   const [serverComments, setServerComments] = useState([])
   const [loadingComments, setLoadingComments] = useState(false)
+
+  // @mention functionality
+  const [users, setUsers] = useState([])
+  const [showMentionDropdown, setShowMentionDropdown] = useState(false)
+  const [mentionQuery, setMentionQuery] = useState('')
+  const [mentionPosition, setMentionPosition] = useState({ start: 0, end: 0 })
+  const [filteredUsers, setFilteredUsers] = useState([])
+  const [selectedUserIndex, setSelectedUserIndex] = useState(0)
   const [linkedTasks, setLinkedTasks] = useState([])
   const [aiCreatedLinks, setAiCreatedLinks] = useState([])
   const [aiDiscoveredLinks, setAiDiscoveredLinks] = useState([])
   const [showLinkedTasksDropdown, setShowLinkedTasksDropdown] = useState(false)
   const [linkSearchQuery, setLinkSearchQuery] = useState('')
+  const [showAssigneeDropdown, setShowAssigneeDropdown] = useState(false)
+  const [assigneeSearchQuery, setAssigneeSearchQuery] = useState('')
   const [aiContentModal, setAiContentModal] = useState({
     isOpen: false,
     title: '',
@@ -187,13 +197,20 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
         setShowLinkedTasksDropdown(false)
         setLinkSearchQuery('') // Clear search when closing
       }
+      if (
+        showAssigneeDropdown &&
+        !event.target.closest('.assignee-dropdown')
+      ) {
+        setShowAssigneeDropdown(false)
+        setAssigneeSearchQuery('') // Clear search when closing
+      }
     }
 
     document.addEventListener('mousedown', handleClickOutside)
     return () => {
       document.removeEventListener('mousedown', handleClickOutside)
     }
-  }, [showLinkedTasksDropdown])
+  }, [showLinkedTasksDropdown, showAssigneeDropdown])
 
   // Keyboard and viewport handling for mobile
   useEffect(() => {
@@ -313,7 +330,14 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
       setStatus(task.status || 'todo')
       setPriority(task.priority || 'medium')
       setDueDate(task.dueDate || '')
-      setAssignee(task.assignee || '')
+      // Handle both legacy single assignee and new multi-assignee format
+      if (task.assignees && Array.isArray(task.assignees)) {
+        setAssignees(task.assignees)
+      } else if (task.assignee) {
+        setAssignees(task.assignee ? [task.assignee] : [])
+      } else {
+        setAssignees([])
+      }
 
       // If task already has subtasks, use them (deep clone to prevent reference sharing)
       // Otherwise, parse from description
@@ -345,23 +369,51 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
       return
     }
 
-    const updates = {
-      title,
-      description,
-      status,
-      priority,
-      dueDate,
-      assignee,
-      subtasks,
-      comments,
-      linkedTasks,
-      aiCreatedLinks,
-      aiDiscoveredLinks
+    // Only include fields that actually changed to prevent unnecessary activity records
+    const updates = {}
+
+    // Normalize title and description comparisons (treat empty string, null, and undefined as equivalent)
+    const normalizedTitle = title || ''
+    const normalizedTaskTitle = task.title || ''
+    if (normalizedTitle !== normalizedTaskTitle) updates.title = title
+
+    const normalizedDescription = description || ''
+    const normalizedTaskDescription = task.description || ''
+    if (normalizedDescription !== normalizedTaskDescription) updates.description = description
+    if (status !== task.status) updates.status = status
+    if (priority !== task.priority) updates.priority = priority
+
+    // Normalize due date comparison (treat empty string, null, and undefined as equivalent)
+    const normalizedCurrentDueDate = dueDate || ''
+    const normalizedTaskDueDate = task.dueDate || ''
+    if (normalizedCurrentDueDate !== normalizedTaskDueDate) updates.dueDate = dueDate
+    // Check if assignees changed (compare with legacy assignee format)
+    const currentAssignees = assignees
+    const taskAssignees = task.assignees && Array.isArray(task.assignees) ? task.assignees : (task.assignee ? [task.assignee] : [])
+    if (JSON.stringify(currentAssignees) !== JSON.stringify(taskAssignees)) {
+      updates.assignees = currentAssignees
+      // Also update legacy assignee field for backward compatibility
+      updates.assignee = currentAssignees.length > 0 ? currentAssignees[0] : ''
     }
 
-    updateTask(task.id, updates)
+    // Compare arrays and only update if changed
+    if (JSON.stringify(subtasks) !== JSON.stringify(task.subtasks)) updates.subtasks = subtasks
+    if (JSON.stringify(comments) !== JSON.stringify(task.comments)) updates.comments = comments
+    if (JSON.stringify(linkedTasks) !== JSON.stringify(task.linkedTasks)) updates.linkedTasks = linkedTasks
+    if (JSON.stringify(aiCreatedLinks) !== JSON.stringify(task.aiCreatedLinks)) updates.aiCreatedLinks = aiCreatedLinks
+    if (JSON.stringify(aiDiscoveredLinks) !== JSON.stringify(task.aiDiscoveredLinks)) updates.aiDiscoveredLinks = aiDiscoveredLinks
 
-    // Force save to backend
+    // Only update if there are actual changes
+    if (Object.keys(updates).length > 0) {
+      updateTask(task.id, updates)
+    }
+
+    addNotification({
+      type: 'success',
+      message: 'Task updated successfully!'
+    })
+
+    // Force save to backend and close modal after completion
     setTimeout(async() => {
       try {
         await updateCurrentProject()
@@ -374,14 +426,11 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
           type: 'error',
           message: 'Failed to save to backend. Changes may be lost on refresh.'
         })
+      } finally {
+        // Always close the modal after backend save attempt (success or failure)
+        onClose()
       }
     }, 100)
-
-    addNotification({
-      type: 'success',
-      message: 'Task updated successfully!'
-    })
-    onClose()
   }
 
   const handleDelete = () => {
@@ -555,6 +604,35 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
     })
   }
 
+  // Assignee management functions
+  const handleAddAssignee = (assigneeName) => {
+    if (!assignees.includes(assigneeName)) {
+      setAssignees([...assignees, assigneeName])
+    }
+    setShowAssigneeDropdown(false)
+    setAssigneeSearchQuery('')
+  }
+
+  const handleRemoveAssignee = (assigneeToRemove) => {
+    setAssignees(assignees.filter(name => name !== assigneeToRemove))
+  }
+
+  // Get available users for assignment (exclude already assigned users)
+  const getAvailableUsersForAssignment = () => {
+    let availableUsers = users.filter(user => !assignees.includes(user.name))
+
+    // Filter by search query if provided
+    if (assigneeSearchQuery.trim()) {
+      const query = assigneeSearchQuery.toLowerCase().trim()
+      availableUsers = availableUsers.filter(user =>
+        user.name.toLowerCase().includes(query) ||
+        user.email.toLowerCase().includes(query)
+      )
+    }
+
+    return availableUsers
+  }
+
   const getPriorityColor = priority => {
     switch (priority) {
       case 'high':
@@ -589,12 +667,27 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
     if (!dateString) {
       return 'Not set'
     }
-    const date = new Date(dateString)
-    return date.toLocaleDateString([], {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
-    })
+    try {
+      // Parse as local date to avoid timezone issues
+      const parts = dateString.split('-')
+      if (parts.length === 3) {
+        const date = new Date(parts[0], parts[1] - 1, parts[2])
+        return date.toLocaleDateString([], {
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric'
+        })
+      }
+      // Fallback for other formats
+      const date = new Date(dateString)
+      return date.toLocaleDateString([], {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric'
+      })
+    } catch {
+      return dateString
+    }
   }
 
   const formatTimestamp = timestamp => {
@@ -967,12 +1060,125 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
     }
   }
 
-  // Load comments when task changes
+  // Load users for @mention functionality
+  const loadUsers = useCallback(async () => {
+    try {
+      const usersData = await apiService.getUsers()
+      setUsers(usersData || [])
+    } catch (error) {
+      console.error('Failed to load users:', error)
+      setUsers([])
+    }
+  }, [])
+
+  // Load comments and users when task changes
   useEffect(() => {
     if (isOpen && task?.id) {
       loadServerComments()
+      loadUsers()
     }
-  }, [isOpen, task?.id, loadServerComments])
+  }, [isOpen, task?.id, loadServerComments, loadUsers])
+
+  // Handle @mention functionality
+  const handleCommentChange = (e) => {
+    const value = e.target.value
+    const cursorPosition = e.target.selectionStart
+
+    setNewComment(value)
+
+    // Check for @ mentions
+    const textBeforeCursor = value.substring(0, cursorPosition)
+    const lastAtIndex = textBeforeCursor.lastIndexOf('@')
+
+    if (lastAtIndex !== -1) {
+      const textAfterAt = textBeforeCursor.substring(lastAtIndex + 1)
+      // Only show dropdown if @ is followed by word characters (no spaces) and is recent
+      if (/^\w*$/.test(textAfterAt) && cursorPosition - lastAtIndex <= 20) {
+        setMentionQuery(textAfterAt.toLowerCase())
+        setMentionPosition({ start: lastAtIndex, end: cursorPosition })
+        setShowMentionDropdown(true)
+        setSelectedUserIndex(0)
+
+        // Filter users by query
+        const filtered = users.filter(user =>
+          user.name.toLowerCase().includes(textAfterAt.toLowerCase()) ||
+          user.email.toLowerCase().includes(textAfterAt.toLowerCase())
+        )
+        setFilteredUsers(filtered)
+      } else {
+        setShowMentionDropdown(false)
+      }
+    } else {
+      setShowMentionDropdown(false)
+    }
+  }
+
+  // Handle mention selection
+  const insertMention = (user) => {
+    const beforeMention = newComment.substring(0, mentionPosition.start)
+    const afterMention = newComment.substring(mentionPosition.end)
+    const mentionText = `@${user.name}`
+
+    setNewComment(beforeMention + mentionText + afterMention)
+    setShowMentionDropdown(false)
+  }
+
+  // Handle keyboard navigation in mention dropdown
+  const handleMentionKeyDown = (e) => {
+    if (!showMentionDropdown) return
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      setSelectedUserIndex(prev =>
+        prev < filteredUsers.length - 1 ? prev + 1 : 0
+      )
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      setSelectedUserIndex(prev =>
+        prev > 0 ? prev - 1 : filteredUsers.length - 1
+      )
+    } else if (e.key === 'Enter') {
+      e.preventDefault()
+      if (filteredUsers[selectedUserIndex]) {
+        insertMention(filteredUsers[selectedUserIndex])
+      }
+    } else if (e.key === 'Escape') {
+      setShowMentionDropdown(false)
+    }
+  }
+
+  // Function to render comment content with highlighted @mentions
+  const renderCommentWithMentions = (content) => {
+    if (!content) return content
+
+    // Split content by @mentions and render with highlights
+    const parts = content.split(/(@\w+)/g)
+
+    return parts.map((part, index) => {
+      if (part.startsWith('@')) {
+        const mentionName = part.slice(1)
+        const mentionedUser = users.find(user =>
+          user.name.toLowerCase() === mentionName.toLowerCase()
+        )
+
+        if (mentionedUser) {
+          return (
+            <span
+              key={index}
+              className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded text-sm font-medium"
+              title={mentionedUser.email}
+            >
+              <span className="w-3 h-3 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs">
+                {mentionedUser.name.charAt(0).toUpperCase()}
+              </span>
+              @{mentionedUser.name}
+            </span>
+          )
+        }
+      }
+      return <span key={index}>{renderWithBold(part)}</span>
+    })
+  }
 
   if (!isOpen || !task) {
     return null
@@ -1098,23 +1304,190 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                   )}
                 </div>
 
-                {/* Assignee */}
+                {/* Assignees */}
                 <div>
-                  <label
-                    htmlFor="task-assignee"
-                    className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block flex items-center gap-2"
-                  >
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3 block flex items-center gap-2">
                     <User className="h-4 w-4" />
-                    Assignee
+                    Assignees ({assignees.length})
                   </label>
-                  <input
-                    id="task-assignee"
-                    type="text"
-                    value={assignee}
-                    onChange={e => setAssignee(e.target.value)}
-                    placeholder="Enter name..."
-                    className="w-full px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700"
-                  />
+
+                  <div className="space-y-4">
+                    {/* Current Assignees */}
+                    {assignees.length > 0 && (
+                      <div>
+                        <div className="space-y-1">
+                          {assignees.map(assigneeName => {
+                            const isDbUser = users.some(user =>
+                              user.name.toLowerCase() === assigneeName.toLowerCase() ||
+                              user.email.toLowerCase() === assigneeName.toLowerCase()
+                            )
+                            const user = users.find(u =>
+                              u.name.toLowerCase() === assigneeName.toLowerCase() ||
+                              u.email.toLowerCase() === assigneeName.toLowerCase()
+                            )
+
+                            return (
+                              <div
+                                key={assigneeName}
+                                className={`flex items-center justify-between p-2 border rounded-md ${
+                                  isDbUser
+                                    ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800'
+                                    : 'bg-gray-50 dark:bg-gray-900/20 border-gray-200 dark:border-gray-700'
+                                }`}
+                              >
+                                <div className="flex items-center gap-2 flex-1 min-w-0">
+                                  <div className={`w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-medium flex-shrink-0 ${
+                                    isDbUser ? 'bg-blue-500' : 'bg-gray-500'
+                                  }`}>
+                                    {(isDbUser && user ? user.name : assigneeName).charAt(0).toUpperCase()}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="text-sm font-medium truncate">
+                                      {isDbUser && user ? user.name : assigneeName}
+                                    </div>
+                                    {isDbUser && user && (
+                                      <div className="text-xs text-gray-500 truncate">
+                                        {user.email}
+                                      </div>
+                                    )}
+                                  </div>
+                                  {isDbUser && <div className="w-1.5 h-1.5 bg-green-500 rounded-full" title="Database User" />}
+                                </div>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleRemoveAssignee(assigneeName)}
+                                  className="h-6 w-6 p-0 hover:bg-red-100 text-red-500"
+                                >
+                                  <X className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Add Assignee */}
+                    <div className="relative">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setShowAssigneeDropdown(!showAssigneeDropdown)}
+                        className="w-full justify-between"
+                        disabled={getAvailableUsersForAssignment().length === 0}
+                      >
+                        <span className="flex items-center gap-2">
+                          <Plus className="h-4 w-4" />
+                          {getAvailableUsersForAssignment().length === 0
+                            ? 'All users assigned'
+                            : 'Assign a user'}
+                        </span>
+                        <ChevronDown className="h-4 w-4" />
+                      </Button>
+
+                      {showAssigneeDropdown && (
+                        <div className="assignee-dropdown absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg max-h-64 overflow-hidden">
+                          {/* Search Input */}
+                          <div className="p-3 border-b border-gray-200 dark:border-gray-700">
+                            <div className="relative">
+                              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                              <input
+                                type="text"
+                                value={assigneeSearchQuery}
+                                onChange={e => setAssigneeSearchQuery(e.target.value)}
+                                onKeyDown={e => {
+                                  if (e.key === 'Enter' && assigneeSearchQuery.trim()) {
+                                    e.preventDefault()
+                                    // If no users match, add as manual assignee
+                                    if (getAvailableUsersForAssignment().length === 0) {
+                                      handleAddAssignee(assigneeSearchQuery.trim())
+                                    }
+                                    // If there's exactly one user match, add that user
+                                    else if (getAvailableUsersForAssignment().length === 1) {
+                                      handleAddAssignee(getAvailableUsersForAssignment()[0].name)
+                                    }
+                                  }
+                                }}
+                                placeholder="Search users or type name to add manually..."
+                                className="w-full pl-10 pr-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-primary/50"
+                                autoFocus
+                                onClick={e => e.stopPropagation()}
+                              />
+                            </div>
+                          </div>
+
+                          {/* User List */}
+                          <div className="max-h-48 overflow-y-auto">
+{(() => {
+                              const availableUsers = getAvailableUsersForAssignment()
+                              const hasSearchQuery = assigneeSearchQuery.trim()
+                              const showManualOption = hasSearchQuery && availableUsers.length === 0
+
+                              return (
+                                <>
+                                  {availableUsers.map(availableUser => (
+                                    <button
+                                      key={availableUser.id}
+                                      onClick={e => {
+                                        e.preventDefault()
+                                        e.stopPropagation()
+                                        handleAddAssignee(availableUser.name)
+                                      }}
+                                      className="w-full text-left px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2 border-b border-gray-100 dark:border-gray-700 last:border-b-0 cursor-pointer"
+                                    >
+                                      <div className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs font-medium flex-shrink-0">
+                                        {availableUser.name.charAt(0).toUpperCase()}
+                                      </div>
+                                      <div className="flex-1 min-w-0">
+                                        <div className="text-sm font-medium truncate">
+                                          {availableUser.name}
+                                        </div>
+                                        <div className="text-xs text-gray-500 truncate">
+                                          {availableUser.email}
+                                        </div>
+                                      </div>
+                                      <div className="w-1.5 h-1.5 bg-green-500 rounded-full" title="Database User" />
+                                    </button>
+                                  ))}
+
+                                  {showManualOption && (
+                                    <button
+                                      onClick={e => {
+                                        e.preventDefault()
+                                        e.stopPropagation()
+                                        handleAddAssignee(assigneeSearchQuery.trim())
+                                      }}
+                                      className="w-full text-left px-3 py-2 hover:bg-green-50 dark:hover:bg-green-900/20 flex items-center gap-2 border-b border-gray-100 dark:border-gray-700 last:border-b-0 cursor-pointer bg-green-50/50 dark:bg-green-900/10"
+                                    >
+                                      <div className="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center text-white text-xs font-medium flex-shrink-0">
+                                        +
+                                      </div>
+                                      <div className="flex-1 min-w-0">
+                                        <div className="text-sm font-medium truncate">
+                                          Add "{assigneeSearchQuery.trim()}" as assignee
+                                        </div>
+                                        <div className="text-xs text-gray-500 truncate">
+                                          Manual assignee (not a registered user)
+                                        </div>
+                                      </div>
+                                      <div className="w-1.5 h-1.5 bg-orange-500 rounded-full" title="Manual Assignee" />
+                                    </button>
+                                  )}
+
+                                  {!hasSearchQuery && availableUsers.length === 0 && (
+                                    <div className="px-3 py-6 text-center text-sm text-gray-500">
+                                      No users available to assign
+                                    </div>
+                                  )}
+                                </>
+                              )
+                            })()}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -1667,7 +2040,7 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                         </span>
                     </div>
                       <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
-                      {renderWithBold(comment.content)}
+                      {renderCommentWithMentions(comment.content)}
                     </p>
                     </Card>
                   ))}
@@ -1680,19 +2053,45 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
 
                 {/* Add Comment */}
                 <div className="flex gap-2">
-                  <div className="mobile-input-container flex-1">
+                  <div className="mobile-input-container flex-1 relative">
                     <textarea
                       value={newComment}
-                      onChange={e => setNewComment(e.target.value)}
-                      onKeyPress={e =>
-                        e.key === 'Enter' &&
-                      !e.shiftKey &&
-                      (e.preventDefault(), addComment())
-                      }
-                      placeholder="Add a comment... (Press Enter to post)"
+                      onChange={handleCommentChange}
+                      onKeyDown={handleMentionKeyDown}
+                      onKeyPress={e => {
+                        if (showMentionDropdown) return // Prevent submission when dropdown is open
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault()
+                          addComment()
+                        }
+                      }}
+                      placeholder="Add a comment... (Press Enter to post, @ to mention)"
                       rows={2}
                       className="w-full px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm resize-none"
                     />
+
+                    {/* @mention dropdown */}
+                    {showMentionDropdown && filteredUsers.length > 0 && (
+                      <div className="absolute bottom-full left-0 mb-1 w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg max-h-48 overflow-y-auto z-50">
+                        {filteredUsers.map((user, index) => (
+                          <div
+                            key={user.id}
+                            className={`px-3 py-2 cursor-pointer flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-700 ${
+                              index === selectedUserIndex ? 'bg-blue-50 dark:bg-blue-900/20' : ''
+                            }`}
+                            onClick={() => insertMention(user)}
+                          >
+                            <div className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs font-medium">
+                              {user.name.charAt(0).toUpperCase()}
+                            </div>
+                            <div>
+                              <div className="text-sm font-medium">{user.name}</div>
+                              <div className="text-xs text-gray-500">{user.email}</div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                   <Button onClick={addComment} size="sm" className="self-end">
                     Post

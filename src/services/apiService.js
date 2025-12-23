@@ -539,6 +539,19 @@ class ApiService {
       return { success: false, error: error.message }
     }
   }
+
+  async getUsers() {
+    try {
+      const response = await this.secureFetch(`${API_URL}/users`)
+      if (!response.ok) {
+        throw new Error('Failed to get users')
+      }
+      return await response.json()
+    } catch (error) {
+      console.error('[API] Get users error:', error)
+      return []
+    }
+  }
 }
 
 export default new ApiService()
