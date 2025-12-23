@@ -146,6 +146,11 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
     type: ''
   })
   const [loadingAiAction, setLoadingAiAction] = useState(null) // Track which AI action is loading
+  const [contextModal, setContextModal] = useState({
+    isOpen: false,
+    context: '',
+    loading: false
+  })
   const [isKeyboardOpen, setIsKeyboardOpen] = useState(false)
   const modalContentRef = useRef(null)
   const activeInputRef = useRef(null)
@@ -375,18 +380,18 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
     // Normalize title and description comparisons (treat empty string, null, and undefined as equivalent)
     const normalizedTitle = title || ''
     const normalizedTaskTitle = task.title || ''
-    if (normalizedTitle !== normalizedTaskTitle) updates.title = title
+    if (normalizedTitle !== normalizedTaskTitle) {updates.title = title}
 
     const normalizedDescription = description || ''
     const normalizedTaskDescription = task.description || ''
-    if (normalizedDescription !== normalizedTaskDescription) updates.description = description
-    if (status !== task.status) updates.status = status
-    if (priority !== task.priority) updates.priority = priority
+    if (normalizedDescription !== normalizedTaskDescription) {updates.description = description}
+    if (status !== task.status) {updates.status = status}
+    if (priority !== task.priority) {updates.priority = priority}
 
     // Normalize due date comparison (treat empty string, null, and undefined as equivalent)
     const normalizedCurrentDueDate = dueDate || ''
     const normalizedTaskDueDate = task.dueDate || ''
-    if (normalizedCurrentDueDate !== normalizedTaskDueDate) updates.dueDate = dueDate
+    if (normalizedCurrentDueDate !== normalizedTaskDueDate) {updates.dueDate = dueDate}
     // Check if assignees changed (compare with legacy assignee format)
     const currentAssignees = assignees
     const taskAssignees = task.assignees && Array.isArray(task.assignees) ? task.assignees : (task.assignee ? [task.assignee] : [])
@@ -397,11 +402,11 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
     }
 
     // Compare arrays and only update if changed
-    if (JSON.stringify(subtasks) !== JSON.stringify(task.subtasks)) updates.subtasks = subtasks
-    if (JSON.stringify(comments) !== JSON.stringify(task.comments)) updates.comments = comments
-    if (JSON.stringify(linkedTasks) !== JSON.stringify(task.linkedTasks)) updates.linkedTasks = linkedTasks
-    if (JSON.stringify(aiCreatedLinks) !== JSON.stringify(task.aiCreatedLinks)) updates.aiCreatedLinks = aiCreatedLinks
-    if (JSON.stringify(aiDiscoveredLinks) !== JSON.stringify(task.aiDiscoveredLinks)) updates.aiDiscoveredLinks = aiDiscoveredLinks
+    if (JSON.stringify(subtasks) !== JSON.stringify(task.subtasks)) {updates.subtasks = subtasks}
+    if (JSON.stringify(comments) !== JSON.stringify(task.comments)) {updates.comments = comments}
+    if (JSON.stringify(linkedTasks) !== JSON.stringify(task.linkedTasks)) {updates.linkedTasks = linkedTasks}
+    if (JSON.stringify(aiCreatedLinks) !== JSON.stringify(task.aiCreatedLinks)) {updates.aiCreatedLinks = aiCreatedLinks}
+    if (JSON.stringify(aiDiscoveredLinks) !== JSON.stringify(task.aiDiscoveredLinks)) {updates.aiDiscoveredLinks = aiDiscoveredLinks}
 
     // Only update if there are actual changes
     if (Object.keys(updates).length > 0) {
@@ -980,6 +985,79 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
     }
   }
 
+  const handleContextUpdate = async () => {
+    if (!contextModal.context.trim()) {
+      addNotification({
+        type: 'error',
+        message: 'Please enter some context'
+      })
+      return
+    }
+
+    setContextModal(prev => ({ ...prev, loading: true }))
+
+    try {
+      const taskContext = {
+        title,
+        description,
+        priority,
+        status,
+        assignees,
+        dueDate,
+        subtasks: subtasks.map(s => ({ text: s.text, completed: s.completed }))
+      }
+
+      const updatedTask = await openaiService.updateTaskWithContext(
+        taskContext,
+        contextModal.context.trim()
+      )
+
+      // Update the local state with the AI suggestions
+      if (updatedTask.title && updatedTask.title !== title) {
+        setTitle(updatedTask.title)
+      }
+      if (updatedTask.description && updatedTask.description !== description) {
+        setDescription(updatedTask.description)
+      }
+      if (updatedTask.priority && updatedTask.priority !== priority) {
+        setPriority(updatedTask.priority)
+      }
+      if (updatedTask.status && updatedTask.status !== status) {
+        setStatus(updatedTask.status)
+      }
+      if (updatedTask.dueDate && updatedTask.dueDate !== dueDate) {
+        setDueDate(updatedTask.dueDate)
+      }
+      if (updatedTask.assignees && Array.isArray(updatedTask.assignees)) {
+        setAssignees(updatedTask.assignees)
+      }
+      if (updatedTask.subtasks && Array.isArray(updatedTask.subtasks)) {
+        const updatedSubtasks = updatedTask.subtasks.map((subtaskText, index) => ({
+          id: subtasks[index]?.id || `subtask-${Date.now()}-${index}`,
+          text: subtaskText,
+          completed: subtasks[index]?.completed || false
+        }))
+        setSubtasks(updatedSubtasks)
+      }
+
+      // Close modal and show success
+      setContextModal({ isOpen: false, context: '', loading: false })
+
+      addNotification({
+        type: 'success',
+        message: 'Task updated with AI context successfully! Review the changes and save.'
+      })
+    } catch (error) {
+      console.error('Context update error:', error)
+      addNotification({
+        type: 'error',
+        message: `Failed to update task with context: ${error.message}`
+      })
+    } finally {
+      setContextModal(prev => ({ ...prev, loading: false }))
+    }
+  }
+
   const createTaskFromSubtask = subtask => {
     const { createTask } = useAppStore.getState()
 
@@ -1061,7 +1139,7 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
   }
 
   // Load users for @mention functionality
-  const loadUsers = useCallback(async () => {
+  const loadUsers = useCallback(async() => {
     try {
       const usersData = await apiService.getUsers()
       setUsers(usersData || [])
@@ -1125,7 +1203,7 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
 
   // Handle keyboard navigation in mention dropdown
   const handleMentionKeyDown = (e) => {
-    if (!showMentionDropdown) return
+    if (!showMentionDropdown) {return}
 
     if (e.key === 'ArrowDown') {
       e.preventDefault()
@@ -1149,7 +1227,7 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
 
   // Function to render comment content with highlighted @mentions
   const renderCommentWithMentions = (content) => {
-    if (!content) return content
+    if (!content) {return content}
 
     // Split content by @mentions and render with highlights
     const parts = content.split(/(@\w+)/g)
@@ -1338,7 +1416,8 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                                 <div className="flex items-center gap-2 flex-1 min-w-0">
                                   <div className={`w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-medium flex-shrink-0 ${
                                     isDbUser ? 'bg-blue-500' : 'bg-gray-500'
-                                  }`}>
+                                  }`}
+                                  >
                                     {(isDbUser && user ? user.name : assigneeName).charAt(0).toUpperCase()}
                                   </div>
                                   <div className="flex-1 min-w-0">
@@ -1419,7 +1498,7 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
 
                           {/* User List */}
                           <div className="max-h-48 overflow-y-auto">
-{(() => {
+                            {(() => {
                               const availableUsers = getAvailableUsersForAssignment()
                               const hasSearchQuery = assigneeSearchQuery.trim()
                               const showManualOption = hasSearchQuery && availableUsers.length === 0
@@ -1507,11 +1586,11 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                   {linkedTasks.length > 0 && (
                     <div>
                       <h4 className="text-xs font-semibold text-blue-600 dark:text-blue-400 mb-2 flex items-center gap-1">
-                    <Link className="h-3 w-3" />
-                    Manual Links ({linkedTasks.length}) - Auto-complete
-                  </h4>
+                        <Link className="h-3 w-3" />
+                        Manual Links ({linkedTasks.length}) - Auto-complete
+                      </h4>
                       <div className="space-y-1">
-                    {linkedTasks.map(linkedTaskId => {
+                        {linkedTasks.map(linkedTaskId => {
                           const linkedTask = tasks.find(
                             t => t.id === linkedTaskId
                           )
@@ -1562,7 +1641,7 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                             </div>
                           )
                         })}
-                  </div>
+                      </div>
                     </div>
                   )}
 
@@ -1570,12 +1649,12 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                   {aiCreatedLinks.length > 0 && (
                     <div>
                       <h4 className="text-xs font-semibold text-purple-600 dark:text-purple-400 mb-2 flex items-center gap-1">
-                    <Brain className="h-3 w-3" />
-                    AI Created Links ({aiCreatedLinks.length}) - From
-                    transcript analysis
+                        <Brain className="h-3 w-3" />
+                        AI Created Links ({aiCreatedLinks.length}) - From
+                        transcript analysis
                       </h4>
                       <div className="space-y-1">
-                    {aiCreatedLinks.map(aiLinkId => {
+                        {aiCreatedLinks.map(aiLinkId => {
                           const aiLinkedTask = tasks.find(t => t.id === aiLinkId)
                           if (!aiLinkedTask) {
                             return null
@@ -1640,7 +1719,7 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                             </div>
                           )
                         })}
-                  </div>
+                      </div>
                     </div>
                   )}
 
@@ -1648,12 +1727,12 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                   {aiDiscoveredLinks.length > 0 && (
                     <div>
                       <h4 className="text-xs font-semibold text-amber-600 dark:text-amber-400 mb-2 flex items-center gap-1">
-                    <Sparkles className="h-3 w-3" />
-                    AI Discovered Links ({aiDiscoveredLinks.length}) - Found
-                    when completing tasks
+                        <Sparkles className="h-3 w-3" />
+                        AI Discovered Links ({aiDiscoveredLinks.length}) - Found
+                        when completing tasks
                       </h4>
                       <div className="space-y-1">
-                    {aiDiscoveredLinks.map(aiDiscoveredId => {
+                        {aiDiscoveredLinks.map(aiDiscoveredId => {
                           const aiDiscoveredTask = tasks.find(
                             t => t.id === aiDiscoveredId
                           )
@@ -1726,7 +1805,7 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                             </div>
                           )
                         })}
-                  </div>
+                      </div>
                     </div>
                   )}
 
@@ -1737,25 +1816,25 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                     </h4>
                     <div className="relative">
                       <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() =>
+                        variant="outline"
+                        size="sm"
+                        onClick={() =>
                           setShowLinkedTasksDropdown(!showLinkedTasksDropdown)
                         }
-                      className="w-full justify-between"
-                      disabled={getAvailableTasksForLinking().length === 0}
-                    >
-                      <span className="flex items-center gap-2">
+                        className="w-full justify-between"
+                        disabled={getAvailableTasksForLinking().length === 0}
+                      >
+                        <span className="flex items-center gap-2">
                           <Plus className="h-4 w-4" />
                           {getAvailableTasksForLinking().length === 0
                             ? 'No tasks available to link'
                             : 'Link a task'}
                         </span>
-                      <ChevronDown className="h-4 w-4" />
-                    </Button>
+                        <ChevronDown className="h-4 w-4" />
+                      </Button>
 
                       {showLinkedTasksDropdown && (
-                    <div className="task-link-dropdown absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg max-h-64 overflow-hidden">
+                        <div className="task-link-dropdown absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg max-h-64 overflow-hidden">
                           {/* Search Input */}
                           <div className="p-3 border-b border-gray-200 dark:border-gray-700">
                             <div className="relative">
@@ -2022,7 +2101,7 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                       className={`p-3 ${comment.comment_type === 'ai_update' ? 'border-blue-200 bg-blue-50 dark:bg-blue-900/20' : ''}`}
                     >
                       <div className="flex items-start justify-between mb-1">
-                      <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2">
                           {comment.comment_type !== 'ai_update' && (
                             <span className="font-medium text-sm">
                               {comment.author_name}
@@ -2034,14 +2113,14 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                             </span>
                           )}
                         </div>
-                      <span className="text-xs text-gray-500 flex items-center gap-1">
+                        <span className="text-xs text-gray-500 flex items-center gap-1">
                           <Clock className="h-3 w-3" />
                           {formatTimestamp(comment.created_at)}
                         </span>
-                    </div>
+                      </div>
                       <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
-                      {renderCommentWithMentions(comment.content)}
-                    </p>
+                        {renderCommentWithMentions(comment.content)}
+                      </p>
                     </Card>
                   ))}
                   {serverComments.length === 0 && !loadingComments && (
@@ -2059,7 +2138,7 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                       onChange={handleCommentChange}
                       onKeyDown={handleMentionKeyDown}
                       onKeyPress={e => {
-                        if (showMentionDropdown) return // Prevent submission when dropdown is open
+                        if (showMentionDropdown) {return} // Prevent submission when dropdown is open
                         if (e.key === 'Enter' && !e.shiftKey) {
                           e.preventDefault()
                           addComment()
@@ -2109,9 +2188,19 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
 
             {/* Footer */}
             <div className="flex items-center justify-between p-6 border-t bg-gray-50 dark:bg-gray-900">
-              <Button variant="destructive" onClick={handleDelete}>
-                Delete Task
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button variant="destructive" onClick={handleDelete}>
+                  Delete Task
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setContextModal({ isOpen: true, context: '', loading: false })}
+                  className="flex items-center gap-2"
+                >
+                  <Brain className="h-4 w-4" />
+                  Add Context
+                </Button>
+              </div>
               <div className="flex gap-2">
                 <Button variant="outline" onClick={onClose}>
                   Cancel
@@ -2144,22 +2233,22 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                   <div className="flex items-center justify-between p-4 border-b">
                     <h3 className="text-lg font-semibold flex items-center gap-2">
                       <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
-                    {aiContentModal.type === 'email' && (
+                        {aiContentModal.type === 'email' && (
                           <Mail className="h-4 w-4 text-blue-600" />
                         )}
-                    {aiContentModal.type === 'document' && (
+                        {aiContentModal.type === 'document' && (
                           <FileText className="h-4 w-4 text-blue-600" />
                         )}
-                    {aiContentModal.type === 'code' && (
+                        {aiContentModal.type === 'code' && (
                           <Code className="h-4 w-4 text-blue-600" />
                         )}
-                    {aiContentModal.type === 'research' && (
+                        {aiContentModal.type === 'research' && (
                           <Search className="h-4 w-4 text-blue-600" />
                         )}
-                    {aiContentModal.type === 'message' && (
+                        {aiContentModal.type === 'message' && (
                           <MessageSquare className="h-4 w-4 text-blue-600" />
                         )}
-                  </div>
+                      </div>
                       {aiContentModal.title}
                     </h3>
                     <Button
@@ -2177,8 +2266,8 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                   <div className="flex-1 overflow-y-auto p-4">
                     <div className="relative">
                       <pre className="whitespace-pre-wrap text-sm bg-gray-50 dark:bg-gray-900 p-4 rounded-lg border overflow-x-auto">
-                    {aiContentModal.content}
-                  </pre>
+                        {aiContentModal.content}
+                      </pre>
                     </div>
                   </div>
 
@@ -2189,15 +2278,15 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                     </span>
                     <div className="flex gap-2">
                       <Button
-                    variant="outline"
-                    onClick={() =>
+                        variant="outline"
+                        onClick={() =>
                           setAiContentModal({ ...aiContentModal, isOpen: false })
                         }
-                  >
+                      >
                         Close
-                  </Button>
+                      </Button>
                       <Button
-                    onClick={async() => {
+                        onClick={async() => {
                           try {
                             await navigator.clipboard.writeText(
                               aiContentModal.content
@@ -2235,12 +2324,98 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                             }
                           }
                         }}
-                    className="flex items-center gap-2"
-                  >
-                    <Copy className="h-4 w-4" />
-                    Copy to Clipboard
+                        className="flex items-center gap-2"
+                      >
+                        <Copy className="h-4 w-4" />
+                        Copy to Clipboard
                       </Button>
                     </div>
+                  </div>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Context Update Modal */}
+          <AnimatePresence>
+            {contextModal.isOpen && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 bg-black/50 z-[999999] flex items-center justify-center p-4"
+                onClick={() => setContextModal({ isOpen: false, context: '', loading: false })}
+              >
+                <motion.div
+                  initial={{ scale: 0.9, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0.9, opacity: 0 }}
+                  onClick={e => e.stopPropagation()}
+                  className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl max-w-lg w-full max-h-[80vh] overflow-hidden flex flex-col"
+                >
+                  {/* Header */}
+                  <div className="flex items-center justify-between p-4 border-b">
+                    <h3 className="text-lg font-semibold flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-lg bg-purple-100 dark:bg-purple-900 flex items-center justify-center">
+                        <Brain className="h-4 w-4 text-purple-600" />
+                      </div>
+                      Add Context to Task
+                    </h3>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setContextModal({ isOpen: false, context: '', loading: false })}
+                      disabled={contextModal.loading}
+                    >
+                      <X className="h-5 w-5" />
+                    </Button>
+                  </div>
+
+                  {/* Content */}
+                  <div className="flex-1 p-4 space-y-4">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        Context Information
+                      </label>
+                      <textarea
+                        value={contextModal.context}
+                        onChange={e => setContextModal(prev => ({ ...prev, context: e.target.value }))}
+                        placeholder="Enter additional context, requirements, or details about this task. AI will use this information to update the task intelligently..."
+                        className="w-full h-32 p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 resize-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                        disabled={contextModal.loading}
+                      />
+                    </div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400">
+                      The AI will analyze your context and intelligently update the task title, description, priority, assignees, due date, and subtasks as needed.
+                    </div>
+                  </div>
+
+                  {/* Footer */}
+                  <div className="flex items-center justify-end gap-2 p-4 border-t bg-gray-50 dark:bg-gray-900">
+                    <Button
+                      variant="outline"
+                      onClick={() => setContextModal({ isOpen: false, context: '', loading: false })}
+                      disabled={contextModal.loading}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      onClick={handleContextUpdate}
+                      disabled={contextModal.loading || !contextModal.context.trim()}
+                      className="flex items-center gap-2"
+                    >
+                      {contextModal.loading ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Updating...
+                        </>
+                      ) : (
+                        <>
+                          <Brain className="h-4 w-4" />
+                          Update Task
+                        </>
+                      )}
+                    </Button>
                   </div>
                 </motion.div>
               </motion.div>

@@ -621,8 +621,8 @@ Description: "${completedTaskDescription}"
 
 EXISTING TASKS:
 ${tasks
-  .map((task, idx) => `${idx + 1}. "${task.title}" - ${task.description}`)
-  .join('\n')}
+    .map((task, idx) => `${idx + 1}. "${task.title}" - ${task.description}`)
+    .join('\n')}
 
 Return ONLY a JSON array of task indices (1-based) that are related to the completed task and should also be marked as completed or updated. Tasks are related if they:
 1. Are part of the same project/topic
@@ -889,12 +889,12 @@ ${transcript}`
 
 CURRENT TASKS:
 ${tasksWithContext
-  .slice(0, 25)
-  .map(
-    (task, idx) =>
-      `${idx + 1}. "${task.title}" - Status: ${task.status}, Priority: ${task.priority}${task.dueContext}${task.description ? ` - ${task.description.substring(0, 100)}` : ''}`
-  )
-  .join('\n')}
+    .slice(0, 25)
+    .map(
+      (task, idx) =>
+        `${idx + 1}. "${task.title}" - Status: ${task.status}, Priority: ${task.priority}${task.dueContext}${task.description ? ` - ${task.description.substring(0, 100)}` : ''}`
+    )
+    .join('\n')}
 ${tasksWithContext.length > 25 ? `\n...and ${tasksWithContext.length - 25} more tasks` : ''}
 
 CONTEXT:
@@ -1313,6 +1313,124 @@ If the language cannot be determined from context, default to JavaScript. Includ
       )
     } catch (error) {
       console.error('[OpenAI] Code template generation error:', error)
+      if (error.message.includes('fetch')) {
+        throw new Error(
+          'Network error: Unable to connect to Azure OpenAI. Please check your endpoint and internet connection.'
+        )
+      }
+      throw error
+    }
+  }
+
+  async updateTaskWithContext(taskContext, userContext) {
+    console.log('[OpenAI] Updating task with context...', { taskContext, userContext })
+    this.validateConfig()
+
+    const url = `${this.baseUrl}/openai/deployments/${this.gptDeployment}/chat/completions?api-version=${this.apiVersion}`
+
+    const prompt = `You are a smart task management assistant. A user wants to update a task by providing additional context.
+
+CURRENT TASK:
+Title: ${taskContext.title}
+Description: ${taskContext.description || 'No description'}
+Priority: ${taskContext.priority}
+Status: ${taskContext.status}
+Assignees: ${taskContext.assignees?.join(', ') || 'None'}
+Due Date: ${taskContext.dueDate || 'Not set'}
+Subtasks: ${taskContext.subtasks?.map(s => `- ${s.text} (${s.completed ? 'completed' : 'pending'})`).join('\n') || 'None'}
+
+USER CONTEXT:
+${userContext}
+
+Please analyze the context and intelligently update the task. Return a JSON object with the following structure:
+{
+  "title": "Updated title if needed, otherwise keep current",
+  "description": "Updated description if needed, otherwise keep current",
+  "priority": "low|medium|high - update if context suggests different priority",
+  "status": "todo|in-progress|blocked|done - update if context suggests different status",
+  "assignees": ["array", "of", "assignee", "names"] - extract from context if mentioned,
+  "dueDate": "YYYY-MM-DD format if mentioned in context, otherwise null",
+  "subtasks": ["array", "of", "subtask", "strings"] - updated list if context suggests changes,
+  "reasoning": "Explain what changes were made and why"
+}
+
+IMPORTANT:
+- Only change fields that the context actually suggests should be changed
+- If context doesn't suggest a change, keep the existing value
+- Extract assignee names mentioned in the context (like "assign to John", "John should handle this")
+- Look for dates, deadlines, or time references for due dates
+- Identify priority indicators (urgent, high priority, low priority, etc.)
+- Break down complex requirements into subtasks
+- If context suggests task is done or completed, update status accordingly
+- Be conservative - don't make unnecessary changes
+
+Return ONLY valid JSON, no additional text.`
+
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'api-key': this.apiKey
+        },
+        body: JSON.stringify({
+          messages: [
+            {
+              role: 'system',
+              content: 'You are a task management assistant. Always return valid JSON.'
+            },
+            {
+              role: 'user',
+              content: prompt
+            }
+          ],
+          max_tokens: 1500,
+          temperature: 0.1 // Low temperature for consistent, focused responses
+        })
+      })
+
+      if (!response.ok) {
+        let errorMessage = `HTTP error! status: ${response.status}`
+        try {
+          const errorData = await response.json()
+          errorMessage = errorData.error?.message || errorMessage
+        } catch (e) {
+          const errorText = await response.text()
+          if (errorText) {
+            errorMessage = errorText
+          }
+        }
+        throw new Error(errorMessage)
+      }
+
+      const result = await response.json()
+      const content = result.choices?.[0]?.message?.content
+
+      if (!content) {
+        throw new Error('No response content from AI')
+      }
+
+      // Parse the JSON response
+      let updatedTask
+      try {
+        updatedTask = JSON.parse(content.trim())
+      } catch (parseError) {
+        console.error('[OpenAI] Failed to parse JSON response:', content)
+        throw new Error('AI returned invalid JSON response')
+      }
+
+      // Validate the response has required fields
+      const requiredFields = ['title', 'description', 'priority', 'status', 'reasoning']
+      const missingFields = requiredFields.filter(field => !(field in updatedTask))
+      if (missingFields.length > 0) {
+        console.error('[OpenAI] Missing required fields:', missingFields)
+        throw new Error(`AI response missing required fields: ${missingFields.join(', ')}`)
+      }
+
+      console.log('[OpenAI] ✓ Task context update successful:', updatedTask.reasoning)
+      return updatedTask
+    } catch (error) {
+      console.error('[OpenAI] Task context update error:', error)
       if (error.message.includes('fetch')) {
         throw new Error(
           'Network error: Unable to connect to Azure OpenAI. Please check your endpoint and internet connection.'
