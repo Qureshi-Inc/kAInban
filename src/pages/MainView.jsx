@@ -3,7 +3,7 @@ import React, { useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import AnalyticsDashboard from '../components/AnalyticsDashboard'
 import AudioControls from '../components/AudioControls'
-import KanbanBoardKit from '../components/KanbanBoardKit'
+import KanbanBoard from '../components/KanbanBoard'
 import MeetingFilesPanel from '../components/MeetingFilesPanel'
 import SummaryPanel from '../components/SummaryPanel'
 import { getShortId } from '../lib/utils'
@@ -166,7 +166,7 @@ export default function MainView() {
           </div>
         </div>
 
-        <KanbanBoardKit taskToOpen={taskId} />
+        <KanbanBoard taskToOpen={taskId} />
       </motion.div>
     </div>
   )

@@ -134,7 +134,7 @@ const TaskCard = ({
     <div
       role="button"
       tabIndex={0}
-      className={`group task-card interactive-element bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-xl p-1 sm:p-4 mb-3 shadow-lg hover:shadow-2xl cursor-pointer backdrop-blur-sm transition-all duration-200 hover:border-primary/40 hover:bg-gradient-to-br hover:from-gray-50/50 hover:to-white dark:hover:from-gray-700/50 dark:hover:to-gray-800 focus:ring-2 focus:ring-primary/50 focus:outline-none ${getDragStyles()}`}
+      className={`group task-card interactive-element bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-xl p-3 sm:p-4 mb-3 shadow-lg hover:shadow-2xl cursor-pointer backdrop-blur-sm transition-all duration-200 hover:border-primary/40 hover:bg-gradient-to-br hover:from-gray-50/50 hover:to-white dark:hover:from-gray-700/50 dark:hover:to-gray-800 focus:ring-2 focus:ring-primary/50 focus:outline-none ${getDragStyles()}`}
       style={{
         transformOrigin: 'center center',
         contain: 'layout style paint'
@@ -1179,7 +1179,7 @@ export default function KanbanBoard({ taskToOpen }) {
           </CardHeader>
           <CardContent className="p-6">
             {viewMode === 'kanban' ? (
-              <div className="grid grid-cols-1 xl:grid-cols-4 gap-4 xl:gap-6 w-full">
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 xl:gap-6 w-full overflow-x-auto">
                 <Column
                   title="📋 To Do"
                   status="todo"
