@@ -623,7 +623,6 @@ export default function KanbanBoardKit({ taskToOpen }) {
                 tasks={tasks}
                 onTaskClick={handleTaskClick}
                 onTaskDelete={handleTaskDelete}
-                users={users}
               />
             )}
           </CardContent>

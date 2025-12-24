@@ -1,132 +1,44 @@
 import { motion, AnimatePresence } from 'framer-motion'
-import { ChevronDown, ChevronRight, Trash2, User } from 'lucide-react'
+import { ChevronDown, ChevronRight, Trash2 } from 'lucide-react'
 import React, { useState, useMemo } from 'react'
 import { Button } from './ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
 
-const TaskRow = ({ task, onTaskClick, onTaskDelete, users = [] }) => {
+const TaskRow = ({ task, onTaskClick, onTaskDelete }) => {
   if (!task) return null
 
-  // Check if assignee is a database user
-  const isAssigneeDbUser = assigneeName => {
-    if (!assigneeName || !users.length) {
-      return false
-    }
-    return users.some(
-      user =>
-        user.name.toLowerCase() === assigneeName.toLowerCase() ||
-        user.email.toLowerCase() === assigneeName.toLowerCase()
-    )
-  }
-
-  const getAssigneesDisplay = task => {
-    let assigneesList = []
-    if (task.assignees && Array.isArray(task.assignees)) {
-      assigneesList = task.assignees
-    } else if (task.assignee) {
-      assigneesList = [task.assignee]
-    }
-
-    if (assigneesList.length === 0) {
-      return null
-    }
-
-    const displayAssignee = assigneesList[0]
-    const isDbUser = isAssigneeDbUser(displayAssignee)
-    const user = users.find(
-      u =>
-        u.name.toLowerCase() === displayAssignee.toLowerCase() ||
-        u.email.toLowerCase() === displayAssignee.toLowerCase()
-    )
-
-    return (
-      <div className="flex items-center gap-2">
-        <div
-          className={`flex items-center gap-1 text-xs px-2 py-1 rounded border ${
-            isDbUser
-              ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800'
-              : 'bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-600'
-          }`}
-        >
-          <User className="h-2.5 w-2.5" />
-          <span className="truncate max-w-16" title={user ? `${user.name} (${user.email})` : displayAssignee}>
-            {isDbUser && user ? user.name.split(' ')[0] : displayAssignee.split(' ')[0]}
-          </span>
-          {isDbUser && (
-            <div className="w-1 h-1 bg-green-500 rounded-full" title="Database User" />
-          )}
-        </div>
-        {assigneesList.length > 1 && (
-          <span className="text-xs text-gray-500">+{assigneesList.length - 1}</span>
-        )}
-      </div>
-    )
-  }
-
-  const getPriorityBadge = priority => {
+  const getPriorityIcon = priority => {
     const colors = {
-      high: 'bg-red-100 text-red-800 border-red-200',
-      medium: 'bg-amber-100 text-amber-800 border-amber-200',
-      low: 'bg-green-100 text-green-800 border-green-200'
+      high: 'bg-red-500',
+      medium: 'bg-amber-500',
+      low: 'bg-green-500'
     }
-    return colors[priority] || 'bg-gray-100 text-gray-800 border-gray-200'
+    return colors[priority] || 'bg-gray-400'
   }
 
   return (
     <div
-      className="group flex items-center justify-between px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-100 dark:border-gray-800 cursor-pointer transition-colors"
+      className="group flex items-center justify-between px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-100 dark:border-gray-800 cursor-pointer transition-colors"
       onClick={() => onTaskClick(task)}
     >
-      <div className="flex-1 min-w-0 mr-4">
-        <div className="flex items-center gap-3">
-          <h4 className="font-medium text-sm text-gray-900 dark:text-gray-100 truncate">
-            {task.title}
-          </h4>
-          <span
-            className={`text-xs px-2 py-1 rounded-full border font-medium ${getPriorityBadge(task.priority)}`}
-          >
-            {task.priority?.charAt(0).toUpperCase() || 'M'}
-          </span>
-        </div>
-        {task.description && (
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 truncate">
-            {task.description}
-          </p>
-        )}
+      <div className="flex items-center gap-3 flex-1 min-w-0">
+        <div className={`w-3 h-3 rounded-full ${getPriorityIcon(task.priority)}`} title={`${task.priority} priority`} />
+        <h4 className="font-medium text-sm text-gray-900 dark:text-gray-100 truncate">
+          {task.title}
+        </h4>
       </div>
 
-      <div className="flex items-center gap-3 flex-shrink-0">
-        {getAssigneesDisplay(task)}
-
-        {task.dueDate && (
-          <span className="text-xs text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/20 px-2 py-1 rounded border border-orange-200 dark:border-orange-800">
-            {(() => {
-              const parts = task.dueDate.split('-')
-              if (parts.length === 3) {
-                const date = new Date(parts[0], parts[1] - 1, parts[2])
-                return date.toLocaleDateString([], { month: 'numeric', day: 'numeric' })
-              }
-              return new Date(task.dueDate).toLocaleDateString([], { month: 'numeric', day: 'numeric' })
-            })()}
-          </span>
-        )}
-
-        <span className="text-xs text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded border border-gray-200 dark:border-gray-600">
-          {new Date(task.createdAt).toLocaleDateString([], { month: 'numeric', day: 'numeric' })}
-        </span>
-
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-6 w-6 opacity-0 group-hover:opacity-100 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 transition-all"
-          onClick={e => {
-            e.stopPropagation()
-            onTaskDelete(task.id)
-          }}
-        >
-          <Trash2 className="h-3 w-3" />
-        </Button>
-      </div>
+      <Button
+        variant="ghost"
+        size="icon"
+        className="h-6 w-6 opacity-0 group-hover:opacity-100 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 transition-all flex-shrink-0"
+        onClick={e => {
+          e.stopPropagation()
+          onTaskDelete(task.id)
+        }}
+      >
+        <Trash2 className="h-3 w-3" />
+      </Button>
     </div>
   )
 }
@@ -138,8 +50,7 @@ const StatusList = ({
   isExpanded,
   onToggle,
   onTaskClick,
-  onTaskDelete,
-  users = []
+  onTaskDelete
 }) => {
   const validTasks = Array.isArray(tasks) ? tasks : []
 
@@ -185,7 +96,6 @@ const StatusList = ({
                       task={task}
                       onTaskClick={onTaskClick}
                       onTaskDelete={onTaskDelete}
-                      users={users}
                     />
                   ))}
                 </div>
@@ -201,8 +111,7 @@ const StatusList = ({
 export default function SimpleListView({
   tasks = [],
   onTaskClick,
-  onTaskDelete,
-  users = []
+  onTaskDelete
 }) {
   const validTasks = Array.isArray(tasks) ? tasks : []
 
@@ -290,7 +199,6 @@ export default function SimpleListView({
           onToggle={() => toggleSection(id)}
           onTaskClick={onTaskClick}
           onTaskDelete={onTaskDelete}
-          users={users}
         />
       ))}
     </div>
