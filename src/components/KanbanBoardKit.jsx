@@ -6,14 +6,11 @@ import {
   MoreVertical,
   List,
   LayoutGrid,
-  ChevronDown,
-  ChevronRight,
-  FileText,
   User,
   Sparkles
 } from 'lucide-react'
-import React, { useState, useEffect, useMemo } from 'react'
-import { Kanban } from 'react-kanban-kit'
+import { useState, useEffect } from 'react'
+import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { getShortId } from '../lib/utils'
 import apiService from '../services/apiService'
@@ -30,7 +27,6 @@ const TaskCard = ({
   task,
   onDelete,
   onClick,
-  onNavigateToMeeting,
   users = []
 }) => {
   // Check if assignee is a database user
@@ -60,7 +56,7 @@ const TaskCard = ({
 
     return (
       <div className="flex flex-wrap gap-1">
-        {assigneesList.slice(0, 2).map((assigneeName, index) => {
+        {assigneesList.slice(0, 2).map((assigneeName) => {
           const isDbUser = isAssigneeDbUser(assigneeName)
           const user = users.find(
             u =>
@@ -117,11 +113,42 @@ const TaskCard = ({
 
   return (
     <div
-      className="group bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-xl p-3 shadow-lg hover:shadow-2xl cursor-pointer backdrop-blur-sm transition-all duration-200 hover:border-primary/40 hover:bg-gradient-to-br hover:from-gray-50/50 hover:to-white dark:hover:from-gray-700/50 dark:hover:to-gray-800"
+      className="group bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-xl p-3 shadow-lg cursor-pointer"
       onClick={() => onClick(task)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          onClick(task)
+        }
+      }}
+      role="button"
+      tabIndex={0}
+      style={{
+        display: 'block !important',
+        position: 'relative',
+        minHeight: '120px',
+        width: '100%',
+        height: 'auto',
+        visibility: 'visible !important',
+        opacity: 1,
+        WebkitTransform: 'translateZ(0)',
+        transform: 'translateZ(0)',
+        WebkitAppearance: 'none',
+        isolation: 'isolate'
+      }}
     >
       <div className="flex justify-between items-start mb-3">
-        <h4 className="font-bold text-sm line-clamp-2 flex-1 pr-2 text-gray-900 dark:text-gray-100">
+        <h4
+          className="font-bold text-sm flex-1 pr-2 text-gray-900 dark:text-gray-100"
+          style={{
+            display: '-webkit-box',
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: 'vertical',
+            overflow: 'hidden',
+            lineHeight: '1.4em',
+            maxHeight: '2.8em'
+          }}
+        >
           {task.title}
         </h4>
         <Button
@@ -138,7 +165,17 @@ const TaskCard = ({
       </div>
 
       {task.description && (
-        <p className="text-xs text-muted-foreground mb-3 line-clamp-3 leading-relaxed">
+        <p
+          className="text-xs text-muted-foreground mb-3 leading-relaxed"
+          style={{
+            display: '-webkit-box',
+            WebkitLineClamp: 3,
+            WebkitBoxOrient: 'vertical',
+            overflow: 'hidden',
+            lineHeight: '1.4em',
+            maxHeight: '4.2em'
+          }}
+        >
           {task.description}
         </p>
       )}
@@ -258,95 +295,34 @@ export default function KanbanBoardKit({ taskToOpen }) {
     })
   }
 
-  // Prepare data for react-kanban-kit
-  const dataSource = useMemo(() => {
-    const todoTasks = sortTasksByOrder(
-      tasks.filter(task => task.status === 'todo' || !task.status)
-    )
-    const inProgressTasks = sortTasksByOrder(
-      tasks.filter(
-        task => task.status === 'in-progress' || task.status === 'inprogress'
-      )
-    )
-    const doneTasks = sortTasksByOrder(
-      tasks.filter(task => task.status === 'done')
-    )
-    const blockedTasks = sortTasksByOrder(
-      tasks.filter(task => task.status === 'blocked' || task.status === 'on-hold')
-    )
-
-    // Create the data structure expected by react-kanban-kit
-    const data = {
-      root: {
-        id: 'root',
-        title: 'Kanban Board',
-        children: ['todo', 'in-progress', 'done', 'blocked'],
-        totalChildrenCount: 4,
-        parentId: null,
-      },
-      'todo': {
-        id: 'todo',
-        title: '📋 To Do',
-        children: todoTasks.map(task => task.id),
-        totalChildrenCount: todoTasks.length,
-        parentId: 'root',
-      },
-      'in-progress': {
-        id: 'in-progress',
-        title: '⚡ In Progress',
-        children: inProgressTasks.map(task => task.id),
-        totalChildrenCount: inProgressTasks.length,
-        parentId: 'root',
-      },
-      'done': {
-        id: 'done',
-        title: '✅ Done',
-        children: doneTasks.map(task => task.id),
-        totalChildrenCount: doneTasks.length,
-        parentId: 'root',
-      },
-      'blocked': {
-        id: 'blocked',
-        title: '🚫 Blocked',
-        children: blockedTasks.map(task => task.id),
-        totalChildrenCount: blockedTasks.length,
-        parentId: 'root',
-      },
+  // Prepare data for hello-pangea/dnd
+  const getTasksByStatus = (status) => {
+    let filteredTasks = []
+    switch (status) {
+      case 'todo':
+        filteredTasks = tasks.filter(task => task.status === 'todo' || !task.status)
+        break
+      case 'in-progress':
+        filteredTasks = tasks.filter(task => task.status === 'in-progress' || task.status === 'inprogress')
+        break
+      case 'done':
+        filteredTasks = tasks.filter(task => task.status === 'done')
+        break
+      case 'blocked':
+        filteredTasks = tasks.filter(task => task.status === 'blocked' || task.status === 'on-hold')
+        break
+      default:
+        return []
     }
+    return sortTasksByOrder(filteredTasks)
+  }
 
-    // Add all tasks to the data object
-    const allTasks = [...todoTasks, ...inProgressTasks, ...doneTasks, ...blockedTasks]
-    allTasks.forEach(task => {
-      data[task.id] = {
-        id: task.id,
-        title: task.title,
-        parentId: task.status === 'in-progress' || task.status === 'inprogress' ? 'in-progress' :
-                  task.status === 'done' ? 'done' :
-                  task.status === 'blocked' || task.status === 'on-hold' ? 'blocked' : 'todo',
-        children: [],
-        totalChildrenCount: 0,
-        type: 'card',
-        content: task,
-      }
-    })
-
-    return data
-  }, [tasks])
-
-  const configMap = useMemo(() => ({
-    card: {
-      render: ({ data, column, index, isDraggable }) => (
-        <TaskCard
-          task={data.content}
-          onDelete={handleTaskDelete}
-          onClick={handleTaskClick}
-          onNavigateToMeeting={handleNavigateToMeeting}
-          users={users}
-        />
-      ),
-      isDraggable: true,
-    }
-  }), [users])
+  const columns = [
+    { id: 'todo', title: '📋 To Do', tasks: getTasksByStatus('todo') },
+    { id: 'in-progress', title: '⚡ In Progress', tasks: getTasksByStatus('in-progress') },
+    { id: 'done', title: '✅ Done', tasks: getTasksByStatus('done') },
+    { id: 'blocked', title: '🚫 Blocked', tasks: getTasksByStatus('blocked') },
+  ]
 
   const handleTaskMove = async(taskId, newStatus) => {
     const task = tasks.find(t => t.id === taskId)
@@ -393,14 +369,83 @@ export default function KanbanBoardKit({ taskToOpen }) {
     }
   }
 
-  const handleCardMove = (move) => {
-    console.log('[KanbanBoardKit] Card moved:', move)
+  const onDragEnd = (result) => {
+    const { destination, source, draggableId } = result
 
-    // Extract task ID and new column ID from the move object
-    const taskId = move.cardId
-    const newStatus = move.toColumnId
+    // Dropped outside the list
+    if (!destination) {
+      return
+    }
 
-    handleTaskMove(taskId, newStatus)
+    // Dropped in the same position
+    if (
+      destination.droppableId === source.droppableId &&
+      destination.index === source.index
+    ) {
+      return
+    }
+
+    const taskId = draggableId
+    const sourceColumnId = source.droppableId
+    const destinationColumnId = destination.droppableId
+    const destinationIndex = destination.index
+
+    // Drag end: moving between columns or reordering within same column
+
+    // Find the task
+    const task = tasks.find(t => t.id === taskId)
+    if (!task) {
+      return
+    }
+
+    // If moving between columns, use the simple moveTask
+    if (destinationColumnId !== sourceColumnId) {
+      moveTask(taskId, destinationColumnId)
+
+      // Handle AI completion logic if moving to done
+      if (destinationColumnId === 'done' && task.status !== 'done') {
+        handleTaskMove(taskId, destinationColumnId)
+      }
+      return
+    }
+
+    // If reordering within same column, calculate order
+
+    // Get tasks in the destination column (excluding dragged task)
+    let destinationTasks = getTasksByStatus(destinationColumnId).filter(t => t.id !== taskId)
+
+    // Calculate new order based on destination index
+    let newOrder = 1000 // default
+
+    if (destinationTasks.length === 0) {
+      // Only task in column
+      newOrder = 1000
+    } else if (destinationIndex === 0) {
+      // Moving to top
+      const firstTask = destinationTasks[0]
+      newOrder = (firstTask.order || 1000) - 100
+    } else if (destinationIndex >= destinationTasks.length) {
+      // Moving to bottom
+      const lastTask = destinationTasks[destinationTasks.length - 1]
+      newOrder = (lastTask.order || 1000) + 100
+    } else {
+      // Moving between tasks
+      const beforeTask = destinationTasks[destinationIndex - 1]
+      const afterTask = destinationTasks[destinationIndex]
+      const beforeOrder = beforeTask ? (beforeTask.order || 1000) : 500
+      const afterOrder = afterTask ? (afterTask.order || 1000) : 1500
+      newOrder = (beforeOrder + afterOrder) / 2
+    }
+
+    // Update task with new order only
+    const updatedTask = {
+      ...task,
+      order: newOrder
+    }
+
+    // Update task with new order
+
+    updateTask(updatedTask)
   }
 
   const handleTaskDelete = taskId => {
@@ -539,6 +584,14 @@ export default function KanbanBoardKit({ taskToOpen }) {
                         <div
                           className="fixed inset-0 z-40"
                           onClick={() => setIsMenuOpen(false)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Escape') {
+                              setIsMenuOpen(false)
+                            }
+                          }}
+                          role="button"
+                          tabIndex={0}
+                          aria-label="Close menu"
                         />
                         <motion.div
                           initial={{ opacity: 0, scale: 0.95, y: -10 }}
@@ -611,13 +664,55 @@ export default function KanbanBoardKit({ taskToOpen }) {
 
           <CardContent className="p-6">
             {viewMode === 'kanban' ? (
-              <div className="w-full" style={{ height: '600px' }}>
-                <Kanban
-                  dataSource={dataSource}
-                  configMap={configMap}
-                  onCardMove={handleCardMove}
-                />
-              </div>
+              <DragDropContext onDragEnd={onDragEnd}>
+                <div className="flex gap-4 overflow-x-auto pb-4 kanban-scroll-container" style={{ minHeight: '600px' }}>
+                  {columns.map((column) => (
+                    <div key={column.id} className="flex-none w-80">
+                      <h3 className="font-semibold text-sm text-gray-700 dark:text-gray-300 px-2 py-1 mb-3 bg-gray-100 dark:bg-gray-700 rounded-lg">
+                        {column.title} ({column.tasks.length})
+                      </h3>
+                      <Droppable droppableId={column.id}>
+                        {(provided, snapshot) => (
+                          <div
+                            ref={provided.innerRef}
+                            {...provided.droppableProps}
+                            className="space-y-2 min-h-32 p-2 rounded-lg border-2 border-dashed border-transparent"
+                            style={{
+                              backgroundColor: snapshot.isDraggingOver ? 'rgba(59, 130, 246, 0.1)' : 'transparent',
+                              borderColor: snapshot.isDraggingOver ? 'rgb(59, 130, 246)' : 'transparent'
+                            }}
+                          >
+                            {column.tasks.map((task, index) => (
+                              <Draggable key={task.id} draggableId={task.id} index={index}>
+                                {(provided, snapshot) => (
+                                  <div
+                                    ref={provided.innerRef}
+                                    {...provided.draggableProps}
+                                    {...provided.dragHandleProps}
+                                    style={{
+                                      ...provided.draggableProps.style,
+                                      opacity: snapshot.isDragging ? 0.8 : 1
+                                    }}
+                                  >
+                                    <TaskCard
+                                      task={task}
+                                      onDelete={handleTaskDelete}
+                                      onClick={handleTaskClick}
+                                      onNavigateToMeeting={handleNavigateToMeeting}
+                                      users={users}
+                                    />
+                                  </div>
+                                )}
+                              </Draggable>
+                            ))}
+                            {provided.placeholder}
+                          </div>
+                        )}
+                      </Droppable>
+                    </div>
+                  ))}
+                </div>
+              </DragDropContext>
             ) : (
               <SimpleListView
                 tasks={tasks}

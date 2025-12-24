@@ -389,3 +389,14 @@ body.modal-open {
   background: rgba(156, 163, 175, 0.4);
   border-radius: 2px;
 }
+
+/* Kanban horizontal scroll styling */
+.kanban-scroll-container {
+  /* Hide scrollbar but keep functionality */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* Internet Explorer 10+ */
+}
+
+.kanban-scroll-container::-webkit-scrollbar {
+  display: none; /* Safari and Chrome */
+}

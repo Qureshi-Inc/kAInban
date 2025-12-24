@@ -4,7 +4,7 @@ import path from 'path'
 import connectSqlite3 from 'connect-sqlite3'
 import cors from 'cors'
 import express from 'express'
-import rateLimit from 'express-rate-limit'
+import expressRateLimit from 'express-rate-limit'
 import session from 'express-session'
 import helmet from 'helmet'
 import morgan from 'morgan'
@@ -60,7 +60,7 @@ app.use(
 // TODO: Implement proper CSRF protection using csrf-csrf or similar package
 
 // Global rate limiting
-const globalLimiter = rateLimit({
+const globalLimiter = expressRateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 1000, // 1000 requests per window
   message: { error: 'Too many requests, please try again later' },
@@ -190,7 +190,7 @@ const pocketIdIntegration = new PocketIDIntegration({
 })
 
 // Rate limiting for auth endpoints
-const authLimiter = rateLimit({
+const authLimiter = expressRateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 5, // 5 requests per window
   message: {
@@ -201,7 +201,7 @@ const authLimiter = rateLimit({
 })
 
 // Special rate limiter for signup endpoints (more lenient)
-const signupLimiter = rateLimit({
+const signupLimiter = expressRateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
   max: 10, // 10 signups per hour per IP
   message: { error: 'Too many signup attempts, please try again later' },
@@ -799,7 +799,7 @@ app.get('/api/projects/:id', localAuth.requireAuth, (req, res) => {
       '  Strict match (===):',
       project.user_id === req.session.user.id
     )
-    console.log('  Loose match (==):', project.user_id === req.session.user.id)
+    console.log('  Loose match (==):', project.user_id === String(req.session.user.id))
 
     // Use loose equality to handle potential type mismatch
     if (project.user_id !== String(req.session.user.id)) {
@@ -1715,7 +1715,7 @@ function calculateTaskSimilarity(task1, task2) {
 // Extract entities (company names, project names, document types)
 function extractEntities(text) {
   const entities = []
-  const upperText = text.toUpperCase()
+  // Note: upperText variable removed as it was unused
 
   // Common company/project patterns
   const entityPatterns = [
@@ -1865,7 +1865,7 @@ function getSimilarityReason(tasks) {
 }
 
 // AI-powered task merging
-async function mergeTasksWithAI(tasks, strategy = 'smart') {
+async function mergeTasksWithAI(tasks) {
   try {
     // Import the openai service
     const openaiService = await import('../src/services/openaiService.js')
