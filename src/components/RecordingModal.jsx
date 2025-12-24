@@ -142,7 +142,7 @@ export default function RecordingModal() {
     }
   }
 
-  const handleStop = async () => {
+  const handleStop = async() => {
     try {
       console.log('[RecordingModal] Stopping recording...')
       const audioBlob = await audioService.stopRecording()

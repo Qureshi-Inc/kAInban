@@ -17,11 +17,13 @@ import UserProfile from './UserProfile'
 export default function LeftSidebar({ isOpen, onClose }) {
   const navigate = useNavigate()
   const clearSession = useAppStore((state) => state.clearSession)
+  const clearCurrentProject = useAppStore((state) => state.clearCurrentProject)
   const setSettingsOpen = useAppStore((state) => state.setSettingsOpen)
   const addNotification = useAppStore((state) => state.addNotification)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
 
   const handleDashboard = () => {
+    clearCurrentProject() // Clear any selected project
     navigate('/')
     onClose() // Close the sidebar after navigation
   }

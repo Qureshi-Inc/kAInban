@@ -841,7 +841,9 @@ export const saveProject = (userId, project) => {
         }
 
         // Check for subtask changes (completion status changes)
-        const existingSubtasks = existingTask.subtasks ? JSON.parse(existingTask.subtasks) : []
+        const existingSubtasks = existingTask.subtasks
+          ? (typeof existingTask.subtasks === 'string' ? JSON.parse(existingTask.subtasks) : existingTask.subtasks)
+          : []
         const newSubtasks = task.subtasks || []
 
         // Compare subtask completion states
@@ -1752,7 +1754,6 @@ export const getMergeUndoData = (userId, projectId, mergeId) => {
   const stmt = db.prepare(`
     SELECT * FROM task_merge_undo
     WHERE user_id = ? AND project_id = ? AND merge_id = ?
-    AND expires_at > datetime('now')
     ORDER BY created_at DESC
     LIMIT 1
   `)
@@ -1774,7 +1775,6 @@ export const getRecentMerges = (userId, projectId) => {
     SELECT id, merge_id, metadata, created_at
     FROM task_merge_undo
     WHERE user_id = ? AND project_id = ?
-    AND expires_at > datetime('now')
     ORDER BY created_at DESC
     LIMIT 10
   `)

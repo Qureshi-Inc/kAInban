@@ -42,7 +42,7 @@
 
 /* Modal content container */
 .task-modal-content {
-  /* Size and position */
+  /* Size and position - Use dynamic viewport for better keyboard handling */
   width: 100vw !important;
   height: 100vh !important;
   height: 100dvh !important;
@@ -66,9 +66,9 @@
   z-index: 1 !important;
 
   /* Performance */
-  will-change: transform;
-  transform: translateZ(0);
-  backface-visibility: hidden;
+  will-change: auto;
+  transform: none;
+  backface-visibility: visible;
 }
 
 @keyframes slideInScale {
@@ -117,10 +117,11 @@
   z-index: 1000;
 }
 
-/* Input focus handling */
+/* Input focus handling - Smooth focus without jarring transforms */
 .mobile-input-focus {
-  transform: translateY(-50px);
-  transition: transform 0.3s ease-out;
+  /* Just add a subtle highlight, no position changes */
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
+  transition: box-shadow 0.2s ease-out;
 }
 
 /* Smooth scrolling for modal content */
@@ -162,9 +163,13 @@ select:focus {
   border-color: rgb(59, 130, 246);
   outline: none;
 
-  /* Scroll into view smoothly */
-  scroll-margin-top: 100px;
-  scroll-margin-bottom: 100px;
+  /* Better scroll margins for keyboard visibility */
+  scroll-margin-top: 80px;
+  scroll-margin-bottom: 120px;
+
+  /* Ensure visibility without layout shift */
+  position: relative;
+  z-index: 10;
 }
 
 /* Task card click improvements */
@@ -213,11 +218,33 @@ select:focus {
   pointer-events: auto;
 }
 
-/* Keyboard viewport handling */
+/* Keyboard viewport handling - Better height management */
+.keyboard-aware-container {
+  /* Use visual viewport when available for keyboard handling */
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
+  max-height: 100vh;
+  max-height: 100dvh;
+
+  /* Ensure content can shrink when keyboard opens */
+  overflow: hidden;
+  position: relative;
+}
+
 @supports (height: 100dvh) {
   .keyboard-aware-container {
     height: 100dvh;
+    max-height: 100dvh;
   }
+}
+
+/* When keyboard is active, use smaller height to prevent scrolling issues */
+.keyboard-active .keyboard-aware-container {
+  height: calc(100vh - env(keyboard-inset-height, 0px));
+  height: calc(100dvh - env(keyboard-inset-height, 0px));
+  max-height: calc(100vh - env(keyboard-inset-height, 0px));
+  max-height: calc(100dvh - env(keyboard-inset-height, 0px));
 }
 
 /* iOS Safari specific fixes */
@@ -309,6 +336,30 @@ body.modal-open {
 
 /* Remove conflicting old CSS - now handled in main modal styles */
 
+/* Dropdown positioning improvements for keyboard handling */
+.assignee-dropdown,
+.task-link-dropdown {
+  /* Keep normal positioning but improve visibility */
+  position: absolute !important;
+  z-index: 50 !important;
+  width: 100% !important;
+  max-height: 200px !important;
+  overflow-y: auto !important;
+
+  /* Better shadow and border for visibility */
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+}
+
+/* When keyboard is active, use upward positioning for dropdowns */
+.keyboard-active .assignee-dropdown,
+.keyboard-active .task-link-dropdown {
+  /* Position dropdowns above the input when keyboard is open */
+  bottom: 100% !important;
+  top: auto !important;
+  margin-bottom: 4px !important;
+  margin-top: 0 !important;
+}
+
 /* Better scrollbar styling */
 .modal-scroll-content::-webkit-scrollbar {
   width: 4px;
@@ -325,4 +376,16 @@ body.modal-open {
 
 .modal-scroll-content::-webkit-scrollbar-thumb:hover {
   background: rgba(156, 163, 175, 0.5);
+}
+
+/* Scrollbar for dropdowns */
+.assignee-dropdown::-webkit-scrollbar,
+.task-link-dropdown::-webkit-scrollbar {
+  width: 4px;
+}
+
+.assignee-dropdown::-webkit-scrollbar-thumb,
+.task-link-dropdown::-webkit-scrollbar-thumb {
+  background: rgba(156, 163, 175, 0.4);
+  border-radius: 2px;
 }

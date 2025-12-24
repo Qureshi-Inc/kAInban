@@ -21,7 +21,8 @@ import {
   Code,
   Copy,
   ExternalLink,
-  Loader2
+  Loader2,
+  MoreVertical
 } from 'lucide-react'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { createPortal } from 'react-dom'
@@ -151,6 +152,7 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
     context: '',
     loading: false
   })
+  const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isKeyboardOpen, setIsKeyboardOpen] = useState(false)
   const modalContentRef = useRef(null)
   const activeInputRef = useRef(null)
@@ -252,7 +254,17 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
       if (e.target.matches('input, textarea, select')) {
         activeInputRef.current = e.target
         e.target.classList.add('mobile-input-focus')
-        // No automatic scrolling - just track the active input
+
+        // Gentle scroll to ensure input is visible without jarring movement
+        setTimeout(() => {
+          if (e.target && typeof e.target.scrollIntoView === 'function') {
+            e.target.scrollIntoView({
+              behavior: 'smooth',
+              block: 'center',
+              inline: 'nearest'
+            })
+          }
+        }, 100) // Small delay to let keyboard animation start
       }
     }
 
@@ -408,15 +420,44 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
     if (JSON.stringify(aiCreatedLinks) !== JSON.stringify(task.aiCreatedLinks)) {updates.aiCreatedLinks = aiCreatedLinks}
     if (JSON.stringify(aiDiscoveredLinks) !== JSON.stringify(task.aiDiscoveredLinks)) {updates.aiDiscoveredLinks = aiDiscoveredLinks}
 
-    // Only update if there are actual changes
-    if (Object.keys(updates).length > 0) {
-      updateTask(task.id, updates)
+    // Handle new task creation vs existing task update
+    if (!task.id) {
+      // Create new task
+      const { createTask } = useAppStore.getState()
+      const newTask = {
+        title,
+        description,
+        status,
+        priority,
+        dueDate,
+        assignees,
+        assignee: assignees.length > 0 ? assignees[0] : '',
+        subtasks,
+        comments,
+        linkedTasks,
+        aiCreatedLinks,
+        aiDiscoveredLinks
+      }
+      createTask(newTask)
+      addNotification({
+        type: 'success',
+        message: 'Task created successfully!'
+      })
+    } else {
+      // Update existing task only if there are changes
+      if (Object.keys(updates).length > 0) {
+        updateTask(task.id, updates)
+        addNotification({
+          type: 'success',
+          message: 'Task updated successfully!'
+        })
+      } else {
+        addNotification({
+          type: 'info',
+          message: 'No changes to save'
+        })
+      }
     }
-
-    addNotification({
-      type: 'success',
-      message: 'Task updated successfully!'
-    })
 
     // Force save to backend and close modal after completion
     setTimeout(async() => {
@@ -2188,18 +2229,62 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
 
             {/* Footer */}
             <div className="flex items-center justify-between p-6 border-t bg-gray-50 dark:bg-gray-900">
-              <div className="flex items-center gap-2">
-                <Button variant="destructive" onClick={handleDelete}>
-                  Delete Task
-                </Button>
+              <div className="relative">
+                {/* Three-dot menu button */}
                 <Button
                   variant="outline"
-                  onClick={() => setContextModal({ isOpen: true, context: '', loading: false })}
-                  className="flex items-center gap-2 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white border-none shadow-md hover:shadow-lg transition-all duration-200"
+                  size="icon"
+                  onClick={() => setIsMenuOpen(!isMenuOpen)}
+                  className="h-9 w-9"
                 >
-                  <Brain className="h-4 w-4" />
-                  Add Context
+                  <MoreVertical className="h-4 w-4" />
                 </Button>
+
+                {/* Dropdown Menu */}
+                <AnimatePresence>
+                  {isMenuOpen && (
+                    <>
+                      {/* Backdrop to close menu */}
+                      <div
+                        className="fixed inset-0 z-40"
+                        onClick={() => setIsMenuOpen(false)}
+                      />
+
+                      {/* Menu */}
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                        transition={{ duration: 0.1 }}
+                        className="absolute left-0 bottom-full mb-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border-2 border-gray-200 dark:border-gray-700 overflow-hidden z-50"
+                      >
+                        {/* Add Context option */}
+                        <button
+                          onClick={() => {
+                            setIsMenuOpen(false)
+                            setContextModal({ isOpen: true, context: '', loading: false })
+                          }}
+                          className="w-full px-4 py-3 text-left text-sm hover:bg-purple-50 dark:hover:bg-purple-900/20 text-purple-600 dark:text-purple-400 flex items-center gap-2 transition-colors border-b border-gray-200 dark:border-gray-700"
+                        >
+                          <Brain className="h-4 w-4" />
+                          Add Context
+                        </button>
+
+                        {/* Delete option */}
+                        <button
+                          onClick={() => {
+                            setIsMenuOpen(false)
+                            handleDelete()
+                          }}
+                          className="w-full px-4 py-3 text-left text-sm hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 flex items-center gap-2 transition-colors"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          Delete Task
+                        </button>
+                      </motion.div>
+                    </>
+                  )}
+                </AnimatePresence>
               </div>
               <div className="flex gap-2">
                 <Button variant="outline" onClick={onClose}>

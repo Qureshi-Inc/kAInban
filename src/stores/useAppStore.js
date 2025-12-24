@@ -21,7 +21,7 @@ const debouncedUpdateCurrentProject = (projectData, callback) => {
   if (updateProjectTimeout) {
     clearTimeout(updateProjectTimeout)
   }
-  updateProjectTimeout = setTimeout(async () => {
+  updateProjectTimeout = setTimeout(async() => {
     try {
       await callback(projectData)
     } catch (error) {
@@ -76,7 +76,7 @@ const useAppStore = create((set, get) => ({
   },
 
   // Authentication Actions
-  checkAuth: async () => {
+  checkAuth: async() => {
     try {
       const user = await apiService.getCurrentUser()
       set({ user, authChecked: true })
@@ -93,7 +93,7 @@ const useAppStore = create((set, get) => ({
     set({ user })
   },
 
-  logout: async () => {
+  logout: async() => {
     try {
       await apiService.logout()
       set({
@@ -109,7 +109,7 @@ const useAppStore = create((set, get) => ({
   },
 
   // Initialize - Load data from backend
-  initialize: async () => {
+  initialize: async() => {
     try {
       // Load settings
       const settings = await apiService.getSettings()
@@ -240,9 +240,9 @@ const useAppStore = create((set, get) => ({
         projects: state.projects.map(p =>
           p.id === projectId
             ? {
-                ...project,
-                lastModified: project.lastModified || new Date().toISOString()
-              }
+              ...project,
+              lastModified: project.lastModified || new Date().toISOString()
+            }
             : p
         )
       }))
@@ -340,7 +340,7 @@ const useAppStore = create((set, get) => ({
     }
   },
 
-  deleteAllProjects: async () => {
+  deleteAllProjects: async() => {
     try {
       // Delete all projects from backend in one call
       await apiService.deleteAllProjects()
@@ -366,6 +366,19 @@ const useAppStore = create((set, get) => ({
     }
   },
 
+  // Clear current project (for navigation)
+  clearCurrentProject: () => {
+    set({
+      currentProject: null,
+      tasks: [],
+      meetings: [],
+      selectedMeetingId: null
+    })
+
+    // Clear localStorage to prevent auto-reloading
+    localStorage.removeItem('lastSelectedProject')
+  },
+
   // Recording Actions
   setRecording: isRecording => set({ isRecording }),
   setPaused: isPaused => set({ isPaused }),
@@ -373,7 +386,7 @@ const useAppStore = create((set, get) => ({
   setRecordingModalOpen: open => set({ isRecordingModalOpen: open }),
 
   // Meeting Actions
-  createMeeting: async (name, transcript, summary) => {
+  createMeeting: async(name, transcript, summary) => {
     const meeting = {
       id: generateId(),
       name,

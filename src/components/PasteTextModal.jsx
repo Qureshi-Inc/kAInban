@@ -20,7 +20,7 @@ export default function PasteTextModal({ open, onOpenChange }) {
     resetUploadProgress
   } = useAppStore()
 
-  const handleProcess = async () => {
+  const handleProcess = async() => {
     if (!transcript.trim()) {
       addNotification({
         type: 'error',

@@ -9,7 +9,9 @@ import {
   Plus,
   Edit3,
   ArrowRight,
-  MessageSquare
+  MessageSquare,
+  Merge,
+  Undo2
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import apiService from '../services/apiService'
@@ -37,7 +39,7 @@ const CommentContent = ({ commentId, fallbackText }) => {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const fetchComment = async () => {
+    const fetchComment = async() => {
       try {
         const response = await fetch(`/api/comments/${commentId}`)
         if (response.ok) {
@@ -76,7 +78,7 @@ export default function ActivityPanel({ isOpen, onClose }) {
 
   // Load real change tracking data
   useEffect(() => {
-    const loadActivities = async () => {
+    const loadActivities = async() => {
       if (!isOpen || !currentProject?.id) {
         return
       }
@@ -162,6 +164,10 @@ export default function ActivityPanel({ isOpen, onClose }) {
         return 'AI Comment Posted'
       case 'user_comment_added':
         return 'Comment Posted'
+      case 'tasks_merged':
+        return 'Tasks Merged'
+      case 'merge_undone':
+        return 'Merge Undone'
       default:
         return 'Task Modified'
     }
@@ -202,6 +208,12 @@ export default function ActivityPanel({ isOpen, onClose }) {
         return `Task "${taskTitle}" unassigned from ${change.old_value}`
       }
       return `Task "${taskTitle}" assignees changed from "${oldAssignees}" to "${newAssignees}"`
+    }
+    if (change.change_type === 'tasks_merged') {
+      return renderWithBold(change.new_value) || `Merged multiple tasks into "${taskTitle}"`
+    }
+    if (change.change_type === 'merge_undone') {
+      return renderWithBold(change.new_value) || `Undid merge of "${taskTitle}"`
     }
     if (change.field_name && change.old_value && change.new_value) {
       return `Task "${taskTitle}" ${change.field_name} changed from "${change.old_value}" to "${change.new_value}"`
@@ -300,6 +312,10 @@ export default function ActivityPanel({ isOpen, onClose }) {
         return <MessageSquare className="h-4 w-4 text-purple-500" />
       case 'user_comment_added':
         return <MessageSquare className="h-4 w-4 text-blue-500" />
+      case 'tasks_merged':
+        return <Merge className="h-4 w-4 text-purple-500" />
+      case 'merge_undone':
+        return <Undo2 className="h-4 w-4 text-orange-500" />
       case 'deleted':
         return <X className="h-4 w-4 text-red-500" />
       default:
@@ -416,7 +432,7 @@ export default function ActivityPanel({ isOpen, onClose }) {
               <span className="ml-1 font-semibold text-purple-800 dark:text-purple-200">
                 {(() => {
                   const formatDate = (dateStr) => {
-                    if (!dateStr) return 'None'
+                    if (!dateStr) {return 'None'}
                     try {
                       // Parse as local date to avoid timezone issues
                       const parts = dateStr.split('-')

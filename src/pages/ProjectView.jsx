@@ -12,6 +12,7 @@ export default function ProjectView() {
   const navigate = useNavigate()
   const currentProject = useAppStore((state) => state.currentProject)
   const loadProject = useAppStore((state) => state.loadProject)
+  const clearCurrentProject = useAppStore((state) => state.clearCurrentProject)
   const projects = useAppStore((state) => state.projects)
   const selectMeeting = useAppStore((state) => state.selectMeeting)
   const selectedMeetingId = useAppStore((state) => state.selectedMeetingId)
@@ -19,7 +20,7 @@ export default function ProjectView() {
 
   // Sync URL to match selected meeting (state -> URL, not URL -> state)
   useEffect(() => {
-    if (!projectId || !currentProject) return
+    if (!projectId || !currentProject) {return}
 
     // Only update URL if it doesn't match current selection
     if (selectedMeetingId && meetingId !== selectedMeetingId) {
@@ -84,7 +85,10 @@ export default function ProjectView() {
           <button
             type="button"
             className="hover:text-foreground cursor-pointer transition-colors font-medium bg-transparent border-0 p-0"
-            onClick={() => navigate('/')}
+            onClick={() => {
+              clearCurrentProject()
+              navigate('/')
+            }}
           >
             Dashboard
           </button>

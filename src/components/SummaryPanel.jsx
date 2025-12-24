@@ -17,7 +17,7 @@ export default function SummaryPanel() {
 
   // Load summary content from backend when meeting changes
   useEffect(() => {
-    const loadSummary = async () => {
+    const loadSummary = async() => {
       if (!selectedMeeting) {
         setSummary('')
         return
@@ -83,7 +83,7 @@ export default function SummaryPanel() {
     })
   }
 
-  const handleCopySummary = async () => {
+  const handleCopySummary = async() => {
     if (!summary || !summary.trim()) {
       addNotification({
         type: 'error',
@@ -107,7 +107,7 @@ export default function SummaryPanel() {
     }
   }
 
-  const handleShareSummary = async () => {
+  const handleShareSummary = async() => {
     if (!summary || !summary.trim()) {
       addNotification({
         type: 'error',
@@ -141,7 +141,7 @@ export default function SummaryPanel() {
     }
   }
 
-  const handleGenerateTasks = async () => {
+  const handleGenerateTasks = async() => {
     // IMPORTANT: Use transcript (not summary) for accurate task extraction
     const transcript = selectedMeeting?.transcript
     console.log('[SummaryPanel] Transcript length:', transcript?.length || 0)

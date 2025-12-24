@@ -1536,22 +1536,14 @@ app.post('/api/tasks/undo-merge', localAuth.requireAuth, async (req, res) => {
     }
 
     // Get merge undo data
-    const mergeData = db.getMergeUndoData(userId, projectId, mergeId)
+    const mergeData = db.getMergeUndoData(String(userId), projectId, mergeId)
     if (!mergeData) {
       return res.status(404).json({ error: 'Merge data not found or expired' })
     }
 
     const { originalTasks, mergedTask } = JSON.parse(mergeData.metadata)
 
-    // Restore original tasks and remove merged task
-    const tasks = project.tasks || []
-    const updatedTasks = tasks.filter(task => task.id !== mergeId)
-    updatedTasks.push(...originalTasks)
-
-    const updatedProject = { ...project, tasks: updatedTasks }
-    db.saveProject(userId, updatedProject)
-
-    // Record undo activity
+    // Record undo activity BEFORE removing the merged task
     db.recordTaskChange(
       mergeId,
       String(userId),
@@ -1567,8 +1559,16 @@ app.post('/api/tasks/undo-merge', localAuth.requireAuth, async (req, res) => {
       }
     )
 
+    // Restore original tasks and remove merged task
+    const tasks = project.tasks || []
+    const updatedTasks = tasks.filter(task => task.id !== mergeId)
+    updatedTasks.push(...originalTasks)
+
+    const updatedProject = { ...project, tasks: updatedTasks }
+    db.saveProject(userId, updatedProject)
+
     // Clean up undo data
-    db.deleteMergeUndoData(userId, projectId, mergeId)
+    db.deleteMergeUndoData(String(userId), projectId, mergeId)
 
     res.json({
       success: true,
@@ -1597,7 +1597,14 @@ app.get(
       }
 
       // Get recent merges that can still be undone
-      const recentMerges = db.getRecentMerges(userId, projectId)
+      const recentMerges = db.getRecentMerges(String(userId), projectId)
+
+      // Prevent caching to ensure fresh data
+      res.set({
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      })
 
       res.json({ merges: recentMerges })
     } catch (error) {

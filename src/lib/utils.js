@@ -173,7 +173,7 @@ export const matchAssigneeToUser = (assigneeName, users) => {
 
 // Handle multiple assignees - can be a string or array
 export const processAssignees = (assigneeData, users = []) => {
-  if (!assigneeData) return []
+  if (!assigneeData) {return []}
 
   // Ensure users is always an array
   const safeUsers = Array.isArray(users) ? users : []

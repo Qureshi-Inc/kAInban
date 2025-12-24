@@ -18,6 +18,7 @@ export default function MainView() {
   const taskId = searchParams.get('task')
 
   const currentProject = useAppStore((state) => state.currentProject)
+  const clearCurrentProject = useAppStore((state) => state.clearCurrentProject)
   const selectMeeting = useAppStore((state) => state.selectMeeting)
   const selectedMeetingId = useAppStore((state) => state.selectedMeetingId)
   const meetings = useAppStore((state) => state.meetings)
@@ -123,7 +124,10 @@ export default function MainView() {
           <button
             type="button"
             className="hover:text-foreground cursor-pointer transition-colors font-medium bg-transparent border-0 p-0"
-            onClick={() => navigate('/')}
+            onClick={() => {
+              clearCurrentProject()
+              navigate('/')
+            }}
           >
             Dashboard
           </button>

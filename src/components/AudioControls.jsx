@@ -103,7 +103,7 @@ export default function AudioControls() {
 
   // Visualization is now handled by AudioVisualizer component
 
-  const handleStartRecording = async () => {
+  const handleStartRecording = async() => {
     try {
       // Reset transcription queue for new recording
       transcriptionQueue.reset()
@@ -153,7 +153,7 @@ export default function AudioControls() {
       )
 
       // Set up chunk completion callback for background transcription
-      audioService.setOnChunkComplete(async (chunkBlob, chunkIndex) => {
+      audioService.setOnChunkComplete(async(chunkBlob, chunkIndex) => {
         console.log(
           `[AudioControls] Chunk ${chunkIndex} completed, queuing for background transcription`
         )
@@ -214,7 +214,7 @@ export default function AudioControls() {
     }
   }
 
-  const handleStopRecording = async () => {
+  const handleStopRecording = async() => {
     try {
       console.log('[AudioControls] Stopping recording...')
       const result = await audioService.stopRecording()

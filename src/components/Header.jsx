@@ -17,6 +17,7 @@ export default function Header({ onToggleSidebar, onShowActivity }) {
   const createProject = useAppStore((state) => state.createProject)
   const loadProject = useAppStore((state) => state.loadProject)
   const deleteProject = useAppStore((state) => state.deleteProject)
+  const clearCurrentProject = useAppStore((state) => state.clearCurrentProject)
   const addNotification = useAppStore((state) => state.addNotification)
   const clearSession = useAppStore((state) => state.clearSession)
 
@@ -51,6 +52,7 @@ export default function Header({ onToggleSidebar, onShowActivity }) {
 
   const handleProjectChange = (projectId) => {
     if (projectId === 'none') {
+      clearCurrentProject() // Clear any selected project
       navigate('/')
     } else if (projectId === 'create_new') {
       setIsCreateProjectOpen(true)
@@ -113,6 +115,7 @@ export default function Header({ onToggleSidebar, onShowActivity }) {
           whileHover={{ scale: 1.05 }}
           transition={{ type: 'spring', stiffness: 400, damping: 20 }}
           onClick={() => {
+            clearCurrentProject() // Clear any selected project
             navigate('/')
           }}
           title="Go to Dashboard"
@@ -124,6 +127,7 @@ export default function Header({ onToggleSidebar, onShowActivity }) {
             <h1
               className="text-2xl font-bold bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent cursor-pointer hover:opacity-80 transition-opacity"
               onClick={() => {
+                clearCurrentProject() // Clear any selected project
                 navigate('/')
               }}
               title="Go to Dashboard"
