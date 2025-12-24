@@ -21,7 +21,7 @@ import openaiService from '../services/openaiService'
 import useAppStore from '../stores/useAppStore'
 import TaskDetailModal from './TaskDetailModal'
 import TaskGroupingModal from './TaskGroupingModal'
-import VirtualizedListView from './VirtualizedListView'
+import SimpleListView from './SimpleListView'
 import { Button } from './ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
 import '../styles/mobile-ux.css'
@@ -619,7 +619,7 @@ export default function KanbanBoardKit({ taskToOpen }) {
                 />
               </div>
             ) : (
-              <VirtualizedListView
+              <SimpleListView
                 tasks={tasks}
                 onTaskClick={handleTaskClick}
                 onTaskDelete={handleTaskDelete}
