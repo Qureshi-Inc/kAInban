@@ -6,10 +6,17 @@ import { Button } from './ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
 
 const TaskRowComponent = ({ index, style, data }) => {
-  const { tasks, onTaskClick, onTaskDelete, users } = data
+  // Add safety checks for data
+  if (!data || !data.tasks) {
+    return <div style={style}>Loading...</div>
+  }
+
+  const { tasks, onTaskClick, onTaskDelete, users = [] } = data
   const task = tasks[index]
 
-  if (!task) return null
+  if (!task) {
+    return <div style={style}>No task</div>
+  }
 
   // Check if assignee is a database user
   const isAssigneeDbUser = assigneeName => {
@@ -138,15 +145,17 @@ const TaskRowComponent = ({ index, style, data }) => {
 
 const VirtualizedStatusList = ({
   title,
-  tasks,
+  tasks = [],
   color,
   isExpanded,
   onToggle,
   onTaskClick,
   onTaskDelete,
-  users
+  users = []
 }) => {
-  const listHeight = Math.min(tasks.length * 70 + 20, 400) // Max height of 400px
+  // Ensure tasks is always an array
+  const validTasks = Array.isArray(tasks) ? tasks : []
+  const listHeight = Math.min(validTasks.length * 70 + 20, 400) // Max height of 400px
 
   return (
     <Card className={`border-l-4 ${color} dark:bg-gray-800`}>
@@ -163,7 +172,7 @@ const VirtualizedStatusList = ({
             )}
             <span className="text-base">{title}</span>
             <span className="text-sm bg-gray-200 dark:bg-gray-700 px-3 py-1 rounded-full font-medium">
-              {tasks.length}
+              {validTasks.length}
             </span>
           </div>
         </CardTitle>
@@ -178,7 +187,7 @@ const VirtualizedStatusList = ({
             transition={{ duration: 0.2 }}
           >
             <CardContent className="pt-0 px-0">
-              {tasks.length === 0 ? (
+              {validTasks.length === 0 ? (
                 <div className="px-4 py-8 text-center">
                   <p className="text-gray-500 italic">No tasks in this status</p>
                 </div>
@@ -186,10 +195,10 @@ const VirtualizedStatusList = ({
                 <div style={{ height: listHeight }}>
                   <List
                     height={listHeight}
-                    itemCount={tasks.length}
+                    itemCount={validTasks.length}
                     itemSize={70}
                     itemData={{
-                      tasks,
+                      tasks: validTasks,
                       onTaskClick,
                       onTaskDelete,
                       users
@@ -208,11 +217,13 @@ const VirtualizedStatusList = ({
 }
 
 export default function VirtualizedListView({
-  tasks,
+  tasks = [],
   onTaskClick,
   onTaskDelete,
   users = []
 }) {
+  // Ensure tasks is always an array
+  const validTasks = Array.isArray(tasks) ? tasks : []
   const [expandedSections, setExpandedSections] = useState({
     todo: true,
     'in-progress': true,
@@ -228,7 +239,8 @@ export default function VirtualizedListView({
   }
 
   const sortTasksByOrder = tasks => {
-    return tasks.sort((a, b) => {
+    if (!Array.isArray(tasks)) return []
+    return tasks.filter(task => task).sort((a, b) => {
       if (a.order && b.order) {
         return a.order - b.order
       }
@@ -244,16 +256,16 @@ export default function VirtualizedListView({
 
   const statusData = useMemo(() => {
     const todoTasks = sortTasksByOrder(
-      tasks.filter(task => task.status === 'todo' || !task.status)
+      validTasks.filter(task => task && (task.status === 'todo' || !task.status))
     )
     const inProgressTasks = sortTasksByOrder(
-      tasks.filter(task => task.status === 'in-progress' || task.status === 'inprogress')
+      validTasks.filter(task => task && (task.status === 'in-progress' || task.status === 'inprogress'))
     )
     const blockedTasks = sortTasksByOrder(
-      tasks.filter(task => task.status === 'blocked' || task.status === 'on-hold')
+      validTasks.filter(task => task && (task.status === 'blocked' || task.status === 'on-hold'))
     )
     const doneTasks = sortTasksByOrder(
-      tasks.filter(task => task.status === 'done')
+      validTasks.filter(task => task && task.status === 'done')
     )
 
     return [
@@ -282,7 +294,7 @@ export default function VirtualizedListView({
         color: 'border-l-green-500 bg-green-50 dark:bg-green-900/20'
       }
     ]
-  }, [tasks])
+  }, [validTasks])
 
   return (
     <div className="space-y-4">
