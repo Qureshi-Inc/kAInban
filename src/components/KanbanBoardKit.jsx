@@ -469,6 +469,158 @@ export default function KanbanBoardKit({ taskToOpen }) {
     setIsModalOpen(true)
   }
 
+  // Add state for expanded sections in list view
+  const [expandedSections, setExpandedSections] = useState({
+    todo: true,
+    'in-progress': true,
+    blocked: true,
+    done: true
+  })
+
+  const toggleSection = status => {
+    setExpandedSections(prev => ({
+      ...prev,
+      [status]: !prev[status]
+    }))
+  }
+
+  const getStatusInfo = status => {
+    const todoTasks = sortTasksByOrder(
+      tasks.filter(task => task.status === 'todo' || !task.status)
+    )
+    const inProgressTasks = sortTasksByOrder(
+      tasks.filter(
+        task => task.status === 'in-progress' || task.status === 'inprogress'
+      )
+    )
+    const blockedTasks = sortTasksByOrder(
+      tasks.filter(task => task.status === 'blocked' || task.status === 'on-hold')
+    )
+    const doneTasks = sortTasksByOrder(
+      tasks.filter(task => task.status === 'done')
+    )
+
+    switch (status) {
+      case 'todo':
+        return {
+          title: '📋 To Do',
+          tasks: todoTasks,
+          color: 'border-l-slate-400 bg-slate-50'
+        }
+      case 'in-progress':
+        return {
+          title: '⚡ In Progress',
+          tasks: inProgressTasks,
+          color: 'border-l-blue-500 bg-blue-50'
+        }
+      case 'blocked':
+        return {
+          title: '🚫 Blocked',
+          tasks: blockedTasks,
+          color: 'border-l-red-500 bg-red-50'
+        }
+      case 'done':
+        return {
+          title: '✅ Done',
+          tasks: doneTasks,
+          color: 'border-l-green-500 bg-green-50'
+        }
+      default:
+        return {
+          title: status,
+          tasks: [],
+          color: 'border-l-gray-400 bg-gray-50'
+        }
+    }
+  }
+
+  const ListView = () => (
+    <div className="space-y-4">
+      {['todo', 'in-progress', 'blocked', 'done'].map(status => {
+        const { title, tasks: statusTasks, color } = getStatusInfo(status)
+        const isExpanded = expandedSections[status]
+
+        return (
+          <Card key={status} className={`border-l-4 ${color} dark:bg-gray-800`}>
+            <CardHeader
+              className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              onClick={() => toggleSection(status)}
+            >
+              <CardTitle className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  {isExpanded ? (
+                    <ChevronDown className="h-4 w-4" />
+                  ) : (
+                    <ChevronRight className="h-4 w-4" />
+                  )}
+                  <span>{title}</span>
+                  <span className="text-sm bg-gray-200 dark:bg-gray-700 px-2 py-1 rounded-full">
+                    {statusTasks.length}
+                  </span>
+                </div>
+              </CardTitle>
+            </CardHeader>
+
+            <AnimatePresence>
+              {isExpanded && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <CardContent className="pt-0">
+                    {statusTasks.length === 0 ? (
+                      <p className="text-gray-500 italic py-4">
+                        No tasks in this status
+                      </p>
+                    ) : (
+                      <div className="space-y-1">
+                        {statusTasks.map(task => (
+                          <motion.div
+                            key={task.id}
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            role="button"
+                            tabIndex={0}
+                            className="group flex items-center justify-between py-2 px-3 hover:bg-gray-50 dark:hover:bg-gray-600 rounded cursor-pointer transition-colors focus:ring-2 focus:ring-primary/50 focus:outline-none"
+                            onClick={() => handleTaskClick(task)}
+                            onKeyDown={e => {
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault()
+                                handleTaskClick(task)
+                              }
+                            }}
+                            aria-label={`Open task: ${task.title}`}
+                          >
+                            <span className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate flex-1">
+                              {task.title}
+                            </span>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={e => {
+                                e.stopPropagation()
+                                handleTaskDelete(task.id)
+                              }}
+                              className="h-6 w-6 opacity-0 group-hover:opacity-100 hover:bg-red-50 text-red-500 flex-shrink-0 ml-2"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </motion.div>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </Card>
+        )
+      })}
+    </div>
+  )
+
   return (
     <>
       <motion.div
@@ -489,10 +641,10 @@ export default function KanbanBoardKit({ taskToOpen }) {
                 </motion.div>
                 <div>
                   <div className="text-2xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-                    Task Board Kit
+                    Task Board
                   </div>
                   <div className="text-xs text-muted-foreground font-normal">
-                    {tasks.length} total tasks • Mobile Optimized
+                    {tasks.length} total tasks
                   </div>
                 </div>
               </CardTitle>
@@ -545,6 +697,29 @@ export default function KanbanBoardKit({ taskToOpen }) {
                           transition={{ duration: 0.1 }}
                           className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border-2 border-gray-200 dark:border-gray-700 overflow-hidden z-50"
                         >
+                          {/* View Toggle */}
+                          <button
+                            onClick={() => {
+                              setViewMode(
+                                viewMode === 'kanban' ? 'list' : 'kanban'
+                              )
+                              setIsMenuOpen(false)
+                            }}
+                            className="w-full px-4 py-3 text-left text-sm hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2 transition-colors border-b border-gray-200 dark:border-gray-700"
+                          >
+                            {viewMode === 'kanban' ? (
+                              <>
+                                <List className="h-4 w-4" />
+                                Switch to List View
+                              </>
+                            ) : (
+                              <>
+                                <LayoutGrid className="h-4 w-4" />
+                                Switch to Kanban View
+                              </>
+                            )}
+                          </button>
+
                           {(tasks.length > 1 || hasRecentMerges) && (
                             <button
                               onClick={() => {
@@ -584,14 +759,18 @@ export default function KanbanBoardKit({ taskToOpen }) {
             </div>
           </CardHeader>
 
-          <CardContent className="p-4">
-            <div className="w-full" style={{ height: '600px' }}>
-              <Kanban
-                dataSource={dataSource}
-                configMap={configMap}
-                onCardMove={handleCardMove}
-              />
-            </div>
+          <CardContent className="p-6">
+            {viewMode === 'kanban' ? (
+              <div className="w-full" style={{ height: '600px' }}>
+                <Kanban
+                  dataSource={dataSource}
+                  configMap={configMap}
+                  onCardMove={handleCardMove}
+                />
+              </div>
+            ) : (
+              <ListView />
+            )}
           </CardContent>
         </Card>
       </motion.div>
