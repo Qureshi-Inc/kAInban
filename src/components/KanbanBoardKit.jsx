@@ -274,47 +274,67 @@ export default function KanbanBoardKit({ taskToOpen }) {
       tasks.filter(task => task.status === 'blocked' || task.status === 'on-hold')
     )
 
-    return {
-      columns: [
-        {
-          id: 'todo',
-          title: '📋 To Do',
-          items: todoTasks.map(task => ({
-            id: task.id,
-            content: task
-          }))
-        },
-        {
-          id: 'in-progress',
-          title: '⚡ In Progress',
-          items: inProgressTasks.map(task => ({
-            id: task.id,
-            content: task
-          }))
-        },
-        {
-          id: 'done',
-          title: '✅ Done',
-          items: doneTasks.map(task => ({
-            id: task.id,
-            content: task
-          }))
-        },
-        {
-          id: 'blocked',
-          title: '🚫 Blocked',
-          items: blockedTasks.map(task => ({
-            id: task.id,
-            content: task
-          }))
-        }
-      ]
+    // Create the data structure expected by react-kanban-kit
+    const data = {
+      root: {
+        id: 'root',
+        title: 'Kanban Board',
+        children: ['todo', 'in-progress', 'done', 'blocked'],
+        totalChildrenCount: 4,
+        parentId: null,
+      },
+      'todo': {
+        id: 'todo',
+        title: '📋 To Do',
+        children: todoTasks.map(task => task.id),
+        totalChildrenCount: todoTasks.length,
+        parentId: 'root',
+      },
+      'in-progress': {
+        id: 'in-progress',
+        title: '⚡ In Progress',
+        children: inProgressTasks.map(task => task.id),
+        totalChildrenCount: inProgressTasks.length,
+        parentId: 'root',
+      },
+      'done': {
+        id: 'done',
+        title: '✅ Done',
+        children: doneTasks.map(task => task.id),
+        totalChildrenCount: doneTasks.length,
+        parentId: 'root',
+      },
+      'blocked': {
+        id: 'blocked',
+        title: '🚫 Blocked',
+        children: blockedTasks.map(task => task.id),
+        totalChildrenCount: blockedTasks.length,
+        parentId: 'root',
+      },
     }
+
+    // Add all tasks to the data object
+    const allTasks = [...todoTasks, ...inProgressTasks, ...doneTasks, ...blockedTasks]
+    allTasks.forEach(task => {
+      data[task.id] = {
+        id: task.id,
+        title: task.title,
+        parentId: task.status === 'in-progress' || task.status === 'inprogress' ? 'in-progress' :
+                  task.status === 'done' ? 'done' :
+                  task.status === 'blocked' || task.status === 'on-hold' ? 'blocked' : 'todo',
+        children: [],
+        totalChildrenCount: 0,
+        type: 'card',
+        content: task,
+      }
+    })
+
+    return data
   }, [tasks])
 
   const configMap = useMemo(() => ({
     card: {
-      render: ({ data }) => (
+      render: ({ data, column, index, isDraggable }) => (
         <TaskCard
           task={data.content}
           onDelete={handleTaskDelete}
@@ -324,25 +344,6 @@ export default function KanbanBoardKit({ taskToOpen }) {
         />
       ),
       isDraggable: true,
-    },
-    column: {
-      style: ({ data }) => ({
-        minHeight: '500px',
-        backgroundColor: 'transparent',
-        border: 'none',
-        borderRadius: '12px',
-        padding: '16px'
-      }),
-      headerStyle: () => ({
-        backgroundColor: 'white',
-        borderTopLeftRadius: '12px',
-        borderTopRightRadius: '12px',
-        padding: '16px',
-        borderBottom: '2px solid #e5e7eb',
-        position: 'sticky',
-        top: 0,
-        zIndex: 10
-      })
     }
   }), [users])
 
@@ -396,7 +397,7 @@ export default function KanbanBoardKit({ taskToOpen }) {
 
     // Extract task ID and new column ID from the move object
     const taskId = move.cardId
-    const newStatus = move.destinationColumnId
+    const newStatus = move.toColumnId
 
     handleTaskMove(taskId, newStatus)
   }
