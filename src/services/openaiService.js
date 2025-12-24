@@ -621,8 +621,8 @@ Description: "${completedTaskDescription}"
 
 EXISTING TASKS:
 ${tasks
-    .map((task, idx) => `${idx + 1}. "${task.title}" - ${task.description}`)
-    .join('\n')}
+  .map((task, idx) => `${idx + 1}. "${task.title}" - ${task.description}`)
+  .join('\n')}
 
 Return ONLY a JSON array of task indices (1-based) that are related to the completed task and should also be marked as completed or updated. Tasks are related if they:
 1. Are part of the same project/topic
@@ -889,12 +889,12 @@ ${transcript}`
 
 CURRENT TASKS:
 ${tasksWithContext
-    .slice(0, 25)
-    .map(
-      (task, idx) =>
-        `${idx + 1}. "${task.title}" - Status: ${task.status}, Priority: ${task.priority}${task.dueContext}${task.description ? ` - ${task.description.substring(0, 100)}` : ''}`
-    )
-    .join('\n')}
+  .slice(0, 25)
+  .map(
+    (task, idx) =>
+      `${idx + 1}. "${task.title}" - Status: ${task.status}, Priority: ${task.priority}${task.dueContext}${task.description ? ` - ${task.description.substring(0, 100)}` : ''}`
+  )
+  .join('\n')}
 ${tasksWithContext.length > 25 ? `\n...and ${tasksWithContext.length - 25} more tasks` : ''}
 
 CONTEXT:
@@ -1323,7 +1323,10 @@ If the language cannot be determined from context, default to JavaScript. Includ
   }
 
   async updateTaskWithContext(taskContext, userContext) {
-    console.log('[OpenAI] Updating task with context...', { taskContext, userContext })
+    console.log('[OpenAI] Updating task with context...', {
+      taskContext,
+      userContext
+    })
     this.validateConfig()
 
     const url = `${this.baseUrl}/openai/deployments/${this.gptDeployment}/chat/completions?api-version=${this.apiVersion}`
@@ -1364,7 +1367,7 @@ IMPORTANT:
 - If context suggests task is done or completed, update status accordingly
 - Be conservative - don't make unnecessary changes
 
-Return ONLY valid JSON, no additional text.`
+CRITICAL: Return ONLY valid JSON with no additional text, explanations, or markdown formatting. Do not wrap in code blocks. Start with { and end with }.`
 
     try {
       const response = await fetch(url, {
@@ -1377,7 +1380,8 @@ Return ONLY valid JSON, no additional text.`
           messages: [
             {
               role: 'system',
-              content: 'You are a task management assistant. Always return valid JSON.'
+              content:
+                'You are a task management assistant. Always return valid JSON.'
             },
             {
               role: 'user',
@@ -1404,30 +1408,95 @@ Return ONLY valid JSON, no additional text.`
       }
 
       const result = await response.json()
+      console.log('[OpenAI] Raw API response:', JSON.stringify(result, null, 2))
+
       const content = result.choices?.[0]?.message?.content
 
       if (!content) {
+        console.error('[OpenAI] No content in response:', result)
         throw new Error('No response content from AI')
       }
+
+      console.log('[OpenAI] AI response content:', content)
+      console.log('[OpenAI] Content type:', typeof content)
+      console.log('[OpenAI] Content length:', content.length)
 
       // Parse the JSON response
       let updatedTask
       try {
-        updatedTask = JSON.parse(content.trim())
+        const trimmedContent = content.trim()
+        console.log('[OpenAI] Trimmed content for parsing:', trimmedContent)
+
+        // Try to extract JSON if it's wrapped in markdown code blocks or has extra text
+        let jsonContent = trimmedContent
+
+        // Handle markdown code blocks
+        if (trimmedContent.startsWith('```json')) {
+          const match = trimmedContent.match(/```json\n?(.*?)\n?```/s)
+          if (match) {
+            jsonContent = match[1].trim()
+            console.log('[OpenAI] Extracted JSON from markdown:', jsonContent)
+          }
+        } else if (trimmedContent.startsWith('```')) {
+          const match = trimmedContent.match(/```\n?(.*?)\n?```/s)
+          if (match) {
+            jsonContent = match[1].trim()
+            console.log(
+              '[OpenAI] Extracted content from markdown:',
+              jsonContent
+            )
+          }
+        }
+
+        // Try to extract JSON from mixed content by finding the first { and last }
+        if (!jsonContent.startsWith('{')) {
+          const firstBrace = jsonContent.indexOf('{')
+          const lastBrace = jsonContent.lastIndexOf('}')
+          if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+            jsonContent = jsonContent.substring(firstBrace, lastBrace + 1)
+            console.log(
+              '[OpenAI] Extracted JSON from mixed content:',
+              jsonContent
+            )
+          }
+        }
+
+        updatedTask = JSON.parse(jsonContent)
+        console.log('[OpenAI] Successfully parsed JSON:', updatedTask)
       } catch (parseError) {
-        console.error('[OpenAI] Failed to parse JSON response:', content)
-        throw new Error('AI returned invalid JSON response')
+        console.error('[OpenAI] JSON Parse Error Details:')
+        console.error('  Error:', parseError.message)
+        console.error('  Original content:', content)
+        console.error('  Trimmed content:', content.trim())
+        console.error('  Content starts with:', content.slice(0, 100))
+        console.error('  Content ends with:', content.slice(-100))
+        throw new Error(
+          `AI returned invalid JSON response: ${parseError.message}`
+        )
       }
 
       // Validate the response has required fields
-      const requiredFields = ['title', 'description', 'priority', 'status', 'reasoning']
-      const missingFields = requiredFields.filter(field => !(field in updatedTask))
+      const requiredFields = [
+        'title',
+        'description',
+        'priority',
+        'status',
+        'reasoning'
+      ]
+      const missingFields = requiredFields.filter(
+        field => !(field in updatedTask)
+      )
       if (missingFields.length > 0) {
         console.error('[OpenAI] Missing required fields:', missingFields)
-        throw new Error(`AI response missing required fields: ${missingFields.join(', ')}`)
+        throw new Error(
+          `AI response missing required fields: ${missingFields.join(', ')}`
+        )
       }
 
-      console.log('[OpenAI] ✓ Task context update successful:', updatedTask.reasoning)
+      console.log(
+        '[OpenAI] ✓ Task context update successful:',
+        updatedTask.reasoning
+      )
       return updatedTask
     } catch (error) {
       console.error('[OpenAI] Task context update error:', error)

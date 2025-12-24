@@ -1,3 +1,4 @@
+import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Trash2,
@@ -9,26 +10,20 @@ import {
   User,
   Sparkles
 } from 'lucide-react'
-import { useState, useEffect } from 'react'
-import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { getShortId } from '../lib/utils'
 import apiService from '../services/apiService'
 import openaiService from '../services/openaiService'
 import useAppStore from '../stores/useAppStore'
+import SimpleListView from './SimpleListView'
 import TaskDetailModal from './TaskDetailModal'
 import TaskGroupingModal from './TaskGroupingModal'
-import SimpleListView from './SimpleListView'
 import { Button } from './ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
 import '../styles/mobile-ux.css'
 
-const TaskCard = ({
-  task,
-  onDelete,
-  onClick,
-  users = []
-}) => {
+const TaskCard = ({ task, onDelete, onClick, users = [] }) => {
   // Check if assignee is a database user
   const isAssigneeDbUser = assigneeName => {
     if (!assigneeName || !users.length) {
@@ -56,7 +51,7 @@ const TaskCard = ({
 
     return (
       <div className="flex flex-wrap gap-1">
-        {assigneesList.slice(0, 2).map((assigneeName) => {
+        {assigneesList.slice(0, 2).map(assigneeName => {
           const isDbUser = isAssigneeDbUser(assigneeName)
           const user = users.find(
             u =>
@@ -115,7 +110,7 @@ const TaskCard = ({
     <div
       className="group bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-xl p-3 shadow-lg cursor-pointer"
       onClick={() => onClick(task)}
-      onKeyDown={(e) => {
+      onKeyDown={e => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault()
           onClick(task)
@@ -236,9 +231,13 @@ export default function KanbanBoardKit({ taskToOpen }) {
   const [isGroupingModalOpen, setIsGroupingModalOpen] = useState(false)
   const [hasRecentMerges, setHasRecentMerges] = useState(false)
 
+  // Scroll bounce animation for mobile discoverability
+  const kanbanScrollRef = useRef(null)
+  const [hasAnimated, setHasAnimated] = useState(false)
+
   // Load users for assignee display
   useEffect(() => {
-    const loadUsers = async() => {
+    const loadUsers = async () => {
       try {
         const usersData = await apiService.getUsers()
         setUsers(usersData || [])
@@ -252,7 +251,7 @@ export default function KanbanBoardKit({ taskToOpen }) {
 
   // Check for recent merges to determine button visibility
   useEffect(() => {
-    const checkRecentMerges = async() => {
+    const checkRecentMerges = async () => {
       if (!currentProject?.id) {
         setHasRecentMerges(false)
         return
@@ -280,6 +279,28 @@ export default function KanbanBoardKit({ taskToOpen }) {
     }
   }, [taskToOpen, tasks])
 
+  // Scroll bounce animation for mobile discoverability
+  useEffect(() => {
+    if (viewMode === 'kanban' && !hasAnimated && kanbanScrollRef.current) {
+      // Only animate on mobile devices
+      const isMobile = window.innerWidth <= 768
+      if (isMobile) {
+        const container = kanbanScrollRef.current
+
+        // Wait a moment for the component to render
+        setTimeout(() => {
+          // Perform bounce animation: scroll right then back to left
+          container.scrollTo({ left: 120, behavior: 'smooth' })
+
+          setTimeout(() => {
+            container.scrollTo({ left: 0, behavior: 'smooth' })
+            setHasAnimated(true)
+          }, 800)
+        }, 500)
+      }
+    }
+  }, [viewMode, hasAnimated, tasks.length]) // Trigger when viewMode changes or tasks load
+
   const sortTasksByOrder = tasks => {
     return tasks.sort((a, b) => {
       if (a.order && b.order) {
@@ -296,20 +317,26 @@ export default function KanbanBoardKit({ taskToOpen }) {
   }
 
   // Prepare data for hello-pangea/dnd
-  const getTasksByStatus = (status) => {
+  const getTasksByStatus = status => {
     let filteredTasks = []
     switch (status) {
       case 'todo':
-        filteredTasks = tasks.filter(task => task.status === 'todo' || !task.status)
+        filteredTasks = tasks.filter(
+          task => task.status === 'todo' || !task.status
+        )
         break
       case 'in-progress':
-        filteredTasks = tasks.filter(task => task.status === 'in-progress' || task.status === 'inprogress')
+        filteredTasks = tasks.filter(
+          task => task.status === 'in-progress' || task.status === 'inprogress'
+        )
         break
       case 'done':
         filteredTasks = tasks.filter(task => task.status === 'done')
         break
       case 'blocked':
-        filteredTasks = tasks.filter(task => task.status === 'blocked' || task.status === 'on-hold')
+        filteredTasks = tasks.filter(
+          task => task.status === 'blocked' || task.status === 'on-hold'
+        )
         break
       default:
         return []
@@ -319,12 +346,16 @@ export default function KanbanBoardKit({ taskToOpen }) {
 
   const columns = [
     { id: 'todo', title: '📋 To Do', tasks: getTasksByStatus('todo') },
-    { id: 'in-progress', title: '⚡ In Progress', tasks: getTasksByStatus('in-progress') },
+    {
+      id: 'in-progress',
+      title: '⚡ In Progress',
+      tasks: getTasksByStatus('in-progress')
+    },
     { id: 'done', title: '✅ Done', tasks: getTasksByStatus('done') },
-    { id: 'blocked', title: '🚫 Blocked', tasks: getTasksByStatus('blocked') },
+    { id: 'blocked', title: '🚫 Blocked', tasks: getTasksByStatus('blocked') }
   ]
 
-  const handleTaskMove = async(taskId, newStatus) => {
+  const handleTaskMove = async (taskId, newStatus) => {
     const task = tasks.find(t => t.id === taskId)
     if (!task) {
       return
@@ -369,7 +400,7 @@ export default function KanbanBoardKit({ taskToOpen }) {
     }
   }
 
-  const onDragEnd = (result) => {
+  const onDragEnd = result => {
     const { destination, source, draggableId } = result
 
     // Dropped outside the list
@@ -410,9 +441,18 @@ export default function KanbanBoardKit({ taskToOpen }) {
     }
 
     // If reordering within same column, calculate order
+    console.log(
+      `[Vertical Reorder] Reordering task ${taskId} within column ${destinationColumnId} to index ${destinationIndex}`
+    )
 
     // Get tasks in the destination column (excluding dragged task)
-    let destinationTasks = getTasksByStatus(destinationColumnId).filter(t => t.id !== taskId)
+    const destinationTasks = getTasksByStatus(destinationColumnId).filter(
+      t => t.id !== taskId
+    )
+    console.log(
+      '[Vertical Reorder] Destination tasks:',
+      destinationTasks.map(t => ({ id: t.id, title: t.title, order: t.order }))
+    )
 
     // Calculate new order based on destination index
     let newOrder = 1000 // default
@@ -432,20 +472,16 @@ export default function KanbanBoardKit({ taskToOpen }) {
       // Moving between tasks
       const beforeTask = destinationTasks[destinationIndex - 1]
       const afterTask = destinationTasks[destinationIndex]
-      const beforeOrder = beforeTask ? (beforeTask.order || 1000) : 500
-      const afterOrder = afterTask ? (afterTask.order || 1000) : 1500
+      const beforeOrder = beforeTask ? beforeTask.order || 1000 : 500
+      const afterOrder = afterTask ? afterTask.order || 1000 : 1500
       newOrder = (beforeOrder + afterOrder) / 2
     }
 
     // Update task with new order only
-    const updatedTask = {
-      ...task,
-      order: newOrder
-    }
-
-    // Update task with new order
-
-    updateTask(updatedTask)
+    console.log(
+      `[Vertical Reorder] Updating task ${taskId} with order ${newOrder}`
+    )
+    updateTask(taskId, { order: newOrder })
   }
 
   const handleTaskDelete = taskId => {
@@ -515,7 +551,6 @@ export default function KanbanBoardKit({ taskToOpen }) {
     setIsModalOpen(true)
   }
 
-
   return (
     <>
       <motion.div
@@ -584,7 +619,7 @@ export default function KanbanBoardKit({ taskToOpen }) {
                         <div
                           className="fixed inset-0 z-40"
                           onClick={() => setIsMenuOpen(false)}
-                          onKeyDown={(e) => {
+                          onKeyDown={e => {
                             if (e.key === 'Escape') {
                               setIsMenuOpen(false)
                             }
@@ -665,8 +700,12 @@ export default function KanbanBoardKit({ taskToOpen }) {
           <CardContent className="p-6">
             {viewMode === 'kanban' ? (
               <DragDropContext onDragEnd={onDragEnd}>
-                <div className="flex gap-4 overflow-x-auto pb-4 kanban-scroll-container" style={{ minHeight: '600px' }}>
-                  {columns.map((column) => (
+                <div
+                  ref={kanbanScrollRef}
+                  className="flex gap-4 overflow-x-auto pb-4 kanban-scroll-container"
+                  style={{ minHeight: '600px' }}
+                >
+                  {columns.map(column => (
                     <div key={column.id} className="flex-none w-80">
                       <h3 className="font-semibold text-sm text-gray-700 dark:text-gray-300 px-2 py-1 mb-3 bg-gray-100 dark:bg-gray-700 rounded-lg">
                         {column.title} ({column.tasks.length})
@@ -678,12 +717,20 @@ export default function KanbanBoardKit({ taskToOpen }) {
                             {...provided.droppableProps}
                             className="space-y-2 min-h-32 p-2 rounded-lg border-2 border-dashed border-transparent"
                             style={{
-                              backgroundColor: snapshot.isDraggingOver ? 'rgba(59, 130, 246, 0.1)' : 'transparent',
-                              borderColor: snapshot.isDraggingOver ? 'rgb(59, 130, 246)' : 'transparent'
+                              backgroundColor: snapshot.isDraggingOver
+                                ? 'rgba(59, 130, 246, 0.1)'
+                                : 'transparent',
+                              borderColor: snapshot.isDraggingOver
+                                ? 'rgb(59, 130, 246)'
+                                : 'transparent'
                             }}
                           >
                             {column.tasks.map((task, index) => (
-                              <Draggable key={task.id} draggableId={task.id} index={index}>
+                              <Draggable
+                                key={task.id}
+                                draggableId={task.id}
+                                index={index}
+                              >
                                 {(provided, snapshot) => (
                                   <div
                                     ref={provided.innerRef}
@@ -698,7 +745,9 @@ export default function KanbanBoardKit({ taskToOpen }) {
                                       task={task}
                                       onDelete={handleTaskDelete}
                                       onClick={handleTaskClick}
-                                      onNavigateToMeeting={handleNavigateToMeeting}
+                                      onNavigateToMeeting={
+                                        handleNavigateToMeeting
+                                      }
                                       users={users}
                                     />
                                   </div>
