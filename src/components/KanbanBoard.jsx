@@ -497,7 +497,7 @@ export default function KanbanBoard({ taskToOpen }) {
 
   // Load users for assignee display
   useEffect(() => {
-    const loadUsers = async () => {
+    const loadUsers = async() => {
       try {
         const usersData = await apiService.getUsers()
         setUsers(usersData || [])
@@ -511,7 +511,7 @@ export default function KanbanBoard({ taskToOpen }) {
 
   // Check for recent merges to determine button visibility
   useEffect(() => {
-    const checkRecentMerges = async () => {
+    const checkRecentMerges = async() => {
       if (!currentProject?.id) {
         setHasRecentMerges(false)
         return
@@ -778,7 +778,7 @@ export default function KanbanBoard({ taskToOpen }) {
     })
   }
 
-  const handleTaskMove = async (taskId, newStatus) => {
+  const handleTaskMove = async(taskId, newStatus) => {
     const task = tasks.find(t => t.id === taskId)
     if (!task) {
       return

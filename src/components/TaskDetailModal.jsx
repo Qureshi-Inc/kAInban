@@ -1026,7 +1026,7 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
     }
   }
 
-  const handleContextUpdate = async () => {
+  const handleContextUpdate = async() => {
     if (!contextModal.context.trim()) {
       addNotification({
         type: 'error',

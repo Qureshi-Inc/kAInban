@@ -220,7 +220,7 @@ app.get('/health', (req, res) => {
 })
 
 // Authentication endpoints
-app.post('/api/auth/register', authLimiter, async (req, res) => {
+app.post('/api/auth/register', authLimiter, async(req, res) => {
   try {
     const { email, password, name } = req.body
 
@@ -262,7 +262,7 @@ app.post('/api/auth/register', authLimiter, async (req, res) => {
   }
 })
 
-app.post('/api/auth/login', authLimiter, async (req, res) => {
+app.post('/api/auth/login', authLimiter, async(req, res) => {
   try {
     const { email, password } = req.body
 
@@ -371,7 +371,7 @@ app.get('/api/auth/oidc/status', (req, res) => {
   })
 })
 
-app.get('/api/auth/oidc/login', async (req, res) => {
+app.get('/api/auth/oidc/login', async(req, res) => {
   try {
     // Get system settings to check if OIDC is enabled
     const settings = db.getSystemSettings()
@@ -410,7 +410,7 @@ app.get('/api/auth/oidc/login', async (req, res) => {
   }
 })
 
-app.get('/api/auth/oidc/callback', async (req, res) => {
+app.get('/api/auth/oidc/callback', async(req, res) => {
   try {
     const codeVerifier = req.session.oidcCodeVerifier
     const state = req.session.oidcState
@@ -488,7 +488,7 @@ app.get('/api/auth/oidc/callback', async (req, res) => {
 })
 
 // PocketID Signup endpoints (Landing Page Integration)
-app.post('/api/auth/create-signup-intent', signupLimiter, async (req, res) => {
+app.post('/api/auth/create-signup-intent', signupLimiter, async(req, res) => {
   try {
     const { email, name, source } = req.body
 
@@ -517,7 +517,7 @@ app.post('/api/auth/create-signup-intent', signupLimiter, async (req, res) => {
 app.post(
   '/api/auth/send-pocketid-invitation',
   signupLimiter,
-  async (req, res) => {
+  async(req, res) => {
     try {
       const { email, name, returnUrl } = req.body
 
@@ -548,7 +548,7 @@ app.post(
   }
 )
 
-app.post('/api/auth/send-magic-link', signupLimiter, async (req, res) => {
+app.post('/api/auth/send-magic-link', signupLimiter, async(req, res) => {
   try {
     const { email, name } = req.body
 
@@ -1006,7 +1006,7 @@ app.delete('/api/meetings/:id', localAuth.requireAuth, (req, res) => {
 })
 
 // Analytics insights caching endpoints
-app.post('/api/analytics/insights', localAuth.requireAuth, async (req, res) => {
+app.post('/api/analytics/insights', localAuth.requireAuth, async(req, res) => {
   try {
     const { projectId, insights, taskCount, timestamp } = req.body
     const userId = req.session.user.id
@@ -1024,7 +1024,7 @@ app.post('/api/analytics/insights', localAuth.requireAuth, async (req, res) => {
 app.get(
   '/api/analytics/insights/:projectId',
   localAuth.requireAuth,
-  async (req, res) => {
+  async(req, res) => {
     try {
       const { projectId } = req.params
       const userId = req.session.user.id
@@ -1049,7 +1049,7 @@ app.get(
 app.delete(
   '/api/analytics/insights/:projectId',
   localAuth.requireAuth,
-  async (req, res) => {
+  async(req, res) => {
     try {
       const { projectId } = req.params
       const userId = req.session.user.id
@@ -1070,7 +1070,7 @@ app.delete(
 app.delete(
   '/api/analytics/insights',
   localAuth.requireAuth,
-  async (req, res) => {
+  async(req, res) => {
     try {
       const userId = req.session.user.id
 
@@ -1089,7 +1089,7 @@ app.delete(
 app.get(
   '/api/tasks/:taskId/changes',
   localAuth.requireAuth,
-  async (req, res) => {
+  async(req, res) => {
     try {
       const { taskId } = req.params
       const { limit = 50 } = req.query
@@ -1120,7 +1120,7 @@ app.get(
 app.get(
   '/api/projects/:projectId/changes',
   localAuth.requireAuth,
-  async (req, res) => {
+  async(req, res) => {
     try {
       const { projectId } = req.params
       const { limit = 100 } = req.query
@@ -1152,7 +1152,7 @@ app.get(
 app.get(
   '/api/tasks/:taskId/comments',
   localAuth.requireAuth,
-  async (req, res) => {
+  async(req, res) => {
     try {
       const { taskId } = req.params
       const { limit = 50 } = req.query
@@ -1191,7 +1191,7 @@ app.get(
 app.post(
   '/api/tasks/:taskId/comments',
   localAuth.requireAuth,
-  async (req, res) => {
+  async(req, res) => {
     try {
       const { taskId } = req.params
       const { content, commentType = 'user', metadata = null } = req.body
@@ -1305,7 +1305,7 @@ app.post(
   }
 )
 
-app.put('/api/comments/:commentId', localAuth.requireAuth, async (req, res) => {
+app.put('/api/comments/:commentId', localAuth.requireAuth, async(req, res) => {
   try {
     const { commentId } = req.params
     const { content } = req.body
@@ -1332,7 +1332,7 @@ app.put('/api/comments/:commentId', localAuth.requireAuth, async (req, res) => {
 app.delete(
   '/api/comments/:commentId',
   localAuth.requireAuth,
-  async (req, res) => {
+  async(req, res) => {
     try {
       const { commentId } = req.params
       const userId = req.session.user.id
@@ -1354,7 +1354,7 @@ app.delete(
 )
 
 // Get single comment by ID (for activity display)
-app.get('/api/comments/:commentId', localAuth.requireAuth, async (req, res) => {
+app.get('/api/comments/:commentId', localAuth.requireAuth, async(req, res) => {
   try {
     const { commentId } = req.params
     const comment = db.getTaskComment(commentId)
@@ -1374,7 +1374,7 @@ app.get('/api/comments/:commentId', localAuth.requireAuth, async (req, res) => {
 app.post(
   '/api/tasks/:taskId/ai-comments-bulletproof',
   localAuth.requireAuth,
-  async (req, res) => {
+  async(req, res) => {
     try {
       const { taskId } = req.params
       const { content, metadata = null } = req.body
@@ -1430,7 +1430,7 @@ app.post(
 app.post(
   '/api/tasks/detect-similar',
   localAuth.requireAuth,
-  async (req, res) => {
+  async(req, res) => {
     try {
       const { projectId } = req.body
       const userId = req.session.user.id
@@ -1457,7 +1457,7 @@ app.post(
   }
 )
 
-app.post('/api/tasks/merge', localAuth.requireAuth, async (req, res) => {
+app.post('/api/tasks/merge', localAuth.requireAuth, async(req, res) => {
   try {
     const { projectId, taskIds, mergeStrategy = 'smart' } = req.body
     const userId = req.session.user.id
@@ -1524,7 +1524,7 @@ app.post('/api/tasks/merge', localAuth.requireAuth, async (req, res) => {
   }
 })
 
-app.post('/api/tasks/undo-merge', localAuth.requireAuth, async (req, res) => {
+app.post('/api/tasks/undo-merge', localAuth.requireAuth, async(req, res) => {
   try {
     const { projectId, mergeId } = req.body
     const userId = req.session.user.id
@@ -1585,7 +1585,7 @@ app.post('/api/tasks/undo-merge', localAuth.requireAuth, async (req, res) => {
 app.get(
   '/api/tasks/recent-merges/:projectId',
   localAuth.requireAuth,
-  async (req, res) => {
+  async(req, res) => {
     try {
       const { projectId } = req.params
       const userId = req.session.user.id
@@ -1874,8 +1874,8 @@ async function mergeTasksWithAI(tasks, strategy = 'smart') {
 
 TASKS TO MERGE:
 ${tasks
-  .map(
-    (task, idx) => `
+    .map(
+      (task, idx) => `
 ${idx + 1}. "${task.title}"
    Description: ${task.description || 'No description'}
    Status: ${task.status}
@@ -1883,8 +1883,8 @@ ${idx + 1}. "${task.title}"
    Assignee: ${task.assignee || 'Unassigned'}
    Due Date: ${task.dueDate || 'No due date'}
 `
-  )
-  .join('')}
+    )
+    .join('')}
 
 Please merge these tasks intelligently by:
 1. Creating a comprehensive title that encompasses all tasks
