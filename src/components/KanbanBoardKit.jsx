@@ -279,27 +279,60 @@ export default function KanbanBoardKit({ taskToOpen }) {
     }
   }, [taskToOpen, tasks])
 
-  // Scroll bounce animation for mobile discoverability
+  // Scroll bounce animation when kanban comes into view on mobile
   useEffect(() => {
-    if (viewMode === 'kanban' && !hasAnimated && kanbanScrollRef.current) {
-      // Only animate on mobile devices
-      const isMobile = window.innerWidth <= 768
-      if (isMobile) {
-        const container = kanbanScrollRef.current
-
-        // Wait a moment for the component to render
-        setTimeout(() => {
-          // Perform bounce animation: scroll right then back to left
-          container.scrollTo({ left: 120, behavior: 'smooth' })
-
-          setTimeout(() => {
-            container.scrollTo({ left: 0, behavior: 'smooth' })
-            setHasAnimated(true)
-          }, 800)
-        }, 500)
-      }
+    if (viewMode !== 'kanban' || hasAnimated || !kanbanScrollRef.current) {
+      return
     }
-  }, [viewMode, hasAnimated, tasks.length]) // Trigger when viewMode changes or tasks load
+
+    // Only animate on mobile devices
+    const isMobile = window.innerWidth <= 768
+    if (!isMobile) {
+      return
+    }
+
+    const container = kanbanScrollRef.current
+
+    // Create intersection observer to detect when kanban comes into view
+    const observer = new IntersectionObserver(
+      entries => {
+        const [entry] = entries
+        if (entry.isIntersecting && !hasAnimated) {
+          // Kanban is now visible, trigger bounce animation
+          setTimeout(() => {
+            // Perform 2-bounce animation sequence with fluid bouncy timing
+            // Bounce 1 - Quick and snappy
+            container.scrollTo({ left: 140, behavior: 'smooth' })
+
+            setTimeout(() => {
+              container.scrollTo({ left: 0, behavior: 'smooth' })
+
+              // Bounce 2 - Slightly less distance, more gentle
+              setTimeout(() => {
+                container.scrollTo({ left: 100, behavior: 'smooth' })
+
+                setTimeout(() => {
+                  container.scrollTo({ left: 0, behavior: 'smooth' })
+                  setHasAnimated(true)
+                }, 450) // Faster return for bouncy feel
+              }, 350) // Shorter gap for fluid motion
+            }, 450) // Quicker return on first bounce
+          }, 200) // Faster entry for immediate attention
+        }
+      },
+      {
+        threshold: 0.5, // Trigger when 50% of kanban is visible
+        rootMargin: '0px 0px -10% 0px' // Trigger slightly before fully in view
+      }
+    )
+
+    observer.observe(container)
+
+    // Cleanup observer on unmount
+    return () => {
+      observer.disconnect()
+    }
+  }, [viewMode, hasAnimated]) // Remove tasks.length dependency since we want this based on viewport visibility
 
   const sortTasksByOrder = tasks => {
     return tasks.sort((a, b) => {

@@ -11,7 +11,7 @@
   width: 100vw !important;
   height: 100vh !important;
   height: 100dvh !important;
-  z-index: 2147483647 !important; /* Maximum possible z-index */
+  z-index: 50000000 !important; /* High but below notifications */
 
   /* Layout */
   display: flex !important;
@@ -347,7 +347,9 @@ body.modal-open {
   overflow-y: auto !important;
 
   /* Better shadow and border for visibility */
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+  box-shadow:
+    0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
 }
 
 /* When keyboard is active, use upward positioning for dropdowns */
