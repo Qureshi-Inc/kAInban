@@ -13,6 +13,27 @@ import dbInstance from './database.js'
 import * as localAuth from './localAuth.js'
 import * as oidcAuth from './oidcAuth.js'
 import PocketIDIntegration from './pocketIdIntegration.js'
+import tenantService from './tenantService.js'
+
+// Tenant middleware - extract and attach tenant context to requests
+const attachTenantContext = async (req, res, next) => {
+  try {
+    if (tenantService.isEnabled()) {
+      const tenant = await tenantService.extractTenantFromRequest(req)
+      if (tenant) {
+        req.tenant = tenant
+        console.log('[Middleware] Tenant context attached:', tenant.subdomain)
+      } else {
+        console.log('[Middleware] No tenant context found')
+      }
+    }
+    next()
+  } catch (error) {
+    console.error('[Middleware] Tenant context error:', error)
+    next() // Continue without tenant context
+  }
+}
+import recaptchaService from './recaptchaService.js'
 
 const app = express()
 const PORT = process.env.PORT || 3001
@@ -219,10 +240,68 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', database: 'connected' })
 })
 
+// Multi-tenancy configuration endpoint
+app.get('/api/config/multitenancy', (req, res) => {
+  res.json({
+    enabled: tenantService.isEnabled(),
+    registrationEnabled: process.env.ALLOW_REGISTRATION === 'true'
+  })
+})
+
+// reCAPTCHA configuration endpoint
+app.get('/api/config/recaptcha', (req, res) => {
+  res.json(recaptchaService.getConfig())
+})
+
+// Get current tenant information
+app.get('/api/tenant/info', localAuth.requireAuth, async (req, res) => {
+  try {
+    if (!tenantService.isEnabled()) {
+      return res.status(404).json({ error: 'Multi-tenancy not enabled' })
+    }
+
+    // Extract tenant from request
+    const tenant = await tenantService.extractTenantFromRequest(req)
+
+    if (!tenant) {
+      return res.status(404).json({ error: 'No tenant found' })
+    }
+
+    // Get tenant statistics
+    const stats = await tenantService.getTenantStats(tenant.id)
+
+    res.json({
+      id: tenant.id,
+      name: tenant.name,
+      subdomain: tenant.subdomain,
+      plan: tenant.plan,
+      maxUsers: tenant.max_users,
+      active: tenant.active,
+      createdAt: tenant.created_at,
+      stats
+    })
+  } catch (error) {
+    console.error('[Tenant] Get info error:', error)
+    res.status(500).json({ error: 'Failed to get tenant information' })
+  }
+})
+
+// Legacy tenant path routing (redirect to query parameter)
+app.get('/tenant/:subdomain', async (req, res) => {
+  try {
+    const { subdomain } = req.params
+    // Redirect to query parameter format
+    res.redirect(`/?tenant=${subdomain}`)
+  } catch (error) {
+    console.error('[Tenant] Legacy routing error:', error)
+    res.status(500).send('Error accessing tenant')
+  }
+})
+
 // Authentication endpoints
 app.post('/api/auth/register', authLimiter, async(req, res) => {
   try {
-    const { email, password, name } = req.body
+    const { email, password, name, tenantName, subdomain, tier, recaptchaToken } = req.body
 
     // Check if registration is allowed
     const isFirstUser = !db.hasUsers()
@@ -237,8 +316,56 @@ app.post('/api/auth/register', authLimiter, async(req, res) => {
         .json({ error: 'Registration is currently disabled' })
     }
 
-    // Register user
-    const user = await localAuth.registerUser({ email, password, name })
+    // Verify reCAPTCHA if enabled
+    if (recaptchaService.isEnabled()) {
+      const recaptchaResult = await recaptchaService.verifyToken(recaptchaToken, req.ip)
+      if (!recaptchaResult.success) {
+        console.log('[Auth] reCAPTCHA verification failed:', recaptchaResult.error)
+        return res.status(400).json({
+          error: recaptchaResult.error || 'reCAPTCHA verification failed. Please try again.'
+        })
+      }
+      console.log('[Auth] reCAPTCHA verified with score:', recaptchaResult.score)
+    }
+
+    let tenant = null
+    let user = null
+
+    // Multi-tenant registration flow
+    if (tenantService.isEnabled() && tenantName && subdomain) {
+      console.log('[Auth] Multi-tenant registration:', { email, tenantName, subdomain, tier })
+
+      // Create tenant first
+      try {
+        const tierLimits = {
+          starter: { maxUsers: 5 },
+          professional: { maxUsers: 25 },
+          enterprise: { maxUsers: 100 }
+        }
+
+        const maxUsers = tierLimits[tier]?.maxUsers || 5
+
+        tenant = await tenantService.createTenant({
+          name: tenantName,
+          subdomain,
+          plan: tier || 'starter',
+          maxUsers
+        })
+
+        console.log('[Auth] Created tenant:', tenant.id)
+      } catch (error) {
+        return res.status(400).json({ error: error.message })
+      }
+
+      // Register user with tenant
+      user = await localAuth.registerUser({ email, password, name, tenantId: tenant.id })
+
+      // Associate user with tenant
+      await tenantService.addUserToTenant(user.id, tenant.id)
+    } else {
+      // Single-tenant registration (existing flow)
+      user = await localAuth.registerUser({ email, password, name })
+    }
 
     // Create session
     req.session.user = localAuth.formatUserForSession(user)
@@ -251,10 +378,23 @@ app.post('/api/auth/register', authLimiter, async(req, res) => {
       }
       console.log('[Auth] User registered and logged in:', user.email)
       console.log('[Auth] Session ID:', req.sessionID)
-      res.json({
+
+      const response = {
         success: true,
         user: req.session.user
-      })
+      }
+
+      // Include tenant info in response for multi-tenant setup
+      if (tenant) {
+        response.tenant = {
+          id: tenant.id,
+          name: tenant.name,
+          subdomain: tenant.subdomain,
+          plan: tenant.plan
+        }
+      }
+
+      res.json(response)
     })
   } catch (error) {
     console.error('[Auth] Registration error:', error.message)
@@ -272,6 +412,17 @@ app.post('/api/auth/login', authLimiter, async(req, res) => {
     // Create session
     req.session.user = localAuth.formatUserForSession(user)
 
+    // Get user's tenant information for redirect
+    let userTenant = null
+    if (tenantService.isEnabled() && user.tenant_id) {
+      try {
+        userTenant = await tenantService.getTenantById(user.tenant_id)
+        console.log('[Auth] User tenant found:', userTenant?.subdomain)
+      } catch (error) {
+        console.error('[Auth] Error getting user tenant:', error)
+      }
+    }
+
     // Explicitly save session
     req.session.save(err => {
       if (err) {
@@ -280,10 +431,19 @@ app.post('/api/auth/login', authLimiter, async(req, res) => {
       }
       console.log('[Auth] User logged in:', user.email)
       console.log('[Auth] Session ID:', req.sessionID)
-      res.json({
+
+      const response = {
         success: true,
         user: req.session.user
-      })
+      }
+
+      // Include tenant redirect URL if user has a tenant
+      if (userTenant) {
+        response.redirectUrl = `/?tenant=${userTenant.subdomain}`
+        console.log('[Auth] User should redirect to:', response.redirectUrl)
+      }
+
+      res.json(response)
     })
   } catch (error) {
     console.error('[Auth] Login error:', error.message)
@@ -637,7 +797,7 @@ app.get('/api/auth/signup-intent/:intentId', (req, res) => {
 })
 
 // Settings endpoints
-app.get('/api/settings', localAuth.requireAuth, (req, res) => {
+app.get('/api/settings', localAuth.requireAuth, attachTenantContext, (req, res) => {
   try {
     const userId = req.session.user.id
     const settings = db.getSettings(userId)
@@ -697,7 +857,7 @@ app.get('/api/settings', localAuth.requireAuth, (req, res) => {
   }
 })
 
-app.post('/api/settings', localAuth.requireAuth, (req, res) => {
+app.post('/api/settings', localAuth.requireAuth, attachTenantContext, (req, res) => {
   try {
     const userId = req.session.user.id
     db.saveSettings(userId, req.body)
@@ -764,7 +924,7 @@ app.delete('/api/users/:id', localAuth.requireAuth, (req, res) => {
 })
 
 // Project endpoints
-app.get('/api/projects', localAuth.requireAuth, (req, res) => {
+app.get('/api/projects', localAuth.requireAuth, attachTenantContext, (req, res) => {
   try {
     const userId = req.session.user.id
     const projects = db.getAllProjects(userId).map(p => ({
@@ -780,7 +940,7 @@ app.get('/api/projects', localAuth.requireAuth, (req, res) => {
   }
 })
 
-app.get('/api/projects/:id', localAuth.requireAuth, (req, res) => {
+app.get('/api/projects/:id', localAuth.requireAuth, attachTenantContext, (req, res) => {
   try {
     const project = db.getProject(req.params.id)
     if (!project) {
@@ -822,7 +982,7 @@ app.get('/api/projects/:id', localAuth.requireAuth, (req, res) => {
   }
 })
 
-app.post('/api/projects', localAuth.requireAuth, (req, res) => {
+app.post('/api/projects', localAuth.requireAuth, attachTenantContext, (req, res) => {
   try {
     const userId = req.session.user.id
     db.saveProject(userId, req.body)
@@ -834,7 +994,7 @@ app.post('/api/projects', localAuth.requireAuth, (req, res) => {
   }
 })
 
-app.delete('/api/projects/:id', localAuth.requireAuth, (req, res) => {
+app.delete('/api/projects/:id', localAuth.requireAuth, attachTenantContext, (req, res) => {
   try {
     // Verify project belongs to user before deleting
     const project = db.getProject(req.params.id)
@@ -855,7 +1015,7 @@ app.delete('/api/projects/:id', localAuth.requireAuth, (req, res) => {
 })
 
 // Delete all projects for current user
-app.delete('/api/projects', localAuth.requireAuth, (req, res) => {
+app.delete('/api/projects', localAuth.requireAuth, attachTenantContext, (req, res) => {
   try {
     console.log(
       '[Projects] Deleting all projects for user:',

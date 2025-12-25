@@ -49,8 +49,16 @@ function App() {
           return
         }
 
-        // Initialize from backend
-        const result = await initialize()
+        // Extract URL context for initialization
+        const urlParams = new URLSearchParams(window.location.search)
+        const urlContext = {
+          projectId: urlParams.get('project'),
+          meetingId: urlParams.get('meeting'),
+          tenant: urlParams.get('tenant')
+        }
+
+        // Initialize from backend with URL context
+        const result = await initialize(urlContext)
         if (result === undefined) {
           // Settings load failed, will use defaults
         }
@@ -198,10 +206,18 @@ function App() {
         onAuthSuccess={(authenticatedUser) => {
           setUser(authenticatedUser)
           setLoading(true)
-          // Re-initialize app after login
-          initialize()
-            .then(() => {
 
+          // Extract URL context for post-login initialization
+          const urlParams = new URLSearchParams(window.location.search)
+          const urlContext = {
+            projectId: urlParams.get('project'),
+            meetingId: urlParams.get('meeting'),
+            tenant: urlParams.get('tenant')
+          }
+
+          // Re-initialize app after login with URL context
+          initialize(urlContext)
+            .then(() => {
               setLoading(false)
             })
             .catch((error) => {

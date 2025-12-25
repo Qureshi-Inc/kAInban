@@ -41,6 +41,7 @@ export default function SettingsDialog() {
 
   const [testingConnection, setTestingConnection] = useState(false)
   const [savingProfile, setSavingProfile] = useState(false)
+  const [tenantInfo, setTenantInfo] = useState(null)
 
   // Sync form data when dialog opens
   useEffect(() => {
@@ -64,8 +65,21 @@ export default function SettingsDialog() {
         newPassword: '',
         confirmPassword: ''
       })
+
+      // Fetch tenant information if multi-tenancy is enabled
+      fetchTenantInfo()
     }
   }, [isSettingsOpen, settings, user])
+
+  const fetchTenantInfo = async () => {
+    try {
+      const tenantData = await apiService.getTenantInfo()
+      setTenantInfo(tenantData)
+    } catch (error) {
+      console.error('[Settings] Failed to fetch tenant info:', error)
+      setTenantInfo(null)
+    }
+  }
 
   const handleTestConnection = async() => {
     setTestingConnection(true)
@@ -261,6 +275,48 @@ export default function SettingsDialog() {
           {/* General Settings Tab */}
           <TabsContent value="general" className="space-y-4 px-1">
             <div className="space-y-4">
+              {/* Tenant Information Section */}
+              {tenantInfo && (
+                <div className="p-4 border rounded-lg bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
+                  <h3 className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-3 flex items-center">
+                    <Settings className="h-4 w-4 mr-2" />
+                    Organization Information
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                    <div>
+                      <span className="font-medium text-blue-800 dark:text-blue-200">Name:</span>
+                      <span className="ml-2 text-blue-700 dark:text-blue-300">{tenantInfo.name}</span>
+                    </div>
+                    <div>
+                      <span className="font-medium text-blue-800 dark:text-blue-200">Access URL:</span>
+                      <span className="ml-2 text-blue-700 dark:text-blue-300">?tenant={tenantInfo.subdomain}</span>
+                    </div>
+                    <div>
+                      <span className="font-medium text-blue-800 dark:text-blue-200">Plan:</span>
+                      <span className="ml-2 text-blue-700 dark:text-blue-300 capitalize">{tenantInfo.plan}</span>
+                    </div>
+                    <div>
+                      <span className="font-medium text-blue-800 dark:text-blue-200">Users:</span>
+                      <span className="ml-2 text-blue-700 dark:text-blue-300">
+                        {tenantInfo.stats?.users || 0} / {tenantInfo.maxUsers}
+                      </span>
+                    </div>
+                    {tenantInfo.stats && (
+                      <>
+                        <div>
+                          <span className="font-medium text-blue-800 dark:text-blue-200">Projects:</span>
+                          <span className="ml-2 text-blue-700 dark:text-blue-300">{tenantInfo.stats.projects}</span>
+                        </div>
+                        <div>
+                          <span className="font-medium text-blue-800 dark:text-blue-200">Tasks:</span>
+                          <span className="ml-2 text-blue-700 dark:text-blue-300">{tenantInfo.stats.tasks}</span>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
+
               <div className="space-y-2">
                 <label className="text-sm font-medium">Name</label>
                 <Input

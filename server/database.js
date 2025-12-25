@@ -158,6 +158,25 @@ db.exec(`
   );
 `)
 
+// Create multi-tenant tables (only used when MULTITENANCY_ENABLED=true)
+db.exec(`
+  CREATE TABLE IF NOT EXISTS tenants (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    subdomain TEXT UNIQUE,     -- e.g., 'acme' for acme.kainban.com
+    custom_domain TEXT,        -- e.g., 'tasks.acme.com'
+    plan TEXT DEFAULT 'starter', -- 'starter', 'professional', 'enterprise'
+    max_users INTEGER DEFAULT 5,
+    settings TEXT,             -- JSON for tenant-specific settings
+    active INTEGER DEFAULT 1,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+`)
+
+// Add tenant columns to existing tables if multi-tenancy is enabled
+// These migrations will run automatically when MULTITENANCY_ENABLED=true
+
 // Migration: Add new columns if they don't exist
 try {
   // Check if due_date column exists in tasks table
@@ -247,6 +266,61 @@ try {
 
   if (!hasOidcCallbackUrl) {
     db.exec('ALTER TABLE settings ADD COLUMN oidc_callback_url TEXT')
+  }
+
+  // Multi-tenant migrations - Add tenant_id to all tables when enabled
+  const multiTenancyEnabled = process.env.MULTITENANCY_ENABLED === 'true'
+
+  if (multiTenancyEnabled) {
+    console.log('[Database] Multi-tenancy enabled - running tenant migrations')
+
+    // Add tenant_id to users table
+    const usersColumns = db.prepare('PRAGMA table_info(users)').all()
+    const userHasTenantId = usersColumns.some(col => col.name === 'tenant_id')
+    if (!userHasTenantId) {
+      db.exec('ALTER TABLE users ADD COLUMN tenant_id TEXT DEFAULT NULL')
+      console.log('[Database] Added tenant_id to users table')
+    }
+
+    // Add tenant_id to projects table
+    const projectsColumns = db.prepare('PRAGMA table_info(projects)').all()
+    const projectsHasTenantId = projectsColumns.some(col => col.name === 'tenant_id')
+    if (!projectsHasTenantId) {
+      db.exec('ALTER TABLE projects ADD COLUMN tenant_id TEXT DEFAULT NULL')
+      console.log('[Database] Added tenant_id to projects table')
+    }
+
+    // Add tenant_id to tasks table
+    const tasksHasTenantId = taskColumns.some(col => col.name === 'tenant_id')
+    if (!tasksHasTenantId) {
+      db.exec('ALTER TABLE tasks ADD COLUMN tenant_id TEXT DEFAULT NULL')
+      console.log('[Database] Added tenant_id to tasks table')
+    }
+
+    // Add tenant_id to meetings table
+    const meetingsColumns = db.prepare('PRAGMA table_info(meetings)').all()
+    const meetingsHasTenantId = meetingsColumns.some(col => col.name === 'tenant_id')
+    if (!meetingsHasTenantId) {
+      db.exec('ALTER TABLE meetings ADD COLUMN tenant_id TEXT DEFAULT NULL')
+      console.log('[Database] Added tenant_id to meetings table')
+    }
+
+    // Add tenant_id to settings table
+    const settingsHasTenantId = settingsColumns.some(col => col.name === 'tenant_id')
+    if (!settingsHasTenantId) {
+      db.exec('ALTER TABLE settings ADD COLUMN tenant_id TEXT DEFAULT NULL')
+      console.log('[Database] Added tenant_id to settings table')
+    }
+
+    // Create indices for tenant isolation
+    db.exec(`
+      CREATE INDEX IF NOT EXISTS idx_users_tenant ON users(tenant_id);
+      CREATE INDEX IF NOT EXISTS idx_projects_tenant ON projects(tenant_id);
+      CREATE INDEX IF NOT EXISTS idx_tasks_tenant ON tasks(tenant_id);
+      CREATE INDEX IF NOT EXISTS idx_meetings_tenant ON meetings(tenant_id);
+      CREATE INDEX IF NOT EXISTS idx_settings_tenant ON settings(tenant_id);
+    `)
+    console.log('[Database] Created tenant isolation indices')
   }
 
   // Migrate existing OIDC users if any (from old schema)
@@ -1183,25 +1257,52 @@ export const getUserByOIDC = (issuer, sub) => {
 }
 
 export const createUser = userData => {
-  const stmt = db.prepare(`
-    INSERT INTO users (
-      email, email_verified, name, picture, role, auth_provider,
-      password_hash, oidc_issuer, oidc_sub, last_login
-    )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-  `)
+  const multiTenancyEnabled = process.env.MULTITENANCY_ENABLED === 'true'
 
-  const result = stmt.run(
-    userData.email || null,
-    userData.email_verified ? 1 : 0,
-    userData.name || null,
-    userData.picture || null,
-    userData.role || 'member',
-    userData.auth_provider || 'local',
-    userData.password_hash || null,
-    userData.oidc_issuer || null,
-    userData.oidc_sub || null
-  )
+  let stmt, result
+
+  if (multiTenancyEnabled) {
+    stmt = db.prepare(`
+      INSERT INTO users (
+        email, email_verified, name, picture, role, auth_provider,
+        password_hash, oidc_issuer, oidc_sub, tenant_id, last_login
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+    `)
+
+    result = stmt.run(
+      userData.email || null,
+      userData.email_verified ? 1 : 0,
+      userData.name || null,
+      userData.picture || null,
+      userData.role || 'member',
+      userData.auth_provider || 'local',
+      userData.password_hash || null,
+      userData.oidc_issuer || null,
+      userData.oidc_sub || null,
+      userData.tenant_id || null
+    )
+  } else {
+    stmt = db.prepare(`
+      INSERT INTO users (
+        email, email_verified, name, picture, role, auth_provider,
+        password_hash, oidc_issuer, oidc_sub, last_login
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+    `)
+
+    result = stmt.run(
+      userData.email || null,
+      userData.email_verified ? 1 : 0,
+      userData.name || null,
+      userData.picture || null,
+      userData.role || 'member',
+      userData.auth_provider || 'local',
+      userData.password_hash || null,
+      userData.oidc_issuer || null,
+      userData.oidc_sub || null
+    )
+  }
 
   return getUserById(result.lastInsertRowid)
 }

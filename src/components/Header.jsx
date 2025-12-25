@@ -53,14 +53,21 @@ export default function Header({ onToggleSidebar, onShowActivity }) {
   const handleProjectChange = (projectId) => {
     if (projectId === 'none') {
       clearCurrentProject() // Clear any selected project
-      navigate('/')
+      // Preserve tenant parameter when navigating to dashboard
+      const currentParams = new URLSearchParams(window.location.search)
+      const tenant = currentParams.get('tenant')
+      const dashboardUrl = tenant ? `/?tenant=${tenant}` : '/'
+      navigate(dashboardUrl)
     } else if (projectId === 'create_new') {
       setIsCreateProjectOpen(true)
     } else {
       loadProject(projectId)
       // Use short ID with new collision-resistant approach
       const shortId = getShortId(projectId)
-      navigate(`/?project=${shortId}`)
+      // Preserve existing parameters (like tenant) and add project
+      const params = new URLSearchParams(window.location.search)
+      params.set('project', shortId)
+      navigate(`/?${params.toString()}`)
     }
   }
 
@@ -116,7 +123,11 @@ export default function Header({ onToggleSidebar, onShowActivity }) {
           transition={{ type: 'spring', stiffness: 400, damping: 20 }}
           onClick={() => {
             clearCurrentProject() // Clear any selected project
-            navigate('/')
+            // Preserve tenant parameter when navigating to dashboard
+            const currentParams = new URLSearchParams(window.location.search)
+            const tenant = currentParams.get('tenant')
+            const dashboardUrl = tenant ? `/?tenant=${tenant}` : '/'
+            navigate(dashboardUrl)
           }}
           title="Go to Dashboard"
         >
@@ -128,7 +139,11 @@ export default function Header({ onToggleSidebar, onShowActivity }) {
               className="text-2xl font-bold bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent cursor-pointer hover:opacity-80 transition-opacity"
               onClick={() => {
                 clearCurrentProject() // Clear any selected project
-                navigate('/')
+                // Preserve tenant parameter when navigating to dashboard
+                const currentParams = new URLSearchParams(window.location.search)
+                const tenant = currentParams.get('tenant')
+                const dashboardUrl = tenant ? `/?tenant=${tenant}` : '/'
+                navigate(dashboardUrl)
               }}
               title="Go to Dashboard"
             >

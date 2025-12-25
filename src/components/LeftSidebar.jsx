@@ -24,7 +24,11 @@ export default function LeftSidebar({ isOpen, onClose }) {
 
   const handleDashboard = () => {
     clearCurrentProject() // Clear any selected project
-    navigate('/')
+    // Preserve tenant parameter when navigating to dashboard
+    const currentParams = new URLSearchParams(window.location.search)
+    const tenant = currentParams.get('tenant')
+    const dashboardUrl = tenant ? `/?tenant=${tenant}` : '/'
+    navigate(dashboardUrl)
     onClose() // Close the sidebar after navigation
   }
 

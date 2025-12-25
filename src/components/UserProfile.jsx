@@ -54,14 +54,14 @@ export default function UserProfile({ collapsed = false }) {
 
             {/* Dropdown Menu */}
             <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: collapsed ? 10 : -10 }}
+              initial={{ opacity: 0, scale: 0.95, y: -10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: collapsed ? 10 : -10 }}
+              exit={{ opacity: 0, scale: 0.95, y: -10 }}
               transition={{ duration: 0.15 }}
               className={`${
                 collapsed
                   ? 'absolute left-full bottom-0 ml-2'
-                  : 'fixed sm:absolute left-1 sm:left-auto sm:right-0 bottom-20 sm:bottom-auto sm:top-full sm:mt-2'
+                  : 'absolute right-0 bottom-full mb-2 sm:top-full sm:bottom-auto sm:mt-2 sm:mb-0'
               } w-64 max-w-[calc(100vw-2rem)] bg-white dark:bg-gray-800 rounded-lg shadow-xl border-2 border-gray-200 dark:border-gray-700 overflow-hidden z-[9999]`}
             >
               {/* User Info */}

@@ -36,6 +36,12 @@ export default function AuthPage({ onAuthSuccess }) {
     try {
       const response = await apiService.login(email, password)
       if (response.success) {
+        // If user has a tenant, redirect to tenant URL instead of normal auth success flow
+        if (response.redirectUrl) {
+          console.log('[Auth] Redirecting user to tenant:', response.redirectUrl)
+          window.location.href = response.redirectUrl
+          return
+        }
         onAuthSuccess(response.user)
       }
     } catch (error) {
@@ -43,12 +49,24 @@ export default function AuthPage({ onAuthSuccess }) {
     }
   }
 
-  const handleRegister = async(name, email, password) => {
+  const handleRegister = async(name, email, password, tenantData = null, recaptchaToken = null) => {
     setError('')
     try {
-      const response = await apiService.register(name, email, password)
+      const response = await apiService.register(name, email, password, tenantData, recaptchaToken)
       if (response.success) {
-        onAuthSuccess(response.user)
+        // If tenant was created, redirect to tenant subdomain
+        if (response.tenant && response.tenant.subdomain) {
+          const currentHost = window.location.hostname
+          const tenantUrl = `${window.location.protocol}//${response.tenant.subdomain}.${currentHost}${window.location.port ? ':' + window.location.port : ''}`
+
+          console.log('[Auth] Redirecting to tenant subdomain:', tenantUrl)
+          // Small delay to ensure registration is complete
+          setTimeout(() => {
+            window.location.href = tenantUrl
+          }, 1000)
+        } else {
+          onAuthSuccess(response.user)
+        }
       }
     } catch (error) {
       setError(error.message || 'Registration failed')

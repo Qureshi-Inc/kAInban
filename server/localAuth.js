@@ -107,7 +107,7 @@ export function validateName(name) {
 /**
  * Register a new local user
  */
-export async function registerUser({ email, password, name }) {
+export async function registerUser({ email, password, name, tenantId = null }) {
   // Validate email
   const emailValidation = validateEmail(email)
   if (!emailValidation.valid) {
@@ -145,7 +145,8 @@ export async function registerUser({ email, password, name }) {
     name: nameValidation.name,
     role: isFirstUser ? 'admin' : 'member',
     auth_provider: 'local',
-    password_hash: passwordHash
+    password_hash: passwordHash,
+    tenant_id: tenantId
   })
 
   console.log('[LocalAuth] User registered:', user.email, 'Role:', user.role)

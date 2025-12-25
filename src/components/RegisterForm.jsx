@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react'
 import apiService from '../services/apiService'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
+import { useRecaptcha } from '../hooks/useRecaptcha'
 
 export default function RegisterForm({ onRegister, onSwitchToLogin, error, isFirstUser }) {
   const [name, setName] = useState('')
@@ -14,10 +15,28 @@ export default function RegisterForm({ onRegister, onSwitchToLogin, error, isFir
   const [oidcLoading, setOidcLoading] = useState(false)
   const [oidcEnabled, setOidcEnabled] = useState(false)
 
+  // Multi-tenant fields
+  const [multiTenancyEnabled, setMultiTenancyEnabled] = useState(false)
+  const [tenantName, setTenantName] = useState('')
+  const [subdomain, setSubdomain] = useState('')
+  const [tier, setTier] = useState('starter')
+  const [baseDomain, setBaseDomain] = useState('')
+
+  // reCAPTCHA integration
+  const { enabled: recaptchaEnabled, loaded: recaptchaLoaded, executeRecaptcha } = useRecaptcha()
+
   useEffect(() => {
-    // Check if OIDC is enabled
-    apiService.getOIDCStatus().then(status => {
-      setOidcEnabled(status.enabled)
+    // Check if OIDC is enabled and multi-tenancy config
+    Promise.all([
+      apiService.getOIDCStatus(),
+      apiService.getMultiTenancyConfig()
+    ]).then(([oidcStatus, multiTenancyConfig]) => {
+      setOidcEnabled(oidcStatus.enabled)
+      setMultiTenancyEnabled(multiTenancyConfig.enabled)
+
+      // Set base domain from current window location
+      const currentHost = window.location.hostname
+      setBaseDomain(currentHost)
     })
   }, [])
 
@@ -29,6 +48,13 @@ export default function RegisterForm({ onRegister, onSwitchToLogin, error, isFir
     match: password === confirmPassword && password.length > 0
   }
 
+  // Validation for multi-tenant fields
+  const tenantValidation = {
+    name: tenantName.trim().length >= 2,
+    subdomain: /^[a-z0-9-]{3,20}$/.test(subdomain),
+    subdomainAvailable: true // TODO: Add real-time availability check
+  }
+
   const isValid =
     name.trim().length >= 2 &&
     email.includes('@') &&
@@ -36,7 +62,8 @@ export default function RegisterForm({ onRegister, onSwitchToLogin, error, isFir
     passwordValidation.hasUpper &&
     passwordValidation.hasLower &&
     passwordValidation.hasNumber &&
-    passwordValidation.match
+    passwordValidation.match &&
+    (!multiTenancyEnabled || !isFirstUser || (tenantValidation.name && tenantValidation.subdomain))
 
   const handleSubmit = async(e) => {
     e.preventDefault()
@@ -44,7 +71,23 @@ export default function RegisterForm({ onRegister, onSwitchToLogin, error, isFir
 
     setLoading(true)
     try {
-      await onRegister(name, email, password)
+      // Execute reCAPTCHA if enabled
+      let recaptchaToken = null
+      if (recaptchaEnabled && recaptchaLoaded) {
+        recaptchaToken = await executeRecaptcha('register')
+        if (!recaptchaToken) {
+          throw new Error('reCAPTCHA verification failed. Please try again.')
+        }
+      }
+
+      // Prepare tenant data for multi-tenant registration
+      const tenantData = multiTenancyEnabled && isFirstUser ? {
+        tenantName,
+        subdomain,
+        tier
+      } : null
+
+      await onRegister(name, email, password, tenantData, recaptchaToken)
     } finally {
       setLoading(false)
     }
@@ -204,6 +247,69 @@ export default function RegisterForm({ onRegister, onSwitchToLogin, error, isFir
             </div>
           )}
         </div>
+
+        {multiTenancyEnabled && isFirstUser && (
+          <>
+            <div className="border-t pt-4 mt-4">
+              <h3 className="text-lg font-medium mb-4 text-center">Organization Setup</h3>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Organization Name
+                </label>
+                <Input
+                  type="text"
+                  placeholder="Acme Corp"
+                  value={tenantName}
+                  onChange={(e) => setTenantName(e.target.value)}
+                  required
+                  disabled={loading}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Subdomain
+                </label>
+                <div className="flex items-center">
+                  <Input
+                    type="text"
+                    placeholder="acme"
+                    value={subdomain}
+                    onChange={(e) => setSubdomain(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
+                    className="rounded-r-none"
+                    required
+                    disabled={loading}
+                  />
+                  <span className="px-3 py-2 bg-gray-100 dark:bg-gray-700 border border-l-0 rounded-r text-sm text-gray-600 dark:text-gray-400">
+                    .{baseDomain || 'loading...'}
+                  </span>
+                </div>
+                {subdomain && (
+                  <div className="mt-1 text-xs">
+                    <ValidationItem valid={tenantValidation.subdomain} text="3-20 characters, lowercase letters, numbers, and hyphens only" />
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Plan
+                </label>
+                <select
+                  value={tier}
+                  onChange={(e) => setTier(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                  disabled={loading}
+                >
+                  <option value="starter">Starter (5 users) - Free</option>
+                  <option value="professional">Professional (25 users) - $29/month</option>
+                  <option value="enterprise">Enterprise (100 users) - $99/month</option>
+                </select>
+              </div>
+            </div>
+          </>
+        )}
 
         <Button
           type="submit"

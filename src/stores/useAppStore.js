@@ -109,7 +109,7 @@ const useAppStore = create((set, get) => ({
   },
 
   // Initialize - Load data from backend
-  initialize: async() => {
+  initialize: async(urlContext = null) => {
     try {
       // Load settings
       const settings = await apiService.getSettings()
@@ -146,13 +146,32 @@ const useAppStore = create((set, get) => ({
 
       set({ projects: projectsWithTasks })
 
-      // Restore last selected project from localStorage
-      // BUT only if we don't already have a current project (prevents conflicts with project creation)
+      // Handle project restoration with URL priority
       const currentState = get()
+
+      // If URL context has project info, prioritize that over localStorage
+      if (urlContext?.projectId) {
+        console.log('[Store] URL context provided, looking for project:', urlContext.projectId)
+        const urlProject = projectsWithTasks.find(p => p.id.startsWith(urlContext.projectId))
+        if (urlProject) {
+          console.log('[Store] Loading project from URL context:', urlProject.name)
+          set({
+            currentProject: urlProject,
+            tasks: urlProject.tasks || [],
+            meetings: urlProject.meetings || [],
+            selectedMeetingId: null
+          })
+          return // Skip localStorage restoration
+        }
+      }
+
+      // Restore last selected project from localStorage (only if no URL context)
+      // BUT only if we don't already have a current project (prevents conflicts with project creation)
       const lastProjectId = localStorage.getItem('lastSelectedProject')
       const lastMeetingId = localStorage.getItem('lastSelectedMeeting')
       if (
         !currentState.currentProject && // Only restore if no project is currently selected
+        !urlContext?.projectId && // Only if no URL project specified
         lastProjectId &&
         projectsWithTasks.some(p => p.id === lastProjectId)
       ) {

@@ -26,21 +26,21 @@ export default function MainView() {
   // Sync URL to reflect state changes (State -> URL, not URL -> State)
   // Only sync when project ID or meeting ID actually changes, not just object references
   useEffect(() => {
-    // If no currentProject, navigate to dashboard (clear URL params)
+    // Only sync URL when we have a current project loaded
+    // Initial URL context is handled by store's initialize() function
     if (!currentProject) {
-      if (window.location.search !== '') {
-        console.log('[MainView] No current project, navigating to dashboard')
-        navigate('/', { replace: true })
-      }
       return
     }
 
-    const params = new URLSearchParams()
+    // Preserve existing parameters (like tenant) and update project/meeting
+    const params = new URLSearchParams(window.location.search)
     const shortProjectId = getShortId(currentProject.id)
     params.set('project', shortProjectId) // Use short ID
 
     if (selectedMeetingId) {
       params.set('meeting', getShortId(selectedMeetingId)) // Use short ID
+    } else {
+      params.delete('meeting') // Remove if no meeting selected
     }
 
     const newSearch = `?${params.toString()}`
@@ -54,13 +54,8 @@ export default function MainView() {
     }
   }, [currentProject?.id, selectedMeetingId, navigate])
 
-  // EMERGENCY: TEMPORARILY DISABLED to stop runaway API requests
-  // Handle project loading - ONLY load from backend if switching projects
-  // Don't reload if already on the correct project (prevents overwriting fresh state)
-  // useEffect(() => {
-  //   console.log('[MainView] Project loading effect DISABLED to prevent API flood')
-  //   // Effect temporarily disabled to stop 429 rate limiting
-  // }, [projectId, currentProject, projects, loadProject, navigate, clearSession])
+  // Project loading is now handled by the store's initialize() function with URL context
+  // This effect is only needed for URL synchronization after project is already loaded
 
   // Handle meeting selection - ONLY sync FROM URL if user navigated directly
   // Don't clear selection if URL doesn't have meeting param (URL might be updating)
@@ -126,7 +121,11 @@ export default function MainView() {
             className="hover:text-foreground cursor-pointer transition-colors font-medium bg-transparent border-0 p-0"
             onClick={() => {
               clearCurrentProject()
-              navigate('/')
+              // Preserve tenant parameter when navigating to dashboard
+              const currentParams = new URLSearchParams(window.location.search)
+              const tenant = currentParams.get('tenant')
+              const dashboardUrl = tenant ? `/?tenant=${tenant}` : '/'
+              navigate(dashboardUrl)
             }}
           >
             Dashboard

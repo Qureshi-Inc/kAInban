@@ -57,6 +57,7 @@
     "dotenv": "^17.2.3",
     "framer-motion": "^10.16.4",
     "lucide-react": "^0.294.0",
+    "node-fetch": "^3.3.2",
     "react": "^18.2.0",
     "react-beautiful-dnd": "^13.1.1",
     "react-dom": "^18.2.0",

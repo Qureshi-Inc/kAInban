@@ -52,11 +52,25 @@ class ApiService {
     }
   }
 
-  async register(name, email, password) {
+  async register(name, email, password, tenantData = null, recaptchaToken = null) {
     try {
+      const requestBody = { name, email, password }
+
+      // Add tenant data for multi-tenant registration
+      if (tenantData) {
+        requestBody.tenantName = tenantData.tenantName
+        requestBody.subdomain = tenantData.subdomain
+        requestBody.tier = tenantData.tier
+      }
+
+      // Add reCAPTCHA token if provided
+      if (recaptchaToken) {
+        requestBody.recaptchaToken = recaptchaToken
+      }
+
       const response = await this.secureFetch(`${API_URL}/auth/register`, {
         method: 'POST',
-        body: JSON.stringify({ name, email, password })
+        body: JSON.stringify(requestBody)
       })
 
       const data = await response.json()
@@ -69,6 +83,51 @@ class ApiService {
     } catch (error) {
       console.error('[API] Register error:', error)
       throw error
+    }
+  }
+
+  // Check multi-tenancy configuration
+  async getMultiTenancyConfig() {
+    try {
+      const response = await fetch(`${API_URL}/config/multitenancy`)
+      if (!response.ok) {
+        throw new Error('Failed to get multi-tenancy config')
+      }
+      return await response.json()
+    } catch (error) {
+      console.error('[API] Multi-tenancy config error:', error)
+      return { enabled: false, registrationEnabled: true }
+    }
+  }
+
+  // Check reCAPTCHA configuration
+  async getRecaptchaConfig() {
+    try {
+      const response = await fetch(`${API_URL}/config/recaptcha`)
+      if (!response.ok) {
+        throw new Error('Failed to get reCAPTCHA config')
+      }
+      return await response.json()
+    } catch (error) {
+      console.error('[API] reCAPTCHA config error:', error)
+      return { enabled: false, siteKey: null }
+    }
+  }
+
+  // Get current tenant information
+  async getTenantInfo() {
+    try {
+      const response = await this.secureFetch(`${API_URL}/tenant/info`)
+      if (!response.ok) {
+        if (response.status === 404) {
+          return null // No tenant (single-tenant mode)
+        }
+        throw new Error('Failed to get tenant info')
+      }
+      return await response.json()
+    } catch (error) {
+      console.error('[API] Tenant info error:', error)
+      return null
     }
   }
 
