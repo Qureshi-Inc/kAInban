@@ -769,7 +769,7 @@ JSON array:`
         // Start new task
         currentTask = {
           title: line
-            .replace(/^\d+\.|-|\*/, '')
+            .replace(/^(?:\d+\.\s*|[-*]\s*)+/g, '')
             .trim()
             .substring(0, 50),
           description: '',
