@@ -28,21 +28,24 @@ COPY . .
 # Build the application
 RUN npm run build
 
-# Production stage
-FROM nginx:alpine
+# Production stage - use the unprivileged variant of nginx so the worker
+# does not run as root inside the container. Drop-in compatible with the
+# config we ship; default user is `nginx` (uid 101) and the image is
+# pre-chowned for that user.
+FROM nginxinc/nginx-unprivileged:alpine-slim
 
-# Copy built app to nginx
-COPY --from=builder /app/dist /usr/share/nginx/html
+# Copy built app to nginx html dir (chown so unprivileged user can read)
+COPY --chown=nginx:nginx --from=builder /app/dist /usr/share/nginx/html
 
 # Copy nginx configuration
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY --chown=nginx:nginx nginx.conf /etc/nginx/conf.d/default.conf
 
-# Expose port
+# Expose port (matches `listen 8064;` in nginx.conf)
 EXPOSE 8064
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD curl -f http://localhost:8064/health || exit 1
+  CMD wget -q -O - http://localhost:8064/health || exit 1
 
-# Start nginx
+# Start nginx (image already sets USER nginx)
 CMD ["nginx", "-g", "daemon off;"]
