@@ -49,7 +49,6 @@ export default function AnalyticsDashboard() {
       const selectedProject = projects.find(p => p.id === selectedProjectId)
       if (selectedProject && selectedProject.tasks) {
         allTasks = selectedProject.tasks
-      } else {
       }
     }
 
@@ -148,9 +147,12 @@ export default function AnalyticsDashboard() {
         const rawTitle = parts[i].trim()
         const content = parts[i + 1].trim()
 
-        // Extract emoji and clean title, then map to icons
-        const emojiMatch = rawTitle.match(/[🎯✅⚠️💡⭐]/)?.[0] || '💡'
-        const cleanTitle = rawTitle.replace(/[🎯✅⚠️💡⭐]/g, '').trim().replace(/^:/, '').trim()
+        // Extract emoji and clean title, then map to icons.
+        // Use alternation (not a character class) because ⚠️ is two codepoints
+        // (U+26A0 + U+FE0F variation selector); putting it inside [...] triggers
+        // no-misleading-character-class and matches incorrectly without the /u flag.
+        const emojiMatch = rawTitle.match(/🎯|✅|⚠️|💡|⭐/u)?.[0] || '💡'
+        const cleanTitle = rawTitle.replace(/🎯|✅|⚠️|💡|⭐/gu, '').trim().replace(/^:/, '').trim()
 
         // Map emojis to Lucide icons
         let iconComponent = Target // default

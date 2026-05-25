@@ -318,12 +318,12 @@ export default function RegisterForm({ onRegister, onSwitchToLogin, error, isFir
             {oidcLoading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Connecting to PocketID...
+                Redirecting to sign-up...
               </>
             ) : (
               <>
                 <KeyRound className="mr-2 h-4 w-4" />
-                Sign up with PocketID
+                Sign up with Single Sign-On
               </>
             )}
           </Button>

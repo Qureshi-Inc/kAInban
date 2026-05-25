@@ -102,7 +102,15 @@ const useAppStore = create((set, get) => ({
 
   logout: async() => {
     try {
-      await apiService.logout()
+      const result = await apiService.logout()
+      // If the server returned an IdP end_session URL, navigate there FIRST
+      // so the browser starts unloading immediately. Clearing zustand state
+      // before the redirect causes a brief flash of AuthPage. The state will
+      // be reset on the next page load anyway (no session = AuthPage).
+      if (result && result.redirectUrl) {
+        window.location.href = result.redirectUrl
+        return
+      }
       set({
         user: null,
         currentProject: null,

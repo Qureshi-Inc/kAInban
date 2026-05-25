@@ -4,6 +4,19 @@ import React, { useState, useEffect } from 'react'
 import useAppStore from '../stores/useAppStore'
 import { Button } from './ui/button'
 
+// Map an OIDC issuer URL to a human label. Falls back to the hostname for
+// unknown issuers, then to "SSO" if the URL fails to parse.
+function oidcProviderLabel(issuer) {
+  if (!issuer) {return 'SSO'}
+  if (issuer.includes('auth.kainban.com')) {return 'Zitadel'}
+  if (issuer.includes('login.qureshi.io')) {return 'PocketID (legacy)'}
+  try {
+    return new URL(issuer).hostname
+  } catch (_e) {
+    return 'SSO'
+  }
+}
+
 export default function UserManagement() {
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
@@ -49,7 +62,7 @@ This will PERMANENTLY DELETE ALL of their data:
 • All meeting summaries and notes
 • All personal settings and preferences
 
-This action cannot be undone and the user's PocketID account will remain intact (they can create a new account if needed).
+This action cannot be undone. Their identity-provider account remains intact - they can create a new account in the app if needed.
 
 Type "DELETE" to confirm:`
 
@@ -158,7 +171,9 @@ Type "DELETE" to confirm:`
                   {u.auth_provider === 'oidc' ? (
                     <>
                       <Key className="h-3 w-3 text-blue-500" />
-                      <span className="text-blue-600 dark:text-blue-400">PocketID</span>
+                      <span className="text-blue-600 dark:text-blue-400">
+                        {oidcProviderLabel(u.oidc_issuer)}
+                      </span>
                     </>
                   ) : (
                     <>
@@ -270,7 +285,7 @@ Type "DELETE" to confirm:`
                         <>
                           <Key className="h-4 w-4 text-blue-500" />
                           <span className="text-sm font-medium text-blue-600 dark:text-blue-400">
-                            PocketID
+                            {oidcProviderLabel(u.oidc_issuer)}
                           </span>
                         </>
                       ) : (
