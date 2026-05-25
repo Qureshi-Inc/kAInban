@@ -16,6 +16,31 @@ import RegisterForm from './RegisterForm'
  * receive 410 errors. UI fallback is intentionally always available so a
  * visual rollback is one URL away.
  */
+// Map raw OIDC errors (often opaque strings from openid-client or Zitadel)
+// to user-friendly messages. Anything we don't recognize falls through with
+// a generic prefix so the raw text is still available for support but doesn't
+// dominate the UI.
+function friendlyOidcError(raw) {
+  if (!raw) {return ''}
+  const s = String(raw).toLowerCase()
+  if (s.includes('invalid_grant') || s.includes('expired')) {
+    return 'Your sign-in link expired. Please try signing in again.'
+  }
+  if (s.includes('access_denied') || s.includes('user cancelled')) {
+    return 'Sign-in was cancelled.'
+  }
+  if (s.includes('state argument') || s.includes('invalid oidc session')) {
+    return 'Sign-in session expired. Please try again.'
+  }
+  if (s.includes('nonce')) {
+    return 'Sign-in verification failed. Please try again.'
+  }
+  if (s.includes('not enabled') || s.includes('not configured')) {
+    return 'Sign-in is temporarily unavailable. Please contact support.'
+  }
+  return `Sign-in failed: ${raw}`
+}
+
 export default function AuthPage({ onAuthSuccess }) {
   const [oidcError, setOidcError] = useState('')
   const [showLocal, setShowLocal] = useState(false)
@@ -25,7 +50,7 @@ export default function AuthPage({ onAuthSuccess }) {
     const params = new URLSearchParams(window.location.search)
     const oidcErr = params.get('oidc_error')
     if (oidcErr) {
-      setOidcError(oidcErr)
+      setOidcError(friendlyOidcError(oidcErr))
     }
     if (params.get('local') === '1') {
       setShowLocal(true)

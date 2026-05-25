@@ -103,6 +103,14 @@ const useAppStore = create((set, get) => ({
   logout: async() => {
     try {
       const result = await apiService.logout()
+      // If the server returned an IdP end_session URL, navigate there FIRST
+      // so the browser starts unloading immediately. Clearing zustand state
+      // before the redirect causes a brief flash of AuthPage. The state will
+      // be reset on the next page load anyway (no session = AuthPage).
+      if (result && result.redirectUrl) {
+        window.location.href = result.redirectUrl
+        return
+      }
       set({
         user: null,
         currentProject: null,
@@ -110,12 +118,6 @@ const useAppStore = create((set, get) => ({
         tasks: [],
         meetings: []
       })
-      // If the server returned a Zitadel end_session URL, navigate there so
-      // the user is logged out of the IdP too (otherwise they'd be re-logged-in
-      // automatically on the next "Sign in" click).
-      if (result && result.redirectUrl) {
-        window.location.href = result.redirectUrl
-      }
     } catch (error) {
       console.error('[Store] Logout error:', error)
     }
