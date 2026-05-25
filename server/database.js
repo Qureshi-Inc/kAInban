@@ -1319,6 +1319,17 @@ export const getUserByEmail = email => {
   return stmt.get(email)
 }
 
+// Multi-tenant lookup: scope email uniqueness to a single tenant so the
+// same email can exist (separately) in different tenants. Required by the
+// invite-create flow which validates a tenant-scoped duplicate before
+// minting an invite token.
+export const getUserByEmailAndTenant = (email, tenantId) => {
+  const stmt = db.prepare(
+    'SELECT * FROM users WHERE email = ? AND tenant_id = ? AND active = 1'
+  )
+  return stmt.get(email, tenantId)
+}
+
 export const getUserByOIDC = (issuer, sub) => {
   const stmt = db.prepare(
     'SELECT * FROM users WHERE oidc_issuer = ? AND oidc_sub = ? AND active = 1'
