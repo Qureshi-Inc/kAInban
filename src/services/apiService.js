@@ -188,6 +188,22 @@ class ApiService {
     }
   }
 
+  // Admin-only. Returns the env-driven OIDC config for display in Settings.
+  async getOIDCConfig() {
+    try {
+      const response = await fetch(`${API_URL}/auth/oidc/config`, {
+        credentials: 'include'
+      })
+      if (!response.ok) {
+        throw new Error('Failed to get OIDC config')
+      }
+      return await response.json()
+    } catch (error) {
+      console.error('[API] Get OIDC config error:', error)
+      return { enabled: false, readonly: true }
+    }
+  }
+
   // Returns the URL the caller should navigate to in order to start the OIDC
   // hosted-login flow. The endpoint responds with a 302 to the Zitadel
   // authorize URL; navigating to it from the browser preserves the session

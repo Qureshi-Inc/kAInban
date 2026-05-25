@@ -649,9 +649,16 @@ app.get('/api/auth/oidc/config', localAuth.requireAuth, (req, res) => {
   if (req.session.user.role !== 'admin') {
     return res.status(403).json({ error: 'Admin access required' })
   }
+  // PKCE public client - clientId is non-sensitive (visible in browser
+  // during the authorize redirect). No client_secret to expose.
   res.json({
     enabled: oidcAuth.isOIDCEnabled(),
+    provider: 'zitadel',
     issuer: process.env.ZITADEL_ISSUER || null,
+    clientId: process.env.ZITADEL_CLIENT_ID || null,
+    callbackUrl: process.env.OIDC_CALLBACK_URL || null,
+    bootstrapAdminEmails: (process.env.ZITADEL_BOOTSTRAP_ADMIN_EMAILS || '')
+      .split(',').map(s => s.trim()).filter(Boolean),
     readonly: true
   })
 })
