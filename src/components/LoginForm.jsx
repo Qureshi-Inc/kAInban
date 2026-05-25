@@ -148,12 +148,12 @@ export default function LoginForm({ onLogin, onSwitchToRegister, error }) {
             {oidcLoading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Connecting to PocketID...
+                Redirecting to sign-in...
               </>
             ) : (
               <>
                 <KeyRound className="mr-2 h-4 w-4" />
-                Sign in with PocketID
+                Sign in with Single Sign-On
               </>
             )}
           </Button>

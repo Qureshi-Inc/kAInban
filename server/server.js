@@ -234,6 +234,93 @@ const signupLimiter = expressRateLimit({
   legacyHeaders: false
 })
 
+// Local-auth fallback gates. Default off: production routes go through
+// Zitadel hosted login. Set LOCAL_LOGIN_FALLBACK=true (or LOCAL_REGISTER_FALLBACK=true)
+// to re-open the local endpoints during a rollback. They're split so that
+// re-enabling login for an emergency does not also re-open registration.
+const requireLocalLoginFallback = (req, res, next) => {
+  if (process.env.LOCAL_LOGIN_FALLBACK !== 'true') {
+    return res.status(410).json({
+      error: 'Local login is disabled. Use /api/auth/oidc/login (Zitadel).'
+    })
+  }
+  next()
+}
+const requireLocalRegisterFallback = (req, res, next) => {
+  if (process.env.LOCAL_REGISTER_FALLBACK !== 'true') {
+    return res.status(410).json({
+      error: 'Local registration is disabled. Sign up via Zitadel hosted UI.'
+    })
+  }
+  next()
+}
+
+// OIDC token refresh middleware. Runs before authenticated routes; if the
+// session's access token is within 5 minutes of expiry, refresh transparently
+// using the refresh token. A process-local Map<sessionID, Promise> mutex
+// ensures concurrent requests for the same session collapse onto one refresh
+// (Zitadel rotates refresh tokens, so racing refreshes invalidate each other).
+//
+// Failures fall through with the existing access token rather than 401-ing -
+// transient blips shouldn't log users out. The next request will retry.
+const refreshLocks = new Map()
+
+app.use(async(req, res, next) => {
+  try {
+    const oidcSession = req.session?.oidc
+    if (!oidcSession?.refresh_token || !oidcSession?.expires_at) {
+      return next()
+    }
+    const nowSec = Math.floor(Date.now() / 1000)
+    const marginSec = 5 * 60
+    if (oidcSession.expires_at - nowSec > marginSec) {
+      return next()
+    }
+
+    const sid = req.sessionID
+    if (refreshLocks.has(sid)) {
+      try {
+        await refreshLocks.get(sid)
+      } catch (_e) {
+        // Inflight refresh failed; we'll fall through with current token.
+      }
+      // Reload session so this request sees the refreshed tokens.
+      return req.session.reload(reloadErr => {
+        if (reloadErr) {
+          console.warn('[OIDC] session.reload after refresh failed:', reloadErr.message)
+        }
+        next()
+      })
+    }
+
+    const refreshPromise = (async() => {
+      console.log('[OIDC] Refreshing access token for session', sid)
+      const newTokenSet = await oidcAuth.refreshTokenSet(oidcSession.refresh_token)
+      req.session.oidc = {
+        id_token: newTokenSet.id_token || oidcSession.id_token,
+        refresh_token: newTokenSet.refresh_token || oidcSession.refresh_token,
+        expires_at: newTokenSet.expires_at || oidcSession.expires_at,
+        refreshing: false
+      }
+      await new Promise((resolve, reject) => {
+        req.session.save(err => (err ? reject(err) : resolve()))
+      })
+    })()
+    refreshLocks.set(sid, refreshPromise)
+    try {
+      await refreshPromise
+    } catch (err) {
+      console.warn('[OIDC] token refresh failed (falling through):', err.message)
+    } finally {
+      refreshLocks.delete(sid)
+    }
+    next()
+  } catch (err) {
+    console.warn('[OIDC] refresh middleware error (falling through):', err.message)
+    next()
+  }
+})
+
 // Note: CSRF token endpoint disabled for MVP
 // app.get('/api/csrf-token', (req, res) => {
 //   res.json({ csrfToken: 'disabled-for-mvp' })
@@ -242,6 +329,28 @@ const signupLimiter = expressRateLimit({
 // Health check
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', database: 'connected' })
+})
+
+// Separate OIDC dependency healthcheck. Kept off the main /health so a
+// Zitadel blip doesn't take api out of the LB pool for non-auth traffic.
+app.get('/health/oidc', async(req, res) => {
+  if (!oidcAuth.isOIDCEnabled()) {
+    return res.status(503).json({ status: 'disabled', reason: 'OIDC env not configured' })
+  }
+  const issuer = process.env.ZITADEL_ISSUER
+  const ctrl = new AbortController()
+  const timeout = setTimeout(() => ctrl.abort(), 2000)
+  try {
+    const r = await fetch(`${issuer}/.well-known/openid-configuration`, { signal: ctrl.signal })
+    clearTimeout(timeout)
+    if (!r.ok) {
+      return res.status(503).json({ status: 'unreachable', http: r.status })
+    }
+    return res.json({ status: 'ok', issuer })
+  } catch (err) {
+    clearTimeout(timeout)
+    return res.status(503).json({ status: 'unreachable', error: err.message })
+  }
 })
 
 // Multi-tenancy configuration endpoint
@@ -302,8 +411,8 @@ app.get('/tenant/:subdomain', async(req, res) => {
   }
 })
 
-// Authentication endpoints
-app.post('/api/auth/register', authLimiter, async(req, res) => {
+// Authentication endpoints (LOCAL FALLBACK ONLY - Zitadel handles registration via hosted UI)
+app.post('/api/auth/register', requireLocalRegisterFallback, authLimiter, async(req, res) => {
   try {
     const { email, password, name, tenantName, subdomain, tier, recaptchaToken } = req.body
 
@@ -373,7 +482,11 @@ app.post('/api/auth/register', authLimiter, async(req, res) => {
       user = await localAuth.registerUser({ email, password, name })
     }
 
-    // Create session
+    // Regenerate session ID before assigning user to prevent session fixation
+    await new Promise((resolve, reject) => {
+      req.session.regenerate(err => (err ? reject(err) : resolve()))
+    })
+
     req.session.user = localAuth.formatUserForSession(user)
 
     // Explicitly save session
@@ -408,15 +521,12 @@ app.post('/api/auth/register', authLimiter, async(req, res) => {
   }
 })
 
-app.post('/api/auth/login', authLimiter, async(req, res) => {
+app.post('/api/auth/login', requireLocalLoginFallback, authLimiter, async(req, res) => {
   try {
     const { email, password } = req.body
 
     // Authenticate user
     const user = await localAuth.authenticateUser(email, password)
-
-    // Create session
-    req.session.user = localAuth.formatUserForSession(user)
 
     // Get user's tenant information for redirect
     let userTenant = null
@@ -428,6 +538,13 @@ app.post('/api/auth/login', authLimiter, async(req, res) => {
         console.error('[Auth] Error getting user tenant:', error)
       }
     }
+
+    // Regenerate session ID before assigning user to prevent session fixation
+    await new Promise((resolve, reject) => {
+      req.session.regenerate(err => (err ? reject(err) : resolve()))
+    })
+
+    req.session.user = localAuth.formatUserForSession(user)
 
     // Explicitly save session
     req.session.save(err => {
@@ -457,15 +574,39 @@ app.post('/api/auth/login', authLimiter, async(req, res) => {
   }
 })
 
-app.post('/api/auth/logout', (req, res) => {
+app.post('/api/auth/logout', async(req, res) => {
   const userEmail = req.session?.user?.email
+  const oidcSession = req.session?.oidc
+
+  // Best-effort revocation at Zitadel BEFORE destroying local session, so the
+  // refresh token can't be used even if the SQLite session DB is later leaked.
+  if (oidcSession?.refresh_token) {
+    await oidcAuth.revokeRefreshToken(oidcSession.refresh_token)
+  }
+
+  // Compute the Zitadel end_session URL while id_token is still in scope.
+  let endSessionUrl = null
+  if (oidcSession?.id_token && oidcAuth.isOIDCEnabled()) {
+    try {
+      endSessionUrl = await oidcAuth.getEndSessionUrl({
+        idTokenHint: oidcSession.id_token,
+        postLogoutRedirectUri: process.env.APP_URL || undefined
+      })
+    } catch (err) {
+      console.warn('[Auth] getEndSessionUrl failed (continuing with local logout):', err.message)
+    }
+  }
+
   req.session.destroy(err => {
     if (err) {
       console.error('[Auth] Logout error:', err)
       return res.status(500).json({ error: 'Failed to logout' })
     }
-    res.clearCookie('notes.sid') // Match the custom session cookie name
+    res.clearCookie('notes.sid')
     console.log('[Auth] User logged out:', userEmail)
+    if (endSessionUrl) {
+      return res.json({ success: true, redirectUrl: endSessionUrl })
+    }
     res.json({ success: true })
   })
 })
@@ -500,75 +641,56 @@ app.get('/api/auth/status', (req, res) => {
   })
 })
 
-// OIDC Authentication endpoints
+// OIDC Authentication endpoints (Zitadel)
+//
+// Config is now env-driven (ZITADEL_ISSUER, ZITADEL_CLIENT_ID, OIDC_CALLBACK_URL)
+// rather than DB-stored, so deploy is atomic and there's no admin-UI step.
+// The /config endpoint is retained for back-compat but reports readonly.
 app.get('/api/auth/oidc/config', localAuth.requireAuth, (req, res) => {
-  // Only admins can check OIDC config
   if (req.session.user.role !== 'admin') {
     return res.status(403).json({ error: 'Admin access required' })
   }
-
-  const settings = db.getSettings(req.session.user.id)
-  const enabled = oidcAuth.isOIDCEnabled(settings)
-
+  // PKCE public client - clientId is non-sensitive (visible in browser
+  // during the authorize redirect). No client_secret to expose.
   res.json({
-    enabled,
-    issuer: settings?.oidc_issuer || 'https://pocketid.app'
+    enabled: oidcAuth.isOIDCEnabled(),
+    provider: 'zitadel',
+    issuer: process.env.ZITADEL_ISSUER || null,
+    clientId: process.env.ZITADEL_CLIENT_ID || null,
+    callbackUrl: process.env.OIDC_CALLBACK_URL || null,
+    bootstrapAdminEmails: (process.env.ZITADEL_BOOTSTRAP_ADMIN_EMAILS || '')
+      .split(',').map(s => s.trim()).filter(Boolean),
+    readonly: true
   })
 })
 
 app.get('/api/auth/oidc/status', (req, res) => {
-  // Check if OIDC is enabled (read from system-wide settings)
-  const systemSettings = db.getSystemSettings()
-
-  console.log('[OIDC Status] System settings:', {
-    oidc_enabled: systemSettings?.oidc_enabled,
-    has_client_id: !!systemSettings?.oidc_client_id,
-    has_client_secret: !!systemSettings?.oidc_client_secret,
-    has_issuer: !!systemSettings?.oidc_issuer,
-    has_callback_url: !!systemSettings?.oidc_callback_url
-  })
-
-  const enabled = oidcAuth.isOIDCEnabled(systemSettings)
-  console.log('[OIDC Status] isOIDCEnabled result:', enabled)
-
   res.json({
-    enabled,
-    issuer: systemSettings?.oidc_issuer || 'https://pocketid.app'
+    enabled: oidcAuth.isOIDCEnabled(),
+    issuer: process.env.ZITADEL_ISSUER || null
   })
 })
 
-app.get('/api/auth/oidc/login', async(req, res) => {
+// 302-redirect directly to Zitadel hosted login. Frontend is a plain
+// <a href="/api/auth/oidc/login"> - no fetch/JSON intermediary.
+app.get('/api/auth/oidc/login', authLimiter, async(req, res) => {
   try {
-    // Get system settings to check if OIDC is enabled
-    const settings = db.getSystemSettings()
-
-    if (!oidcAuth.isOIDCEnabled(settings)) {
+    if (!oidcAuth.isOIDCEnabled()) {
       return res.status(400).json({ error: 'OIDC is not enabled' })
     }
 
-    // Initialize OIDC client
-    await oidcAuth.initializeOIDC({
-      oidcEnabled: settings.oidc_enabled,
-      oidcClientId: settings.oidc_client_id,
-      oidcClientSecret: settings.oidc_client_secret,
-      oidcIssuer: settings.oidc_issuer,
-      oidcCallbackUrl: settings.oidc_callback_url
-    })
+    const { authUrl, codeVerifier, state, nonce } = await oidcAuth.getAuthorizationUrl()
 
-    // Generate authorization URL
-    const { authUrl, codeVerifier, state } =
-      oidcAuth.getAuthorizationUrl(settings)
-
-    // Store code verifier and state in session
     req.session.oidcCodeVerifier = codeVerifier
     req.session.oidcState = state
+    req.session.oidcNonce = nonce
 
     req.session.save(err => {
       if (err) {
         console.error('[OIDC] Session save error:', err)
         return res.status(500).json({ error: 'Failed to create OIDC session' })
       }
-      res.json({ authUrl })
+      res.redirect(authUrl)
     })
   } catch (error) {
     console.error('[OIDC] Login error:', error)
@@ -576,85 +698,63 @@ app.get('/api/auth/oidc/login', async(req, res) => {
   }
 })
 
-app.get('/api/auth/oidc/callback', async(req, res) => {
+app.get('/api/auth/oidc/callback', authLimiter, async(req, res) => {
+  const frontendUrl = process.env.APP_URL || '/'
+  const errorRedirect = msg =>
+    res.redirect(`${frontendUrl}?oidc_error=${encodeURIComponent(msg)}`)
+
   try {
     const codeVerifier = req.session.oidcCodeVerifier
     const state = req.session.oidcState
+    const nonce = req.session.oidcNonce
 
     if (!codeVerifier || !state) {
-      return res.status(400).json({ error: 'Invalid OIDC session' })
+      return errorRedirect('Invalid OIDC session - try signing in again')
+    }
+    if (!oidcAuth.isOIDCEnabled()) {
+      return errorRedirect('OIDC is not enabled')
     }
 
-    // Get admin settings
-    const allUsers = db.getAllUsers()
-    const adminUser = allUsers.find(u => u.role === 'admin' && u.active === 1)
-
-    if (!adminUser) {
-      return res.status(400).json({ error: 'OIDC not configured' })
-    }
-
-    const settings = db.getSettings(adminUser.id)
-
-    // Re-initialize OIDC client (in case it wasn't kept in memory)
-    await oidcAuth.initializeOIDC({
-      oidcEnabled: settings.oidc_enabled,
-      oidcClientId: settings.oidc_client_id,
-      oidcClientSecret: settings.oidc_client_secret,
-      oidcIssuer: settings.oidc_issuer,
-      oidcCallbackUrl: settings.oidc_callback_url
-    })
-
-    // Handle callback
     const callbackUrl = req.protocol + '://' + req.get('host') + req.originalUrl
-    const { userinfo } = await oidcAuth.handleCallback(
+    const { tokenSet, userinfo } = await oidcAuth.handleCallback(
       callbackUrl,
       codeVerifier,
-      state
+      state,
+      nonce
     )
 
-    // Find or create user
-    const user = oidcAuth.findOrCreateOIDCUser(userinfo, settings.oidc_issuer)
+    const issuer = process.env.ZITADEL_ISSUER
+    const user = oidcAuth.findOrCreateOIDCUser(userinfo, issuer)
 
-    // Create session
+    // Regenerate session ID before assigning user (prevents session fixation).
+    await new Promise((resolve, reject) => {
+      req.session.regenerate(err => (err ? reject(err) : resolve()))
+    })
+
     req.session.user = oidcAuth.formatUserForSession(user)
-    delete req.session.oidcCodeVerifier
-    delete req.session.oidcState
+    req.session.oidc = {
+      id_token: tokenSet.id_token,
+      refresh_token: tokenSet.refresh_token || null,
+      expires_at: tokenSet.expires_at || null,
+      refreshing: false
+    }
 
     req.session.save(err => {
       if (err) {
         console.error('[OIDC] Session save error:', err)
-        return res.status(500).json({ error: 'Failed to create session' })
+        return errorRedirect('Failed to create session')
       }
-
       console.log('[OIDC] User logged in:', user.email)
-
-      // Redirect to frontend with success
-      const frontendUrl = process.env.APP_URL
-      if (!frontendUrl) {
-        console.error('[OIDC] Missing APP_URL environment variable')
-        return res
-          .status(500)
-          .json({ error: 'Server configuration error: Missing APP_URL' })
-      }
       res.redirect(`${frontendUrl}?oidc_success=true`)
     })
   } catch (error) {
     console.error('[OIDC] Callback error:', error)
-    const frontendUrl = process.env.APP_URL
-    if (!frontendUrl) {
-      console.error('[OIDC] Missing APP_URL environment variable')
-      return res
-        .status(500)
-        .json({ error: 'Server configuration error: Missing APP_URL' })
-    }
-    res.redirect(
-      `${frontendUrl}?oidc_error=${encodeURIComponent(error.message)}`
-    )
+    return errorRedirect(error.message || 'OIDC callback failed')
   }
 })
 
 // PocketID Signup endpoints (Landing Page Integration)
-app.post('/api/auth/create-signup-intent', signupLimiter, async(req, res) => {
+app.post('/api/auth/create-signup-intent', requireLocalRegisterFallback, signupLimiter, async(req, res) => {
   try {
     const { email, name, source } = req.body
 
@@ -682,6 +782,7 @@ app.post('/api/auth/create-signup-intent', signupLimiter, async(req, res) => {
 
 app.post(
   '/api/auth/send-pocketid-invitation',
+  requireLocalRegisterFallback,
   signupLimiter,
   async(req, res) => {
     try {
@@ -714,7 +815,7 @@ app.post(
   }
 )
 
-app.post('/api/auth/send-magic-link', signupLimiter, async(req, res) => {
+app.post('/api/auth/send-magic-link', requireLocalRegisterFallback, signupLimiter, async(req, res) => {
   try {
     const { email, name } = req.body
 
@@ -777,7 +878,7 @@ app.post('/api/auth/send-magic-link', signupLimiter, async(req, res) => {
 })
 
 // Get signup intent status (for tracking)
-app.get('/api/auth/signup-intent/:intentId', (req, res) => {
+app.get('/api/auth/signup-intent/:intentId', requireLocalRegisterFallback, (req, res) => {
   try {
     const { intentId } = req.params
     const intent = pocketIdIntegration.getSignupIntent(intentId)
@@ -803,7 +904,7 @@ app.get('/api/auth/signup-intent/:intentId', (req, res) => {
 })
 
 // Invite endpoints
-app.post('/api/invites/create', localAuth.requireAuth, attachTenantContext, async (req, res) => {
+app.post('/api/invites/create', localAuth.requireAuth, attachTenantContext, async(req, res) => {
   try {
     const { email, role = 'user' } = req.body
     const userId = req.session.user.id
@@ -865,7 +966,7 @@ app.post('/api/invites/create', localAuth.requireAuth, attachTenantContext, asyn
   }
 })
 
-app.get('/api/invites/validate/:token', async (req, res) => {
+app.get('/api/invites/validate/:token', async(req, res) => {
   try {
     const { token } = req.params
     const inviteData = db.getInviteTokenByToken(token)
@@ -888,7 +989,7 @@ app.get('/api/invites/validate/:token', async (req, res) => {
   }
 })
 
-app.post('/api/invites/accept/:token', async (req, res) => {
+app.post('/api/invites/accept/:token', async(req, res) => {
   try {
     const { token } = req.params
     const { name, email, password } = req.body
@@ -2376,7 +2477,7 @@ app.get('/api/admin/metrics/dashboard', requireAdmin, (req, res) => {
       userGrowth: recentTasks.count > 0 ? Math.round((recentTasks.count / taskCount.count) * 100) : 0,
       tenantGrowth: recentMeetings.count > 0 ? Math.round((recentMeetings.count / meetingCount.count) * 100) : 0,
       revenueGrowth: 15.7, // Mock growth
-      activityGrowth: recentTasks.count > 0 ? Math.round((recentTasks.count / taskCount.count) * 100) : 0,
+      activityGrowth: recentTasks.count > 0 ? Math.round((recentTasks.count / taskCount.count) * 100) : 0
     })
   } catch (error) {
     console.error('[Admin API] Dashboard metrics error:', error)

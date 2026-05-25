@@ -27,13 +27,10 @@ export default function SettingsDialog() {
     whisperDeployment: 'whisper-1',
     gptDeployment: 'gpt-4',
     openaiWhisperModel: 'whisper-1',
-    openaiGptModel: 'gpt-4o',
-    oidcEnabled: false,
-    oidcClientId: '',
-    oidcClientSecret: '',
-    oidcIssuer: 'https://pocketid.app',
-    oidcCallbackUrl: ''
+    openaiGptModel: 'gpt-4o'
   })
+
+  const [oidcConfig, setOidcConfig] = useState(null)
 
   const [userFormData, setUserFormData] = useState({
     name: '',
@@ -59,12 +56,7 @@ export default function SettingsDialog() {
         whisperDeployment: settings.whisperDeployment || 'whisper-1',
         gptDeployment: settings.gptDeployment || 'gpt-4',
         openaiWhisperModel: settings.openaiWhisperModel || 'whisper-1',
-        openaiGptModel: settings.openaiGptModel || 'gpt-4o',
-        oidcEnabled: settings.oidcEnabled || false,
-        oidcClientId: settings.oidcClientId || '',
-        oidcClientSecret: settings.oidcClientSecret || '',
-        oidcIssuer: settings.oidcIssuer || 'https://pocketid.app',
-        oidcCallbackUrl: settings.oidcCallbackUrl || ''
+        openaiGptModel: settings.openaiGptModel || 'gpt-4o'
       })
       setUserFormData({
         name: user?.name || '',
@@ -76,6 +68,8 @@ export default function SettingsDialog() {
 
       // Fetch tenant information if multi-tenancy is enabled
       fetchTenantInfo()
+      // Fetch OIDC config (env-driven, read-only) for the Authentication tab
+      fetchOidcConfig()
     }
   }, [isSettingsOpen, settings, user])
 
@@ -86,6 +80,16 @@ export default function SettingsDialog() {
     } catch (error) {
       console.error('[Settings] Failed to fetch tenant info:', error)
       setTenantInfo(null)
+    }
+  }
+
+  const fetchOidcConfig = async() => {
+    try {
+      const cfg = await apiService.getOIDCConfig()
+      setOidcConfig(cfg)
+    } catch (error) {
+      console.error('[Settings] Failed to fetch OIDC config:', error)
+      setOidcConfig(null)
     }
   }
 
@@ -668,130 +672,79 @@ export default function SettingsDialog() {
           {isAdmin && (
             <TabsContent value="auth" className="space-y-4 px-1">
               <div className="space-y-3 mb-6">
-                <h3 className="text-lg font-semibold">PocketID Authentication (OIDC)</h3>
+                <h3 className="text-lg font-semibold">Identity Provider</h3>
                 <p className="text-sm text-muted-foreground">
-                  Configure OpenID Connect authentication to allow users to sign in with PocketID
+                  OIDC authentication is configured via environment variables on the
+                  server (atomic with deploy). This tab is read-only; to change provider
+                  config, update <code className="px-1 py-0.5 rounded bg-muted text-xs">.env</code> and restart the API container.
                 </p>
               </div>
 
-              <div className="space-y-4 p-4 bg-muted/30 rounded-lg">
-                <div className="flex items-start sm:items-center gap-3">
-                  <input
-                    type="checkbox"
-                    id="oidcEnabled"
-                    checked={aiFormData.oidcEnabled}
-                    onChange={(e) => handleAiInputChange('oidcEnabled', e.target.checked)}
-                    className="w-4 h-4 text-primary bg-gray-100 border-gray-300 rounded focus:ring-primary focus:ring-2 mt-0.5 sm:mt-0"
+              <div className="space-y-4 p-4 bg-muted/30 rounded-lg border">
+                <div className="flex items-center gap-3">
+                  <span
+                    className={`inline-block w-2.5 h-2.5 rounded-full ${
+                      oidcConfig?.enabled ? 'bg-green-500' : 'bg-gray-400'
+                    }`}
+                    aria-hidden="true"
                   />
-                  <div className="flex-1">
-                    <label htmlFor="oidcEnabled" className="text-sm font-medium cursor-pointer block">
-                      Enable PocketID Authentication
-                    </label>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      When enabled, users will see a "Sign in with PocketID" button on the login page
-                    </p>
-                  </div>
+                  <span className="text-sm font-medium">
+                    {oidcConfig?.enabled ? 'OIDC enabled' : 'OIDC disabled'}
+                  </span>
+                  {oidcConfig?.provider && (
+                    <span className="ml-auto text-xs uppercase tracking-wide px-2 py-0.5 rounded bg-primary/10 text-primary">
+                      {oidcConfig.provider}
+                    </span>
+                  )}
                 </div>
+
+                <dl className="text-sm grid grid-cols-1 gap-3 mt-2">
+                  <div>
+                    <dt className="text-xs text-muted-foreground mb-0.5">Issuer</dt>
+                    <dd className="font-mono text-xs break-all p-2 rounded bg-background border">
+                      {oidcConfig?.issuer || <em className="text-muted-foreground">not configured</em>}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-muted-foreground mb-0.5">Client ID</dt>
+                    <dd className="font-mono text-xs break-all p-2 rounded bg-background border">
+                      {oidcConfig?.clientId || <em className="text-muted-foreground">not configured</em>}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-muted-foreground mb-0.5">Callback URL</dt>
+                    <dd className="font-mono text-xs break-all p-2 rounded bg-background border">
+                      {oidcConfig?.callbackUrl || <em className="text-muted-foreground">not configured</em>}
+                    </dd>
+                  </div>
+                  {oidcConfig?.bootstrapAdminEmails?.length > 0 && (
+                    <div>
+                      <dt className="text-xs text-muted-foreground mb-0.5">
+                        Bootstrap admin emails{' '}
+                        <span className="text-muted-foreground/70">(promoted only when no admin exists)</span>
+                      </dt>
+                      <dd className="font-mono text-xs break-all p-2 rounded bg-background border">
+                        {oidcConfig.bootstrapAdminEmails.join(', ')}
+                      </dd>
+                    </div>
+                  )}
+                </dl>
               </div>
 
-              {aiFormData.oidcEnabled && (
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">
-                      OIDC Issuer URL
-                    </label>
-                    <Input
-                      type="url"
-                      placeholder="https://pocketid.app"
-                      value={aiFormData.oidcIssuer}
-                      onChange={(e) => handleAiInputChange('oidcIssuer', e.target.value)}
-                      className="w-full text-sm"
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      The URL of your OpenID Connect provider (default: https://pocketid.app)
-                    </p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">
-                      Client ID *
-                    </label>
-                    <Input
-                      placeholder="Your PocketID Client ID"
-                      value={aiFormData.oidcClientId}
-                      onChange={(e) => handleAiInputChange('oidcClientId', e.target.value)}
-                      className="w-full"
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      The client ID provided by PocketID for your application
-                    </p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">
-                      Client Secret *
-                    </label>
-                    <Input
-                      type="password"
-                      placeholder="Your PocketID Client Secret"
-                      value={aiFormData.oidcClientSecret}
-                      onChange={(e) => handleAiInputChange('oidcClientSecret', e.target.value)}
-                      className="w-full"
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      The client secret provided by PocketID (keep this secure)
-                    </p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">
-                      Callback URL *
-                    </label>
-                    <Input
-                      type="url"
-                      placeholder="https://notes.rodeomasjid.org/api/auth/oidc/callback"
-                      value={aiFormData.oidcCallbackUrl}
-                      onChange={(e) => handleAiInputChange('oidcCallbackUrl', e.target.value)}
-                      className="w-full text-sm"
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      This must exactly match the callback URL registered in PocketID
-                    </p>
-                  </div>
-
-                  <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-                    <h4 className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-3">
-                      Setup Instructions
-                    </h4>
-                    <ol className="text-xs text-blue-800 dark:text-blue-200 space-y-2 list-decimal list-inside">
-                      <li>Create an application in PocketID</li>
-                      <li className="break-all">Set the callback URL to: <code className="bg-blue-100 dark:bg-blue-950 px-1 py-0.5 rounded text-xs">https://notes.rodeomasjid.org/api/auth/oidc/callback</code></li>
-                      <li>Copy the Client ID and Client Secret from PocketID</li>
-                      <li>Paste them in the fields above</li>
-                      <li>Enable PocketID Authentication and save</li>
-                    </ol>
-                  </div>
-                </div>
-              )}
-
-              <div className="flex flex-col sm:flex-row justify-end gap-3 pt-6">
-                <Button
-                  variant="outline"
-                  onClick={() => setSettingsOpen(false)}
-                  className="w-full sm:w-auto"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  onClick={handleSaveAiSettings}
-                  className="w-full sm:w-auto"
-                >
-                  Save Authentication Settings
-                </Button>
+              <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                <h4 className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-2">
+                  How sign-in works
+                </h4>
+                <ul className="text-xs text-blue-800 dark:text-blue-200 space-y-1 list-disc list-inside">
+                  <li>Users click <strong>Sign in</strong> and are redirected to the issuer&apos;s hosted UI</li>
+                  <li>Registration, email verification, and password reset all happen at the issuer</li>
+                  <li>On callback, accounts are matched by <code>(oidc_issuer, oidc_sub)</code> or linked by verified email</li>
+                  <li>Logout revokes the refresh token and signs out at the issuer (SSO)</li>
+                </ul>
               </div>
 
               <div className="text-xs text-muted-foreground mt-4">
-                * Required fields when PocketID authentication is enabled
+                Env vars: <code>ZITADEL_ISSUER</code>, <code>ZITADEL_CLIENT_ID</code>, <code>OIDC_CALLBACK_URL</code>, <code>ZITADEL_BOOTSTRAP_ADMIN_EMAILS</code>
               </div>
             </TabsContent>
           )}

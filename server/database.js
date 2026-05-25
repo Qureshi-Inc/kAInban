@@ -1,3 +1,4 @@
+import crypto from 'crypto'
 import fs from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
@@ -1523,6 +1524,45 @@ export const hasUsers = () => {
   )
   const result = stmt.get()
   return result.count > 0
+}
+
+// Count active admin users. Used by the OIDC bootstrap-admin guard so
+// ZITADEL_BOOTSTRAP_ADMIN_EMAILS only ever promotes the very first user
+// when no admin exists yet (true bootstrap, not a permanent backdoor).
+export const getActiveAdminCount = () => {
+  const stmt = db.prepare(
+    "SELECT COUNT(*) as count FROM users WHERE role = 'admin' AND active = 1"
+  )
+  return stmt.get().count
+}
+
+// Default tenant used by the Zitadel-OIDC flow when org-mapping isn't
+// configured. Idempotent: returns the existing row if subdomain='kainban'
+// is already present, otherwise creates it.
+export const getOrCreateDefaultTenant = () => {
+  const existing = db
+    .prepare("SELECT * FROM tenants WHERE subdomain = 'kainban' LIMIT 1")
+    .get()
+  if (existing) {
+    if (existing.settings) {
+      try {
+        existing.settings = JSON.parse(existing.settings)
+      } catch (_e) {
+        existing.settings = {}
+      }
+    }
+    return existing
+  }
+
+  const id = crypto.randomUUID()
+  const settings = JSON.stringify({ created_by: 'oidc_bootstrap' })
+  db.prepare(
+    `INSERT INTO tenants (id, name, subdomain, plan, max_users, settings, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, datetime('now'))`
+  ).run(id, 'KainBan', 'kainban', 'starter', 1000, settings)
+
+  console.log('[Database] Created default tenant kainban (id=', id, ')')
+  return db.prepare('SELECT * FROM tenants WHERE id = ?').get(id)
 }
 
 // Analytics insights caching methods
