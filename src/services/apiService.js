@@ -159,10 +159,17 @@ class ApiService {
       if (!response.ok) {
         throw new Error('Logout failed')
       }
-      return true
+      // Server may return { redirectUrl } pointing to Zitadel end_session URL
+      // for SSO logout. Caller is responsible for navigating to it.
+      try {
+        const data = await response.json()
+        return data || { success: true }
+      } catch (_e) {
+        return { success: true }
+      }
     } catch (error) {
       console.error('[API] Logout error:', error)
-      return false
+      return { success: false, error: error.message }
     }
   }
 
@@ -181,21 +188,12 @@ class ApiService {
     }
   }
 
-  async initiateOIDCLogin() {
-    try {
-      const response = await fetch(`${API_URL}/auth/oidc/login`, {
-        credentials: 'include'
-      })
-      if (!response.ok) {
-        const data = await response.json()
-        throw new Error(data.error || 'Failed to initiate OIDC login')
-      }
-      const data = await response.json()
-      return data.authUrl
-    } catch (error) {
-      console.error('[API] OIDC login error:', error)
-      throw error
-    }
+  // Returns the URL the caller should navigate to in order to start the OIDC
+  // hosted-login flow. The endpoint responds with a 302 to the Zitadel
+  // authorize URL; navigating to it from the browser preserves the session
+  // cookie that holds the PKCE verifier/state/nonce.
+  initiateOIDCLogin() {
+    return `${API_URL}/auth/oidc/login`
   }
 
   // Settings

@@ -102,7 +102,7 @@ const useAppStore = create((set, get) => ({
 
   logout: async() => {
     try {
-      await apiService.logout()
+      const result = await apiService.logout()
       set({
         user: null,
         currentProject: null,
@@ -110,6 +110,12 @@ const useAppStore = create((set, get) => ({
         tasks: [],
         meetings: []
       })
+      // If the server returned a Zitadel end_session URL, navigate there so
+      // the user is logged out of the IdP too (otherwise they'd be re-logged-in
+      // automatically on the next "Sign in" click).
+      if (result && result.redirectUrl) {
+        window.location.href = result.redirectUrl
+      }
     } catch (error) {
       console.error('[Store] Logout error:', error)
     }

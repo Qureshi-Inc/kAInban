@@ -1,186 +1,267 @@
 import { Issuer, generators } from 'openid-client'
 import * as db from './database.js'
 
-let oidcClient = null
-let codeVerifier = null
+// Module-level singletons. The Issuer/Client are immutable once discovered;
+// openid-client refreshes JWKS internally as needed. Caching the discovery
+// Promise (not the resolved value) means concurrent first-callers all await
+// the same in-flight discovery instead of racing.
+let _issuerPromise = null
+let _clientPromise = null
 
-/**
- * Initialize OIDC client with settings from database
- */
-export async function initializeOIDC(settings) {
-  if (!settings.oidcEnabled) {
-    console.log('[OIDC] OIDC is disabled in settings')
-    return null
-  }
+// Set to true the first time we successfully process a callback so we can
+// dump the raw userinfo claims at INFO level once per process lifetime
+// (helps verify what Zitadel actually emits without flooding logs forever).
+let _hasLoggedFirstUserinfo = false
 
-  if (!settings.oidcClientId || !settings.oidcClientSecret || !settings.oidcIssuer || !settings.oidcCallbackUrl) {
-    console.log('[OIDC] Missing required OIDC configuration')
-    return null
-  }
-
-  try {
-    console.log('[OIDC] Discovering issuer:', settings.oidcIssuer)
-    const issuer = await Issuer.discover(settings.oidcIssuer)
-
-    console.log('[OIDC] Issuer discovered:', issuer.metadata.issuer)
-
-    oidcClient = new issuer.Client({
-      client_id: settings.oidcClientId,
-      client_secret: settings.oidcClientSecret,
-      redirect_uris: [settings.oidcCallbackUrl],
-      response_types: ['code']
-    })
-
-    console.log('[OIDC] Client initialized successfully')
-    return oidcClient
-  } catch (error) {
-    console.error('[OIDC] Failed to initialize:', error)
-    return null
-  }
+function readConfigFromEnv() {
+  const issuer = process.env.ZITADEL_ISSUER
+  const clientId = process.env.ZITADEL_CLIENT_ID
+  const callbackUrl = process.env.OIDC_CALLBACK_URL
+  return { issuer, clientId, callbackUrl }
 }
 
-/**
- * Get the authorization URL for OIDC login
- */
-export function getAuthorizationUrl(settings) {
-  if (!oidcClient) {
-    throw new Error('OIDC client not initialized')
-  }
+export function isOIDCEnabled() {
+  const { issuer, clientId, callbackUrl } = readConfigFromEnv()
+  return Boolean(issuer && clientId && callbackUrl)
+}
 
-  codeVerifier = generators.codeVerifier()
+async function getIssuer() {
+  if (_issuerPromise) {return _issuerPromise}
+  const { issuer } = readConfigFromEnv()
+  if (!issuer) {
+    throw new Error('ZITADEL_ISSUER is not configured')
+  }
+  console.log('[OIDC] Discovering issuer:', issuer)
+  _issuerPromise = Issuer.discover(issuer).then(disc => {
+    console.log('[OIDC] Issuer discovered:', disc.metadata.issuer)
+    return disc
+  })
+  return _issuerPromise
+}
+
+async function getClient() {
+  if (_clientPromise) {return _clientPromise}
+  _clientPromise = (async() => {
+    const issuer = await getIssuer()
+    const { clientId, callbackUrl } = readConfigFromEnv()
+    const client = new issuer.Client({
+      client_id: clientId,
+      redirect_uris: [callbackUrl],
+      response_types: ['code'],
+      token_endpoint_auth_method: 'none'
+    })
+    console.log('[OIDC] Public PKCE client initialized for', clientId)
+    return client
+  })().catch(err => {
+    // On failure, clear the cache so subsequent calls retry instead of
+    // returning a permanently-failing promise.
+    _clientPromise = null
+    _issuerPromise = null
+    throw err
+  })
+  return _clientPromise
+}
+
+export async function getAuthorizationUrl() {
+  const client = await getClient()
+  const codeVerifier = generators.codeVerifier()
   const codeChallenge = generators.codeChallenge(codeVerifier)
   const state = generators.state()
+  const nonce = generators.nonce()
 
-  const authUrl = oidcClient.authorizationUrl({
-    scope: 'openid email profile groups',
+  const authUrl = client.authorizationUrl({
+    scope: 'openid email profile offline_access',
     code_challenge: codeChallenge,
     code_challenge_method: 'S256',
-    state: state
+    state,
+    nonce
   })
 
-  return { authUrl, codeVerifier, state }
+  return { authUrl, codeVerifier, state, nonce }
 }
 
-/**
- * Handle OIDC callback and exchange code for tokens
- */
-export async function handleCallback(callbackUrl, storedCodeVerifier, storedState) {
-  if (!oidcClient) {
-    throw new Error('OIDC client not initialized')
-  }
-
-  try {
-    const params = oidcClient.callbackParams(callbackUrl)
-    const tokenSet = await oidcClient.callback(
-      oidcClient.redirect_uris[0],
-      params,
-      {
-        code_verifier: storedCodeVerifier,
-        state: storedState
-      }
-    )
-
-    const userinfo = await oidcClient.userinfo(tokenSet.access_token)
-
-    // Enhanced logging for debugging group issues
-    console.log('[OIDC] Full userinfo received:', JSON.stringify(userinfo, null, 2))
-    console.log('[OIDC] Available userinfo keys:', Object.keys(userinfo))
-    console.log('[OIDC] Groups in userinfo:', userinfo.groups)
-    console.log('[OIDC] Roles in userinfo:', userinfo.roles)
-    console.log('[OIDC] Role in userinfo:', userinfo.role)
-
-    return {
-      tokenSet,
-      userinfo
+export async function handleCallback(
+  callbackUrl,
+  storedCodeVerifier,
+  storedState,
+  storedNonce
+) {
+  const client = await getClient()
+  const params = client.callbackParams(callbackUrl)
+  const tokenSet = await client.callback(
+    client.metadata.redirect_uris[0],
+    params,
+    {
+      code_verifier: storedCodeVerifier,
+      state: storedState,
+      nonce: storedNonce
     }
-  } catch (error) {
-    console.error('[OIDC] Callback error:', error)
-    throw error
+  )
+
+  const userinfo = await client.userinfo(tokenSet.access_token)
+
+  if (!_hasLoggedFirstUserinfo) {
+    _hasLoggedFirstUserinfo = true
+    console.log(
+      '[OIDC] First-userinfo dump (process lifetime):',
+      JSON.stringify(userinfo, null, 2)
+    )
+  }
+
+  return { tokenSet, userinfo }
+}
+
+export async function refreshTokenSet(refreshToken) {
+  const client = await getClient()
+  return client.refresh(refreshToken)
+}
+
+export async function revokeRefreshToken(refreshToken) {
+  if (!refreshToken) {return}
+  try {
+    const client = await getClient()
+    await client.revoke(refreshToken, 'refresh_token')
+    console.log('[OIDC] Refresh token revoked')
+  } catch (err) {
+    // Best-effort. If revocation fails, the local session is still destroyed
+    // by the caller; the refresh token will simply expire on Zitadel's side.
+    console.warn('[OIDC] revoke failed (best-effort):', err.message)
   }
 }
 
-/**
- * Find or create user from OIDC userinfo
- */
+export async function getEndSessionUrl({
+  idTokenHint,
+  postLogoutRedirectUri,
+  state
+}) {
+  const client = await getClient()
+  return client.endSessionUrl({
+    id_token_hint: idTokenHint,
+    post_logout_redirect_uri: postLogoutRedirectUri,
+    state
+  })
+}
+
+function parseBootstrapAdminEmails() {
+  const raw = process.env.ZITADEL_BOOTSTRAP_ADMIN_EMAILS || ''
+  return raw
+    .split(',')
+    .map(s => s.trim().toLowerCase())
+    .filter(Boolean)
+}
+
+// Determines the role for a brand-new OIDC user. Bootstrap-admin only fires
+// when there are zero active admins in the DB AND the user's email is in
+// ZITADEL_BOOTSTRAP_ADMIN_EMAILS. Once an admin exists, the env var is inert.
+function determineRoleForNewUser(email) {
+  const adminCount = db.getActiveAdminCount()
+  if (adminCount > 0) {return 'member'}
+  const bootstrapEmails = parseBootstrapAdminEmails()
+  if (email && bootstrapEmails.includes(email.toLowerCase())) {
+    console.log(
+      '[OIDC] Bootstrap-admin promoting',
+      email,
+      '(no existing admins, email in ZITADEL_BOOTSTRAP_ADMIN_EMAILS)'
+    )
+    return 'admin'
+  }
+  // No admin yet, no env match: still grant admin to the very first user
+  // so the install is recoverable. Matches existing localAuth behavior.
+  if (!db.hasUsers()) {
+    console.log('[OIDC] First user becomes admin by default:', email)
+    return 'admin'
+  }
+  return 'member'
+}
+
+// Find or upsert a user from a Zitadel userinfo payload.
+//
+// Lookup order:
+//   1. By (oidc_issuer, oidc_sub) - the canonical key. Refresh email/name.
+//   2. By email if userinfo.email_verified AND existing row was local-auth
+//      AND existing row.email_verified - link by attaching oidc_sub/issuer.
+//   3. Create new user with default tenant.
 export function findOrCreateOIDCUser(userinfo, issuer) {
   const sub = userinfo.sub
+  const claimedEmail = userinfo.email || null
+  const claimedEmailVerified = Boolean(userinfo.email_verified)
 
-  // Try to find existing user by OIDC credentials
   let user = db.getUserByOIDC(issuer, sub)
 
-  if (!user && userinfo.email) {
-    // Try to find by email (for account linking)
-    user = db.getUserByEmail(userinfo.email)
+  if (user) {
+    // Refresh mutable profile fields if they've changed in Zitadel.
+    const updates = {}
+    if (claimedEmail && claimedEmail !== user.email) {
+      updates.email = claimedEmail
+      updates.email_verified = claimedEmailVerified ? 1 : 0
+    } else if (claimedEmailVerified && !user.email_verified) {
+      updates.email_verified = 1
+    }
+    if (userinfo.name && userinfo.name !== user.name) {
+      updates.name = userinfo.name
+    }
+    if (userinfo.picture && userinfo.picture !== user.picture) {
+      updates.picture = userinfo.picture
+    }
+    if (Object.keys(updates).length > 0) {
+      user = db.updateUser(user.id, updates)
+      console.log('[OIDC] Refreshed user fields:', user.email, Object.keys(updates))
+    }
+    db.updateUserLogin(user.id)
+    return user
+  }
 
-    if (user) {
-      // Link OIDC to existing account
-      console.log('[OIDC] Linking OIDC to existing user:', user.email)
-      user = db.updateUser(user.id, {
+  // Account-linking by verified email. Both sides must be verified to prevent
+  // takeover via an unverified Zitadel email squatting on a real local account.
+  if (claimedEmail && claimedEmailVerified) {
+    const local = db.getUserByEmail(claimedEmail)
+    if (
+      local &&
+      local.auth_provider === 'local' &&
+      local.email_verified === 1
+    ) {
+      console.log('[OIDC] Linking OIDC sub to existing local user:', local.email)
+      user = db.updateUser(local.id, {
         oidc_issuer: issuer,
         oidc_sub: sub,
         auth_provider: 'oidc',
-        email_verified: userinfo.email_verified ? 1 : 0,
-        name: userinfo.name || user.name,
-        picture: userinfo.picture || user.picture
+        email_verified: 1,
+        name: userinfo.name || local.name,
+        picture: userinfo.picture || local.picture
       })
+      db.updateUserLogin(user.id)
+      return user
     }
   }
 
-  if (!user) {
-    // Check group membership from OIDC userinfo
-    const groups = userinfo.groups || []
-    console.log('[OIDC] User groups:', groups)
+  // Create new user. Always assigned to the default tenant in this PR;
+  // org-mapping is a follow-up that requires a Zitadel Action to inject org_id.
+  const tenant = db.getOrCreateDefaultTenant()
+  const role = determineRoleForNewUser(claimedEmail)
 
-    // Only allow users in 'admin' or 'user' groups
-    const hasAccess = groups.includes('admin') || groups.includes('user')
-    if (!hasAccess && db.hasUsers()) {
-      console.log('[OIDC] Access denied - Required groups: [admin, user], User groups:', groups)
-      throw new Error('Access denied: User must be in admin or user group')
-    }
-
-    // Create new user
-    console.log('[OIDC] Creating new user from OIDC:', userinfo.email)
-
-    // First user becomes admin, or users in 'admin' group
-    const isFirstUser = !db.hasUsers()
-    const isAdminGroup = groups.includes('admin')
-
-    user = db.createUser({
-      email: userinfo.email,
-      email_verified: userinfo.email_verified || false,
-      name: userinfo.name || userinfo.email?.split('@')[0],
-      picture: userinfo.picture,
-      role: isFirstUser || isAdminGroup ? 'admin' : 'member',
-      auth_provider: 'oidc',
-      oidc_issuer: issuer,
-      oidc_sub: sub
-    })
-  } else if (user.auth_provider === 'oidc') {
-    // Update role based on current group membership for existing OIDC users
-    const groups = userinfo.groups || []
-    const isAdminGroup = groups.includes('admin')
-    const currentRole = user.role
-
-    // Update role if it has changed based on group membership
-    if (isAdminGroup && currentRole !== 'admin') {
-      console.log('[OIDC] Promoting user to admin based on group membership:', user.email)
-      user = db.updateUser(user.id, { role: 'admin' })
-    } else if (!isAdminGroup && currentRole === 'admin' && user.id !== 1) {
-      // Demote from admin if they're no longer in admin group (but never demote user ID 1)
-      console.log('[OIDC] Demoting user from admin based on group membership:', user.email)
-      user = db.updateUser(user.id, { role: 'member' })
-    }
-  }
-
-  // Update last login
+  user = db.createUser({
+    email: claimedEmail,
+    email_verified: claimedEmailVerified ? 1 : 0,
+    name: userinfo.name || (claimedEmail ? claimedEmail.split('@')[0] : 'User'),
+    picture: userinfo.picture || null,
+    role,
+    auth_provider: 'oidc',
+    oidc_issuer: issuer,
+    oidc_sub: sub,
+    tenant_id: tenant.id
+  })
+  console.log(
+    '[OIDC] Created new user:',
+    user.email,
+    'role=',
+    user.role,
+    'tenant=',
+    tenant.subdomain
+  )
   db.updateUserLogin(user.id)
-
   return user
 }
 
-/**
- * Format user object for session storage
- */
 export function formatUserForSession(user) {
   return {
     id: user.id,
@@ -188,29 +269,18 @@ export function formatUserForSession(user) {
     name: user.name,
     picture: user.picture,
     role: user.role,
-    auth_provider: user.auth_provider
+    auth_provider: user.auth_provider,
+    email_verified: !!user.email_verified
   }
 }
 
-/**
- * Check if OIDC is enabled and configured
- */
-export function isOIDCEnabled(settings) {
-  return !!(
-    settings &&
-    settings.oidc_enabled &&
-    settings.oidc_client_id &&
-    settings.oidc_client_secret &&
-    settings.oidc_issuer &&
-    settings.oidc_callback_url
-  )
-}
-
 export default {
-  initializeOIDC,
+  isOIDCEnabled,
   getAuthorizationUrl,
   handleCallback,
+  refreshTokenSet,
+  revokeRefreshToken,
+  getEndSessionUrl,
   findOrCreateOIDCUser,
-  formatUserForSession,
-  isOIDCEnabled
+  formatUserForSession
 }
