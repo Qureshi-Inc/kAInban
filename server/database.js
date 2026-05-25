@@ -683,43 +683,68 @@ export const getProject = projectId => {
   return project
 }
 
+// Helper used by saveProject. Wraps the bulk write in a single SQLite
+// transaction so:
+//   - all task INSERT/UPDATE/DELETE + task_changes rows commit atomically
+//   - WAL writers don't queue between every individual statement
+//   - rollback is automatic if any one statement throws
+//
+// Also replaces the redundant getProject(project.id) call with a single
+// project-existence check + a direct tasks-only SELECT, avoiding rebuilding
+// the full project payload twice.
 export const saveProject = (userId, project) => {
-  // Ensure userId is always a string to prevent type mismatches
   const userIdStr = String(userId)
-  const existing = getProject(project.id)
 
-  if (existing) {
-    const stmt = db.prepare(`
-      UPDATE projects
-      SET name = ?, transcript = ?, summary = ?, updated_at = CURRENT_TIMESTAMP
-      WHERE id = ? AND user_id = ?
-    `)
-    stmt.run(
-      project.name,
-      project.transcript || '',
-      project.summary || '',
-      project.id,
-      userIdStr
-    )
-  } else {
-    const stmt = db.prepare(`
-      INSERT INTO projects (id, user_id, name, transcript, summary)
-      VALUES (?, ?, ?, ?, ?)
-    `)
-    stmt.run(
-      project.id,
-      userIdStr,
-      project.name,
-      project.transcript || '',
-      project.summary || ''
-    )
-  }
+  // Light existence check (was a full getProject which also pulled tasks)
+  const exists = db
+    .prepare('SELECT 1 FROM projects WHERE id = ?')
+    .get(project.id)
 
+  // Read existing tasks once - both branches below need them (for diff or
+  // for clear-all). This avoids the second getProject() call later.
+  const existingTasks = db
+    .prepare('SELECT * FROM tasks WHERE project_id = ? ORDER BY created_at ASC')
+    .all(project.id)
+
+  // The whole save is one transaction. better-sqlite3's db.transaction()
+  // returns a function; call it to execute. Throws inside roll back.
+  const tx = db.transaction(() => {
+    if (exists) {
+      db.prepare(`
+        UPDATE projects
+        SET name = ?, transcript = ?, summary = ?, updated_at = CURRENT_TIMESTAMP
+        WHERE id = ? AND user_id = ?
+      `).run(
+        project.name,
+        project.transcript || '',
+        project.summary || '',
+        project.id,
+        userIdStr
+      )
+    } else {
+      db.prepare(`
+        INSERT INTO projects (id, user_id, name, transcript, summary)
+        VALUES (?, ?, ?, ?, ?)
+      `).run(
+        project.id,
+        userIdStr,
+        project.name,
+        project.transcript || '',
+        project.summary || ''
+      )
+    }
+
+    saveProjectTasksImpl(userIdStr, project, existingTasks)
+  })
+  tx()
+}
+
+// Body of the per-task diff/insert/update/delete loop, factored out so
+// saveProject can call it inside its db.transaction wrapper. Operates on
+// existingTasks fetched ONCE by the caller.
+function saveProjectTasksImpl(userIdStr, project, existingTasks) {
   // Save tasks if provided with change tracking
   if (project.tasks && Array.isArray(project.tasks)) {
-    // Get existing tasks to compare for changes
-    const existingProject = getProject(project.id)
-    const existingTasks = existingProject?.tasks || []
 
     // Create maps for easy lookup
     const existingTasksMap = new Map(existingTasks.map(t => [t.id, t]))
@@ -1015,18 +1040,18 @@ export const saveProject = (userId, project) => {
       }
     }
   } else {
-    // No tasks to save - if there were existing tasks, they're being deleted
-    const existingProject = getProject(project.id)
-    if (existingProject?.tasks && existingProject.tasks.length > 0) {
-      for (const task of existingProject.tasks) {
+    // No tasks to save - if there were existing tasks, they're being deleted.
+    // Use the existingTasks param the caller already fetched; avoids a second
+    // getProject() round-trip with full task details we just re-discovered.
+    if (existingTasks && existingTasks.length > 0) {
+      for (const task of existingTasks) {
         recordTaskChange(task.id, userIdStr, 'deleted', null, null, null, {
           source: 'project_clear',
           taskTitle: task.title
         })
       }
       // Delete all tasks for this project
-      const deleteStmt = db.prepare('DELETE FROM tasks WHERE project_id = ?')
-      deleteStmt.run(project.id)
+      db.prepare('DELETE FROM tasks WHERE project_id = ?').run(project.id)
     }
   }
 
@@ -1977,10 +2002,15 @@ export const deleteMergeUndoData = (userId, projectId, mergeId) => {
 }
 
 export const getRecentMerges = (userId, projectId) => {
+  // Filter out expired rows. cleanupExpiredUndoData runs only on certain
+  // codepaths so the table can hold rows past their expiry; without this
+  // filter expired merges show up in the UI and offer a misleading "undo"
+  // option that would fail at apply time.
   const stmt = db.prepare(`
     SELECT id, merge_id, metadata, created_at
     FROM task_merge_undo
     WHERE user_id = ? AND project_id = ?
+      AND expires_at > datetime('now')
     ORDER BY created_at DESC
     LIMIT 10
   `)
