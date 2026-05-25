@@ -8,6 +8,7 @@ import expressRateLimit from 'express-rate-limit'
 import session from 'express-session'
 import helmet from 'helmet'
 import morgan from 'morgan'
+import { randomUUID } from 'crypto'
 import * as db from './database.js'
 import dbInstance from './database.js'
 import * as localAuth from './localAuth.js'
@@ -921,7 +922,7 @@ app.post('/api/invites/accept/:token', async (req, res) => {
     }
 
     // Create user
-    const userId = `user_${Date.now()}_${Math.random().toString(36).substring(2)}`
+    const userId = `user_${randomUUID()}`
     const hashedPassword = await localAuth.hashPassword(password)
 
     const userData = {
