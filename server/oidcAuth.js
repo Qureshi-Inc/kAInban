@@ -212,22 +212,32 @@ export function findOrCreateOIDCUser(userinfo, issuer) {
   }
 
   // Account-linking by verified email. Both sides must be verified to prevent
-  // takeover via an unverified Zitadel email squatting on a real local account.
+  // takeover via an unverified Zitadel email squatting on a real account.
+  //
+  // We accept linking from local-auth rows AND from previous-OIDC-provider
+  // rows (e.g. PocketID -> Zitadel migration). The Zitadel-side
+  // email_verified=true gate is the security boundary; pre-creating the
+  // bootstrap admin user in Zitadel before deploy prevents squat attacks.
   if (claimedEmail && claimedEmailVerified) {
-    const local = db.getUserByEmail(claimedEmail)
-    if (
-      local &&
-      local.auth_provider === 'local' &&
-      local.email_verified === 1
-    ) {
-      console.log('[OIDC] Linking OIDC sub to existing local user:', local.email)
-      user = db.updateUser(local.id, {
+    const existing = db.getUserByEmail(claimedEmail)
+    if (existing && existing.email_verified === 1) {
+      const reason =
+        existing.auth_provider === 'local'
+          ? 'local-auth row'
+          : `prior OIDC issuer ${existing.oidc_issuer || 'unknown'}`
+      console.log(
+        '[OIDC] Linking Zitadel sub to existing user:',
+        existing.email,
+        '(was',
+        reason + ')'
+      )
+      user = db.updateUser(existing.id, {
         oidc_issuer: issuer,
         oidc_sub: sub,
         auth_provider: 'oidc',
         email_verified: 1,
-        name: userinfo.name || local.name,
-        picture: userinfo.picture || local.picture
+        name: userinfo.name || existing.name,
+        picture: userinfo.picture || existing.picture
       })
       db.updateUserLogin(user.id)
       return user
