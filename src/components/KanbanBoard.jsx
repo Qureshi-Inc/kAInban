@@ -23,8 +23,14 @@ import TaskGroupingModal from './TaskGroupingModal'
 import { Button } from './ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
 import '../styles/mobile-ux.css'
+import './KanbanBoard.css'
 
-const TaskCard = ({
+// React.memo'd so a Column re-render (which builds a fresh `tasks` array on
+// every parent render) doesn't force every TaskCard to re-render too. The
+// default shallow compare on props is fine here - parents pass primitives
+// (task object, callbacks, users array) and as long as those references are
+// stable across renders, the card stays mounted as-is.
+const TaskCard = React.memo(({
   task,
   onDelete,
   onClick,
@@ -272,7 +278,8 @@ const TaskCard = ({
       </div>
     </div>
   )
-}
+})
+TaskCard.displayName = 'TaskCard'
 
 const TaskSource = ({ meetingId, onNavigateToMeeting }) => {
   const meetings = useAppStore(state => state.meetings)
@@ -540,183 +547,8 @@ export default function KanbanBoard({ taskToOpen }) {
     }
   }, [taskToOpen, tasks])
 
-  // Add CSS for drag and drop visual feedback
-  React.useEffect(() => {
-    const style = document.createElement('style')
-    style.textContent = `
-      /* Enhanced task card styles */
-      .task-card {
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        will-change: transform, box-shadow, border-color;
-        position: relative;
-        isolation: isolate;
-      }
-
-      .task-card::before {
-        content: '';
-        position: absolute;
-        inset: -2px;
-        border-radius: inherit;
-        padding: 2px;
-        background: linear-gradient(145deg, transparent, rgba(59, 130, 246, 0.1), transparent);
-        mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-        mask-composite: xor;
-        opacity: 0;
-        transition: opacity 0.3s ease;
-      }
-
-      .task-card:hover::before {
-        opacity: 1;
-      }
-
-      /* Dragging state styles */
-      .task-card.dragging {
-        z-index: 1000;
-        pointer-events: none;
-        position: relative;
-      }
-
-      .task-card.dragging::after {
-        content: '';
-        position: absolute;
-        inset: -4px;
-        border-radius: inherit;
-        background: linear-gradient(145deg,
-          rgba(59, 130, 246, 0.2),
-          rgba(139, 92, 246, 0.2),
-          rgba(59, 130, 246, 0.2)
-        );
-        animation: drag-glow 2s ease-in-out infinite;
-        z-index: -1;
-      }
-
-      @keyframes drag-glow {
-        0%, 100% {
-          opacity: 0.6;
-          filter: blur(8px);
-        }
-        50% {
-          opacity: 1;
-          filter: blur(12px);
-        }
-      }
-
-      /* Column drop zone styles */
-      .kanban-column {
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        position: relative;
-        overflow: visible;
-        min-width: 0; /* Override any implicit min-width */
-        width: 100%; /* Ensure full width */
-      }
-
-      .kanban-column::before {
-        content: '';
-        position: absolute;
-        inset: -4px;
-        border-radius: inherit;
-        background: linear-gradient(145deg, transparent 0%, var(--drop-glow, transparent) 50%, transparent 100%);
-        opacity: 0;
-        transition: all 0.3s ease;
-        z-index: -1;
-        filter: blur(8px);
-      }
-
-      .kanban-column.drag-over::before {
-        opacity: 1;
-      }
-
-      /* Column-specific drop glow colors */
-      .kanban-column[data-status="todo"]::before {
-        --drop-glow: rgba(100, 116, 139, 0.3);
-      }
-
-      .kanban-column[data-status="in-progress"]::before {
-        --drop-glow: rgba(59, 130, 246, 0.3);
-      }
-
-      .kanban-column[data-status="done"]::before {
-        --drop-glow: rgba(34, 197, 94, 0.3);
-      }
-
-      .kanban-column[data-status="blocked"]::before {
-        --drop-glow: rgba(239, 68, 68, 0.3);
-      }
-
-      /* Empty drop zone styling */
-      .empty-drop-zone {
-        border: 2px dashed rgba(156, 163, 175, 0.4);
-        border-radius: 12px;
-        transition: all 0.3s ease;
-        position: relative;
-        background: linear-gradient(145deg,
-          rgba(249, 250, 251, 0.5),
-          rgba(243, 244, 246, 0.3)
-        );
-      }
-
-      .empty-drop-zone.drag-over {
-        border-color: rgba(59, 130, 246, 0.6);
-        background: linear-gradient(145deg,
-          rgba(59, 130, 246, 0.05),
-          rgba(59, 130, 246, 0.02)
-        );
-        transform: scale(1.01);
-      }
-
-      .empty-drop-zone::before {
-        content: '';
-        position: absolute;
-        inset: -2px;
-        border-radius: inherit;
-        background: linear-gradient(45deg,
-          rgba(59, 130, 246, 0.1),
-          transparent,
-          rgba(59, 130, 246, 0.1)
-        );
-        opacity: 0;
-        transition: opacity 0.3s ease;
-        z-index: -1;
-        filter: blur(4px);
-      }
-
-      .empty-drop-zone.drag-over::before {
-        opacity: 1;
-      }
-
-      /* Smooth animations for all interactive elements */
-      .task-card, .kanban-column, .empty-drop-zone {
-        transform-origin: center;
-        backface-visibility: hidden;
-        -webkit-backface-visibility: hidden;
-      }
-
-      /* Dark mode enhancements */
-      .dark .task-card::before {
-        background: linear-gradient(145deg, transparent, rgba(59, 130, 246, 0.2), transparent);
-      }
-
-      .dark .empty-drop-zone {
-        background: linear-gradient(145deg,
-          rgba(17, 24, 39, 0.5),
-          rgba(31, 41, 55, 0.3)
-        );
-        border-color: rgba(75, 85, 99, 0.4);
-      }
-
-      .dark .empty-drop-zone.drag-over {
-        background: linear-gradient(145deg,
-          rgba(59, 130, 246, 0.1),
-          rgba(59, 130, 246, 0.05)
-        );
-      }
-    `
-    document.head.appendChild(style)
-
-    return () => {
-      document.head.removeChild(style)
-    }
-  }, [])
+  // CSS for drag-and-drop visual feedback now lives in KanbanBoard.css
+  // (imported above), not injected at runtime.
 
   const sortTasksByOrder = tasks => {
     return tasks.sort((a, b) => {
