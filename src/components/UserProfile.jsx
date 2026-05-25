@@ -61,7 +61,7 @@ export default function UserProfile({ collapsed = false }) {
               className={`${
                 collapsed
                   ? 'absolute left-full bottom-0 ml-2'
-                  : 'absolute right-0 bottom-full mb-2 sm:top-full sm:bottom-auto sm:mt-2 sm:mb-0'
+                  : 'absolute left-0 bottom-full mb-2'
               } w-64 max-w-[calc(100vw-2rem)] bg-white dark:bg-gray-800 rounded-lg shadow-xl border-2 border-gray-200 dark:border-gray-700 overflow-hidden z-[9999]`}
             >
               {/* User Info */}
