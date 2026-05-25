@@ -142,6 +142,42 @@ export async function getEndSessionUrl({
   })
 }
 
+// Resolve which tenant a Zitadel-authenticated user should belong to.
+//
+// Strategies:
+//   - 'zitadel_org' (env TENANT_STRATEGY=zitadel_org)
+//       Read the urn:kainban:org:id custom claim emitted by the Zitadel
+//       Action `addOrgClaims`. Look up an existing tenant by zitadel_org_id;
+//       auto-create one with the org name if missing. Falls through to the
+//       default tenant if the claim isn't present (e.g. Action not yet
+//       configured, or running in a non-prod env without it).
+//
+//   - 'default' (any other value, including unset)
+//       Single-tenant mode. All users go into the 'kainban' default tenant.
+//       This is the safe default and matches the initial Zitadel cutover.
+function resolveTenantForUserinfo(userinfo) {
+  const strategy = process.env.TENANT_STRATEGY || 'default'
+  if (strategy === 'zitadel_org') {
+    const orgId = userinfo['urn:kainban:org:id']
+    const orgName = userinfo['urn:kainban:org:name']
+    if (orgId) {
+      try {
+        return db.getOrCreateTenantForZitadelOrg(orgId, orgName)
+      } catch (err) {
+        console.warn(
+          '[OIDC] Zitadel org tenant lookup failed (falling back to default):',
+          err.message
+        )
+      }
+    } else {
+      console.warn(
+        '[OIDC] TENANT_STRATEGY=zitadel_org but urn:kainban:org:id claim missing - check the Zitadel Action is bound to Pre Userinfo creation. Falling back to default tenant.'
+      )
+    }
+  }
+  return db.getOrCreateDefaultTenant()
+}
+
 function parseBootstrapAdminEmails() {
   const raw = process.env.ZITADEL_BOOTSTRAP_ADMIN_EMAILS || ''
   return raw
@@ -244,9 +280,10 @@ export function findOrCreateOIDCUser(userinfo, issuer) {
     }
   }
 
-  // Create new user. Always assigned to the default tenant in this PR;
-  // org-mapping is a follow-up that requires a Zitadel Action to inject org_id.
-  const tenant = db.getOrCreateDefaultTenant()
+  // Create new user. Tenant resolution honors TENANT_STRATEGY env var:
+  //   - zitadel_org: map from urn:kainban:org:id custom claim
+  //   - default (or unset): single 'kainban' tenant for everyone
+  const tenant = resolveTenantForUserinfo(userinfo)
   const role = determineRoleForNewUser(claimedEmail)
 
   user = db.createUser({

@@ -297,6 +297,23 @@ try {
     }
   }
 
+  // Add tenants.zitadel_org_id for Zitadel-org -> kAInban-tenant mapping.
+  // Populated by oidcAuth.resolveTenantId when TENANT_STRATEGY=zitadel_org
+  // and the id_token contains the urn:kainban:org:id custom claim (set by
+  // the Zitadel Action). Unique partial index allows multiple NULL values
+  // (for tenants created before org-mapping was enabled, e.g. the default
+  // "kainban" tenant).
+  const tenantsColumns = db.prepare('PRAGMA table_info(tenants)').all()
+  const hasZitadelOrgId = tenantsColumns.some(c => c.name === 'zitadel_org_id')
+  if (!hasZitadelOrgId) {
+    db.exec('ALTER TABLE tenants ADD COLUMN zitadel_org_id TEXT')
+    console.log('[Database] Added tenants.zitadel_org_id')
+  }
+  db.exec(`
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_tenants_zitadel_org
+    ON tenants(zitadel_org_id) WHERE zitadel_org_id IS NOT NULL
+  `)
+
   // Add multi-provider AI columns
   const hasProvider = settingsColumns.some(col => col.name === 'provider')
   const hasOpenaiBaseUrl = settingsColumns.some(
@@ -1474,6 +1491,74 @@ export const getOrCreateDefaultTenant = () => {
   ).run(id, 'KainBan', 'kainban', 'starter', 1000, settings)
 
   console.log('[Database] Created default tenant kainban (id=', id, ')')
+  return db.prepare('SELECT * FROM tenants WHERE id = ?').get(id)
+}
+
+// Look up a tenant by Zitadel org id. Used when TENANT_STRATEGY=zitadel_org.
+export const getTenantByZitadelOrgId = orgId => {
+  if (!orgId) {return null}
+  const row = db
+    .prepare(
+      'SELECT * FROM tenants WHERE zitadel_org_id = ? AND active = 1 LIMIT 1'
+    )
+    .get(orgId)
+  if (row && row.settings) {
+    try {
+      row.settings = JSON.parse(row.settings)
+    } catch (_e) {
+      row.settings = {}
+    }
+  }
+  return row
+}
+
+// Generate a unique subdomain slug for a tenant. Lowercase, alnum + hyphens
+// only, capped at 32 chars. On collision (UNIQUE constraint on subdomain)
+// appends a 6-char hash of the org id so retries always succeed.
+function buildTenantSubdomain(orgName, orgId) {
+  const baseRaw = (orgName || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
+  const base = baseRaw.slice(0, 32) || 'org'
+  const exists = name =>
+    db.prepare('SELECT 1 FROM tenants WHERE subdomain = ? LIMIT 1').get(name)
+  if (!exists(base)) {return base}
+  // Collision: append a stable suffix derived from orgId
+  const suffix = crypto
+    .createHash('sha256')
+    .update(String(orgId || ''))
+    .digest('hex')
+    .slice(0, 6)
+  const withSuffix = `${base}-${suffix}`.slice(0, 39)
+  if (!exists(withSuffix)) {return withSuffix}
+  // Last-resort: append a UUID fragment
+  return `${base}-${crypto.randomUUID().slice(0, 8)}`
+}
+
+// Find an existing tenant for a Zitadel org or auto-create one. Used when
+// TENANT_STRATEGY=zitadel_org. Returns the tenant row (with parsed settings).
+export const getOrCreateTenantForZitadelOrg = (orgId, orgName) => {
+  if (!orgId) {
+    throw new Error('orgId is required for getOrCreateTenantForZitadelOrg')
+  }
+  const existing = getTenantByZitadelOrgId(orgId)
+  if (existing) {return existing}
+
+  const id = crypto.randomUUID()
+  const subdomain = buildTenantSubdomain(orgName, orgId)
+  const settings = JSON.stringify({
+    created_by: 'oidc_zitadel_org_mapping',
+    zitadel_org_name: orgName || null
+  })
+  db.prepare(
+    `INSERT INTO tenants (id, name, subdomain, plan, max_users, settings, zitadel_org_id, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))`
+  ).run(id, orgName || 'Untitled Org', subdomain, 'starter', 1000, settings, orgId)
+
+  console.log(
+    '[Database] Auto-created tenant for Zitadel org:',
+    orgId,
+    '->',
+    subdomain
+  )
   return db.prepare('SELECT * FROM tenants WHERE id = ?').get(id)
 }
 
