@@ -8,12 +8,10 @@ import expressRateLimit from 'express-rate-limit'
 import session from 'express-session'
 import helmet from 'helmet'
 import morgan from 'morgan'
-import { randomUUID } from 'crypto'
 import * as db from './database.js'
 import dbInstance from './database.js'
 import * as localAuth from './localAuth.js'
 import * as oidcAuth from './oidcAuth.js'
-import PocketIDIntegration from './pocketIdIntegration.js'
 import tenantService from './tenantService.js'
 
 // Tenant middleware - extract and attach tenant context to requests
@@ -206,14 +204,6 @@ app.use(
   })
 )
 
-// Initialize PocketID integration
-const pocketIdIntegration = new PocketIDIntegration({
-  pocketIdUrl: process.env.POCKETID_URL || 'https://login.qureshi.io',
-  clientId: process.env.OIDC_CLIENT_ID,
-  clientSecret: process.env.OIDC_CLIENT_SECRET,
-  adminToken: process.env.POCKETID_ADMIN_TOKEN // Optional admin API token
-})
-
 // Rate limiting for auth endpoints - TEMPORARILY DISABLED FOR TESTING
 const authLimiter = expressRateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
@@ -225,14 +215,9 @@ const authLimiter = expressRateLimit({
   legacyHeaders: false
 })
 
-// Special rate limiter for signup endpoints (more lenient)
-const signupLimiter = expressRateLimit({
-  windowMs: 60 * 60 * 1000, // 1 hour
-  max: 10, // 10 signups per hour per IP
-  message: { error: 'Too many signup attempts, please try again later' },
-  standardHeaders: true,
-  legacyHeaders: false
-})
+// signupLimiter removed in Phase 6 - the PocketID intent-creation/magic-link
+// endpoints it gated were deleted. The local /api/auth/register fallback uses
+// authLimiter instead.
 
 // Local-auth fallback gates. Default off: production routes go through
 // Zitadel hosted login. Set LOCAL_LOGIN_FALLBACK=true (or LOCAL_REGISTER_FALLBACK=true)
@@ -753,155 +738,9 @@ app.get('/api/auth/oidc/callback', authLimiter, async(req, res) => {
   }
 })
 
-// PocketID Signup endpoints (Landing Page Integration)
-app.post('/api/auth/create-signup-intent', requireLocalRegisterFallback, signupLimiter, async(req, res) => {
-  try {
-    const { email, name, source } = req.body
-
-    // Basic validation
-    if (!email || !email.includes('@')) {
-      return res.status(400).json({ error: 'Valid email is required' })
-    }
-
-    // Create signup intent
-    const intent = pocketIdIntegration.createSignupIntent(email, name, source)
-
-    console.log(`[Signup] Created intent ${intent.id} for ${email}`)
-
-    res.json({
-      success: true,
-      id: intent.id,
-      email: intent.email,
-      expiresAt: intent.expiresAt
-    })
-  } catch (error) {
-    console.error('[Signup] Intent creation error:', error)
-    res.status(500).json({ error: 'Failed to create signup intent' })
-  }
-})
-
-app.post(
-  '/api/auth/send-pocketid-invitation',
-  requireLocalRegisterFallback,
-  signupLimiter,
-  async(req, res) => {
-    try {
-      const { email, name, returnUrl } = req.body
-
-      // Basic validation
-      if (!email || !email.includes('@')) {
-        return res.status(400).json({ error: 'Valid email is required' })
-      }
-
-      // Process the signup through PocketID integration
-      const result = await pocketIdIntegration.processSignup(
-        email,
-        name,
-        returnUrl
-      )
-
-      console.log(
-        `[Signup] Processed signup for ${email} via method: ${result.method}`
-      )
-
-      res.json(result)
-    } catch (error) {
-      console.error('[Signup] PocketID invitation error:', error)
-      res.status(500).json({
-        error: 'Signup process failed',
-        details: error.message
-      })
-    }
-  }
-)
-
-app.post('/api/auth/send-magic-link', requireLocalRegisterFallback, signupLimiter, async(req, res) => {
-  try {
-    const { email, name } = req.body
-
-    // Basic validation
-    if (!email || !email.includes('@')) {
-      return res.status(400).json({ error: 'Valid email is required' })
-    }
-
-    // Create signup intent
-    const intent = pocketIdIntegration.createSignupIntent(
-      email,
-      name,
-      'magic_link'
-    )
-
-    // Generate registration link
-    const registrationLink = pocketIdIntegration.generateRegistrationLink(
-      email,
-      name,
-      intent.id
-    )
-
-    // Send custom email (this will use your email service)
-    const emailResult = await pocketIdIntegration.sendRegistrationEmail(
-      email,
-      name,
-      intent.id
-    )
-
-    if (emailResult.success) {
-      console.log(`[Signup] Magic link sent to ${email}`)
-      res.json({
-        success: true,
-        message: 'Magic link sent! Check your email to complete setup.',
-        registrationLink: emailResult.registrationLink
-      })
-    } else {
-      // Fallback: return manual instructions
-      res.json({
-        success: true,
-        message: 'Please complete your registration manually.',
-        registrationLink,
-        instructions: {
-          steps: [
-            `Visit ${pocketIdIntegration.pocketIdUrl}`,
-            `Create account with email: ${email}`,
-            'Enable passkey in Security settings',
-            'Return to kAInban and sign in'
-          ]
-        }
-      })
-    }
-  } catch (error) {
-    console.error('[Signup] Magic link error:', error)
-    res.status(500).json({
-      error: 'Failed to send magic link',
-      details: error.message
-    })
-  }
-})
-
-// Get signup intent status (for tracking)
-app.get('/api/auth/signup-intent/:intentId', requireLocalRegisterFallback, (req, res) => {
-  try {
-    const { intentId } = req.params
-    const intent = pocketIdIntegration.getSignupIntent(intentId)
-
-    if (!intent) {
-      return res
-        .status(404)
-        .json({ error: 'Signup intent not found or expired' })
-    }
-
-    res.json({
-      id: intent.id,
-      email: intent.email,
-      status: intent.status,
-      method: intent.method,
-      createdAt: intent.createdAt,
-      expiresAt: intent.expiresAt
-    })
-  } catch (error) {
-    console.error('[Signup] Intent status error:', error)
-    res.status(500).json({ error: 'Failed to get signup status' })
-  }
-})
+// PocketID signup-intent / magic-link endpoints removed in the Phase 6
+// cleanup. Signup flows through the Zitadel hosted UI now; the rollback
+// path keeps /api/auth/register only (gated behind LOCAL_REGISTER_FALLBACK).
 
 // Invite endpoints
 app.post('/api/invites/create', localAuth.requireAuth, attachTenantContext, async(req, res) => {
@@ -1023,7 +862,7 @@ app.post('/api/invites/accept/:token', async(req, res) => {
     }
 
     // Create user
-    const userId = `user_${randomUUID()}`
+    const userId = `user_${Date.now()}_${Math.random().toString(36).substring(2)}`
     const hashedPassword = await localAuth.hashPassword(password)
 
     const userData = {
@@ -1096,19 +935,6 @@ app.get('/api/settings', localAuth.requireAuth, attachTenantContext, (req, res) 
     const hasSavedAiConfig =
       settings && (settings.azure_endpoint || settings.api_key)
     if (!hasSavedAiConfig) {
-      const enableOidc =
-        process.env.ENABLE_OIDC === 'true' || process.env.ENABLE_OIDC === '1'
-      console.log(
-        '[Settings] ENABLE_OIDC env:',
-        process.env.ENABLE_OIDC,
-        '-> enabled:',
-        enableOidc
-      )
-      console.log(
-        '[Settings] POCKET_ID_CLIENT_ID env:',
-        process.env.POCKET_ID_CLIENT_ID
-      )
-
       // Decide default provider from env. If an OpenAI key is set or
       // AI_PROVIDER=openai, prefer OpenAI; otherwise fall back to Azure.
       const envProvider =
@@ -1131,16 +957,12 @@ app.get('/api/settings', localAuth.requireAuth, attachTenantContext, (req, res) 
         gptDeployment: process.env.AZURE_OPENAI_GPT_DEPLOYMENT || 'gpt-4',
         openaiWhisperModel:
           process.env.OPENAI_WHISPER_MODEL || 'whisper-1',
-        openaiGptModel: process.env.OPENAI_GPT_MODEL || 'gpt-4o',
-        oidcEnabled: enableOidc,
-        oidcClientId: process.env.POCKET_ID_CLIENT_ID || '',
-        oidcClientSecret: process.env.POCKET_ID_CLIENT_SECRET || '',
-        oidcIssuer: process.env.POCKET_ID_ISSUER || 'https://pocketid.app',
-        oidcCallbackUrl: ''
+        openaiGptModel: process.env.OPENAI_GPT_MODEL || 'gpt-4o'
       })
     }
 
-    // Return database settings with environment variable fallbacks
+    // OIDC config is exposed by /api/auth/oidc/config (env-driven, read-only)
+    // and is no longer returned here.
     res.json({
       provider: settings.provider === 'openai' ? 'openai' : 'azure',
       azureEndpoint: settings.azure_endpoint || '',
@@ -1153,19 +975,7 @@ app.get('/api/settings', localAuth.requireAuth, attachTenantContext, (req, res) 
       whisperDeployment: settings.whisper_deployment || 'whisper-1',
       gptDeployment: settings.gpt_deployment || 'gpt-4',
       openaiWhisperModel: settings.openai_whisper_model || 'whisper-1',
-      openaiGptModel: settings.openai_gpt_model || 'gpt-4o',
-      oidcEnabled: settings.oidc_enabled === 1,
-      oidcClientId:
-        settings.oidc_client_id || process.env.POCKET_ID_CLIENT_ID || '',
-      oidcClientSecret:
-        settings.oidc_client_secret ||
-        process.env.POCKET_ID_CLIENT_SECRET ||
-        '',
-      oidcIssuer:
-        settings.oidc_issuer ||
-        process.env.POCKET_ID_ISSUER ||
-        'https://pocketid.app',
-      oidcCallbackUrl: settings.oidc_callback_url || ''
+      openaiGptModel: settings.openai_gpt_model || 'gpt-4o'
     })
   } catch (error) {
     console.error('[Settings] Get error:', error)

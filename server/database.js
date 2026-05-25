@@ -198,6 +198,23 @@ db.exec(`
   );
 `)
 
+// task_merge_undo: stores the original task state before a merge so users
+// can undo the operation within an expiry window. Previously this table
+// was lazily created inside storeMergeUndoData, which meant getRecentMerges
+// (called on page load) errored with "no such table" until a merge had
+// happened. Promoted to boot-time migration so reads work from a fresh DB.
+db.exec(`
+  CREATE TABLE IF NOT EXISTS task_merge_undo (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    project_id TEXT NOT NULL,
+    merge_id TEXT NOT NULL,
+    metadata TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    expires_at DATETIME DEFAULT (datetime('now', '+24 hours'))
+  );
+`)
+
 // Add tenant columns to existing tables if multi-tenancy is enabled
 // These migrations will run automatically when MULTITENANCY_ENABLED=true
 
@@ -254,42 +271,30 @@ try {
 
   // Open Source version - no subscription fields needed
 
-  // Add OIDC configuration columns to settings table
+  // Drop dead OIDC columns from settings table. The OIDC config moved to
+  // env vars in the Zitadel cutover; these columns are no longer read or
+  // written. Idempotent: only drops what still exists. Requires SQLite >= 3.35
+  // for native DROP COLUMN, which the bundled better-sqlite3 ships.
   const settingsColumns = db.prepare('PRAGMA table_info(settings)').all()
-  const hasOidcEnabled = settingsColumns.some(
-    col => col.name === 'oidc_enabled'
-  )
-  const hasOidcClientId = settingsColumns.some(
-    col => col.name === 'oidc_client_id'
-  )
-  const hasOidcClientSecret = settingsColumns.some(
-    col => col.name === 'oidc_client_secret'
-  )
-  const hasOidcIssuer = settingsColumns.some(col => col.name === 'oidc_issuer')
-  const hasOidcCallbackUrl = settingsColumns.some(
-    col => col.name === 'oidc_callback_url'
-  )
-
-  if (!hasOidcEnabled) {
-    db.exec('ALTER TABLE settings ADD COLUMN oidc_enabled INTEGER DEFAULT 0')
-  }
-
-  if (!hasOidcClientId) {
-    db.exec('ALTER TABLE settings ADD COLUMN oidc_client_id TEXT')
-  }
-
-  if (!hasOidcClientSecret) {
-    db.exec('ALTER TABLE settings ADD COLUMN oidc_client_secret TEXT')
-  }
-
-  if (!hasOidcIssuer) {
-    db.exec(
-      "ALTER TABLE settings ADD COLUMN oidc_issuer TEXT DEFAULT 'https://pocketid.app'"
-    )
-  }
-
-  if (!hasOidcCallbackUrl) {
-    db.exec('ALTER TABLE settings ADD COLUMN oidc_callback_url TEXT')
+  const deadOidcCols = [
+    'oidc_enabled',
+    'oidc_client_id',
+    'oidc_client_secret',
+    'oidc_issuer',
+    'oidc_callback_url'
+  ]
+  for (const col of deadOidcCols) {
+    if (settingsColumns.some(c => c.name === col)) {
+      try {
+        db.exec(`ALTER TABLE settings DROP COLUMN ${col}`)
+        console.log('[Database] Dropped dead settings column:', col)
+      } catch (err) {
+        console.warn(
+          '[Database] Could not drop settings.' + col + ':',
+          err.message
+        )
+      }
+    }
   }
 
   // Add multi-provider AI columns
@@ -515,37 +520,13 @@ try {
 }
 
 // Settings operations
-// Get system-wide settings (OIDC settings are shared across all admins)
-export const getSystemSettings = () => {
-  const stmt = db.prepare('SELECT * FROM settings WHERE user_id = ? LIMIT 1')
-  const settings = stmt.get('system')
-
-  // If no system settings exist, return defaults from environment variables
-  if (!settings) {
-    const enableOidc =
-      process.env.ENABLE_OIDC === 'true' || process.env.ENABLE_OIDC === '1'
-    return {
-      user_id: 'system',
-      oidc_issuer: process.env.POCKET_ID_ISSUER || 'https://pocketid.app',
-      oidc_client_id: process.env.POCKET_ID_CLIENT_ID || '',
-      oidc_client_secret: process.env.POCKET_ID_CLIENT_SECRET || '',
-      oidc_enabled: enableOidc ? 1 : 0,
-      oidc_callback_url: process.env.POCKET_ID_CALLBACK_URL || ''
-    }
-  }
-
-  return settings
-}
-
-// Legacy function for user-specific settings (AI settings only now)
+// User-specific AI provider settings. OIDC config moved to env vars during the
+// Zitadel cutover and is no longer stored per-user; the related columns were
+// dropped from this table by the boot-time migration above.
 export const getSettings = userId => {
   const stmt = db.prepare('SELECT * FROM settings WHERE user_id = ? LIMIT 1')
   const settings = stmt.get(userId)
 
-  // Get system-wide OIDC settings
-  const systemSettings = getSystemSettings()
-
-  // If no user settings exist, return defaults with system OIDC settings
   if (!settings) {
     return {
       user_id: userId,
@@ -557,39 +538,15 @@ export const getSettings = userId => {
       whisper_deployment: 'whisper',
       gpt_deployment: 'gpt-4',
       openai_whisper_model: 'whisper-1',
-      openai_gpt_model: 'gpt-4o',
-      // OIDC settings come from system settings
-      oidc_issuer: systemSettings.oidc_issuer,
-      oidc_client_id: systemSettings.oidc_client_id,
-      oidc_client_secret: systemSettings.oidc_client_secret,
-      oidc_enabled: systemSettings.oidc_enabled,
-      oidc_callback_url: systemSettings.oidc_callback_url
+      openai_gpt_model: 'gpt-4o'
     }
   }
 
-  // Merge user settings with system OIDC settings
-  return {
-    ...settings,
-    oidc_issuer: systemSettings.oidc_issuer,
-    oidc_client_id: systemSettings.oidc_client_id,
-    oidc_client_secret: systemSettings.oidc_client_secret,
-    oidc_enabled: systemSettings.oidc_enabled,
-    oidc_callback_url: systemSettings.oidc_callback_url
-  }
+  return settings
 }
 
 export const saveSettings = (userId, settings) => {
   const existing = getSettings(userId)
-
-  // Use environment variables as fallback for OIDC settings
-  const oidcIssuer =
-    settings.oidcIssuer ||
-    process.env.POCKET_ID_ISSUER ||
-    'https://pocketid.app'
-  const oidcClientId =
-    settings.oidcClientId || process.env.POCKET_ID_CLIENT_ID || null
-  const oidcClientSecret =
-    settings.oidcClientSecret || process.env.POCKET_ID_CLIENT_SECRET || null
 
   const provider = settings.provider === 'openai' ? 'openai' : 'azure'
   const openaiBaseUrl = settings.openaiBaseUrl || null
@@ -603,8 +560,6 @@ export const saveSettings = (userId, settings) => {
           api_key = ?, api_version = ?,
           whisper_deployment = ?, gpt_deployment = ?,
           openai_whisper_model = ?, openai_gpt_model = ?,
-          oidc_enabled = ?, oidc_client_id = ?, oidc_client_secret = ?,
-          oidc_issuer = ?, oidc_callback_url = ?,
           updated_at = CURRENT_TIMESTAMP
       WHERE user_id = ?
     `)
@@ -618,17 +573,15 @@ export const saveSettings = (userId, settings) => {
       settings.gptDeployment,
       openaiWhisperModel,
       openaiGptModel,
-      settings.oidcEnabled ? 1 : 0,
-      oidcClientId,
-      oidcClientSecret,
-      oidcIssuer,
-      settings.oidcCallbackUrl || null,
       userId
     )
   } else {
     const stmt = db.prepare(`
-      INSERT INTO settings (user_id, provider, azure_endpoint, openai_base_url, api_key, api_version, whisper_deployment, gpt_deployment, openai_whisper_model, openai_gpt_model, oidc_enabled, oidc_client_id, oidc_client_secret, oidc_issuer, oidc_callback_url)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO settings (
+        user_id, provider, azure_endpoint, openai_base_url,
+        api_key, api_version, whisper_deployment, gpt_deployment,
+        openai_whisper_model, openai_gpt_model
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `)
     stmt.run(
       userId,
@@ -640,48 +593,7 @@ export const saveSettings = (userId, settings) => {
       settings.whisperDeployment,
       settings.gptDeployment,
       openaiWhisperModel,
-      openaiGptModel,
-      settings.oidcEnabled ? 1 : 0,
-      oidcClientId,
-      oidcClientSecret,
-      oidcIssuer,
-      settings.oidcCallbackUrl || null
-    )
-  }
-}
-
-// Save system-wide settings (OIDC settings are shared across all admins)
-export const saveSystemSettings = settings => {
-  const existing = getSystemSettings()
-
-  if (existing && existing.id) {
-    const stmt = db.prepare(`
-      UPDATE settings
-      SET oidc_enabled = ?, oidc_client_id = ?, oidc_client_secret = ?,
-          oidc_issuer = ?, oidc_callback_url = ?,
-          updated_at = CURRENT_TIMESTAMP
-      WHERE user_id = ?
-    `)
-    stmt.run(
-      settings.oidcEnabled ? 1 : 0,
-      settings.oidcClientId,
-      settings.oidcClientSecret,
-      settings.oidcIssuer,
-      settings.oidcCallbackUrl,
-      'system'
-    )
-  } else {
-    const stmt = db.prepare(`
-      INSERT INTO settings (user_id, oidc_enabled, oidc_client_id, oidc_client_secret, oidc_issuer, oidc_callback_url)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `)
-    stmt.run(
-      'system',
-      settings.oidcEnabled ? 1 : 0,
-      settings.oidcClientId,
-      settings.oidcClientSecret,
-      settings.oidcIssuer,
-      settings.oidcCallbackUrl
+      openaiGptModel
     )
   }
 }
@@ -1938,19 +1850,6 @@ export const exportAll = userId => {
 
 // Task merge undo functionality
 export const storeMergeUndoData = (userId, projectId, mergeMetadata) => {
-  // Create table if it doesn't exist
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS task_merge_undo (
-      id TEXT PRIMARY KEY,
-      user_id TEXT NOT NULL,
-      project_id TEXT NOT NULL,
-      merge_id TEXT NOT NULL,
-      metadata TEXT NOT NULL,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      expires_at DATETIME DEFAULT (datetime('now', '+24 hours'))
-    )
-  `)
-
   const stmt = db.prepare(`
     INSERT INTO task_merge_undo (id, user_id, project_id, merge_id, metadata)
     VALUES (?, ?, ?, ?, ?)

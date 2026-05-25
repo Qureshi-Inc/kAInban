@@ -23,8 +23,8 @@ beforeAll(async() => {
   process.env.NODE_ENV = 'test'
   process.env.DATABASE_PATH = TEST_DB_PATH
   process.env.SESSION_SECRET = 'test-session-secret'
-  process.env.ENABLE_OIDC = 'false'
   process.env.ALLOW_REGISTRATION = 'true'
+  // OIDC env intentionally unset; isOIDCEnabled() will return false
 })
 
 // Clean up after all tests
