@@ -65,16 +65,26 @@ Before you begin contributing, make sure you have:
    VITE_AZURE_OPENAI_WHISPER_DEPLOYMENT=whisper-1
    VITE_AZURE_OPENAI_GPT_DEPLOYMENT=gpt-4
 
-   # PocketID Authentication (optional)
-   ENABLE_OIDC=false
-   POCKET_ID_ISSUER=https://pocketid.app
-   POCKET_ID_CLIENT_ID=your-client-id
-   POCKET_ID_CLIENT_SECRET=your-client-secret
-   POCKET_ID_CALLBACK_URL=http://localhost:3000/api/auth/oidc/callback
+   # Zitadel OIDC (optional locally - leave unset to disable hosted login
+   # and use the local-auth fallback for development)
+   # ZITADEL_ISSUER=https://your-zitadel-instance.example.com
+   # ZITADEL_CLIENT_ID=your-pkce-client-id
+   # OIDC_CALLBACK_URL=http://localhost:3001/api/auth/oidc/callback
+   # ZITADEL_BOOTSTRAP_ADMIN_EMAILS=admin@example.com
+
+   # Local-auth fallback for development (re-opens /api/auth/login + /register)
+   LOCAL_LOGIN_FALLBACK=true
+   LOCAL_REGISTER_FALLBACK=true
 
    # Registration Control
    ALLOW_REGISTRATION=true
    ```
+
+   For local development, the simplest path is to leave the `ZITADEL_*`
+   vars unset and rely on `LOCAL_LOGIN_FALLBACK=true` so you can register
+   and log in with email + password. To exercise the OIDC flow locally,
+   point `ZITADEL_*` at your Zitadel dev instance and add the localhost
+   callback URI to the application's redirect-URI list in Zitadel.
 
 ### Running the Application
 

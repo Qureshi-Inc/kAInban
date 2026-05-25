@@ -35,12 +35,19 @@ local Node.js or npm installation is required.
    AZURE_OPENAI_ENDPOINT=your_azure_endpoint
    AZURE_OPENAI_API_KEY=your_azure_key
 
-   # PocketID OAuth (optional but recommended)
-   ENABLE_OIDC=true
-   POCKET_ID_ISSUER=https://login.qureshi.io
-   POCKET_ID_CLIENT_ID=your_client_id
-   POCKET_ID_CLIENT_SECRET=your_client_secret
-   POCKET_ID_CALLBACK_URL=https://your-domain.com/api/auth/oidc/callback
+   # Zitadel OIDC (recommended)
+   ZITADEL_ISSUER=https://your-zitadel-instance.example.com
+   ZITADEL_CLIENT_ID=your_pkce_client_id
+   OIDC_CALLBACK_URL=https://your-domain.com/api/auth/oidc/callback
+   ZITADEL_BOOTSTRAP_ADMIN_EMAILS=admin@example.com
+
+   # Tenant resolution: 'default' for single-tenant, 'zitadel_org' for
+   # one-tenant-per-Zitadel-org (requires the addOrgClaims Zitadel Action)
+   TENANT_STRATEGY=default
+
+   # Local-auth fallback (rollback only - leave false in production)
+   LOCAL_LOGIN_FALLBACK=false
+   LOCAL_REGISTER_FALLBACK=false
 
    # CORS Configuration
    CORS_ORIGIN=https://your-domain.com
@@ -76,7 +83,7 @@ The Docker setup consists of two services:
 - **Features**:
   - Audio transcription with OpenAI Whisper
   - AI task extraction with GPT-4
-  - PocketID OAuth authentication
+  - Zitadel OIDC authentication (PKCE)
   - File upload handling
 
 ## Docker Configuration Details
@@ -128,15 +135,17 @@ Excludes development files and lock files to prevent conflicts:
 | `OPENAI_API_KEY` | OpenAI API key for transcription | `sk-...`                      |
 | `DATABASE_URL`   | SQLite database path             | `sqlite:./storage/kainban.db` |
 
-### Optional OAuth Variables
+### Zitadel OIDC Variables
 
-| Variable                  | Description                    | Default |
-| ------------------------- | ------------------------------ | ------- |
-| `ENABLE_OIDC`             | Enable PocketID authentication | `false` |
-| `POCKET_ID_ISSUER`        | PocketID issuer URL            | -       |
-| `POCKET_ID_CLIENT_ID`     | OAuth client ID                | -       |
-| `POCKET_ID_CLIENT_SECRET` | OAuth client secret            | -       |
-| `POCKET_ID_CALLBACK_URL`  | OAuth callback URL             | -       |
+| Variable                         | Description                                                 | Default     |
+| -------------------------------- | ----------------------------------------------------------- | ----------- |
+| `ZITADEL_ISSUER`                 | Zitadel discovery URL (e.g. `https://auth.example.com`)     | -           |
+| `ZITADEL_CLIENT_ID`              | PKCE public-client ID from your Zitadel application         | -           |
+| `OIDC_CALLBACK_URL`              | Must match a redirect URI registered on the Zitadel app     | -           |
+| `ZITADEL_BOOTSTRAP_ADMIN_EMAILS` | Comma-separated emails promoted to admin on first login     | -           |
+| `TENANT_STRATEGY`                | `default` or `zitadel_org` (see README "Zitadel Setup")     | `default`   |
+| `LOCAL_LOGIN_FALLBACK`           | Re-open `/api/auth/login` for rollback                      | `false`     |
+| `LOCAL_REGISTER_FALLBACK`        | Re-open `/api/auth/register` for rollback                   | `false`     |
 
 ### Optional Configuration
 
@@ -242,7 +251,7 @@ Update your `.env` file for HTTPS:
 
 ```env
 CORS_ORIGIN=https://your-domain.com
-POCKET_ID_CALLBACK_URL=https://your-domain.com/api/auth/oidc/callback
+OIDC_CALLBACK_URL=https://your-domain.com/api/auth/oidc/callback
 ```
 
 ### Scaling Considerations
