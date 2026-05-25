@@ -8,9 +8,9 @@ services:
     environment:
       - NODE_ENV=test
       - DATABASE_PATH=/app/storage/test.db
-      - ENABLE_OIDC=false
       - ALLOW_REGISTRATION=true
       - SESSION_SECRET=test-session-secret
+      # OIDC intentionally unset - tests run with local auth only
     volumes:
       - ./storage:/app/storage
     ports:
