@@ -14,6 +14,7 @@
 
 - [Overview](#overview)
 - [Features](#features)
+- [Architecture](#architecture)
 - [Quick Start](#quick-start)
 - [Installation](#installation)
 - [Configuration](#configuration)
@@ -108,6 +109,124 @@
 - **Real-time Updates**: Live synchronization across devices
 - **Error Handling**: Comprehensive error management with user feedback
 - **Performance Optimized**: Lazy loading, caching, and efficient rendering
+
+---
+
+## 🏗 Architecture
+
+### Topology
+
+Two containers behind a reverse proxy. SQLite is the source of truth for app
+data and sessions; Zitadel handles all identity. Audio uploads go to local
+disk and are pulled by Whisper for transcription.
+
+```mermaid
+flowchart LR
+  Browser["Browser (React SPA)"]
+  Tunnel["Cloudflare Tunnel"]
+  Frontend["notes-frontend<br/>(nginx + built SPA)"]
+  API["notes-api<br/>(Express)"]
+  AppDB[("app.db<br/>users, tenants,<br/>projects, tasks")]
+  SessDB[("sessions.db<br/>express-session")]
+  Storage[("storage/<br/>audio uploads")]
+  Zitadel["Zitadel IdP<br/>auth.kainban.com"]
+  Azure["Azure OpenAI<br/>(or OpenAI)"]
+
+  Browser <-->|HTTPS| Tunnel
+  Tunnel --> Frontend
+  Frontend -->|/api/*| API
+  Browser -->|"OIDC redirect"| Zitadel
+  Zitadel -->|"302 callback"| Browser
+  API <--> AppDB
+  API <--> SessDB
+  API --> Storage
+  API -->|"discover, /token,<br/>/userinfo, /revoke"| Zitadel
+  API -->|"Whisper, GPT"| Azure
+```
+
+### Sign-in flow (Zitadel hosted login, PKCE)
+
+```mermaid
+sequenceDiagram
+  participant Browser
+  participant Notes as notes-api
+  participant Zitadel as auth.kainban.com
+  participant DB as app.db
+
+  Browser->>Notes: GET / (no session)
+  Notes-->>Browser: AuthPage with single Sign in link
+  Browser->>Notes: GET /api/auth/oidc/login
+  Notes->>Notes: generate code_verifier, state, nonce
+  Notes->>Notes: store in req.session
+  Notes-->>Browser: 302 to Zitadel /authorize?code_challenge=...
+  Browser->>Zitadel: hosted login or signup
+  Zitadel-->>Browser: 302 /api/auth/oidc/callback?code=...&state=...
+  Browser->>Notes: GET /api/auth/oidc/callback
+  Notes->>Zitadel: POST /token (code + code_verifier, no secret)
+  Zitadel-->>Notes: id_token + access_token + refresh_token
+  Notes->>Zitadel: GET /userinfo
+  Zitadel-->>Notes: sub, email, email_verified, name, urn:kainban:org:id
+  Notes->>Notes: req.session.regenerate (prevents fixation)
+  Notes->>DB: upsert by (oidc_issuer, oidc_sub) or link by verified email
+  Notes->>DB: resolve tenant_id from urn:kainban:org:id
+  Notes-->>Browser: Set session cookie + 302 to APP_URL
+```
+
+### Tenant resolution
+
+A custom Zitadel Action (`addOrgClaims`) on the Complement Token flow
+injects `urn:kainban:org:id` into id_token and userinfo. The backend reads
+that claim and routes new users into a tenant keyed by the Zitadel org id.
+
+```mermaid
+flowchart TD
+  Login["OIDC callback"] --> ByOIDC{"Existing user<br/>(oidc_issuer, oidc_sub)<br/>match?"}
+  ByOIDC -->|"yes"| Refresh["Refresh email/name<br/>Keep tenant_id"]
+  ByOIDC -->|"no"| ByEmail{"email_verified=true<br/>both sides<br/>email match?"}
+  ByEmail -->|"yes"| Link["Link OIDC sub to existing row<br/>Keep tenant_id"]
+  ByEmail -->|"no"| ResolveTenant["resolveTenantForUserinfo()"]
+  ResolveTenant --> Strategy{"TENANT_STRATEGY"}
+  Strategy -->|"zitadel_org"| HasClaim{"urn:kainban:org:id<br/>present?"}
+  HasClaim -->|"yes"| ByOrg["Lookup tenant<br/>by zitadel_org_id"]
+  ByOrg --> ExistsCheck{"Found?"}
+  ExistsCheck -->|"yes"| ReuseTenant["Reuse tenant"]
+  ExistsCheck -->|"no"| CreateTenant["Auto-create tenant<br/>subdomain = slug(orgName)"]
+  HasClaim -->|"no"| Default["Default 'kainban' tenant<br/>(warn in logs)"]
+  Strategy -->|"default"| Default
+  ReuseTenant --> CreateUser["Create user<br/>with tenant_id"]
+  CreateTenant --> CreateUser
+  Default --> CreateUser
+```
+
+The current production setup has `TENANT_STRATEGY=zitadel_org` and a single
+`kainban` tenant whose `zitadel_org_id` is backfilled to the canonical
+kAInban Zitadel org id. This means: any future user signing up in the same
+org joins the existing tenant; if a separate Zitadel org is ever added, its
+first user auto-spawns its own tenant.
+
+### Session and token lifecycle
+
+```mermaid
+flowchart LR
+  Login["Successful callback"] --> Session["req.session.user<br/>+ req.session.oidc<br/>(id_token, refresh_token,<br/>expires_at)"]
+  Session --> Cookie["Set-Cookie: notes.sid<br/>(httpOnly, sameSite=lax,<br/>secure=auto)"]
+  Cookie --> Persist[("sessions.db<br/>SQLite store<br/>connect-sqlite3")]
+
+  Request["Each request"] --> Refresh{"expires_at<br/>within 5 min?"}
+  Refresh -->|"yes, no inflight"| DoRefresh["client.refresh<br/>per-session mutex"]
+  Refresh -->|"yes, inflight"| Wait["await mutex"]
+  Refresh -->|"no"| Pass["pass through"]
+  DoRefresh --> Update["Replace refresh_token<br/>(Zitadel rotates)"]
+
+  Logout["POST /api/auth/logout"] --> Revoke["client.revoke<br/>refresh_token"]
+  Revoke --> Destroy["session.destroy"]
+  Destroy --> Redirect["302 to Zitadel<br/>end_session_endpoint"]
+```
+
+Refresh failures fall through with the existing access token (don't 401 the
+user on a transient blip). The per-session in-process mutex prevents N
+concurrent requests from each firing a refresh and rotating each other's
+tokens to invalid.
 
 ---
 

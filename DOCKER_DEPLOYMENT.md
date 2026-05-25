@@ -66,25 +66,46 @@ local Node.js or npm installation is required.
 
 ## Architecture
 
-The Docker setup consists of two services:
+The Docker setup consists of two services. A typical production deployment
+sits behind a reverse proxy (Cloudflare Tunnel, Nginx, Traefik) which
+terminates TLS and routes both the SPA and the API on the same hostname.
 
-### Frontend Service (`kainban-frontend`)
+```mermaid
+flowchart LR
+  Internet["Internet"] -->|"HTTPS"| Proxy["Reverse Proxy<br/>(CF Tunnel / Nginx)"]
+  Proxy --> Frontend["notes-frontend<br/>nginx:alpine<br/>:8064"]
+  Proxy -->|"/api/*"| API["notes-api<br/>node:20-alpine<br/>:3001"]
+  API --> StorageVol[("/app/storage<br/>(host volume)")]
+  StorageVol --> AppDB["app.db<br/>(SQLite WAL)"]
+  StorageVol --> SessDB["sessions.db"]
+  StorageVol --> Uploads["meetings/<br/>(audio files)"]
+  API --> Zitadel["Zitadel<br/>(separate stack)"]
+  API --> AzureOpenAI["Azure OpenAI<br/>(or OpenAI)"]
+  API --> SMTP["SMTP / SendGrid<br/>(notifications)"]
+```
 
-- **Image**: nginx:alpine
+### Frontend Service (`notes-frontend`)
+
+- **Image**: nginx:alpine (multi-stage build with Vite)
 - **Port**: 8064
-- **Purpose**: Serves the React application built with Vite
-- **Health Check**: Endpoint available at `/health`
+- **Purpose**: Serves the React SPA built with Vite
+- **Health check**: `/health`
 
-### API Service (`kainban-api`)
+### API Service (`notes-api`)
 
-- **Image**: node:20-alpine
+- **Image**: node:20-alpine (multi-stage build, server/ subset)
 - **Port**: 3001
 - **Purpose**: Express.js API server with SQLite database
 - **Features**:
-  - Audio transcription with OpenAI Whisper
-  - AI task extraction with GPT-4
-  - Zitadel OIDC authentication (PKCE)
+  - Audio transcription via Whisper
+  - AI task extraction via GPT-4
+  - Zitadel OIDC authentication (PKCE public client, no secret)
+  - Token refresh middleware with per-session mutex
   - File upload handling
+- **Health checks**:
+  - `/health` — process + DB
+  - `/health/oidc` — Zitadel discovery doc reachability (separate so Zitadel
+    blips don't pull api out of LB pool for non-auth traffic)
 
 ## Docker Configuration Details
 
