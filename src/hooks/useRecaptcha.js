@@ -13,7 +13,7 @@ export const useRecaptcha = () => {
     loadRecaptchaConfig()
   }, [])
 
-  const loadRecaptchaConfig = async () => {
+  const loadRecaptchaConfig = async() => {
     try {
       const config = await apiService.getRecaptchaConfig()
       setRecaptchaConfig(prev => ({
@@ -114,7 +114,7 @@ export const useRecaptcha = () => {
     })
   }
 
-  const executeRecaptcha = async (action = 'submit') => {
+  const executeRecaptcha = async(action = 'submit') => {
     if (!recaptchaConfig.enabled) {
       console.log('[reCAPTCHA] reCAPTCHA not enabled, skipping')
       return null

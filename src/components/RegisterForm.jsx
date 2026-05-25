@@ -1,10 +1,10 @@
 import { motion } from 'framer-motion'
 import { Mail, Lock, User, Loader2, Check, X, KeyRound } from 'lucide-react'
 import React, { useState, useEffect } from 'react'
+import { useRecaptcha } from '../hooks/useRecaptcha'
 import apiService from '../services/apiService'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
-import { useRecaptcha } from '../hooks/useRecaptcha'
 
 export default function RegisterForm({ onRegister, onSwitchToLogin, error, isFirstUser }) {
   const [name, setName] = useState('')
@@ -17,10 +17,8 @@ export default function RegisterForm({ onRegister, onSwitchToLogin, error, isFir
 
   // Multi-tenant fields
   const [multiTenancyEnabled, setMultiTenancyEnabled] = useState(false)
-  const [tenantName, setTenantName] = useState('')
-  const [subdomain, setSubdomain] = useState('')
+  const [organizationName, setOrganizationName] = useState('')
   const [tier, setTier] = useState('starter')
-  const [baseDomain, setBaseDomain] = useState('')
 
   // reCAPTCHA integration
   const { enabled: recaptchaEnabled, loaded: recaptchaLoaded, executeRecaptcha } = useRecaptcha()
@@ -33,10 +31,6 @@ export default function RegisterForm({ onRegister, onSwitchToLogin, error, isFir
     ]).then(([oidcStatus, multiTenancyConfig]) => {
       setOidcEnabled(oidcStatus.enabled)
       setMultiTenancyEnabled(multiTenancyConfig.enabled)
-
-      // Set base domain from current window location
-      const currentHost = window.location.hostname
-      setBaseDomain(currentHost)
     })
   }, [])
 
@@ -49,10 +43,8 @@ export default function RegisterForm({ onRegister, onSwitchToLogin, error, isFir
   }
 
   // Validation for multi-tenant fields
-  const tenantValidation = {
-    name: tenantName.trim().length >= 2,
-    subdomain: /^[a-z0-9-]{3,20}$/.test(subdomain),
-    subdomainAvailable: true // TODO: Add real-time availability check
+  const organizationValidation = {
+    name: organizationName.trim().length >= 2
   }
 
   const isValid =
@@ -63,7 +55,7 @@ export default function RegisterForm({ onRegister, onSwitchToLogin, error, isFir
     passwordValidation.hasLower &&
     passwordValidation.hasNumber &&
     passwordValidation.match &&
-    (!multiTenancyEnabled || !isFirstUser || (tenantValidation.name && tenantValidation.subdomain))
+    (!multiTenancyEnabled || !isFirstUser || organizationValidation.name)
 
   const handleSubmit = async(e) => {
     e.preventDefault()
@@ -82,8 +74,8 @@ export default function RegisterForm({ onRegister, onSwitchToLogin, error, isFir
 
       // Prepare tenant data for multi-tenant registration
       const tenantData = multiTenancyEnabled && isFirstUser ? {
-        tenantName,
-        subdomain,
+        tenantName: organizationName,
+        subdomain: organizationName.toLowerCase().replace(/[^a-z0-9]/g, ''),
         tier
       } : null
 
@@ -260,37 +252,13 @@ export default function RegisterForm({ onRegister, onSwitchToLogin, error, isFir
                 <Input
                   type="text"
                   placeholder="Acme Corp"
-                  value={tenantName}
-                  onChange={(e) => setTenantName(e.target.value)}
+                  value={organizationName}
+                  onChange={(e) => setOrganizationName(e.target.value)}
                   required
                   disabled={loading}
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Subdomain
-                </label>
-                <div className="flex items-center">
-                  <Input
-                    type="text"
-                    placeholder="acme"
-                    value={subdomain}
-                    onChange={(e) => setSubdomain(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
-                    className="rounded-r-none"
-                    required
-                    disabled={loading}
-                  />
-                  <span className="px-3 py-2 bg-gray-100 dark:bg-gray-700 border border-l-0 rounded-r text-sm text-gray-600 dark:text-gray-400">
-                    .{baseDomain || 'loading...'}
-                  </span>
-                </div>
-                {subdomain && (
-                  <div className="mt-1 text-xs">
-                    <ValidationItem valid={tenantValidation.subdomain} text="3-20 characters, lowercase letters, numbers, and hyphens only" />
-                  </div>
-                )}
-              </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">

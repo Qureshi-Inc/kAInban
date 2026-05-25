@@ -1,0 +1,24 @@
+# gstack workflow
+
+Always:
+- Plan before coding
+- Break work into PR-sized tasks
+- Avoid editing unrelated files
+- Prefer minimal diffs
+- Run tests after modifications
+- Explain architectural decisions
+- Use existing patterns before inventing new ones
+- Prefer SQLite-compatible migrations
+- Keep Docker compatibility intact
+
+Before implementation:
+1. Analyze codebase
+2. Create implementation plan
+3. Identify edge cases
+4. Identify security implications
+5. Then implement
+
+For risky operations:
+- Ask before deleting
+- Ask before mass refactors
+- Ask before changing infrastructure

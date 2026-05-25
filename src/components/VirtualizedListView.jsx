@@ -239,7 +239,7 @@ export default function VirtualizedListView({
   }
 
   const sortTasksByOrder = tasks => {
-    if (!Array.isArray(tasks)) return []
+    if (!Array.isArray(tasks)) {return []}
     return tasks.filter(task => task).sort((a, b) => {
       if (a.order && b.order) {
         return a.order - b.order

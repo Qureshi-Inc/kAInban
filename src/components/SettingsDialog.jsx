@@ -19,11 +19,15 @@ export default function SettingsDialog() {
   const deleteAllProjects = useAppStore((state) => state.deleteAllProjects)
 
   const [aiFormData, setAiFormData] = useState({
+    provider: 'azure',
     azureEndpoint: '',
+    openaiBaseUrl: 'https://api.openai.com/v1',
     apiKey: '',
     apiVersion: '2024-02-01',
     whisperDeployment: 'whisper-1',
     gptDeployment: 'gpt-4',
+    openaiWhisperModel: 'whisper-1',
+    openaiGptModel: 'gpt-4o',
     oidcEnabled: false,
     oidcClientId: '',
     oidcClientSecret: '',
@@ -47,11 +51,15 @@ export default function SettingsDialog() {
   useEffect(() => {
     if (isSettingsOpen) {
       setAiFormData({
+        provider: settings.provider === 'openai' ? 'openai' : 'azure',
         azureEndpoint: settings.azureEndpoint || '',
+        openaiBaseUrl: settings.openaiBaseUrl || 'https://api.openai.com/v1',
         apiKey: settings.apiKey || '',
         apiVersion: settings.apiVersion || '2024-02-01',
         whisperDeployment: settings.whisperDeployment || 'whisper-1',
         gptDeployment: settings.gptDeployment || 'gpt-4',
+        openaiWhisperModel: settings.openaiWhisperModel || 'whisper-1',
+        openaiGptModel: settings.openaiGptModel || 'gpt-4o',
         oidcEnabled: settings.oidcEnabled || false,
         oidcClientId: settings.oidcClientId || '',
         oidcClientSecret: settings.oidcClientSecret || '',
@@ -71,7 +79,7 @@ export default function SettingsDialog() {
     }
   }, [isSettingsOpen, settings, user])
 
-  const fetchTenantInfo = async () => {
+  const fetchTenantInfo = async() => {
     try {
       const tenantData = await apiService.getTenantInfo()
       setTenantInfo(tenantData)
@@ -84,7 +92,18 @@ export default function SettingsDialog() {
   const handleTestConnection = async() => {
     setTestingConnection(true)
 
-    if (!aiFormData.azureEndpoint || !aiFormData.apiKey) {
+    const isOpenAI = aiFormData.provider === 'openai'
+
+    if (isOpenAI) {
+      if (!aiFormData.apiKey) {
+        addNotification({
+          type: 'error',
+          message: 'Please fill in your OpenAI API key first'
+        })
+        setTestingConnection(false)
+        return
+      }
+    } else if (!aiFormData.azureEndpoint || !aiFormData.apiKey) {
       addNotification({
         type: 'error',
         message: 'Please fill in endpoint and API key first'
@@ -94,13 +113,15 @@ export default function SettingsDialog() {
     }
 
     try {
-      const testUrl = `${aiFormData.azureEndpoint}/openai/models?api-version=${aiFormData.apiVersion}`
-      const response = await fetch(testUrl, {
-        method: 'GET',
-        headers: {
-          'api-key': aiFormData.apiKey
-        }
-      })
+      const testUrl = isOpenAI
+        ? `${(aiFormData.openaiBaseUrl || 'https://api.openai.com/v1').replace(/\/$/, '')}/models`
+        : `${aiFormData.azureEndpoint}/openai/models?api-version=${aiFormData.apiVersion}`
+
+      const headers = isOpenAI
+        ? { Authorization: `Bearer ${aiFormData.apiKey}` }
+        : { 'api-key': aiFormData.apiKey }
+
+      const response = await fetch(testUrl, { method: 'GET', headers })
 
       if (response.ok) {
         addNotification({
@@ -124,22 +145,44 @@ export default function SettingsDialog() {
   }
 
   const handleSaveAiSettings = () => {
-    if (!aiFormData.azureEndpoint || !aiFormData.apiKey) {
-      addNotification({
-        type: 'error',
-        message: 'Please fill in all required fields'
-      })
-      return
-    }
+    const isOpenAI = aiFormData.provider === 'openai'
 
-    try {
-      new URL(aiFormData.azureEndpoint)
-    } catch (error) {
-      addNotification({
-        type: 'error',
-        message: 'Please enter a valid Azure OpenAI endpoint URL'
-      })
-      return
+    if (isOpenAI) {
+      if (!aiFormData.apiKey) {
+        addNotification({
+          type: 'error',
+          message: 'OpenAI API key is required'
+        })
+        return
+      }
+      if (aiFormData.openaiBaseUrl) {
+        try {
+          new URL(aiFormData.openaiBaseUrl)
+        } catch (error) {
+          addNotification({
+            type: 'error',
+            message: 'Please enter a valid OpenAI base URL'
+          })
+          return
+        }
+      }
+    } else {
+      if (!aiFormData.azureEndpoint || !aiFormData.apiKey) {
+        addNotification({
+          type: 'error',
+          message: 'Please fill in all required fields'
+        })
+        return
+      }
+      try {
+        new URL(aiFormData.azureEndpoint)
+      } catch (error) {
+        addNotification({
+          type: 'error',
+          message: 'Please enter a valid Azure OpenAI endpoint URL'
+        })
+        return
+      }
     }
 
     updateSettings(aiFormData)
@@ -431,66 +474,162 @@ export default function SettingsDialog() {
           {isAdmin && (
             <TabsContent value="ai" className="space-y-4 px-1">
               <div className="space-y-4">
+                {/* Provider selector */}
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">
-                    Azure OpenAI Endpoint *
-                  </label>
-                  <Input
-                    type="url"
-                    placeholder="https://your-resource.openai.azure.com"
-                    value={aiFormData.azureEndpoint}
-                    onChange={(e) => handleAiInputChange('azureEndpoint', e.target.value)}
-                    className="w-full text-sm"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">
-                    API Key *
-                  </label>
-                  <Input
-                    type="password"
-                    placeholder="Your Azure OpenAI API Key"
-                    value={aiFormData.apiKey}
-                    onChange={(e) => handleAiInputChange('apiKey', e.target.value)}
-                    className="w-full"
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">
-                      API Version
-                    </label>
-                    <Input
-                      value={aiFormData.apiVersion}
-                      onChange={(e) => handleAiInputChange('apiVersion', e.target.value)}
-                      className="w-full"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">
-                      Whisper Deployment
-                    </label>
-                    <Input
-                      value={aiFormData.whisperDeployment}
-                      onChange={(e) => handleAiInputChange('whisperDeployment', e.target.value)}
-                      className="w-full"
-                    />
+                  <label className="text-sm font-medium">AI Provider *</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleAiInputChange('provider', 'azure')}
+                      className={`flex flex-col items-start gap-1 rounded-md border p-3 text-left transition ${
+                        aiFormData.provider !== 'openai'
+                          ? 'border-primary bg-primary/5 ring-1 ring-primary'
+                          : 'border-border hover:bg-muted/50'
+                      }`}
+                    >
+                      <span className="text-sm font-medium">Azure OpenAI</span>
+                      <span className="text-xs text-muted-foreground">
+                        Endpoint + deployments + API key
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleAiInputChange('provider', 'openai')}
+                      className={`flex flex-col items-start gap-1 rounded-md border p-3 text-left transition ${
+                        aiFormData.provider === 'openai'
+                          ? 'border-primary bg-primary/5 ring-1 ring-primary'
+                          : 'border-border hover:bg-muted/50'
+                      }`}
+                    >
+                      <span className="text-sm font-medium">OpenAI</span>
+                      <span className="text-xs text-muted-foreground">
+                        api.openai.com / compatible
+                      </span>
+                    </button>
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">
-                    GPT Deployment
-                  </label>
-                  <Input
-                    value={aiFormData.gptDeployment}
-                    onChange={(e) => handleAiInputChange('gptDeployment', e.target.value)}
-                    className="w-full"
-                  />
-                </div>
+                {aiFormData.provider === 'openai' ? (
+                  <>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">
+                        OpenAI API Key *
+                      </label>
+                      <Input
+                        type="password"
+                        placeholder="sk-..."
+                        value={aiFormData.apiKey}
+                        onChange={(e) => handleAiInputChange('apiKey', e.target.value)}
+                        className="w-full"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">
+                        OpenAI Base URL
+                      </label>
+                      <Input
+                        type="url"
+                        placeholder="https://api.openai.com/v1"
+                        value={aiFormData.openaiBaseUrl}
+                        onChange={(e) => handleAiInputChange('openaiBaseUrl', e.target.value)}
+                        className="w-full text-sm"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Override only for self-hosted or OpenAI-compatible APIs (e.g. OpenRouter, LiteLLM).
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">
+                          Whisper Model
+                        </label>
+                        <Input
+                          placeholder="whisper-1"
+                          value={aiFormData.openaiWhisperModel}
+                          onChange={(e) => handleAiInputChange('openaiWhisperModel', e.target.value)}
+                          className="w-full"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">
+                          GPT Model
+                        </label>
+                        <Input
+                          placeholder="gpt-4o"
+                          value={aiFormData.openaiGptModel}
+                          onChange={(e) => handleAiInputChange('openaiGptModel', e.target.value)}
+                          className="w-full"
+                        />
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">
+                        Azure OpenAI Endpoint *
+                      </label>
+                      <Input
+                        type="url"
+                        placeholder="https://your-resource.openai.azure.com"
+                        value={aiFormData.azureEndpoint}
+                        onChange={(e) => handleAiInputChange('azureEndpoint', e.target.value)}
+                        className="w-full text-sm"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">
+                        API Key *
+                      </label>
+                      <Input
+                        type="password"
+                        placeholder="Your Azure OpenAI API Key"
+                        value={aiFormData.apiKey}
+                        onChange={(e) => handleAiInputChange('apiKey', e.target.value)}
+                        className="w-full"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">
+                          API Version
+                        </label>
+                        <Input
+                          value={aiFormData.apiVersion}
+                          onChange={(e) => handleAiInputChange('apiVersion', e.target.value)}
+                          className="w-full"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">
+                          Whisper Deployment
+                        </label>
+                        <Input
+                          value={aiFormData.whisperDeployment}
+                          onChange={(e) => handleAiInputChange('whisperDeployment', e.target.value)}
+                          className="w-full"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">
+                        GPT Deployment
+                      </label>
+                      <Input
+                        value={aiFormData.gptDeployment}
+                        onChange={(e) => handleAiInputChange('gptDeployment', e.target.value)}
+                        className="w-full"
+                      />
+                    </div>
+                  </>
+                )}
               </div>
 
               <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 pt-6">
@@ -520,7 +659,7 @@ export default function SettingsDialog() {
               </div>
 
               <div className="text-xs text-muted-foreground mt-4">
-                * Required fields. Use "Test Connection" to verify your Azure OpenAI setup.
+                * Required fields. Use "Test Connection" to verify your {aiFormData.provider === 'openai' ? 'OpenAI' : 'Azure OpenAI'} setup.
               </div>
             </TabsContent>
           )}

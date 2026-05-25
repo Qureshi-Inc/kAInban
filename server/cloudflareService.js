@@ -46,7 +46,7 @@ class CloudflareService {
   }
 
   async deleteSubdomain(subdomain) {
-    if (!this.apiToken || !this.zoneId) return false
+    if (!this.apiToken || !this.zoneId) {return false}
 
     try {
       // Get base domain from APP_URL environment variable

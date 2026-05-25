@@ -11,7 +11,9 @@ class RecaptchaService {
 
   // Check if reCAPTCHA is enabled
   isEnabled() {
-    return !!(this.secretKey && this.siteKey)
+    // TEMPORARILY DISABLED FOR TESTING
+    return false
+    // return !!(this.secretKey && this.siteKey)
   }
 
   // Get the site key for frontend

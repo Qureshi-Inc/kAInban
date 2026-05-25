@@ -5,7 +5,7 @@ import { Button } from './ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
 
 const TaskRow = ({ task, onTaskClick, onTaskDelete }) => {
-  if (!task) return null
+  if (!task) {return null}
 
   const getPriorityIcon = priority => {
     const colors = {
@@ -130,7 +130,7 @@ export default function SimpleListView({
   }
 
   const sortTasksByOrder = tasks => {
-    if (!Array.isArray(tasks)) return []
+    if (!Array.isArray(tasks)) {return []}
     return tasks.filter(task => task).sort((a, b) => {
       if (a.order && b.order) {
         return a.order - b.order

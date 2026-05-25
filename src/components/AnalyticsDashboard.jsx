@@ -230,7 +230,7 @@ export default function AnalyticsDashboard() {
       }
     } catch (error) {
       console.error('[Analytics] Failed to generate insights:', error)
-      setAiInsights('Failed to generate insights. Please check your Azure OpenAI configuration and try again.')
+      setAiInsights('Failed to generate insights. Please check your AI provider configuration and try again.')
     } finally {
       setLoadingInsights(false)
     }

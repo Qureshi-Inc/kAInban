@@ -170,7 +170,7 @@ export default function RecordingModal() {
       setUploadProgress({
         stage: 'transcribing',
         percentage: 50,
-        message: 'Transcribing audio with Azure AI...'
+        message: 'Transcribing audio...'
       })
 
       const transcript = await openaiService.transcribeAudio(audioBlob)

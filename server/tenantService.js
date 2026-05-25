@@ -1,5 +1,5 @@
-import dbInstance from './database.js'
 import * as uuid from 'uuid'
+import dbInstance from './database.js'
 const { v4: uuidv4 } = uuid
 
 const db = dbInstance
@@ -71,7 +71,7 @@ class TenantService {
 
   // Get tenant by subdomain
   async getTenantBySubdomain(subdomain) {
-    if (!multiTenancyEnabled) return null
+    if (!multiTenancyEnabled) {return null}
 
     const stmt = db.prepare('SELECT * FROM tenants WHERE subdomain = ? AND active = 1')
     const tenant = stmt.get(subdomain)
@@ -85,7 +85,7 @@ class TenantService {
 
   // Get tenant by ID
   async getTenantById(tenantId) {
-    if (!multiTenancyEnabled) return null
+    if (!multiTenancyEnabled) {return null}
 
     const stmt = db.prepare('SELECT * FROM tenants WHERE id = ? AND active = 1')
     const tenant = stmt.get(tenantId)
@@ -99,7 +99,7 @@ class TenantService {
 
   // Extract tenant from request (query parameter or user session)
   async extractTenantFromRequest(req) {
-    if (!multiTenancyEnabled) return null
+    if (!multiTenancyEnabled) {return null}
 
     // Check for tenant in query parameter: ?tenant={subdomain}
     const tenantQuery = req.query?.tenant
@@ -131,10 +131,10 @@ class TenantService {
 
   // Check if user can be added to tenant (within limits)
   async canAddUserToTenant(tenantId) {
-    if (!multiTenancyEnabled) return true
+    if (!multiTenancyEnabled) {return true}
 
     const tenant = await this.getTenantById(tenantId)
-    if (!tenant) return false
+    if (!tenant) {return false}
 
     const userCountStmt = db.prepare('SELECT COUNT(*) as count FROM users WHERE tenant_id = ? AND active = 1')
     const result = userCountStmt.get(tenantId)
@@ -144,7 +144,7 @@ class TenantService {
 
   // Associate user with tenant
   async addUserToTenant(userId, tenantId) {
-    if (!multiTenancyEnabled) return
+    if (!multiTenancyEnabled) {return}
 
     const stmt = db.prepare('UPDATE users SET tenant_id = ? WHERE id = ?')
     stmt.run(tenantId, userId)
@@ -154,7 +154,7 @@ class TenantService {
 
   // Get tenant usage stats
   async getTenantStats(tenantId) {
-    if (!multiTenancyEnabled) return null
+    if (!multiTenancyEnabled) {return null}
 
     const userCount = db.prepare('SELECT COUNT(*) as count FROM users WHERE tenant_id = ? AND active = 1').get(tenantId)
 

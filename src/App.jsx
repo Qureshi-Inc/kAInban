@@ -1,12 +1,13 @@
 import { motion } from 'framer-motion'
 import React, { useEffect } from 'react'
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 
 // Components
 import ActivityPanel from './components/ActivityPanel'
 import AuthPage from './components/AuthPage'
 import DebugPanel from './components/DebugPanel'
 import Header from './components/Header'
+import InviteRegistrationForm from './components/InviteRegistrationForm'
 import LeftSidebar from './components/LeftSidebar'
 import NotificationSystem from './components/NotificationSystem'
 import ProgressIndicator from './components/ProgressIndicator'
@@ -18,7 +19,8 @@ import MainView from './pages/MainView'
 import openaiService from './services/openaiService'
 import useAppStore from './stores/useAppStore'
 
-function App() {
+// Inner App component that handles authenticated routes
+function AuthenticatedApp() {
   const [loading, setLoading] = React.useState(true)
   const [activityPanelOpen, setActivityPanelOpen] = React.useState(false)
   const [sidebarOpen, setSidebarOpen] = React.useState(false)
@@ -31,11 +33,15 @@ function App() {
   const resetUploadProgress = useAppStore((state) => state.resetUploadProgress)
   const initialize = useAppStore((state) => state.initialize)
   const currentProject = useAppStore((state) => state.currentProject)
+  const provider = useAppStore((state) => state.settings.provider)
   const azureEndpoint = useAppStore((state) => state.settings.azureEndpoint)
+  const openaiBaseUrl = useAppStore((state) => state.settings.openaiBaseUrl)
   const apiKey = useAppStore((state) => state.settings.apiKey)
   const apiVersion = useAppStore((state) => state.settings.apiVersion)
   const whisperDeployment = useAppStore((state) => state.settings.whisperDeployment)
   const gptDeployment = useAppStore((state) => state.settings.gptDeployment)
+  const openaiWhisperModel = useAppStore((state) => state.settings.openaiWhisperModel)
+  const openaiGptModel = useAppStore((state) => state.settings.openaiGptModel)
 
   useEffect(() => {
     // Check authentication and initialize in parallel
@@ -67,21 +73,39 @@ function App() {
         const { settings, updateSettings } = useAppStore.getState()
 
 
-        if (!settings.azureEndpoint || !settings.apiKey) {
+        // Only auto-fill from env vars if AI settings are unconfigured.
+        // We check both providers: Azure (endpoint+key) or OpenAI (key only).
+        const azureConfigured = settings.azureEndpoint && settings.apiKey
+        const openaiConfigured = settings.provider === 'openai' && settings.apiKey
+        if (!azureConfigured && !openaiConfigured) {
 
-          const envSettings = {
-            azureEndpoint: import.meta.env.VITE_AZURE_OPENAI_ENDPOINT || '',
-            apiKey: import.meta.env.VITE_AZURE_OPENAI_API_KEY || '',
-            apiVersion: import.meta.env.VITE_AZURE_OPENAI_API_VERSION || '2024-02-01',
-            whisperDeployment: import.meta.env.VITE_AZURE_OPENAI_WHISPER_DEPLOYMENT || 'whisper',
-            gptDeployment: import.meta.env.VITE_AZURE_OPENAI_GPT_DEPLOYMENT || 'gpt-4'
-          }
+          const envProvider = (import.meta.env.VITE_AI_PROVIDER === 'openai' || import.meta.env.VITE_OPENAI_API_KEY)
+            ? 'openai'
+            : 'azure'
+
+          const envSettings = envProvider === 'openai'
+            ? {
+              provider: 'openai',
+              apiKey: import.meta.env.VITE_OPENAI_API_KEY || '',
+              openaiBaseUrl: import.meta.env.VITE_OPENAI_BASE_URL || 'https://api.openai.com/v1',
+              openaiWhisperModel: import.meta.env.VITE_OPENAI_WHISPER_MODEL || 'whisper-1',
+              openaiGptModel: import.meta.env.VITE_OPENAI_GPT_MODEL || 'gpt-4o'
+            }
+            : {
+              provider: 'azure',
+              azureEndpoint: import.meta.env.VITE_AZURE_OPENAI_ENDPOINT || '',
+              apiKey: import.meta.env.VITE_AZURE_OPENAI_API_KEY || '',
+              apiVersion: import.meta.env.VITE_AZURE_OPENAI_API_VERSION || '2024-02-01',
+              whisperDeployment: import.meta.env.VITE_AZURE_OPENAI_WHISPER_DEPLOYMENT || 'whisper',
+              gptDeployment: import.meta.env.VITE_AZURE_OPENAI_GPT_DEPLOYMENT || 'gpt-4'
+            }
 
           console.log('[App] Loaded from .env:', {
+            provider: envSettings.provider,
             hasEndpoint: !!envSettings.azureEndpoint,
             hasApiKey: !!envSettings.apiKey,
-            whisperDeployment: envSettings.whisperDeployment,
-            gptDeployment: envSettings.gptDeployment
+            whisperModel: envSettings.openaiWhisperModel || envSettings.whisperDeployment,
+            gptModel: envSettings.openaiGptModel || envSettings.gptDeployment
           })
 
           // Update settings with environment variables
@@ -114,16 +138,31 @@ function App() {
 
       // Configure OpenAI service with current settings
       openaiService.configure({
+        provider,
         azureEndpoint,
+        openaiBaseUrl,
         apiKey,
         apiVersion,
         whisperDeployment,
-        gptDeployment
+        gptDeployment,
+        openaiWhisperModel,
+        openaiGptModel
       })
     } catch (error) {
       console.error('[App] Error configuring OpenAI service:', error)
     }
-  }, [user, azureEndpoint, apiKey, apiVersion, whisperDeployment, gptDeployment])
+  }, [
+    user,
+    provider,
+    azureEndpoint,
+    openaiBaseUrl,
+    apiKey,
+    apiVersion,
+    whisperDeployment,
+    gptDeployment,
+    openaiWhisperModel,
+    openaiGptModel
+  ])
 
   // Show auth page if not authenticated (even while checking)
   if (!user) {
@@ -272,7 +311,6 @@ function App() {
   }
 
   return (
-    <BrowserRouter>
       <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
         {/* Left Sidebar - Overlay when open */}
         <LeftSidebar
@@ -341,6 +379,20 @@ function App() {
         {/* Debug panel for mobile development */}
         {import.meta.env.DEV && <DebugPanel />}
       </div>
+  )
+}
+
+// Main App router component
+function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        {/* Public invite registration route */}
+        <Route path="/invite/:token" element={<InviteRegistrationForm />} />
+
+        {/* All other routes go through authenticated app */}
+        <Route path="*" element={<AuthenticatedApp />} />
+      </Routes>
     </BrowserRouter>
   )
 }

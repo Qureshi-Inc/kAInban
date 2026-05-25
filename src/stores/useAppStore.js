@@ -38,11 +38,18 @@ const useAppStore = create((set, get) => ({
 
   // Settings
   settings: {
-    azureEndpoint: '',
+    provider: 'azure', // 'azure' | 'openai'
+    // Shared
     apiKey: '',
+    // Azure-specific
+    azureEndpoint: '',
     apiVersion: '2024-02-01',
-    whisperDeployment: 'whisper-1',
-    gptDeployment: 'gpt-4'
+    whisperDeployment: 'whisper-1', // Azure deployment name
+    gptDeployment: 'gpt-4', // Azure deployment name
+    // OpenAI-specific
+    openaiBaseUrl: 'https://api.openai.com/v1',
+    openaiWhisperModel: 'whisper-1',
+    openaiGptModel: 'gpt-4o'
   },
   settingsLoaded: false,
 

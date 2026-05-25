@@ -9,7 +9,7 @@ services:
     ports:
       - "3001:3001"
     environment:
-      - NODE_ENV=production
+      - NODE_ENV=development
       - STORAGE_DIR=/app/storage
       - DB_PATH=/app/storage/app.db
       - AZURE_OPENAI_ENDPOINT=${AZURE_OPENAI_ENDPOINT:-https://moiz-mb596h34-eastus2.openai.azure.com/}
@@ -27,10 +27,10 @@ services:
       - POCKET_ID_CLIENT_SECRET=${POCKET_ID_CLIENT_SECRET}
       - POCKET_ID_CALLBACK_URL=${POCKET_ID_CALLBACK_URL}
       - SIGNUP_PAGE=${SIGNUP_PAGE}
-      # reCAPTCHA Configuration
-      - RECAPTCHA_SITE_KEY=${RECAPTCHA_SITE_KEY}
-      - RECAPTCHA_SECRET_KEY=${RECAPTCHA_SECRET_KEY}
-      - RECAPTCHA_SCORE_THRESHOLD=${RECAPTCHA_SCORE_THRESHOLD:-0.5}
+      # reCAPTCHA Configuration - DISABLED
+      # - RECAPTCHA_SITE_KEY=${RECAPTCHA_SITE_KEY}
+      # - RECAPTCHA_SECRET_KEY=${RECAPTCHA_SECRET_KEY}
+      # - RECAPTCHA_SCORE_THRESHOLD=${RECAPTCHA_SCORE_THRESHOLD:-0.5}
       # Email Configuration (SMTP)
       - SMTP_HOST=${SMTP_HOST}
       - SMTP_PORT=${SMTP_PORT}

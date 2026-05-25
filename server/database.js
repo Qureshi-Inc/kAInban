@@ -26,11 +26,15 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS settings (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id TEXT DEFAULT 'default',
+    provider TEXT DEFAULT 'azure',
     azure_endpoint TEXT,
+    openai_base_url TEXT,
     api_key TEXT,
     api_version TEXT,
     whisper_deployment TEXT,
     gpt_deployment TEXT,
+    openai_whisper_model TEXT,
+    openai_gpt_model TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
@@ -174,6 +178,25 @@ db.exec(`
   );
 `)
 
+// Create invite tokens table for tenant invitations
+db.exec(`
+  CREATE TABLE IF NOT EXISTS invite_tokens (
+    id TEXT PRIMARY KEY,
+    token TEXT UNIQUE NOT NULL,
+    tenant_id TEXT NOT NULL,
+    inviter_id TEXT NOT NULL,           -- User who created the invite
+    invitee_email TEXT NOT NULL,        -- Email of person being invited
+    role TEXT DEFAULT 'user',           -- 'admin', 'user', 'viewer'
+    expires_at DATETIME NOT NULL,
+    used INTEGER DEFAULT 0,             -- 0 = unused, 1 = used
+    used_by TEXT,                       -- User ID who used the token
+    used_at DATETIME,                   -- When token was used
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (tenant_id) REFERENCES tenants(id),
+    FOREIGN KEY (inviter_id) REFERENCES users(id)
+  );
+`)
+
 // Add tenant columns to existing tables if multi-tenancy is enabled
 // These migrations will run automatically when MULTITENANCY_ENABLED=true
 
@@ -266,6 +289,34 @@ try {
 
   if (!hasOidcCallbackUrl) {
     db.exec('ALTER TABLE settings ADD COLUMN oidc_callback_url TEXT')
+  }
+
+  // Add multi-provider AI columns
+  const hasProvider = settingsColumns.some(col => col.name === 'provider')
+  const hasOpenaiBaseUrl = settingsColumns.some(
+    col => col.name === 'openai_base_url'
+  )
+  const hasOpenaiWhisperModel = settingsColumns.some(
+    col => col.name === 'openai_whisper_model'
+  )
+  const hasOpenaiGptModel = settingsColumns.some(
+    col => col.name === 'openai_gpt_model'
+  )
+
+  if (!hasProvider) {
+    db.exec("ALTER TABLE settings ADD COLUMN provider TEXT DEFAULT 'azure'")
+  }
+
+  if (!hasOpenaiBaseUrl) {
+    db.exec('ALTER TABLE settings ADD COLUMN openai_base_url TEXT')
+  }
+
+  if (!hasOpenaiWhisperModel) {
+    db.exec('ALTER TABLE settings ADD COLUMN openai_whisper_model TEXT')
+  }
+
+  if (!hasOpenaiGptModel) {
+    db.exec('ALTER TABLE settings ADD COLUMN openai_gpt_model TEXT')
   }
 
   // Multi-tenant migrations - Add tenant_id to all tables when enabled
@@ -497,11 +548,15 @@ export const getSettings = userId => {
   if (!settings) {
     return {
       user_id: userId,
+      provider: 'azure',
       azure_endpoint: '',
+      openai_base_url: 'https://api.openai.com/v1',
       api_key: '',
       api_version: '2024-02-01',
       whisper_deployment: 'whisper',
       gpt_deployment: 'gpt-4',
+      openai_whisper_model: 'whisper-1',
+      openai_gpt_model: 'gpt-4o',
       // OIDC settings come from system settings
       oidc_issuer: systemSettings.oidc_issuer,
       oidc_client_id: systemSettings.oidc_client_id,
@@ -535,22 +590,33 @@ export const saveSettings = (userId, settings) => {
   const oidcClientSecret =
     settings.oidcClientSecret || process.env.POCKET_ID_CLIENT_SECRET || null
 
+  const provider = settings.provider === 'openai' ? 'openai' : 'azure'
+  const openaiBaseUrl = settings.openaiBaseUrl || null
+  const openaiWhisperModel = settings.openaiWhisperModel || null
+  const openaiGptModel = settings.openaiGptModel || null
+
   if (existing && existing.id) {
     const stmt = db.prepare(`
       UPDATE settings
-      SET azure_endpoint = ?, api_key = ?, api_version = ?,
+      SET provider = ?, azure_endpoint = ?, openai_base_url = ?,
+          api_key = ?, api_version = ?,
           whisper_deployment = ?, gpt_deployment = ?,
+          openai_whisper_model = ?, openai_gpt_model = ?,
           oidc_enabled = ?, oidc_client_id = ?, oidc_client_secret = ?,
           oidc_issuer = ?, oidc_callback_url = ?,
           updated_at = CURRENT_TIMESTAMP
       WHERE user_id = ?
     `)
     stmt.run(
-      settings.azureEndpoint,
+      provider,
+      settings.azureEndpoint || null,
+      openaiBaseUrl,
       settings.apiKey,
       settings.apiVersion,
       settings.whisperDeployment,
       settings.gptDeployment,
+      openaiWhisperModel,
+      openaiGptModel,
       settings.oidcEnabled ? 1 : 0,
       oidcClientId,
       oidcClientSecret,
@@ -560,16 +626,20 @@ export const saveSettings = (userId, settings) => {
     )
   } else {
     const stmt = db.prepare(`
-      INSERT INTO settings (user_id, azure_endpoint, api_key, api_version, whisper_deployment, gpt_deployment, oidc_enabled, oidc_client_id, oidc_client_secret, oidc_issuer, oidc_callback_url)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO settings (user_id, provider, azure_endpoint, openai_base_url, api_key, api_version, whisper_deployment, gpt_deployment, openai_whisper_model, openai_gpt_model, oidc_enabled, oidc_client_id, oidc_client_secret, oidc_issuer, oidc_callback_url)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `)
     stmt.run(
       userId,
-      settings.azureEndpoint,
+      provider,
+      settings.azureEndpoint || null,
+      openaiBaseUrl,
       settings.apiKey,
       settings.apiVersion,
       settings.whisperDeployment,
       settings.gptDeployment,
+      openaiWhisperModel,
+      openaiGptModel,
       settings.oidcEnabled ? 1 : 0,
       oidcClientId,
       oidcClientSecret,
@@ -1896,6 +1966,88 @@ export const cleanupExpiredUndoData = () => {
   const stmt = db.prepare(`
     DELETE FROM task_merge_undo
     WHERE expires_at <= datetime('now')
+  `)
+
+  return stmt.run()
+}
+
+// ===== INVITE TOKEN FUNCTIONS =====
+
+/**
+ * Create a new invite token
+ */
+export const createInviteToken = (tokenData) => {
+  const stmt = db.prepare(`
+    INSERT INTO invite_tokens (id, token, tenant_id, inviter_id, invitee_email, role, expires_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `)
+
+  const result = stmt.run(
+    tokenData.id,
+    tokenData.token,
+    tokenData.tenant_id,
+    tokenData.inviter_id,
+    tokenData.invitee_email,
+    tokenData.role,
+    tokenData.expires_at
+  )
+
+  return result.changes > 0
+}
+
+/**
+ * Get invite token by token string
+ */
+export const getInviteTokenByToken = (token) => {
+  const stmt = db.prepare(`
+    SELECT it.*, t.name as tenant_name, t.subdomain, u.name as inviter_name, u.email as inviter_email
+    FROM invite_tokens it
+    JOIN tenants t ON it.tenant_id = t.id
+    JOIN users u ON it.inviter_id = u.id
+    WHERE it.token = ? AND it.used = 0 AND it.expires_at > datetime('now')
+  `)
+
+  return stmt.get(token)
+}
+
+/**
+ * Mark invite token as used
+ */
+export const markInviteTokenUsed = (token, userId) => {
+  const stmt = db.prepare(`
+    UPDATE invite_tokens
+    SET used = 1, used_by = ?, used_at = datetime('now')
+    WHERE token = ?
+  `)
+
+  const result = stmt.run(userId, token)
+  return result.changes > 0
+}
+
+/**
+ * Get invite tokens for a tenant (for admin management)
+ */
+export const getInviteTokensForTenant = (tenantId) => {
+  const stmt = db.prepare(`
+    SELECT it.*, u.name as inviter_name, u.email as inviter_email,
+           used_user.name as used_by_name, used_user.email as used_by_email
+    FROM invite_tokens it
+    JOIN users u ON it.inviter_id = u.id
+    LEFT JOIN users used_user ON it.used_by = used_user.id
+    WHERE it.tenant_id = ?
+    ORDER BY it.created_at DESC
+  `)
+
+  return stmt.all(tenantId)
+}
+
+/**
+ * Delete expired invite tokens (cleanup job)
+ */
+export const cleanupExpiredInviteTokens = () => {
+  const stmt = db.prepare(`
+    DELETE FROM invite_tokens
+    WHERE expires_at <= datetime('now') AND used = 0
   `)
 
   return stmt.run()

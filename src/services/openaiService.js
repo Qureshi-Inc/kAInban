@@ -1,26 +1,84 @@
+const DEFAULT_OPENAI_BASE_URL = 'https://api.openai.com/v1'
+
 class OpenAIService {
   constructor() {
+    this.provider = 'azure'
     this.baseUrl = ''
     this.apiKey = ''
-    this.apiVersion = '2024-06-01' // Updated to latest stable version
+    this.apiVersion = '2024-06-01' // Azure-only
+    // Azure deployment names
     this.whisperDeployment = 'whisper-1'
     this.gptDeployment = 'gpt-4'
+    // OpenAI model names
+    this.openaiWhisperModel = 'whisper-1'
+    this.openaiGptModel = 'gpt-4o'
   }
 
   configure(settings) {
-    this.baseUrl = settings.azureEndpoint?.replace(/\/$/, '') || ''
+    this.provider = settings.provider === 'openai' ? 'openai' : 'azure'
     this.apiKey = settings.apiKey || ''
-    this.apiVersion = settings.apiVersion || '2024-06-01' // Updated default
+    this.apiVersion = settings.apiVersion || '2024-06-01'
     this.whisperDeployment = settings.whisperDeployment || 'whisper-1'
     this.gptDeployment = settings.gptDeployment || 'gpt-4'
+    this.openaiWhisperModel = settings.openaiWhisperModel || 'whisper-1'
+    this.openaiGptModel = settings.openaiGptModel || 'gpt-4o'
+
+    if (this.provider === 'openai') {
+      this.baseUrl = (settings.openaiBaseUrl || DEFAULT_OPENAI_BASE_URL).replace(/\/$/, '')
+    } else {
+      this.baseUrl = settings.azureEndpoint?.replace(/\/$/, '') || ''
+    }
   }
 
   validateConfig() {
-    if (!this.baseUrl || !this.apiKey) {
-      throw new Error(
-        'Azure OpenAI endpoint and API key are required. Please configure them in settings.'
-      )
+    if (this.provider === 'openai') {
+      if (!this.apiKey) {
+        throw new Error(
+          'OpenAI API key is required. Please configure it in settings.'
+        )
+      }
+    } else {
+      if (!this.baseUrl || !this.apiKey) {
+        throw new Error(
+          'Azure OpenAI endpoint and API key are required. Please configure them in settings.'
+        )
+      }
     }
+  }
+
+  providerLabel() {
+    return this.provider === 'openai' ? 'OpenAI' : 'Azure OpenAI'
+  }
+
+  // Resolves to the OpenAI model name or Azure deployment name depending on provider.
+  whisperModelName() {
+    return this.provider === 'openai'
+      ? this.openaiWhisperModel
+      : this.whisperDeployment
+  }
+
+  gptModelName() {
+    return this.provider === 'openai' ? this.openaiGptModel : this.gptDeployment
+  }
+
+  // Provider-specific auth header. Azure uses "api-key", OpenAI uses Bearer.
+  authHeaders() {
+    return this.provider === 'openai'
+      ? { Authorization: `Bearer ${this.apiKey}` }
+      : { 'api-key': this.apiKey }
+  }
+
+  // Azure routes through a deployment path; OpenAI uses fixed /v1 endpoints + a "model" field.
+  transcriptionUrl() {
+    return this.provider === 'openai'
+      ? `${this.baseUrl}/audio/transcriptions`
+      : `${this.baseUrl}/openai/deployments/${this.whisperDeployment}/audio/transcriptions?api-version=${this.apiVersion}`
+  }
+
+  chatUrl() {
+    return this.provider === 'openai'
+      ? `${this.baseUrl}/chat/completions`
+      : `${this.baseUrl}/openai/deployments/${this.gptDeployment}/chat/completions?api-version=${this.apiVersion}`
   }
 
   async transcribeAudio(audioBlob, progressCallback = null) {
@@ -94,15 +152,19 @@ class OpenAIService {
       formData.append('file', processedBlob, filename)
       formData.append('language', 'en')
       formData.append('response_format', 'json')
+      // OpenAI requires `model` on the multipart form; Azure resolves the model via the deployment in the URL.
+      if (this.provider === 'openai') {
+        formData.append('model', this.whisperModelName())
+      }
 
       console.log('[OpenAI] FormData contents:')
       console.log('[OpenAI]   - file:', filename, '(', audioBlob.type, ')')
-      console.log('[OpenAI]   - model:', this.whisperDeployment)
+      console.log('[OpenAI]   - model:', this.whisperModelName())
       console.log('[OpenAI]   - language: en')
       console.log('[OpenAI]   - response_format: json')
 
-      const url = `${this.baseUrl}/openai/deployments/${this.whisperDeployment}/audio/transcriptions?api-version=${this.apiVersion}`
-      console.log('[OpenAI] Request URL:', url)
+      const url = this.transcriptionUrl()
+      console.log('[OpenAI] Provider:', this.provider, '| Request URL:', url)
 
       // Create timeout controller for mobile
       const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
@@ -122,9 +184,7 @@ class OpenAIService {
 
       const response = await fetch(url, {
         method: 'POST',
-        headers: {
-          'api-key': this.apiKey
-        },
+        headers: this.authHeaders(),
         body: formData,
         signal: controller.signal
       })
@@ -197,7 +257,7 @@ class OpenAIService {
 
       if (error.message.includes('fetch') || error.name === 'TypeError') {
         throw new Error(
-          `Network error: Unable to connect to Azure OpenAI. ${isMobile ? 'Mobile connection may be unstable. ' : ''}Please check your endpoint and internet connection. (${error.message})`
+          `Network error: Unable to connect to ${this.providerLabel()}. ${isMobile ? 'Mobile connection may be unstable. ' : ''}Please check your endpoint and internet connection. (${error.message})`
         )
       }
       throw error
@@ -371,15 +431,17 @@ ${existingTasksContext}
 Meeting summary/transcript:
 ${transcript}`
 
-      const url = `${this.baseUrl}/openai/deployments/${this.gptDeployment}/chat/completions?api-version=${this.apiVersion}`
+      const url = this.chatUrl()
 
       const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'api-key': this.apiKey
+          ...this.authHeaders()
         },
         body: JSON.stringify({
+          // OpenAI requires `model`; Azure resolves it from the deployment in the URL.
+          ...(this.provider === 'openai' ? { model: this.gptModelName() } : {}),
           messages: [
             {
               role: 'system',
@@ -599,7 +661,7 @@ ${transcript}`
       console.error('Task extraction error:', error)
       if (error.message.includes('fetch')) {
         throw new Error(
-          'Network error: Unable to connect to Azure OpenAI. Please check your endpoint and internet connection.'
+          `Network error: Unable to connect to ${this.providerLabel()}. Please check your endpoint and internet connection.`
         )
       }
       throw error
@@ -621,8 +683,8 @@ Description: "${completedTaskDescription}"
 
 EXISTING TASKS:
 ${tasks
-  .map((task, idx) => `${idx + 1}. "${task.title}" - ${task.description}`)
-  .join('\n')}
+    .map((task, idx) => `${idx + 1}. "${task.title}" - ${task.description}`)
+    .join('\n')}
 
 Return ONLY a JSON array of task indices (1-based) that are related to the completed task and should also be marked as completed or updated. Tasks are related if they:
 1. Are part of the same project/topic
@@ -635,15 +697,17 @@ Example response: [2, 5] (if tasks 2 and 5 are related)
 
 JSON array:`
 
-      const url = `${this.baseUrl}/openai/deployments/${this.gptDeployment}/chat/completions?api-version=${this.apiVersion}`
+      const url = this.chatUrl()
 
       const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'api-key': this.apiKey
+          ...this.authHeaders()
         },
         body: JSON.stringify({
+          // OpenAI requires `model`; Azure resolves it from the deployment in the URL.
+          ...(this.provider === 'openai' ? { model: this.gptModelName() } : {}),
           messages: [
             {
               role: 'system',
@@ -779,15 +843,17 @@ IMPORTANT GUIDELINES:
 Meeting transcript:
 ${transcript}`
 
-      const url = `${this.baseUrl}/openai/deployments/${this.gptDeployment}/chat/completions?api-version=${this.apiVersion}`
+      const url = this.chatUrl()
 
       const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'api-key': this.apiKey
+          ...this.authHeaders()
         },
         body: JSON.stringify({
+          // OpenAI requires `model`; Azure resolves it from the deployment in the URL.
+          ...(this.provider === 'openai' ? { model: this.gptModelName() } : {}),
           messages: [
             {
               role: 'system',
@@ -830,7 +896,7 @@ ${transcript}`
       console.error('Summary generation error:', error)
       if (error.message.includes('fetch')) {
         throw new Error(
-          'Network error: Unable to connect to Azure OpenAI. Please check your endpoint and internet connection.'
+          `Network error: Unable to connect to ${this.providerLabel()}. Please check your endpoint and internet connection.`
         )
       }
       throw error
@@ -889,12 +955,12 @@ ${transcript}`
 
 CURRENT TASKS:
 ${tasksWithContext
-  .slice(0, 25)
-  .map(
-    (task, idx) =>
-      `${idx + 1}. "${task.title}" - Status: ${task.status}, Priority: ${task.priority}${task.dueContext}${task.description ? ` - ${task.description.substring(0, 100)}` : ''}`
-  )
-  .join('\n')}
+    .slice(0, 25)
+    .map(
+      (task, idx) =>
+        `${idx + 1}. "${task.title}" - Status: ${task.status}, Priority: ${task.priority}${task.dueContext}${task.description ? ` - ${task.description.substring(0, 100)}` : ''}`
+    )
+    .join('\n')}
 ${tasksWithContext.length > 25 ? `\n...and ${tasksWithContext.length - 25} more tasks` : ''}
 
 CONTEXT:
@@ -916,7 +982,7 @@ Provide 3 short, focused insights:
 
 Keep each insight concise and reference specific task titles. Be encouraging but direct.`
 
-      const url = `${this.baseUrl}/openai/deployments/${this.gptDeployment}/chat/completions?api-version=${this.apiVersion}`
+      const url = this.chatUrl()
 
       console.log('[OpenAI] Sending insights request to:', url)
 
@@ -924,9 +990,11 @@ Keep each insight concise and reference specific task titles. Be encouraging but
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'api-key': this.apiKey
+          ...this.authHeaders()
         },
         body: JSON.stringify({
+          // OpenAI requires `model`; Azure resolves it from the deployment in the URL.
+          ...(this.provider === 'openai' ? { model: this.gptModelName() } : {}),
           messages: [
             {
               role: 'system',
@@ -974,7 +1042,7 @@ Keep each insight concise and reference specific task titles. Be encouraging but
       console.error('[OpenAI] Insights generation error:', error)
       if (error.message.includes('fetch')) {
         throw new Error(
-          'Network error: Unable to connect to Azure OpenAI. Please check your endpoint and internet connection.'
+          `Network error: Unable to connect to ${this.providerLabel()}. Please check your endpoint and internet connection.`
         )
       }
       throw error
@@ -1007,15 +1075,17 @@ Please generate a professional email template that:
 
 Format the email with clear sections (Subject, Body with greeting, main content, and closing).`
 
-      const url = `${this.baseUrl}/openai/deployments/${this.gptDeployment}/chat/completions?api-version=${this.apiVersion}`
+      const url = this.chatUrl()
 
       const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'api-key': this.apiKey
+          ...this.authHeaders()
         },
         body: JSON.stringify({
+          // OpenAI requires `model`; Azure resolves it from the deployment in the URL.
+          ...(this.provider === 'openai' ? { model: this.gptModelName() } : {}),
           messages: [
             {
               role: 'system',
@@ -1059,7 +1129,7 @@ Format the email with clear sections (Subject, Body with greeting, main content,
       console.error('[OpenAI] Email template generation error:', error)
       if (error.message.includes('fetch')) {
         throw new Error(
-          'Network error: Unable to connect to Azure OpenAI. Please check your endpoint and internet connection.'
+          `Network error: Unable to connect to ${this.providerLabel()}. Please check your endpoint and internet connection.`
         )
       }
       throw error
@@ -1093,15 +1163,17 @@ Please generate a Slack message that:
 
 Keep the message focused and to-the-point, as Slack messages should be shorter than emails.`
 
-      const url = `${this.baseUrl}/openai/deployments/${this.gptDeployment}/chat/completions?api-version=${this.apiVersion}`
+      const url = this.chatUrl()
 
       const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'api-key': this.apiKey
+          ...this.authHeaders()
         },
         body: JSON.stringify({
+          // OpenAI requires `model`; Azure resolves it from the deployment in the URL.
+          ...(this.provider === 'openai' ? { model: this.gptModelName() } : {}),
           messages: [
             {
               role: 'system',
@@ -1145,7 +1217,7 @@ Keep the message focused and to-the-point, as Slack messages should be shorter t
       console.error('[OpenAI] Slack message generation error:', error)
       if (error.message.includes('fetch')) {
         throw new Error(
-          'Network error: Unable to connect to Azure OpenAI. Please check your endpoint and internet connection.'
+          `Network error: Unable to connect to ${this.providerLabel()}. Please check your endpoint and internet connection.`
         )
       }
       throw error
@@ -1178,15 +1250,17 @@ Please generate a professional document template in Markdown format that:
 
 Use proper Markdown formatting with headers, bullet points, and checkboxes where appropriate.`
 
-      const url = `${this.baseUrl}/openai/deployments/${this.gptDeployment}/chat/completions?api-version=${this.apiVersion}`
+      const url = this.chatUrl()
 
       const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'api-key': this.apiKey
+          ...this.authHeaders()
         },
         body: JSON.stringify({
+          // OpenAI requires `model`; Azure resolves it from the deployment in the URL.
+          ...(this.provider === 'openai' ? { model: this.gptModelName() } : {}),
           messages: [
             {
               role: 'system',
@@ -1230,7 +1304,7 @@ Use proper Markdown formatting with headers, bullet points, and checkboxes where
       console.error('[OpenAI] Document template generation error:', error)
       if (error.message.includes('fetch')) {
         throw new Error(
-          'Network error: Unable to connect to Azure OpenAI. Please check your endpoint and internet connection.'
+          `Network error: Unable to connect to ${this.providerLabel()}. Please check your endpoint and internet connection.`
         )
       }
       throw error
@@ -1263,15 +1337,17 @@ Please generate a code template that:
 
 If the language cannot be determined from context, default to JavaScript. Include helpful comments explaining the code structure.`
 
-      const url = `${this.baseUrl}/openai/deployments/${this.gptDeployment}/chat/completions?api-version=${this.apiVersion}`
+      const url = this.chatUrl()
 
       const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'api-key': this.apiKey
+          ...this.authHeaders()
         },
         body: JSON.stringify({
+          // OpenAI requires `model`; Azure resolves it from the deployment in the URL.
+          ...(this.provider === 'openai' ? { model: this.gptModelName() } : {}),
           messages: [
             {
               role: 'system',
@@ -1315,7 +1391,7 @@ If the language cannot be determined from context, default to JavaScript. Includ
       console.error('[OpenAI] Code template generation error:', error)
       if (error.message.includes('fetch')) {
         throw new Error(
-          'Network error: Unable to connect to Azure OpenAI. Please check your endpoint and internet connection.'
+          `Network error: Unable to connect to ${this.providerLabel()}. Please check your endpoint and internet connection.`
         )
       }
       throw error
@@ -1329,7 +1405,7 @@ If the language cannot be determined from context, default to JavaScript. Includ
     })
     this.validateConfig()
 
-    const url = `${this.baseUrl}/openai/deployments/${this.gptDeployment}/chat/completions?api-version=${this.apiVersion}`
+    const url = this.chatUrl()
 
     const prompt = `You are a smart task management assistant. A user wants to update a task by providing additional context.
 
@@ -1374,9 +1450,11 @@ CRITICAL: Return ONLY valid JSON with no additional text, explanations, or markd
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'api-key': this.apiKey
+          ...this.authHeaders()
         },
         body: JSON.stringify({
+          // OpenAI requires `model`; Azure resolves it from the deployment in the URL.
+          ...(this.provider === 'openai' ? { model: this.gptModelName() } : {}),
           messages: [
             {
               role: 'system',
@@ -1502,7 +1580,7 @@ CRITICAL: Return ONLY valid JSON with no additional text, explanations, or markd
       console.error('[OpenAI] Task context update error:', error)
       if (error.message.includes('fetch')) {
         throw new Error(
-          'Network error: Unable to connect to Azure OpenAI. Please check your endpoint and internet connection.'
+          `Network error: Unable to connect to ${this.providerLabel()}. Please check your endpoint and internet connection.`
         )
       }
       throw error

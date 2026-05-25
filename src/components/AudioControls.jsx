@@ -316,7 +316,7 @@ export default function AudioControls() {
         setUploadProgress({
           stage: 'transcribing',
           percentage: 50,
-          message: 'Transcribing audio with Azure AI...'
+          message: 'Transcribing audio...'
         })
 
         transcript = await openaiService.transcribeAudio(audioBlob)
@@ -623,7 +623,7 @@ export default function AudioControls() {
       setUploadProgress({
         stage: 'transcribing',
         percentage: 50,
-        message: 'Transcribing audio with Azure AI...'
+        message: 'Transcribing audio...'
       })
 
       // Pass progress callback for chunked transcription
