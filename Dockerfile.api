@@ -32,8 +32,13 @@ RUN npm rebuild better-sqlite3 --build-from-source
 # Copy server code
 COPY server/ ./
 
-# Create storage directory
-RUN mkdir -p /app/storage
+# Run as non-root. The node:alpine image ships a `node` user at uid 1000
+# (gid 1000) which conveniently matches the typical Linux host user, so the
+# bind-mounted ./storage volume stays writable from both sides without chown
+# gymnastics. Avoids creating yet another user.
+RUN mkdir -p /app/storage && chown -R node:node /app
+
+USER node
 
 # Expose API port
 EXPOSE 3001

@@ -1,4 +1,5 @@
 import 'dotenv/config'
+import crypto from 'crypto'
 import fs from 'fs'
 import path from 'path'
 import connectSqlite3 from 'connect-sqlite3'
@@ -177,9 +178,26 @@ app.use(
     ]
   })
 )
-app.use(express.json({ limit: '100mb' })) // Increased from 50mb to 100mb
-app.use(express.urlencoded({ limit: '100mb', extended: true })) // Added for form data
+// Body parsers. JSON only - dropped urlencoded to neutralize the form-CSRF
+// vector (a cross-origin <form method="POST"> can't make the server parse
+// JSON without a CORS preflight). 2mb is plenty for project/task payloads;
+// audio uploads go direct from the browser to Whisper.
+app.use(express.json({ limit: '2mb' }))
 app.use(morgan('combined')) // Changed to combined for better security logging
+
+// Session secret must be set explicitly in production. Falling back to a
+// hardcoded literal silently signs every cookie with a public string and is
+// trivially exploitable. Refuse to boot rather than ship insecure.
+const SESSION_SECRET = process.env.SESSION_SECRET
+if (!SESSION_SECRET) {
+  if (process.env.NODE_ENV === 'production') {
+    console.error('[FATAL] SESSION_SECRET is required in production')
+    process.exit(1)
+  }
+  console.warn(
+    '[Server] SESSION_SECRET not set - using ephemeral random value (DEV ONLY)'
+  )
+}
 
 // Session middleware
 app.use(
@@ -188,7 +206,7 @@ app.use(
       db: 'sessions.db',
       dir: STORAGE_DIR
     }),
-    secret: process.env.SESSION_SECRET || 'change-this-secret-in-production',
+    secret: SESSION_SECRET || crypto.randomBytes(32).toString('hex'),
     resave: false,
     saveUninitialized: false,
     name: 'notes.sid',
@@ -481,7 +499,6 @@ app.post('/api/auth/register', requireLocalRegisterFallback, authLimiter, async(
         return res.status(500).json({ error: 'Failed to create session' })
       }
       console.log('[Auth] User registered and logged in:', user.email)
-      console.log('[Auth] Session ID:', req.sessionID)
 
       const response = {
         success: true,
@@ -538,7 +555,6 @@ app.post('/api/auth/login', requireLocalLoginFallback, authLimiter, async(req, r
         return res.status(500).json({ error: 'Failed to create session' })
       }
       console.log('[Auth] User logged in:', user.email)
-      console.log('[Auth] Session ID:', req.sessionID)
 
       const response = {
         success: true,
@@ -597,16 +613,12 @@ app.post('/api/auth/logout', async(req, res) => {
 })
 
 app.get('/api/auth/me', (req, res) => {
-  console.log('[Auth] /me called - Session ID:', req.sessionID)
-  console.log(
-    '[Auth] /me called - Session user:',
-    req.session?.user?.email || 'none'
-  )
-  console.log(
-    '[Auth] /me called - Cookie header:',
-    req.headers.cookie ? 'present' : 'missing'
-  )
-
+  // No-logging-by-default: this endpoint runs on every page load and previously
+  // emitted session IDs + cookie state to logs. If you need debug visibility,
+  // set DEBUG_AUTH_ME=true in env to opt back in.
+  if (process.env.DEBUG_AUTH_ME === 'true') {
+    console.log('[Auth] /me user:', req.session?.user?.email || 'none')
+  }
   if (!req.session?.user) {
     return res.status(401).json({ error: 'Not authenticated' })
   }
@@ -767,9 +779,9 @@ app.post('/api/invites/create', localAuth.requireAuth, attachTenantContext, asyn
       return res.status(400).json({ error: 'User already exists in this tenant' })
     }
 
-    // Generate secure token
-    const tokenId = `invite_${Date.now()}_${Math.random().toString(36).substring(2)}`
-    const token = require('crypto').randomBytes(32).toString('hex')
+    // Generate secure token (was require('crypto') - broken in ESM)
+    const tokenId = `invite_${crypto.randomUUID()}`
+    const token = crypto.randomBytes(32).toString('hex')
 
     // Set expiration to 7 days from now
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
@@ -1167,19 +1179,55 @@ app.get('/api/export', localAuth.requireAuth, (req, res) => {
   }
 })
 
+// Meeting ID format. Used both to generate a server-side ID and to validate
+// any caller-supplied one (the meeting ID becomes part of a filename, so
+// allowing arbitrary characters lets a caller traverse out of MEETINGS_DIR).
+const MEETING_ID_REGEX = /^[A-Za-z0-9_-]{1,64}$/
+const MEETINGS_DIR_RESOLVED = path.resolve(MEETINGS_DIR)
+function safeMeetingPath(filename) {
+  const resolved = path.resolve(path.join(MEETINGS_DIR_RESOLVED, filename))
+  if (!resolved.startsWith(MEETINGS_DIR_RESOLVED + path.sep) &&
+      resolved !== MEETINGS_DIR_RESOLVED) {
+    throw new Error('Path traversal attempt detected: ' + filename)
+  }
+  return resolved
+}
+
 // Meeting endpoints
 app.post('/api/meetings', localAuth.requireAuth, (req, res) => {
   try {
     const { id, name, summary, transcript, createdAt, projectId } = req.body
+    const userId = req.session.user.id
+
+    // Validate the caller-supplied meeting id (used in filenames). Reject
+    // anything that isn't safe; the regex blocks ../, slashes, null bytes etc.
+    if (!id || !MEETING_ID_REGEX.test(String(id))) {
+      return res.status(400).json({
+        error: 'Invalid meeting id - must match ^[A-Za-z0-9_-]{1,64}$'
+      })
+    }
+
+    // Verify caller owns the project they're attaching this meeting to.
+    // Without this check, user A can attach (attacker-controlled) meetings
+    // under user B's project and B will see them on next load.
+    if (projectId) {
+      const project = db.getProject(projectId)
+      if (!project) {
+        return res.status(404).json({ error: 'Project not found' })
+      }
+      if (project.user_id !== String(userId)) {
+        return res.status(403).json({ error: 'Forbidden - not your project' })
+      }
+    }
 
     // Ensure meetings directory exists
     if (!fs.existsSync(MEETINGS_DIR)) {
       fs.mkdirSync(MEETINGS_DIR, { recursive: true })
     }
 
-    // Create summary file
+    // Create summary file (path containment-checked as belt-and-suspenders)
     const summaryFileName = `meeting-${id}-summary.md`
-    const summaryFilePath = path.join(MEETINGS_DIR, summaryFileName)
+    const summaryFilePath = safeMeetingPath(summaryFileName)
 
     const summaryContent = `# ${name}
 
@@ -1203,13 +1251,12 @@ ${summary}
     let transcriptFilePath = null
     if (transcript && transcript.trim()) {
       const transcriptFileName = `meeting-${id}-transcript.txt`
-      transcriptFilePath = path.join(MEETINGS_DIR, transcriptFileName)
+      transcriptFilePath = safeMeetingPath(transcriptFileName)
       fs.writeFileSync(transcriptFilePath, transcript, 'utf8')
       console.log('[Meetings] Saved transcript file:', transcriptFileName)
     }
 
-    // Save to database
-    const userId = req.session.user.id
+    // Save to database (userId already declared at top of handler)
     db.saveMeeting(userId, {
       id,
       projectId,
@@ -1231,6 +1278,9 @@ ${summary}
 
 app.get('/api/meetings/:id/summary', localAuth.requireAuth, (req, res) => {
   try {
+    if (!MEETING_ID_REGEX.test(req.params.id)) {
+      return res.status(400).json({ error: 'Invalid meeting id' })
+    }
     // Verify meeting belongs to user
     const meeting = db.getMeeting(req.params.id)
     if (!meeting) {
@@ -1242,7 +1292,7 @@ app.get('/api/meetings/:id/summary', localAuth.requireAuth, (req, res) => {
     }
 
     const summaryFileName = `meeting-${req.params.id}-summary.md`
-    const summaryFilePath = path.join(MEETINGS_DIR, summaryFileName)
+    const summaryFilePath = safeMeetingPath(summaryFileName)
 
     if (!fs.existsSync(summaryFilePath)) {
       return res.status(404).json({ error: 'Meeting summary not found' })
@@ -1260,6 +1310,10 @@ app.delete('/api/meetings/:id', localAuth.requireAuth, (req, res) => {
   try {
     const id = req.params.id
 
+    if (!MEETING_ID_REGEX.test(id)) {
+      return res.status(400).json({ error: 'Invalid meeting id' })
+    }
+
     // Get meeting info from database first
     const meeting = db.getMeeting(id)
 
@@ -1272,14 +1326,26 @@ app.delete('/api/meetings/:id', localAuth.requireAuth, (req, res) => {
       return res.status(403).json({ error: 'Access denied' })
     }
 
-    // Delete files if they exist
-    if (meeting.summary_file && fs.existsSync(meeting.summary_file)) {
-      fs.unlinkSync(meeting.summary_file)
+    // Delete files if they exist. Re-validate stored paths are under
+    // MEETINGS_DIR before unlinking - defense against any historical row
+    // that may have a tampered path.
+    const safeUnlink = filePath => {
+      if (!filePath) {return}
+      try {
+        const resolved = path.resolve(filePath)
+        if (
+          (resolved.startsWith(MEETINGS_DIR_RESOLVED + path.sep) ||
+            resolved === MEETINGS_DIR_RESOLVED) &&
+          fs.existsSync(resolved)
+        ) {
+          fs.unlinkSync(resolved)
+        }
+      } catch (e) {
+        console.warn('[Meetings] Skipped unsafe file unlink:', filePath, e.message)
+      }
     }
-
-    if (meeting.transcript_file && fs.existsSync(meeting.transcript_file)) {
-      fs.unlinkSync(meeting.transcript_file)
-    }
+    safeUnlink(meeting.summary_file)
+    safeUnlink(meeting.transcript_file)
 
     // Delete from database
     db.deleteMeeting(id)
@@ -1296,6 +1362,19 @@ app.post('/api/analytics/insights', localAuth.requireAuth, async(req, res) => {
   try {
     const { projectId, insights, taskCount, timestamp } = req.body
     const userId = req.session.user.id
+
+    // Verify caller owns the project they're caching insights for. Without
+    // this check, user A can write attacker-controlled insights under user B's
+    // project and B will see them on next read.
+    if (projectId) {
+      const project = db.getProject(projectId)
+      if (!project) {
+        return res.status(404).json({ error: 'Project not found' })
+      }
+      if (project.user_id !== String(userId)) {
+        return res.status(403).json({ error: 'Forbidden - not your project' })
+      }
+    }
 
     // Save analytics insights to database
     db.saveAnalyticsInsights(userId, projectId, insights, taskCount, timestamp)
@@ -1595,9 +1674,20 @@ app.put('/api/comments/:commentId', localAuth.requireAuth, async(req, res) => {
   try {
     const { commentId } = req.params
     const { content } = req.body
+    const userId = req.session.user.id
 
     if (!content || !content.trim()) {
       return res.status(400).json({ error: 'Comment content is required' })
+    }
+
+    // Verify ownership before update. Previously this endpoint allowed any
+    // authenticated user to rewrite any comment given a (predictable) ID.
+    const existing = db.getTaskComment(commentId)
+    if (!existing) {
+      return res.status(404).json({ error: 'Comment not found' })
+    }
+    if (String(existing.user_id) !== String(userId)) {
+      return res.status(403).json({ error: 'Forbidden - not your comment' })
     }
 
     const result = db.updateTaskComment(commentId, content.trim())
@@ -1639,14 +1729,20 @@ app.delete(
   }
 )
 
-// Get single comment by ID (for activity display)
+// Get single comment by ID (for activity display). Ownership-checked: a
+// comment is visible only to the user who wrote it. Wider visibility (e.g.
+// to other collaborators on the same project) needs an explicit ACL model.
 app.get('/api/comments/:commentId', localAuth.requireAuth, async(req, res) => {
   try {
     const { commentId } = req.params
+    const userId = req.session.user.id
     const comment = db.getTaskComment(commentId)
 
     if (!comment) {
       return res.status(404).json({ error: 'Comment not found' })
+    }
+    if (String(comment.user_id) !== String(userId)) {
+      return res.status(403).json({ error: 'Forbidden - not your comment' })
     }
 
     res.json(comment)

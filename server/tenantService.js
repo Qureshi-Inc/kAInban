@@ -97,36 +97,48 @@ class TenantService {
     return tenant
   }
 
-  // Extract tenant from request (query parameter or user session)
+  // Resolve the tenant for a request. Always derived from the authenticated
+  // user's tenant_id, never trusted from the URL.
+  //
+  // If the caller passes ?tenant=<subdomain>, that's accepted ONLY when the
+  // requested subdomain matches the user's own tenant. Without this check,
+  // any authenticated user could pass ?tenant=victim and the middleware would
+  // attach the victim's tenant to req.tenant - letting them mint invites,
+  // list invites, or otherwise act inside another tenant.
   async extractTenantFromRequest(req) {
     if (!multiTenancyEnabled) {return null}
 
-    // Check for tenant in query parameter: ?tenant={subdomain}
+    if (!req.session || !req.session.user || !req.session.user.id) {
+      return null
+    }
+
+    // Look up the user's own tenant first - this is the source of truth.
+    const userRow = db
+      .prepare('SELECT tenant_id FROM users WHERE id = ? AND active = 1')
+      .get(req.session.user.id)
+    if (!userRow || !userRow.tenant_id) {
+      return null
+    }
+    const ownTenant = await this.getTenantById(userRow.tenant_id)
+    if (!ownTenant) {
+      return null
+    }
+
+    // If a ?tenant= override was passed, verify it resolves to the user's
+    // own tenant - otherwise reject the override silently (don't leak that
+    // the queried tenant exists).
     const tenantQuery = req.query?.tenant
-
-    if (tenantQuery) {
-      const subdomain = tenantQuery
-      console.log('[TenantService] Found tenant in query parameter:', subdomain)
-      return await this.getTenantBySubdomain(subdomain)
+    if (tenantQuery && tenantQuery !== ownTenant.subdomain) {
+      console.warn(
+        '[TenantService] Rejected tenant query override',
+        { user: req.session.user.id, requested: tenantQuery, owned: ownTenant.subdomain }
+      )
+      // Fall through to user's own tenant rather than 403'ing here - a 403
+      // would expose tenant existence. Higher-level routes can add stricter
+      // checks if needed.
     }
 
-    // If no tenant path, but we have a user session, get their tenant
-    if (req.session && req.session.user && req.session.user.id) {
-      console.log('[TenantService] No tenant path, checking user tenant for user:', req.session.user.id)
-
-      // Get user's tenant from database
-      const userTenantStmt = db.prepare('SELECT tenant_id FROM users WHERE id = ? AND active = 1')
-      const userResult = userTenantStmt.get(req.session.user.id)
-
-      if (userResult && userResult.tenant_id) {
-        console.log('[TenantService] Found user tenant ID:', userResult.tenant_id)
-        return await this.getTenantById(userResult.tenant_id)
-      }
-    }
-
-    // No tenant found
-    console.log('[TenantService] No tenant found')
-    return null
+    return ownTenant
   }
 
   // Check if user can be added to tenant (within limits)

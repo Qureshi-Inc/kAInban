@@ -9,9 +9,14 @@ services:
     ports:
       - "3001:3001"
     environment:
-      - NODE_ENV=development
+      - NODE_ENV=${NODE_ENV:-production}
       - STORAGE_DIR=/app/storage
       - DB_PATH=/app/storage/app.db
+      # SESSION_SECRET MUST be set in .env for production. Server fails to
+      # boot in production mode without it; do not let the legacy fallback
+      # value (change-this-secret-in-production) ever sign cookies in prod.
+      - SESSION_SECRET=${SESSION_SECRET}
+      - CSRF_SECRET=${CSRF_SECRET}
       - AZURE_OPENAI_ENDPOINT=${AZURE_OPENAI_ENDPOINT:-https://moiz-mb596h34-eastus2.openai.azure.com/}
       - AZURE_OPENAI_API_KEY=${AZURE_OPENAI_API_KEY}
       - AZURE_OPENAI_API_VERSION=${AZURE_OPENAI_API_VERSION:-2024-02-01}
