@@ -1,6 +1,6 @@
 # kAInban - AI-Powered Task Management
 
-> Transform meeting recordings into actionable tasks with AI-powered transcription and intelligent task extraction. A modern, privacy-first task management system with PocketID authentication and comprehensive project organization.
+> Transform meeting recordings into actionable tasks with AI-powered transcription and intelligent task extraction. A modern, privacy-first task management system with Zitadel OIDC authentication and comprehensive project organization.
 
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 [![React](https://img.shields.io/badge/React-18-61dafb.svg)](https://reactjs.org/)
@@ -36,7 +36,7 @@
 - 🎤 **Audio-to-Tasks**: Transform meeting recordings into structured task lists
 - 🤖 **AI Intelligence**: Advanced task extraction with status detection and prioritization
 - 📊 **Analytics Dashboard**: Gain insights into your productivity patterns with AI recommendations
-- 🔒 **Privacy-First**: Self-hosted with optional PocketID authentication
+- 🔒 **Privacy-First**: Self-hosted with Zitadel OIDC authentication (hosted login)
 - 📱 **Mobile-Optimized**: Responsive design that works on all devices
 - 🎨 **Modern UI**: Beautiful, intuitive interface with dark mode support
 
@@ -81,11 +81,17 @@
 
 ### 🔐 Authentication & Security
 
-- **PocketID Integration**: Modern OIDC authentication with group-based access control
+- **Zitadel OIDC**: Hosted-login PKCE flow - signup, email verification,
+  and password reset all happen at the IdP; kAInban never sees passwords
 - **Role-Based Access**: Admin and member roles with appropriate permissions
-- **Group-Based Authorization**: Automatic role assignment based on PocketID groups
+- **Bootstrap Admin**: First user matching `ZITADEL_BOOTSTRAP_ADMIN_EMAILS`
+  becomes admin on first login (one-shot guard - inert once an admin exists)
+- **Multi-Tenant**: Optional Zitadel-org -> kAInban-tenant mapping via a
+  custom claim Action (see `Zitadel Setup`)
+- **Local-Auth Fallback**: Email + password login can be re-enabled per-route
+  via `LOCAL_LOGIN_FALLBACK` / `LOCAL_REGISTER_FALLBACK` env flags for
+  rollback scenarios where the IdP is unavailable
 - **User Management**: Admin interface for managing users and permissions
-- **Registration Control**: Configurable user registration policies
 
 ### 🎨 Modern User Experience
 
@@ -112,7 +118,8 @@
 - **Docker & Docker Compose** (recommended)
 - **Node.js 20+** (for development)
 - **Azure OpenAI** account with Whisper and GPT deployments
-- **PocketID** account (optional, for authentication)
+- **Zitadel** instance (self-hosted or SaaS - required for hosted login;
+  see `Zitadel Setup` below)
 
 ### 1-Minute Setup
 
@@ -190,12 +197,26 @@ VITE_AZURE_OPENAI_API_VERSION=2024-02-01
 VITE_AZURE_OPENAI_WHISPER_DEPLOYMENT=whisper-1
 VITE_AZURE_OPENAI_GPT_DEPLOYMENT=gpt-4
 
-# === PocketID Authentication (Optional) ===
-ENABLE_OIDC=true
-POCKET_ID_ISSUER=https://login.yourpocketid.com
-POCKET_ID_CLIENT_ID=your-client-id
-POCKET_ID_CLIENT_SECRET=your-client-secret
-POCKET_ID_CALLBACK_URL=https://your-domain.com/api/auth/oidc/callback
+# === Zitadel OIDC (Required for hosted login) ===
+# kAInban uses Zitadel as its identity provider via PKCE public-client OIDC.
+ZITADEL_ISSUER=https://your-zitadel-instance.example.com
+ZITADEL_CLIENT_ID=your-pkce-client-id
+OIDC_CALLBACK_URL=https://your-domain.com/api/auth/oidc/callback
+# Comma-separated list of emails that may bootstrap as admin on first login,
+# but only when no admin exists in DB yet (one-shot guard).
+ZITADEL_BOOTSTRAP_ADMIN_EMAILS=admin@example.com
+
+# Tenant resolution strategy. `default` puts everyone in one tenant (the
+# common case). `zitadel_org` maps each Zitadel org to its own tenant via
+# the urn:kainban:org:id custom claim - requires a Zitadel Action; see
+# `Zitadel Setup` below.
+TENANT_STRATEGY=default
+
+# Local-auth fallback gates. Default false. Flip to true ONLY during a
+# rollback where Zitadel is unavailable. Split so re-enabling login does
+# not re-open registration.
+LOCAL_LOGIN_FALLBACK=false
+LOCAL_REGISTER_FALLBACK=false
 
 # === Application Settings ===
 ALLOW_REGISTRATION=true
@@ -226,25 +247,57 @@ API_URL=https://your-domain.com/api
    VITE_AZURE_OPENAI_GPT_DEPLOYMENT=gpt-4o
    ```
 
-### PocketID Authentication Setup
+### Zitadel Setup
 
-1. **Create PocketID Application**:
-   - Sign up at [PocketID](https://pocketid.app)
-   - Create a new application
-   - Set callback URL: `https://your-domain.com/api/auth/oidc/callback`
+kAInban authenticates users against [Zitadel](https://zitadel.com), an
+open-source IdP you can self-host or use as SaaS. The flow is pure hosted
+login via OIDC PKCE — kAInban never sees passwords.
 
-2. **Configure Groups** (Optional):
-   - `admin`: Users become app administrators
-   - `user`: Users become regular members
-   - `viewer`: Users are denied access (read-only, if implemented)
+#### 1. Create the Zitadel application
 
-3. **Update Configuration**:
-   ```env
-   ENABLE_OIDC=true
-   POCKET_ID_CLIENT_ID=your-client-id
-   POCKET_ID_CLIENT_SECRET=your-client-secret
-   POCKET_ID_CALLBACK_URL=https://your-domain.com/api/auth/oidc/callback
+1. In your Zitadel console, create a new **Web** application (PKCE / public client).
+2. **Auth method**: `None (PKCE)` — no client secret.
+3. **Redirect URIs**: `https://your-domain.com/api/auth/oidc/callback`
+   (add the staging URI too if you have one).
+4. **Post-logout URIs**: `https://your-domain.com/`.
+5. Enable **Refresh Token**.
+6. Note the **Client ID** — you'll set it as `ZITADEL_CLIENT_ID`.
+
+#### 2. (Optional) Map Zitadel orgs to kAInban tenants
+
+If you want each Zitadel org to map to its own kAInban tenant, create a
+**Zitadel Action** that injects the org id as a custom claim:
+
+1. Console → **Default** → **Actions** → **+ New**.
+2. Name: `addOrgClaims`. Tick **Allowed to fail**. Script:
+   ```javascript
+   function addOrgClaims(ctx, api) {
+     var orgId, orgName
+     if (ctx.v1.user && ctx.v1.user.resourceOwner) {
+       orgId = ctx.v1.user.resourceOwner.id
+       orgName = ctx.v1.user.resourceOwner.name
+     } else if (ctx.v1.org) {
+       orgId = ctx.v1.org.id
+       orgName = ctx.v1.org.name
+     }
+     if (orgId) api.v1.claims.setClaim('urn:kainban:org:id', orgId)
+     if (orgName) api.v1.claims.setClaim('urn:kainban:org:name', orgName)
+   }
    ```
+3. Bind the Action to the **Complement Token** flow on **both**
+   `Pre Userinfo creation` and `Pre access token creation` triggers.
+4. Set `TENANT_STRATEGY=zitadel_org` in your `.env`.
+5. Restart the API.
+
+If no Action is configured, leave `TENANT_STRATEGY=default` (or unset) and
+all users will land in a single tenant.
+
+#### 3. Bootstrap the first admin
+
+The first user whose email matches `ZITADEL_BOOTSTRAP_ADMIN_EMAILS` becomes
+admin on first sign-in, but only when no admin exists in the database yet.
+After that, the env var is inert — promote subsequent admins via the
+Users tab in Settings.
 
 ---
 
@@ -253,9 +306,11 @@ API_URL=https://your-domain.com/api
 ### Getting Started
 
 1. **First Login**:
-   - If PocketID is enabled, click "Sign in with PocketID"
-   - Otherwise, register with email/password
-   - First user automatically becomes admin
+   - Click **Sign in** — you'll be redirected to your Zitadel hosted login.
+   - Sign up at the IdP if you don't have an account; verify the email
+     Zitadel sends; come back to kAInban.
+   - If your email is in `ZITADEL_BOOTSTRAP_ADMIN_EMAILS` and no admin
+     exists yet, you'll be promoted to admin on first login.
 
 2. **Configure AI Settings** (Admin):
    - Go to Settings → AI Settings
@@ -322,13 +377,13 @@ API_URL=https://your-domain.com/api
 1. **User Management** (Admin only):
    - Settings → Users tab
    - View all registered users
-   - See authentication methods (PocketID vs Email)
+   - See authentication methods (Zitadel / SSO label / Email-Password)
    - Delete users (except yourself)
 
 2. **Authentication Settings** (Admin only):
-   - Configure PocketID integration
-   - Enable/disable user registration
-   - Manage authentication providers
+   - Settings → Authentication tab — read-only view of the env-driven
+     OIDC config (issuer, client id, callback URL, bootstrap admins).
+     To change provider config, edit `.env` and restart the API container.
 
 ---
 
@@ -337,16 +392,17 @@ API_URL=https://your-domain.com/api
 ### Authentication
 
 ```bash
-# Login with email/password
-POST /api/auth/login
-{
-  "email": "user@example.com",
-  "password": "password"
-}
+# Zitadel hosted-login flow (default)
+GET  /api/auth/oidc/login        # 302s to Zitadel /authorize
+GET  /api/auth/oidc/callback     # PKCE token exchange + session
+POST /api/auth/logout            # revokes refresh token + Zitadel end_session
+GET  /api/auth/oidc/status       # { enabled, issuer }
+GET  /api/auth/oidc/config       # admin only - env-driven config readout
+GET  /health/oidc                # discovery doc reachability
 
-# PocketID OAuth flow
-GET /api/auth/oidc/login
-GET /api/auth/oidc/callback
+# Local-auth fallback (only when LOCAL_LOGIN_FALLBACK=true)
+POST /api/auth/login   { "email": "...", "password": "..." }
+POST /api/auth/register
 ```
 
 ### Projects
@@ -484,7 +540,7 @@ kainban/
 ├── server/                # Backend Node.js application
 │   ├── server.js          # Main server file
 │   ├── database.js        # SQLite database setup
-│   ├── oidcAuth.js        # PocketID authentication
+│   ├── oidcAuth.js        # Zitadel OIDC (PKCE, refresh, account linking)
 │   └── routes/            # API route handlers
 ├── docker-compose.yml     # Production deployment
 ├── Dockerfile             # Multi-stage Docker build
@@ -543,7 +599,7 @@ SESSION_SECRET=your-secure-session-secret
 DATABASE_PATH=/app/storage/app.db
 
 # OIDC Production Settings
-POCKET_ID_CALLBACK_URL=https://kainban.yourdomain.com/api/auth/oidc/callback
+OIDC_CALLBACK_URL=https://kainban.yourdomain.com/api/auth/oidc/callback
 ```
 
 ### SSL/HTTPS Setup
@@ -552,7 +608,8 @@ For production deployment with SSL:
 
 1. **Use reverse proxy** (Nginx, Traefik, Cloudflare)
 2. **Configure SSL certificates** (Let's Encrypt recommended)
-3. **Update callback URLs** in PocketID configuration
+3. **Update callback URLs** in your Zitadel application (the redirect URI
+   on the client must include the new HTTPS origin)
 4. **Ensure HTTPS** for microphone access
 
 Example Nginx configuration:
@@ -665,7 +722,7 @@ For commercial use without AGPL restrictions, please contact us about commercial
 ## 🙏 Acknowledgments
 
 - **Azure OpenAI** for powerful AI capabilities
-- **PocketID** for modern authentication
+- **[Zitadel](https://zitadel.com)** for modern OIDC authentication
 - **shadcn/ui** for beautiful, accessible components
 - **Tailwind CSS** for rapid styling
 - **React** and **Vite** for excellent developer experience
