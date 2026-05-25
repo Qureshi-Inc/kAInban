@@ -2,14 +2,30 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#4285f4" />
-    <meta name="description" content="kAInban - Organize Notes with AI. Transcribe audio and manage tasks on an intelligent kanban board." />
-    <title>kAInban - Organize Notes with AI</title>
+    <meta name="theme-color" content="#667eea" />
+    <meta name="description" content="kAInban - AI-powered task management with meeting transcription and intelligent task extraction" />
+
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+
+    <!-- Mobile App Meta Tags -->
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="kAInban" />
+
+    <!-- Mobile Icons -->
+    <link rel="apple-touch-icon" href="/icon-192.png" />
+    <link rel="apple-touch-icon" sizes="192x192" href="/icon-192.png" />
+    <link rel="apple-touch-icon" sizes="512x512" href="/icon-512.png" />
+
+    <title>kAInban - AI-Powered Task Management</title>
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
+    <!-- Google reCAPTCHA v3 - loaded dynamically if enabled -->
   </body>
 </html>

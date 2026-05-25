@@ -1,11 +1,12 @@
-# kAInban - Organize Tasks with AI
+# kAInban - AI-Powered Task Management
 
-> Transform audio recordings into actionable tasks with AI-powered transcription and intelligent task extraction. A modern, self-hosted task management system with privacy-first on-device audio processing.
+> Transform meeting recordings into actionable tasks with AI-powered transcription and intelligent task extraction. A modern, privacy-first task management system with PocketID authentication and comprehensive project organization.
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 [![React](https://img.shields.io/badge/React-18-61dafb.svg)](https://reactjs.org/)
 [![Azure OpenAI](https://img.shields.io/badge/Azure-OpenAI-0078d4.svg)](https://azure.microsoft.com/en-us/products/ai-services/openai-service)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ed.svg)](https://www.docker.com/)
+[![Node.js](https://img.shields.io/badge/Node.js-20-339933.svg)](https://nodejs.org/)
 
 ---
 
@@ -14,63 +15,93 @@
 - [Overview](#overview)
 - [Features](#features)
 - [Quick Start](#quick-start)
-- [Documentation](#documentation)
-- [Roadmap](#roadmap)
+- [Installation](#installation)
+- [Configuration](#configuration)
+- [Usage](#usage)
+- [API Documentation](#api-documentation)
+- [Development](#development)
+- [Deployment](#deployment)
 - [Contributing](#contributing)
 - [License](#license)
+- [Support](#support)
 
 ---
 
 ## 🎯 Overview
 
-**kAInban** is an AI-powered task management application that transforms meeting recordings and audio notes into organized, actionable tasks on an intelligent Kanban board. Built with privacy-first principles, it processes audio locally in your browser while leveraging Azure OpenAI for transcription and task extraction.
+**kAInban** is a comprehensive AI-powered task management application that transforms meeting recordings and audio notes into organized, actionable tasks on an intelligent Kanban board. Built with modern web technologies and designed for both personal productivity and team collaboration.
 
-**Perfect for:**
-- 📝 Meeting notes and action items
-- 🎯 Project planning and task breakdown
-- 🤝 Team collaboration and task assignment
-- 📊 Personal productivity and organization
-- 🔒 Privacy-conscious users who self-host
+### Key Benefits
+
+- 🎤 **Audio-to-Tasks**: Transform meeting recordings into structured task lists
+- 🤖 **AI Intelligence**: Advanced task extraction with status detection and prioritization
+- 📊 **Analytics Dashboard**: Gain insights into your productivity patterns with AI recommendations
+- 🔒 **Privacy-First**: Self-hosted with optional PocketID authentication
+- 📱 **Mobile-Optimized**: Responsive design that works on all devices
+- 🎨 **Modern UI**: Beautiful, intuitive interface with dark mode support
+
+### Perfect for:
+
+- 📝 **Meeting Management**: Automatically extract action items from recordings
+- 🎯 **Project Planning**: Break down complex projects into manageable tasks
+- 🤝 **Team Collaboration**: Share projects and assign tasks to team members
+- 📊 **Productivity Tracking**: Analyze work patterns with AI-powered insights
+- 🔒 **Privacy-Conscious Users**: Complete control over your data
 
 ---
 
 ## ✨ Features
 
-### 🎤 **Audio Processing**
-- **Live Recording** with real-time visualization and pause/resume
-- **File Upload** supporting MP3, MP4, M4A, WAV, WebM, OGG, FLAC
-- **Privacy-First**: Audio conversion happens locally in your browser
-- **Large File Support**: Automatic chunking for recordings >25MB
-- **Mobile Optimized**: Memory-efficient processing for mobile devices
+### 🎤 Audio Processing & AI Intelligence
 
-### 🤖 **AI-Powered Intelligence**
-- **Transcription Agent**: High-accuracy speech-to-text using Azure OpenAI Whisper
-- **Task Extraction Agent**: Intelligent task detection with status recognition
-  - Automatically detects: "blocked", "in-progress", "done", "todo"
-  - Consolidates related activities into single tasks
-  - Extracts due dates from natural language ("next week", "by Friday")
-  - Identifies assignees and priorities
-- **Summary Generation Agent**: Structured meeting summaries with action items
-- **Related Tasks Agent**: Finds tasks that should be updated together
+- **Live Recording**: Real-time audio capture with visual feedback
+- **File Upload Support**: MP3, MP4, M4A, WAV, WebM, OGG formats
+- **AI Transcription**: High-accuracy speech-to-text using Azure OpenAI Whisper
+- **Smart Task Extraction**: Intelligent detection of tasks, statuses, and priorities
+- **Meeting Summaries**: Structured summaries with key decisions and action items
+- **Large File Handling**: Automatic chunking for files >25MB
 
-### 📋 **Task Management**
-- **Kanban Board**: Drag-and-drop interface with To Do, In Progress, Blocked, Done columns
-- **Rich Task Details**: Priority, status, assignee, due dates, descriptions with markdown
-- **Project Organization**: Multiple projects with isolated tasks and meetings
-- **Meeting Files**: Store and review past meeting transcripts and summaries
+### 📋 Task & Project Management
 
-### 📱 **Modern UI/UX**
-- **Responsive Design**: Works seamlessly on desktop, tablet, and mobile
-- **Beautiful Animations**: Smooth Framer Motion transitions
+- **Kanban Board**: Drag-and-drop interface with customizable columns
+- **Project Organization**: Multiple projects with isolated tasks and settings
+- **Rich Task Details**: Priorities, due dates, assignees, descriptions with markdown
+- **Task Status Tracking**: Automatic status detection from meeting context
+- **Related Task Detection**: AI identifies tasks that should be updated together
+
+### 📊 Analytics & Insights
+
+- **Analytics Dashboard**: Comprehensive overview of all projects and tasks
+- **AI Task Recommendations**: Daily insights powered by intelligent analysis
+  - 🎯 Focus recommendations for the week
+  - ✅ Quick wins to build momentum
+  - ⚠️ Urgent items requiring attention
+- **Smart Caching**: Daily refresh with task count-based updates
+- **Project Filtering**: View analytics for all projects or specific ones
+
+### 🔐 Authentication & Security
+
+- **PocketID Integration**: Modern OIDC authentication with group-based access control
+- **Role-Based Access**: Admin and member roles with appropriate permissions
+- **Group-Based Authorization**: Automatic role assignment based on PocketID groups
+- **User Management**: Admin interface for managing users and permissions
+- **Registration Control**: Configurable user registration policies
+
+### 🎨 Modern User Experience
+
+- **Responsive Design**: Optimized for desktop, tablet, and mobile devices
 - **Dark Mode Support**: System-aware theme switching
-- **PWA Ready**: Install as a mobile app
-- **Touch Optimized**: Mobile-first interactions
+- **Smooth Animations**: Beautiful transitions powered by Framer Motion
+- **Progressive Web App**: Install as a mobile app with offline capabilities
+- **Touch-Optimized**: Mobile-first interactions and gestures
 
-### 🔒 **Privacy & Security**
-- **Self-Hosted**: Run on your own hardware with Docker
-- **On-Device Processing**: Audio conversion happens in your browser
-- **Data Control**: Your data stays on your infrastructure
-- **No Tracking**: Zero third-party analytics or tracking
+### 🏗️ Technical Excellence
+
+- **Docker Deployment**: Production-ready containerization
+- **RESTful API**: Well-documented backend API
+- **Real-time Updates**: Live synchronization across devices
+- **Error Handling**: Comprehensive error management with user feedback
+- **Performance Optimized**: Lazy loading, caching, and efficient rendering
 
 ---
 
@@ -78,293 +109,611 @@
 
 ### Prerequisites
 
-- **Node.js 18+** and npm
-- **Docker** (for containerized deployment)
-- **Azure OpenAI** account with Whisper and GPT-4 deployments
+- **Docker & Docker Compose** (recommended)
+- **Node.js 20+** (for development)
+- **Azure OpenAI** account with Whisper and GPT deployments
+- **PocketID** account (optional, for authentication)
 
-### Installation
+### 1-Minute Setup
 
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/yourusername/kainban.git
-   cd kainban
-   npm install
-   ```
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/kainban.git
+cd kainban
 
-2. **Configure environment**
-   ```bash
-   cp .env.example .env
-   ```
+# Copy environment template
+cp .env.example .env
 
-   Edit `.env` with your Azure OpenAI credentials:
+# Edit .env with your credentials (see Configuration section)
+
+# Start with Docker
+docker compose up -d
+
+# Access at http://localhost:3000
+```
+
+---
+
+## 🛠️ Installation
+
+### Option 1: Docker (Recommended)
+
+```bash
+# Clone and navigate
+git clone https://github.com/yourusername/kainban.git
+cd kainban
+
+# Configure environment
+cp .env.example .env
+# Edit .env with your settings
+
+# Build and start
+docker compose up -d --build
+
+# View logs
+docker compose logs -f
+```
+
+### Option 2: Local Development
+
+```bash
+# Clone repository
+git clone https://github.com/yourusername/kainban.git
+cd kainban
+
+# Install dependencies
+npm install
+
+# Configure environment
+cp .env.example .env
+# Edit .env with your settings
+
+# Start development server
+npm run dev
+
+# Access at http://localhost:3000
+```
+
+---
+
+## ⚙️ Configuration
+
+### Environment Variables
+
+Create a `.env` file with the following configuration:
+
+```env
+# === Azure OpenAI Configuration (Required) ===
+VITE_AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com
+VITE_AZURE_OPENAI_API_KEY=your-api-key-here
+VITE_AZURE_OPENAI_API_VERSION=2024-02-01
+VITE_AZURE_OPENAI_WHISPER_DEPLOYMENT=whisper-1
+VITE_AZURE_OPENAI_GPT_DEPLOYMENT=gpt-4
+
+# === PocketID Authentication (Optional) ===
+ENABLE_OIDC=true
+POCKET_ID_ISSUER=https://login.yourpocketid.com
+POCKET_ID_CLIENT_ID=your-client-id
+POCKET_ID_CLIENT_SECRET=your-client-secret
+POCKET_ID_CALLBACK_URL=https://your-domain.com/api/auth/oidc/callback
+
+# === Application Settings ===
+ALLOW_REGISTRATION=true
+APP_URL=https://your-domain.com
+API_URL=https://your-domain.com/api
+
+# === Database (SQLite) ===
+# Database file will be created at ./storage/app.db
+```
+
+### Azure OpenAI Setup
+
+1. **Create Azure OpenAI Resource**:
+   - Go to [Azure Portal](https://portal.azure.com)
+   - Create a new Azure OpenAI resource
+   - Note the endpoint URL and API key
+
+2. **Deploy Models**:
+   - Deploy **Whisper** model for transcription
+   - Deploy **GPT-4** or **GPT-4o** for task extraction
+   - Note the deployment names
+
+3. **Update Configuration**:
    ```env
    VITE_AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com
-   VITE_AZURE_OPENAI_API_KEY=your-api-key-here
-   VITE_WHISPER_DEPLOYMENT_NAME=whisper-1
-   VITE_GPT_DEPLOYMENT_NAME=gpt-4
-   VITE_AZURE_OPENAI_API_VERSION=2024-06-01
+   VITE_AZURE_OPENAI_API_KEY=your-api-key
+   VITE_AZURE_OPENAI_WHISPER_DEPLOYMENT=whisper-1
+   VITE_AZURE_OPENAI_GPT_DEPLOYMENT=gpt-4o
    ```
 
-3. **Start development server**
+### PocketID Authentication Setup
+
+1. **Create PocketID Application**:
+   - Sign up at [PocketID](https://pocketid.app)
+   - Create a new application
+   - Set callback URL: `https://your-domain.com/api/auth/oidc/callback`
+
+2. **Configure Groups** (Optional):
+   - `admin`: Users become app administrators
+   - `user`: Users become regular members
+   - `viewer`: Users are denied access (read-only, if implemented)
+
+3. **Update Configuration**:
+   ```env
+   ENABLE_OIDC=true
+   POCKET_ID_CLIENT_ID=your-client-id
+   POCKET_ID_CLIENT_SECRET=your-client-secret
+   POCKET_ID_CALLBACK_URL=https://your-domain.com/api/auth/oidc/callback
+   ```
+
+---
+
+## 📱 Usage
+
+### Getting Started
+
+1. **First Login**:
+   - If PocketID is enabled, click "Sign in with PocketID"
+   - Otherwise, register with email/password
+   - First user automatically becomes admin
+
+2. **Configure AI Settings** (Admin):
+   - Go to Settings → AI Settings
+   - Enter Azure OpenAI credentials
+   - Test connection to verify setup
+
+3. **Create Your First Project**:
+   - Click the project dropdown in header
+   - Select "Create New Project"
+   - Give it a descriptive name
+
+### Recording & Processing Audio
+
+1. **Live Recording**:
+   - Click the microphone button
+   - Allow microphone access when prompted
+   - Speak naturally during your meeting
+   - Click stop when finished
+
+2. **File Upload**:
+   - Click "Upload Audio File"
+   - Select your recording (MP3, M4A, WAV, etc.)
+   - Wait for processing to complete
+
+3. **Review Results**:
+   - Check the generated transcript
+   - Review extracted tasks on the Kanban board
+   - Read the meeting summary
+   - Make any necessary edits
+
+### Managing Tasks
+
+1. **Kanban Board**:
+   - Drag tasks between columns (To Do, In Progress, Blocked, Done)
+   - Click tasks to edit details
+   - Set priorities, due dates, and assignees
+
+2. **Task Details**:
+   - Add detailed descriptions with markdown
+   - Set priority levels (High, Medium, Low)
+   - Assign to team members
+   - Set due dates for deadlines
+
+3. **Project Organization**:
+   - Switch between projects using header dropdown
+   - Each project has isolated tasks and recordings
+   - Use analytics dashboard for overview
+
+### Analytics & Insights
+
+1. **Dashboard View**:
+   - Access from header when no project is selected
+   - View completion rates, overdue tasks, and status distribution
+   - Filter by specific projects or view all
+
+2. **AI Recommendations**:
+   - Get daily insights about task prioritization
+   - Receive suggestions for quick wins
+   - Identify urgent items needing attention
+   - Recommendations refresh daily or when task count changes
+
+### Admin Features
+
+1. **User Management** (Admin only):
+   - Settings → Users tab
+   - View all registered users
+   - See authentication methods (PocketID vs Email)
+   - Delete users (except yourself)
+
+2. **Authentication Settings** (Admin only):
+   - Configure PocketID integration
+   - Enable/disable user registration
+   - Manage authentication providers
+
+---
+
+## 🔗 API Documentation
+
+### Authentication
+
+```bash
+# Login with email/password
+POST /api/auth/login
+{
+  "email": "user@example.com",
+  "password": "password"
+}
+
+# PocketID OAuth flow
+GET /api/auth/oidc/login
+GET /api/auth/oidc/callback
+```
+
+### Projects
+
+```bash
+# Get all projects
+GET /api/projects
+
+# Create project
+POST /api/projects
+{
+  "name": "Project Name"
+}
+
+# Get project details
+GET /api/projects/:id
+
+# Delete project
+DELETE /api/projects/:id
+```
+
+### Tasks
+
+```bash
+# Get tasks for project
+GET /api/projects/:projectId/tasks
+
+# Create task
+POST /api/projects/:projectId/tasks
+{
+  "title": "Task title",
+  "description": "Task description",
+  "priority": "high",
+  "status": "todo"
+}
+
+# Update task
+PUT /api/tasks/:id
+{
+  "status": "in-progress",
+  "assignee": "John Doe"
+}
+```
+
+### Audio Processing
+
+```bash
+# Upload and process audio
+POST /api/projects/:projectId/process-audio
+Content-Type: multipart/form-data
+- file: audio file
+- filename: original filename
+```
+
+### User Management (Admin)
+
+```bash
+# Get all users
+GET /api/users
+
+# Delete user
+DELETE /api/users/:id
+```
+
+---
+
+## 🛠️ Development
+
+### Local Development Setup
+
+```bash
+# Clone repository
+git clone https://github.com/yourusername/kainban.git
+cd kainban
+
+# Install dependencies
+npm install
+
+# Copy environment file
+cp .env.example .env
+
+# Start development server
+npm run dev
+
+# In another terminal, start backend
+cd server
+npm install
+npm run dev
+```
+
+### Tech Stack
+
+**Frontend:**
+- React 18 with Vite
+- Tailwind CSS + shadcn/ui components
+- Zustand for state management
+- Framer Motion for animations
+- Swiper.js for carousels
+
+**Backend:**
+- Node.js + Express
+- SQLite database
+- OpenID Connect (OIDC) authentication
+- Multer for file uploads
+- CORS and security middleware
+
+**AI & Audio:**
+- Azure OpenAI (Whisper + GPT-4)
+- Web Audio API for client-side processing
+- Automatic audio chunking for large files
+
+**Deployment:**
+- Docker + Docker Compose
+- Nginx reverse proxy
+- Multi-stage builds for optimization
+
+### Project Structure
+
+```
+kainban/
+├── src/                    # Frontend React application
+│   ├── components/         # React components
+│   │   ├── ui/            # Reusable UI components (shadcn/ui)
+│   │   ├── Header.jsx     # Main navigation
+│   │   ├── KanbanBoard.jsx# Task management board
+│   │   ├── AnalyticsDashboard.jsx # Analytics and insights
+│   │   └── ...
+│   ├── services/          # API and external service integrations
+│   │   ├── apiService.js  # Backend API client
+│   │   ├── openaiService.js # Azure OpenAI integration
+│   │   └── audioService.js# Audio processing utilities
+│   ├── stores/            # Zustand state management
+│   │   └── useAppStore.js # Main application state
+│   └── lib/               # Utility functions
+├── server/                # Backend Node.js application
+│   ├── server.js          # Main server file
+│   ├── database.js        # SQLite database setup
+│   ├── oidcAuth.js        # PocketID authentication
+│   └── routes/            # API route handlers
+├── docker-compose.yml     # Production deployment
+├── Dockerfile             # Multi-stage Docker build
+├── package.json           # Dependencies and scripts
+└── .env.example           # Environment template
+```
+
+### Building for Production
+
+```bash
+# Build frontend
+npm run build
+
+# Build Docker images
+docker compose build
+
+# Start production deployment
+docker compose up -d
+```
+
+---
+
+## 🚀 Deployment
+
+### Docker Deployment (Recommended)
+
+1. **Prepare Environment**:
    ```bash
-   npm run dev
+   cp .env.example .env
+   # Edit .env with production values
    ```
-   Access at: `http://localhost:8064`
 
-### Docker Deployment
+2. **Deploy with Docker Compose**:
+   ```bash
+   docker compose up -d --build
+   ```
 
-**Quick Start (Production):**
+3. **Verify Deployment**:
+   ```bash
+   docker compose logs -f
+   curl http://localhost:3000/api/health
+   ```
+
+### Production Environment Variables
+
+```env
+# Production URLs
+APP_URL=https://kainban.yourdomain.com
+API_URL=https://kainban.yourdomain.com/api
+
+# Security
+NODE_ENV=production
+SESSION_SECRET=your-secure-session-secret
+
+# Database
+DATABASE_PATH=/app/storage/app.db
+
+# OIDC Production Settings
+POCKET_ID_CALLBACK_URL=https://kainban.yourdomain.com/api/auth/oidc/callback
+```
+
+### SSL/HTTPS Setup
+
+For production deployment with SSL:
+
+1. **Use reverse proxy** (Nginx, Traefik, Cloudflare)
+2. **Configure SSL certificates** (Let's Encrypt recommended)
+3. **Update callback URLs** in PocketID configuration
+4. **Ensure HTTPS** for microphone access
+
+Example Nginx configuration:
+```nginx
+server {
+    listen 443 ssl http2;
+    server_name kainban.yourdomain.com;
+
+    ssl_certificate /etc/ssl/certs/kainban.crt;
+    ssl_certificate_key /etc/ssl/private/kainban.key;
+
+    location / {
+        proxy_pass http://localhost:3000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
+
+### Monitoring & Maintenance
+
 ```bash
-docker-compose up -d
+# View application logs
+docker compose logs -f
+
+# Update application
+git pull
+docker compose build --no-cache
+docker compose up -d
+
+# Backup database
+docker exec kainban-api-1 cp /app/storage/app.db /app/storage/backup-$(date +%Y%m%d).db
+
+# Monitor resource usage
+docker stats
 ```
-
-**See [DOCKER_DEPLOYMENT.md](DOCKER_DEPLOYMENT.md) for detailed deployment instructions.**
-
----
-
-## 📚 Documentation
-
-### Core Guides
-
-- **[FEATURES.md](FEATURES.md)** - Comprehensive feature guide with detailed explanations of:
-  - All AI agents and their capabilities
-  - Audio processing pipeline
-  - Task management system
-  - Architecture and data flow
-  - Performance optimizations
-  - Configuration options
-
-- **[DOCKER_DEPLOYMENT.md](DOCKER_DEPLOYMENT.md)** - Complete Docker deployment guide:
-  - Production deployment
-  - Development setup
-  - SSL/TLS configuration
-  - Troubleshooting
-
-### Configuration
-
-**Azure OpenAI Setup:**
-1. Create Azure OpenAI resource
-2. Deploy **Whisper** model for transcription
-3. Deploy **GPT-4** model for task extraction and summaries
-4. Copy endpoint and API key to `.env`
-
-**HTTPS for Microphone Access:**
-Modern browsers require HTTPS for microphone access:
-```bash
-# Generate self-signed certificates (development)
-./generate-certs.sh
-
-# Or use ngrok for quick testing
-ngrok http 8064
-```
-
----
-
-## 🗺️ Roadmap
-
-### 🚧 In Development
-
-- [ ] **Multi-Provider AI Support**
-  - Anthropic Claude integration
-  - Google Gemini integration
-  - OpenAI direct integration
-  - Local LLM support (Ollama, llama.cpp)
-  - Hugging Face models
-
-### 📋 Planned Features
-
-**Authentication & Users**
-- [ ] User authentication system
-- [ ] Multi-user support with role-based access
-- [ ] Team collaboration features
-- [ ] User profiles and preferences
-- [ ] Shared projects and task assignment
-
-**Mobile Experience**
-- [ ] Native iOS app (React Native)
-- [ ] Native Android app (React Native)
-- [ ] Enhanced mobile UI/UX
-- [ ] Offline mode with sync
-- [ ] Push notifications
-
-**UI Enhancements**
-- [ ] List view for Kanban board
-- [ ] Table view with sorting/filtering
-- [ ] Calendar view for due dates
-- [ ] Gantt chart for project timelines
-- [ ] Customizable board columns
-- [ ] Task templates
-
-**Project Management**
-- [ ] Project-specific URLs (`/project/:id`)
-- [ ] Project sharing and collaboration
-- [ ] Project templates
-- [ ] Project analytics and insights
-- [ ] Time tracking per task
-- [ ] Project milestones
-
-**API & Integrations**
-- [ ] Public REST API
-- [ ] Webhook support
-- [ ] Zapier integration
-- [ ] Slack integration
-- [ ] Microsoft Teams integration
-- [ ] Calendar sync (Google Calendar, Outlook)
-- [ ] Email notifications
-
-**Advanced AI Features**
-- [ ] Custom AI agent prompts
-- [ ] Fine-tuned models for specific use cases
-- [ ] Sentiment analysis in meetings
-- [ ] Speaker diarization (who said what)
-- [ ] Meeting insights and analytics
-- [ ] Automatic follow-up reminders
-
-**Data & Export**
-- [ ] Export projects to JSON/CSV
-- [ ] Import from other task managers (Trello, Asana, Jira)
-- [ ] Backup and restore functionality
-- [ ] Data visualization dashboards
-- [ ] Advanced search and filtering
-
-**Performance**
-- [ ] Web Worker for audio processing
-- [ ] Virtual scrolling for large task lists
-- [ ] Optimistic UI updates
-- [ ] Background sync
-- [ ] Progressive Web App enhancements
-
-**Security**
-- [ ] End-to-end encryption for sensitive data
-- [ ] Two-factor authentication (2FA)
-- [ ] Audit logs
-- [ ] Session management
-- [ ] API rate limiting
-
-### 🎯 Future Considerations
-
-- [ ] Voice commands for task creation
-- [ ] Real-time collaboration (WebRTC)
-- [ ] Video meeting integration (Zoom, Meet)
-- [ ] AI-powered task prioritization
-- [ ] Smart notifications based on context
-- [ ] Browser extensions (Chrome, Firefox)
-- [ ] Desktop apps (Electron)
-- [ ] Custom branding/white-label
-
----
-
-## 🏗️ Architecture
-
-**Technology Stack:**
-- **Frontend**: React 18, Vite, Tailwind CSS, shadcn/ui
-- **State**: Zustand, React Query
-- **Animation**: Framer Motion
-- **Storage**: IndexedDB (browser), Docker volumes (self-hosted)
-- **AI**: Azure OpenAI (Whisper, GPT-4)
-- **Audio**: Web Audio API (client-side processing)
-- **Deployment**: Docker, Nginx
-
-**Project Structure:**
-```
-src/
-├── components/          # React components
-│   ├── ui/             # Reusable UI (shadcn/ui)
-│   ├── AudioControls.jsx
-│   ├── KanbanBoard.jsx
-│   └── ...
-├── services/           # External integrations
-│   ├── audioService.js
-│   ├── openaiService.js
-│   └── storageService.js
-├── stores/             # Zustand state
-└── lib/                # Utilities
-```
-
-**See [FEATURES.md](FEATURES.md) for detailed architecture diagrams and data flow.**
 
 ---
 
 ## 🤝 Contributing
 
-We welcome contributions! Here's how to get started:
+We welcome contributions from the community! Please see our [CONTRIBUTING.md](CONTRIBUTING.md) guide for detailed information on:
 
-1. **Fork the repository**
-2. **Create a feature branch**: `git checkout -b feature/amazing-feature`
-3. **Make your changes**
-4. **Add tests** if applicable
-5. **Commit your changes**: `git commit -m 'Add amazing feature'`
-6. **Push to branch**: `git push origin feature/amazing-feature`
-7. **Open a Pull Request**
+- Development setup
+- Coding standards
+- Pull request process
+- Issue reporting
+- Feature requests
 
-**Development Guidelines:**
-- Follow existing code style
-- Write meaningful commit messages
-- Update documentation for new features
-- Test on both desktop and mobile
-- Check for security vulnerabilities
+### Quick Start for Contributors
 
----
+```bash
+# Fork the repository
+git clone https://github.com/yourusername/kainban.git
+cd kainban
 
-## 🔍 Troubleshooting
+# Create feature branch
+git checkout -b feature/amazing-feature
 
-### Common Issues
+# Make your changes
+# ... code, test, document ...
 
-**Microphone Access Denied:**
-- Ensure HTTPS (run `./generate-certs.sh`)
-- Check browser permissions
-- Try different browser
+# Commit with descriptive message
+git commit -m "Add amazing feature that does X"
 
-**M4A Upload Fails:**
-- File may be >100MB (unsupported)
-- Try converting to MP3 first
-- Check console for detailed errors
+# Push and create PR
+git push origin feature/amazing-feature
+```
 
-**Mobile Transcription Timeout:**
-- File too large for mobile
-- Use desktop for large files
-- Check network connection
+### Areas for Contribution
 
-**Task Extraction Returns Empty:**
-- Transcript too short
-- No actionable items detected
-- Use more explicit language in meetings
-
-**See [FEATURES.md](FEATURES.md) for detailed troubleshooting guide.**
+- 🎨 **UI/UX improvements**
+- 🤖 **AI agent enhancements**
+- 📱 **Mobile experience**
+- 🔒 **Security improvements**
+- 📊 **Analytics features**
+- 🌐 **Internationalization**
+- 📚 **Documentation**
+- 🧪 **Testing coverage**
 
 ---
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the **GNU Affero General Public License v3.0** (AGPL-3.0).
+
+### What this means:
+
+- ✅ **Free to use, modify, and distribute**
+- ✅ **Commercial use allowed**
+- ✅ **Patent rights granted**
+- ⚠️ **Must disclose source code** when distributing
+- ⚠️ **Network use constitutes distribution** (AGPL requirement)
+- ⚠️ **Same license for derivative works**
+
+### Key AGPL Requirements:
+
+If you run a modified version of kAInban on a server and provide access to users over a network, you **must** provide those users with access to the source code of your modified version.
+
+For more details, see the [LICENSE](LICENSE) file.
+
+### Commercial Licensing
+
+For commercial use without AGPL restrictions, please contact us about commercial licensing options.
 
 ---
 
 ## 🙏 Acknowledgments
 
-- **Azure OpenAI** for powerful AI models
-- **shadcn/ui** for beautiful UI components
-- **Vercel** for Tailwind CSS and design inspiration
-- **Open source community** for amazing tools and libraries
+- **Azure OpenAI** for powerful AI capabilities
+- **PocketID** for modern authentication
+- **shadcn/ui** for beautiful, accessible components
+- **Tailwind CSS** for rapid styling
+- **React** and **Vite** for excellent developer experience
+- **Open source community** for inspiration and tools
 
 ---
 
 ## 📧 Support
 
-**Need help?**
-1. Check [FEATURES.md](FEATURES.md) for detailed documentation
-2. Review [GitHub Issues](../../issues)
-3. Create a new issue with detailed information
+### Community Support
 
-**Commercial support:**
-For enterprise support, custom features, or consulting, contact us at [your-email@example.com]
+- 📖 **Documentation**: Start with this README and [CONTRIBUTING.md](CONTRIBUTING.md)
+- 🐛 **Bug Reports**: [GitHub Issues](https://github.com/yourusername/kainban/issues)
+- 💡 **Feature Requests**: [GitHub Discussions](https://github.com/yourusername/kainban/discussions)
+- 💬 **Community Chat**: Join our Discord/Slack (link coming soon)
+
+### Getting Help
+
+1. **Check existing documentation** and closed issues
+2. **Search the GitHub issues** for similar problems
+3. **Create a detailed issue** with steps to reproduce
+4. **Join community discussions** for general questions
+
+### Commercial Support
+
+For enterprise support, custom development, or consulting services:
+- 📧 Email: support@kainban.com
+- 💼 Enterprise features and SLAs available
+- 🎯 Custom AI agent development
+- 🔧 Installation and configuration assistance
 
 ---
 
 <div align="center">
 
-**Built with ❤️ using React, Azure OpenAI, and modern web technologies**
+## 🌟 Star History
 
-[⭐ Star us on GitHub](../../stargazers) | [🐛 Report Bug](../../issues) | [💡 Request Feature](../../issues)
+[![Star History Chart](https://api.star-history.com/svg?repos=yourusername/kainban&type=Date)](https://star-history.com/#yourusername/kainban&Date)
+
+---
+
+**Built with ❤️ by InterestingSoup**
+
+*Transform your meetings into action with AI-powered task management*
+
+[⭐ Star on GitHub](https://github.com/yourusername/kainban) •
+[🐛 Report Bug](https://github.com/yourusername/kainban/issues) •
+[💡 Request Feature](https://github.com/yourusername/kainban/issues) •
+[📖 Documentation](https://github.com/yourusername/kainban/wiki)
 
 </div>

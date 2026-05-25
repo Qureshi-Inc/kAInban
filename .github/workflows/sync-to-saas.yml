@@ -1,0 +1,16 @@
+# Simple fork sync notification
+name: Fork Sync Ready
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  notify-fork-sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Notify fork sync available
+        run: |
+          echo "🔄 New changes available for fork sync"
+          echo "Go to your private fork and click 'Sync fork' button"
+          echo "Or create a pull request from upstream"

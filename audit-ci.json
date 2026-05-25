@@ -1,0 +1,12 @@
+{
+  "moderate": true,
+  "high": true,
+  "critical": true,
+  "allowlist": [
+    "GHSA-f8q6-p94x-37v3",
+    "GHSA-grv7-fg5c-xmjg"
+  ],
+  "report-type": "summary",
+  "package-manager": "npm",
+  "output-format": "text"
+}

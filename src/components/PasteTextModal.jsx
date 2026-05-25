@@ -1,10 +1,12 @@
-import React, { useState } from 'react'
 import { motion } from 'framer-motion'
 import { FileText, X, Sparkles } from 'lucide-react'
+import React, { useState } from 'react'
+import { parseSubtasksFromDescription, processAssignees } from '../lib/utils'
+import apiService from '../services/apiService'
+import openaiService from '../services/openaiService'
+import useAppStore from '../stores/useAppStore'
 import { Button } from './ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog'
-import useAppStore from '../stores/useAppStore'
-import openaiService from '../services/openaiService'
 
 export default function PasteTextModal({ open, onOpenChange }) {
   const [transcript, setTranscript] = useState('')
@@ -13,11 +15,12 @@ export default function PasteTextModal({ open, onOpenChange }) {
   const {
     currentProject,
     createMeeting,
-    addTask,
-    addNotification
+    addNotification,
+    setUploadProgress,
+    resetUploadProgress
   } = useAppStore()
 
-  const handleProcess = async () => {
+  const handleProcess = async() => {
     if (!transcript.trim()) {
       addNotification({
         type: 'error',
@@ -36,57 +39,176 @@ export default function PasteTextModal({ open, onOpenChange }) {
 
     setIsProcessing(true)
 
-    try {
-      console.log('[PasteText] Processing transcript:', transcript.length, 'characters')
+    // Close modal immediately so progress UI is visible
+    onOpenChange(false)
 
-      // Generate summary and extract tasks from the pasted text
-      addNotification({
-        type: 'info',
-        message: 'Processing your text...'
+    try {
+      // Start progress tracking
+      setUploadProgress({
+        stage: 'converting',
+        percentage: 10,
+        message: 'Processing pasted text...'
+      })
+
+      // Generate summary from the pasted text
+      setUploadProgress({
+        stage: 'transcribing',
+        percentage: 30,
+        message: 'Generating summary with AI...'
       })
 
       const summary = await openaiService.generateSummary(transcript)
       console.log('[PasteText] Summary generated:', summary)
 
-      const tasks = await openaiService.extractTasks(transcript)
-      console.log('[PasteText] Tasks extracted:', tasks.length)
+      // Create meeting with the transcript and summary
+      setUploadProgress({
+        stage: 'transcribing',
+        percentage: 60,
+        message: 'Creating meeting record...'
+      })
 
-      // Create a meeting with the transcript and summary
       const meetingName = `Pasted Text - ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`
-      await createMeeting(meetingName, transcript, summary)
+      const meeting = await createMeeting(meetingName, transcript, summary)
+
+      // Extract tasks from the pasted text
+      setUploadProgress({
+        stage: 'extracting',
+        percentage: 80,
+        message: 'Extracting tasks from text...'
+      })
+
+      // Load users for assignee matching
+      let users = []
+      try {
+        users = await apiService.getUsers()
+      } catch (error) {
+        console.warn('[PasteTextModal] Failed to load users for assignee matching:', error)
+      }
+
+      const {
+        tasks: existingTasks,
+        addTasks,
+        updateTask: storeUpdateTask
+      } = useAppStore.getState()
+      const tasks = await openaiService.extractTasks(transcript, existingTasks)
+
+      // Store meeting ID for consistent access during task creation
+      const sourceMeetingId = meeting?.id
+
+      let newCount = 0
+      let updatedCount = 0
+      const newTasksToAdd = []
 
       // Add extracted tasks
       if (tasks && tasks.length > 0) {
-        tasks.forEach(task => {
-          addTask({
-            title: task.title,
-            description: task.description || '',
-            priority: task.priority || 'medium',
-            status: 'todo'
-          })
-        })
+        for (const task of tasks) {
+          if (task.matchId && task.matchId > 0) {
+            // Update existing task and add AI comment instead of updating description
+            const existingTask = existingTasks[task.matchId - 1]
+            if (existingTask) {
+              // Update task properties (status, priority, etc.) but not description
+              const newAssignees = task.assignee ? processAssignees(task.assignee, users) : []
+              const currentAssignees = existingTask.assignees && Array.isArray(existingTask.assignees) ? existingTask.assignees : (existingTask.assignee ? [existingTask.assignee] : [])
+
+              storeUpdateTask(existingTask.id, {
+                status: task.newStatus || existingTask.status,
+                priority: task.newPriority || existingTask.priority,
+                assignees: newAssignees.length > 0 ? newAssignees : currentAssignees,
+                assignee: newAssignees.length > 0 ? newAssignees[0] : (currentAssignees.length > 0 ? currentAssignees[0] : '')
+              })
+
+              // Add AI comment with the updates instead of appending to description
+              if (task.updates) {
+                try {
+                  await apiService.addTaskComment(
+                    existingTask.id,
+                    task.updates,
+                    'ai_update',
+                    {
+                      source: 'transcript_analysis',
+                      originalTranscript: transcript.substring(0, 200) + '...' // First 200 chars for context
+                    }
+                  )
+                } catch (error) {
+                  console.error('Failed to add AI comment:', error)
+                }
+              }
+              updatedCount++
+            }
+          } else {
+            // Collect new tasks to add in batch
+            const subtasks = parseSubtasksFromDescription(
+              task.description || ''
+            )
+            const taskAssignees = processAssignees(task.assignee, users)
+            newTasksToAdd.push({
+              title: task.title,
+              description: task.description || '',
+              priority: task.priority || 'medium',
+              assignees: taskAssignees,
+              assignee: taskAssignees.length > 0 ? taskAssignees[0] : '', // Keep legacy field
+              status: 'todo',
+              subtasks,
+              meetingId: sourceMeetingId // Add meeting source reference
+            })
+            newCount++
+          }
+        }
+
+        // Batch add all new tasks at once
+        if (newTasksToAdd.length > 0) {
+          addTasks(newTasksToAdd)
+        }
+
+        // Show success notification
+        const messages = []
+        if (newCount > 0) {
+          messages.push(`${newCount} new`)
+        }
+        if (updatedCount > 0) {
+          messages.push(`${updatedCount} updated`)
+        }
 
         addNotification({
           type: 'success',
-          message: `✨ Extracted ${tasks.length} task${tasks.length > 1 ? 's' : ''} from your text`
-        })
-      } else {
-        addNotification({
-          type: 'info',
-          message: 'No tasks found in the text'
+          message: `Tasks: ${messages.join(', ')}!`
         })
       }
 
-      // Clear and close
-      setTranscript('')
-      onOpenChange(false)
+      // Mark as complete
+      setUploadProgress({
+        stage: 'complete',
+        percentage: 100,
+        message: 'Text processing complete!'
+      })
 
+      // Clear transcript (modal already closed)
+      setTranscript('')
+
+      // Auto-dismiss progress after 3 seconds
+      setTimeout(() => {
+        resetUploadProgress()
+      }, 3000)
     } catch (error) {
       console.error('[PasteText] Error:', error)
+
+      // Show error in progress indicator
+      setUploadProgress({
+        stage: 'error',
+        percentage: 0,
+        message: 'Text processing failed',
+        error: error.message || 'Failed to process pasted text'
+      })
+
       addNotification({
         type: 'error',
         message: `Failed to process text: ${error.message}`
       })
+
+      // Auto-dismiss error after 5 seconds
+      setTimeout(() => {
+        resetUploadProgress()
+      }, 5000)
     } finally {
       setIsProcessing(false)
     }
@@ -95,6 +217,8 @@ export default function PasteTextModal({ open, onOpenChange }) {
   const handleCancel = () => {
     setTranscript('')
     onOpenChange(false)
+    // Reset progress if user cancels
+    resetUploadProgress()
   }
 
   return (
@@ -109,12 +233,13 @@ export default function PasteTextModal({ open, onOpenChange }) {
 
         <div className="space-y-4">
           <div className="text-sm text-muted-foreground">
-            Paste your meeting notes, transcript, or any text containing tasks. AI will extract action items automatically.
+            Paste your meeting notes, transcript, or any text containing tasks.
+            AI will extract action items automatically.
           </div>
 
           <textarea
             value={transcript}
-            onChange={(e) => setTranscript(e.target.value)}
+            onChange={e => setTranscript(e.target.value)}
             placeholder="Paste your transcript here...
 
 Example:
@@ -129,7 +254,9 @@ Example:
           <div className="flex items-center justify-between text-xs text-muted-foreground">
             <span>{transcript.length} characters</span>
             {transcript.length > 0 && (
-              <span>~{Math.ceil(transcript.split(/\s+/).length / 1)} words</span>
+              <span>
+                ~{Math.ceil(transcript.split(/\s+/).length / 1)} words
+              </span>
             )}
           </div>
 
@@ -150,7 +277,11 @@ Example:
                 <>
                   <motion.div
                     animate={{ rotate: 360 }}
-                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                    transition={{
+                      duration: 1,
+                      repeat: Infinity,
+                      ease: 'linear'
+                    }}
                   >
                     <Sparkles className="w-4 h-4" />
                   </motion.div>

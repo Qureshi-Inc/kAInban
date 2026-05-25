@@ -1,12 +1,13 @@
-import React, { useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { Square, X } from 'lucide-react'
-import { Button } from './ui/button'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog'
-import { formatTime } from '../lib/utils'
-import useAppStore from '../stores/useAppStore'
+import React, { useEffect, useRef } from 'react'
+import { formatTime, processAssignees } from '../lib/utils'
+import apiService from '../services/apiService'
 import audioService from '../services/audioService'
 import openaiService from '../services/openaiService'
+import useAppStore from '../stores/useAppStore'
+import { Button } from './ui/button'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog'
 
 export default function RecordingModal() {
   const canvasRef = useRef(null)
@@ -22,7 +23,6 @@ export default function RecordingModal() {
     setRecordingTime,
     setTranscript,
     setSummary,
-    addTask,
     addNotification,
     setUploadProgress,
     resetUploadProgress
@@ -61,7 +61,9 @@ export default function RecordingModal() {
 
   const startVisualization = () => {
     const canvas = canvasRef.current
-    if (!canvas) return
+    if (!canvas) {
+      return
+    }
 
     const ctx = canvas.getContext('2d')
     const { width, height } = canvas
@@ -81,12 +83,22 @@ export default function RecordingModal() {
         for (let i = 0; i < barCount; i++) {
           const x = (i / barCount) * width
           const barHeight = Math.sin(time + i * 0.5) * 20 + 10
-          const gradient = ctx.createLinearGradient(0, centerY - barHeight, 0, centerY + barHeight)
+          const gradient = ctx.createLinearGradient(
+            0,
+            centerY - barHeight,
+            0,
+            centerY + barHeight
+          )
           gradient.addColorStop(0, '#4285f4')
           gradient.addColorStop(1, '#34a853')
 
           ctx.fillStyle = gradient
-          ctx.fillRect(x, centerY - barHeight, width / barCount - 2, barHeight * 2)
+          ctx.fillRect(
+            x,
+            centerY - barHeight,
+            width / barCount - 2,
+            barHeight * 2
+          )
         }
       } else {
         // Draw actual audio data
@@ -99,7 +111,12 @@ export default function RecordingModal() {
         for (let i = 0; i < dataArray.length; i++) {
           const barHeight = (dataArray[i] / 255) * height * 0.8
 
-          const gradient = ctx.createLinearGradient(0, height - barHeight, 0, height)
+          const gradient = ctx.createLinearGradient(
+            0,
+            height - barHeight,
+            0,
+            height
+          )
           gradient.addColorStop(0, '#4285f4')
           gradient.addColorStop(1, '#34a853')
 
@@ -125,7 +142,7 @@ export default function RecordingModal() {
     }
   }
 
-  const handleStop = async () => {
+  const handleStop = async() => {
     try {
       console.log('[RecordingModal] Stopping recording...')
       const audioBlob = await audioService.stopRecording()
@@ -153,7 +170,7 @@ export default function RecordingModal() {
       setUploadProgress({
         stage: 'transcribing',
         percentage: 50,
-        message: 'Transcribing audio with Azure AI...'
+        message: 'Transcribing audio...'
       })
 
       const transcript = await openaiService.transcribeAudio(audioBlob)
@@ -172,92 +189,131 @@ export default function RecordingModal() {
           message: 'Extracting tasks from transcript...'
         })
 
-        const { tasks: existingTasks, addTask, updateTask } = useAppStore.getState()
+        // Load users for assignee matching
+        let users = []
+        try {
+          users = await apiService.getUsers()
+        } catch (error) {
+          console.warn('[RecordingModal] Failed to load users for assignee matching:', error)
+        }
 
-        console.log('[TaskUpdate] ===== TASK EXTRACTION START =====')
-        console.log('[TaskUpdate] Existing tasks count:', existingTasks.length)
-        console.log('[TaskUpdate] Existing tasks:', existingTasks.map(t => ({
-          id: t.id,
-          title: t.title,
-          status: t.status,
-          priority: t.priority
-        })))
+        const {
+          tasks: existingTasks,
+          addTasks,
+          updateTask
+        } = useAppStore.getState()
 
-        const extractedTasks = await openaiService.extractTasks(transcript, existingTasks)
+        console.log(
+          '[TaskUpdate] Existing tasks:',
+          existingTasks.map(t => ({
+            id: t.id,
+            title: t.title,
+            status: t.status,
+            priority: t.priority
+          }))
+        )
 
-        console.log('[TaskUpdate] Extracted tasks from AI:', extractedTasks)
-        console.log('[TaskUpdate] AI returned', extractedTasks.length, 'task(s)')
+        const extractedTasks = await openaiService.extractTasks(
+          transcript,
+          existingTasks
+        )
 
         let newCount = 0
         let updatedCount = 0
+        const newTasksToAdd = []
 
-        extractedTasks.forEach((task, index) => {
-          console.log(`[TaskUpdate] Processing task ${index + 1}/${extractedTasks.length}:`, task)
-
+        for (const [index, task] of extractedTasks.entries()) {
           if (task.matchId && task.matchId > 0) {
             // Update existing task
             const existingTask = existingTasks[task.matchId - 1]
 
             if (existingTask) {
-              console.log('[TaskUpdate] ✓ MATCHED existing task')
-              console.log('[TaskUpdate] Existing task ID:', existingTask.id)
-              console.log('[TaskUpdate] Existing task title:', existingTask.title)
-              console.log('[TaskUpdate] Current status:', existingTask.status)
-              console.log('[TaskUpdate] Current description:', existingTask.description)
+              console.log(
+                '[TaskUpdate] Existing task title:',
+                existingTask.title
+              )
 
-              const updatedDescription = existingTask.description +
-                (task.updates ? `\n\n**Update**: ${task.updates}` : '')
+              const newAssignees = task.assignee ? processAssignees(task.assignee, users) : []
+              const currentAssignees = existingTask.assignees && Array.isArray(existingTask.assignees) ? existingTask.assignees : (existingTask.assignee ? [existingTask.assignee] : [])
 
               const updates = {
-                description: updatedDescription,
                 status: task.newStatus || existingTask.status,
                 priority: task.newPriority || existingTask.priority,
-                assignee: task.assignee || existingTask.assignee
+                assignees: newAssignees.length > 0 ? newAssignees : currentAssignees,
+                assignee: newAssignees.length > 0 ? newAssignees[0] : (currentAssignees.length > 0 ? currentAssignees[0] : '')
+              }
+
+              // Add AI comment if there are updates
+              if (task.updates) {
+                try {
+                  await apiService.addTaskComment(
+                    existingTask.id,
+                    task.updates,
+                    'ai_update',
+                    {
+                      source: 'recording_analysis',
+                      originalTranscript: transcript.substring(0, 200) + '...'
+                    }
+                  )
+                } catch (error) {
+                  console.error('Failed to add AI comment:', error)
+                }
               }
 
               console.log('[TaskUpdate] Applying updates:', updates)
 
               updateTask(existingTask.id, updates)
 
-              console.log('[TaskUpdate] ✓ Task updated successfully')
               console.log('[TaskUpdate] New status:', updates.status)
               console.log('[TaskUpdate] New priority:', updates.priority)
 
               updatedCount++
             } else {
-              console.error('[TaskUpdate] ✗ MATCH ID', task.matchId, 'not found in existing tasks!')
+              console.error(
+                '[TaskUpdate] ✗ MATCH ID',
+                task.matchId,
+                'not found in existing tasks!'
+              )
             }
           } else {
-            // Create new task
-            console.log('[TaskUpdate] ⊕ CREATING NEW task')
+            // Collect new tasks to add in batch
             console.log('[TaskUpdate] Title:', task.title)
-            console.log('[TaskUpdate] Description:', task.description)
             console.log('[TaskUpdate] Priority:', task.priority)
-            console.log('[TaskUpdate] Status:', task.status || 'todo')
 
-            addTask(task)
+            const taskAssignees = processAssignees(task.assignee, users)
+            newTasksToAdd.push({
+              ...task,
+              assignees: taskAssignees,
+              assignee: taskAssignees.length > 0 ? taskAssignees[0] : '' // Keep legacy field
+            })
             newCount++
-
-            console.log('[TaskUpdate] ✓ New task created')
           }
-        })
+        }
 
-        console.log('[TaskUpdate] ===== TASK EXTRACTION COMPLETE =====')
+        // Batch add all new tasks at once
+        if (newTasksToAdd.length > 0) {
+          addTasks(newTasksToAdd)
+        }
+
         console.log('[TaskUpdate] New tasks created:', newCount)
-        console.log('[TaskUpdate] Existing tasks updated:', updatedCount)
-        console.log('[TaskUpdate] Total tasks in project after updates:', useAppStore.getState().tasks.length)
+        console.log(
+          '[TaskUpdate] Total tasks in project after updates:',
+          useAppStore.getState().tasks.length
+        )
 
         if (newCount > 0 || updatedCount > 0) {
           const messages = []
-          if (newCount > 0) messages.push(`${newCount} new`)
-          if (updatedCount > 0) messages.push(`${updatedCount} updated`)
+          if (newCount > 0) {
+            messages.push(`${newCount} new`)
+          }
+          if (updatedCount > 0) {
+            messages.push(`${updatedCount} updated`)
+          }
 
           addNotification({
             type: 'success',
             message: `Tasks: ${messages.join(', ')}!`
           })
-        } else {
-          console.log('[TaskUpdate] No new or updated tasks')
         }
       } catch (error) {
         console.error('[TaskUpdate] ✗ ERROR during task extraction:', error)

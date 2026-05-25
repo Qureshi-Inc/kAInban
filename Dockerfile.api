@@ -3,24 +3,31 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Install build dependencies required for better-sqlite3
+# Install build dependencies required for native modules and Alpine compatibility
 RUN apk add --no-cache \
     wget \
     python3 \
+    py3-setuptools \
     make \
     g++ \
     gcc \
-    libc-dev
+    libc-dev \
+    sqlite-dev \
+    gcompat \
+    libc6-compat
 
 # Copy server package files
 COPY server/package*.json ./
 
-# Install dependencies without install scripts
-RUN npm ci --only=production --ignore-scripts
+# Install ALL dependencies (including dev for building)
+# Use npm install for better compatibility (works without exact package-lock.json)
+RUN npm install
 
-# Remove any cached builds and force rebuild from source for Alpine/musl
-RUN rm -rf node_modules/better-sqlite3/build node_modules/better-sqlite3/prebuilds && \
-    npm rebuild better-sqlite3 --build-from-source --verbose
+# Rebuild ALL native modules for Alpine/musl
+RUN npm rebuild
+
+# Specifically rebuild better-sqlite3 from source for Alpine compatibility
+RUN npm rebuild better-sqlite3 --build-from-source
 
 # Copy server code
 COPY server/ ./

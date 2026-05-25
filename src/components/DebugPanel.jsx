@@ -65,7 +65,6 @@ export default function DebugPanel() {
               if (rawData) {
                 try {
                   const parsed = JSON.parse(rawData)
-                  console.log('[Debug] Parsed storage:', parsed)
                 } catch (e) {
                   console.error('[Debug] Parse error:', e)
                 }
@@ -99,8 +98,8 @@ export default function DebugPanel() {
               key={idx}
               className={`p-1 rounded ${
                 log.type === 'error' ? 'bg-red-900/30 text-red-300' :
-                log.type === 'warn' ? 'bg-yellow-900/30 text-yellow-300' :
-                'bg-gray-900/30 text-gray-300'
+                  log.type === 'warn' ? 'bg-yellow-900/30 text-yellow-300' :
+                    'bg-gray-900/30 text-gray-300'
               }`}
             >
               <span className="text-gray-500 mr-2">

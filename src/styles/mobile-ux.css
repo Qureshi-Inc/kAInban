@@ -1,0 +1,404 @@
+/* Mobile UX Improvements - Smooth interactions and keyboard handling */
+
+/* Fix modal glitches and improve performance */
+.task-modal-overlay {
+  /* FORCE ABOVE EVERYTHING */
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  height: 100dvh !important;
+  z-index: 50000000 !important; /* High but below notifications */
+
+  /* Layout */
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 !important;
+  margin: 0 !important;
+
+  /* Visual */
+  background-color: rgba(0, 0, 0, 0.8) !important;
+  backdrop-filter: blur(4px) !important;
+  -webkit-backdrop-filter: blur(4px) !important;
+
+  /* Behavior */
+  overscroll-behavior: contain !important;
+  touch-action: none !important;
+  isolation: isolate !important;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Modal content container */
+.task-modal-content {
+  /* Size and position - Use dynamic viewport for better keyboard handling */
+  width: 100vw !important;
+  height: 100vh !important;
+  height: 100dvh !important;
+  max-width: 100vw !important;
+  max-height: 100vh !important;
+  max-height: 100dvh !important;
+
+  /* Layout */
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+
+  /* Visual */
+  background: white !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+
+  /* Position */
+  position: relative !important;
+  margin: 0 !important;
+  z-index: 1 !important;
+
+  /* Performance */
+  will-change: auto;
+  transform: none;
+  backface-visibility: visible;
+}
+
+@keyframes slideInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* Dark mode support */
+.dark .task-modal-content {
+  background: rgb(31, 41, 55);
+  color: white;
+}
+
+/* Responsive modal sizing - simpler approach */
+@media (min-width: 768px) {
+  .task-modal-overlay {
+    padding: 2rem !important;
+  }
+
+  .task-modal-content {
+    width: 90vw !important;
+    height: 90vh !important;
+    height: 90dvh !important;
+    max-width: 64rem !important;
+    max-height: 90vh !important;
+    max-height: 90dvh !important;
+    border-radius: 0.75rem !important;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important;
+  }
+}
+
+/* Keyboard handling for mobile inputs */
+.mobile-input-container {
+  position: relative;
+}
+
+/* When keyboard is open, scroll input into view */
+.keyboard-active {
+  position: relative;
+  z-index: 1000;
+}
+
+/* Input focus handling - Smooth focus without jarring transforms */
+.mobile-input-focus {
+  /* Just add a subtle highlight, no position changes */
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
+  transition: box-shadow 0.2s ease-out;
+}
+
+/* Smooth scrolling for modal content */
+.modal-scroll-content {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  scroll-behavior: smooth;
+  /* Ensure proper scrolling on all devices */
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+}
+
+/* Improve text input experience on mobile */
+input[type='text'],
+input[type='date'],
+textarea,
+select {
+  /* Prevent zoom on iOS */
+  font-size: 16px !important;
+
+  /* Better touch targets */
+  min-height: 44px;
+
+  /* Smooth focus transitions */
+  transition: all 0.2s ease;
+
+  /* Better visibility when focused */
+  position: relative;
+  z-index: 1;
+}
+
+input[type='text']:focus,
+input[type='date']:focus,
+textarea:focus,
+select:focus {
+  /* Highlight focused input */
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
+  border-color: rgb(59, 130, 246);
+  outline: none;
+
+  /* Better scroll margins for keyboard visibility */
+  scroll-margin-top: 80px;
+  scroll-margin-bottom: 120px;
+
+  /* Ensure visibility without layout shift */
+  position: relative;
+  z-index: 10;
+}
+
+/* Task card click improvements */
+.task-card {
+  /* Smooth click response */
+  transition: all 0.15s ease-out !important;
+  will-change: transform, box-shadow;
+
+  /* Prevent text selection during click */
+  -webkit-user-select: none;
+  user-select: none;
+
+  /* Better touch targets */
+  min-height: 44px;
+
+  /* Improve tablet/touch interaction */
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.task-card:active,
+.task-card:focus {
+  transform: scale(0.98);
+  transition: transform 0.1s ease-out;
+}
+
+/* Tablet-specific improvements */
+@media (hover: none) and (pointer: coarse) {
+  .task-card {
+    /* Better touch feedback on tablets */
+    -webkit-tap-highlight-color: rgba(59, 130, 246, 0.3);
+    tap-highlight-color: rgba(59, 130, 246, 0.3);
+  }
+
+  .task-card:active {
+    background-color: rgba(59, 130, 246, 0.1) !important;
+  }
+}
+
+/* Prevent modal backdrop clicks from propagating */
+.task-modal-backdrop {
+  pointer-events: all;
+}
+
+.task-modal-backdrop > * {
+  pointer-events: auto;
+}
+
+/* Keyboard viewport handling - Better height management */
+.keyboard-aware-container {
+  /* Use visual viewport when available for keyboard handling */
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
+  max-height: 100vh;
+  max-height: 100dvh;
+
+  /* Ensure content can shrink when keyboard opens */
+  overflow: hidden;
+  position: relative;
+}
+
+@supports (height: 100dvh) {
+  .keyboard-aware-container {
+    height: 100dvh;
+    max-height: 100dvh;
+  }
+}
+
+/* When keyboard is active, use smaller height to prevent scrolling issues */
+.keyboard-active .keyboard-aware-container {
+  height: calc(100vh - env(keyboard-inset-height, 0px));
+  height: calc(100dvh - env(keyboard-inset-height, 0px));
+  max-height: calc(100vh - env(keyboard-inset-height, 0px));
+  max-height: calc(100dvh - env(keyboard-inset-height, 0px));
+}
+
+/* iOS Safari specific fixes */
+@supports (-webkit-touch-callout: none) {
+  .task-modal-overlay {
+    /* Fix iOS Safari viewport issues */
+    height: -webkit-fill-available;
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+
+  /* Mobile Safari modal positioning fix */
+  @media (max-width: 640px) {
+    .task-modal-overlay {
+      align-items: center;
+      justify-content: center;
+      padding: 0.5rem;
+    }
+  }
+
+  /* Prevent bounce scrolling */
+  .modal-scroll-content {
+    -webkit-overflow-scrolling: auto;
+    overflow: scroll;
+  }
+
+  /* Fix input focus issues */
+  input:focus,
+  textarea:focus,
+  select:focus {
+    /* Prevent iOS zoom */
+    transform: translateZ(0);
+  }
+}
+
+/* Enhanced button interactions */
+button {
+  /* Prevent double-tap zoom on iOS */
+  touch-action: manipulation;
+
+  /* Smooth press feedback */
+  transition: all 0.1s ease;
+}
+
+button:active {
+  transform: scale(0.95);
+}
+
+/* Smooth animations for all interactive elements */
+.interactive-element {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform;
+}
+
+/* Reduce motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+  .task-modal-content,
+  .task-card,
+  input,
+  textarea,
+  button,
+  .interactive-element {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* Fix for potential layout shifts */
+.layout-stable {
+  contain: layout style paint;
+}
+
+/* Ensure modal creates proper stacking context above all other content */
+.task-modal-overlay,
+.task-modal-content {
+  /* Force hardware acceleration */
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+
+  /* Create stacking context */
+  position: relative;
+  z-index: auto;
+}
+
+/* Prevent interference from other positioned elements */
+body.modal-open {
+  overflow: hidden !important;
+}
+
+/* Remove conflicting old CSS - now handled in main modal styles */
+
+/* Dropdown positioning improvements for keyboard handling */
+.assignee-dropdown,
+.task-link-dropdown {
+  /* Keep normal positioning but improve visibility */
+  position: absolute !important;
+  z-index: 50 !important;
+  width: 100% !important;
+  max-height: 200px !important;
+  overflow-y: auto !important;
+
+  /* Better shadow and border for visibility */
+  box-shadow:
+    0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+}
+
+/* When keyboard is active, use upward positioning for dropdowns */
+.keyboard-active .assignee-dropdown,
+.keyboard-active .task-link-dropdown {
+  /* Position dropdowns above the input when keyboard is open */
+  bottom: 100% !important;
+  top: auto !important;
+  margin-bottom: 4px !important;
+  margin-top: 0 !important;
+}
+
+/* Better scrollbar styling */
+.modal-scroll-content::-webkit-scrollbar {
+  width: 4px;
+}
+
+.modal-scroll-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.modal-scroll-content::-webkit-scrollbar-thumb {
+  background: rgba(156, 163, 175, 0.3);
+  border-radius: 2px;
+}
+
+.modal-scroll-content::-webkit-scrollbar-thumb:hover {
+  background: rgba(156, 163, 175, 0.5);
+}
+
+/* Scrollbar for dropdowns */
+.assignee-dropdown::-webkit-scrollbar,
+.task-link-dropdown::-webkit-scrollbar {
+  width: 4px;
+}
+
+.assignee-dropdown::-webkit-scrollbar-thumb,
+.task-link-dropdown::-webkit-scrollbar-thumb {
+  background: rgba(156, 163, 175, 0.4);
+  border-radius: 2px;
+}
+
+/* Kanban horizontal scroll styling */
+.kanban-scroll-container {
+  /* Hide scrollbar but keep functionality */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* Internet Explorer 10+ */
+}
+
+.kanban-scroll-container::-webkit-scrollbar {
+  display: none; /* Safari and Chrome */
+}

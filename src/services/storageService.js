@@ -134,7 +134,6 @@ export const createCustomStorage = () => {
     getItem: (name) => {
       try {
         const value = localStorage.getItem(name)
-        console.log('[StorageAdapter] getItem called:', name, value ? 'found' : 'not found')
         return value
       } catch (error) {
         console.error('[StorageAdapter] getItem error:', error)

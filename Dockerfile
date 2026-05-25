@@ -4,11 +4,23 @@ FROM node:20-alpine as builder
 # Set working directory
 WORKDIR /app
 
+# Native build deps for better-sqlite3 (musl/Alpine has no prebuilt binaries).
+# Only needed at install time; final image is nginx:alpine below.
+RUN apk add --no-cache \
+    python3 \
+    py3-setuptools \
+    make \
+    g++ \
+    gcc \
+    libc-dev \
+    sqlite-dev
+
 # Copy package files
 COPY package*.json ./
 
 # Install ALL dependencies (including dev dependencies needed for build)
-RUN npm ci
+# Use npm install for better compatibility (works without exact package-lock.json)
+RUN npm install
 
 # Copy source code
 COPY . .

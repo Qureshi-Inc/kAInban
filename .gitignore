@@ -92,3 +92,10 @@ TODO_AUDIO_CHUNKING.md
 *.old.jsx
 *.backup
 *.bak
+# secrets / auth artifacts — never commit
+*cookies*.txt
+server/.env*
+!server/.env.example
+
+# agent tooling — installed per-machine, not vendored
+.claude/

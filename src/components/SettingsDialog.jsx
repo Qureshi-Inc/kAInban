@@ -1,9 +1,12 @@
+import { Settings, User, Bot, KeyRound, Users } from 'lucide-react'
 import React, { useState, useEffect } from 'react'
-import { Settings } from 'lucide-react'
-import { Button } from './ui/button'
-import { Input } from './ui/input'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog'
+import apiService from '../services/apiService'
 import useAppStore from '../stores/useAppStore'
+import { Button } from './ui/button'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog'
+import { Input } from './ui/input'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from './ui/tabs'
+import UserManagement from './UserManagement'
 
 export default function SettingsDialog() {
   const isSettingsOpen = useAppStore((state) => state.isSettingsOpen)
@@ -11,35 +14,96 @@ export default function SettingsDialog() {
   const settings = useAppStore((state) => state.settings)
   const updateSettings = useAppStore((state) => state.updateSettings)
   const addNotification = useAppStore((state) => state.addNotification)
+  const user = useAppStore((state) => state.user)
+  const setUser = useAppStore((state) => state.setUser)
+  const deleteAllProjects = useAppStore((state) => state.deleteAllProjects)
 
-  const [formData, setFormData] = useState({
+  const [aiFormData, setAiFormData] = useState({
+    provider: 'azure',
     azureEndpoint: '',
+    openaiBaseUrl: 'https://api.openai.com/v1',
     apiKey: '',
     apiVersion: '2024-02-01',
     whisperDeployment: 'whisper-1',
-    gptDeployment: 'gpt-4'
+    gptDeployment: 'gpt-4',
+    openaiWhisperModel: 'whisper-1',
+    openaiGptModel: 'gpt-4o',
+    oidcEnabled: false,
+    oidcClientId: '',
+    oidcClientSecret: '',
+    oidcIssuer: 'https://pocketid.app',
+    oidcCallbackUrl: ''
+  })
+
+  const [userFormData, setUserFormData] = useState({
+    name: '',
+    email: '',
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
   })
 
   const [testingConnection, setTestingConnection] = useState(false)
+  const [savingProfile, setSavingProfile] = useState(false)
+  const [tenantInfo, setTenantInfo] = useState(null)
 
   // Sync form data when dialog opens
   useEffect(() => {
     if (isSettingsOpen) {
-      setFormData({
+      setAiFormData({
+        provider: settings.provider === 'openai' ? 'openai' : 'azure',
         azureEndpoint: settings.azureEndpoint || '',
+        openaiBaseUrl: settings.openaiBaseUrl || 'https://api.openai.com/v1',
         apiKey: settings.apiKey || '',
         apiVersion: settings.apiVersion || '2024-02-01',
         whisperDeployment: settings.whisperDeployment || 'whisper-1',
-        gptDeployment: settings.gptDeployment || 'gpt-4'
+        gptDeployment: settings.gptDeployment || 'gpt-4',
+        openaiWhisperModel: settings.openaiWhisperModel || 'whisper-1',
+        openaiGptModel: settings.openaiGptModel || 'gpt-4o',
+        oidcEnabled: settings.oidcEnabled || false,
+        oidcClientId: settings.oidcClientId || '',
+        oidcClientSecret: settings.oidcClientSecret || '',
+        oidcIssuer: settings.oidcIssuer || 'https://pocketid.app',
+        oidcCallbackUrl: settings.oidcCallbackUrl || ''
       })
-    }
-  }, [isSettingsOpen])
+      setUserFormData({
+        name: user?.name || '',
+        email: user?.email || '',
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: ''
+      })
 
-  const handleTestConnection = async () => {
-    console.log('[Settings] Testing Azure OpenAI connection...')
+      // Fetch tenant information if multi-tenancy is enabled
+      fetchTenantInfo()
+    }
+  }, [isSettingsOpen, settings, user])
+
+  const fetchTenantInfo = async() => {
+    try {
+      const tenantData = await apiService.getTenantInfo()
+      setTenantInfo(tenantData)
+    } catch (error) {
+      console.error('[Settings] Failed to fetch tenant info:', error)
+      setTenantInfo(null)
+    }
+  }
+
+  const handleTestConnection = async() => {
     setTestingConnection(true)
 
-    if (!formData.azureEndpoint || !formData.apiKey) {
+    const isOpenAI = aiFormData.provider === 'openai'
+
+    if (isOpenAI) {
+      if (!aiFormData.apiKey) {
+        addNotification({
+          type: 'error',
+          message: 'Please fill in your OpenAI API key first'
+        })
+        setTestingConnection(false)
+        return
+      }
+    } else if (!aiFormData.azureEndpoint || !aiFormData.apiKey) {
       addNotification({
         type: 'error',
         message: 'Please fill in endpoint and API key first'
@@ -49,35 +113,28 @@ export default function SettingsDialog() {
     }
 
     try {
-      // Test with a simple request to list models (lightweight)
-      const testUrl = `${formData.azureEndpoint}/openai/models?api-version=${formData.apiVersion}`
-      console.log('[Settings] Test URL:', testUrl)
+      const testUrl = isOpenAI
+        ? `${(aiFormData.openaiBaseUrl || 'https://api.openai.com/v1').replace(/\/$/, '')}/models`
+        : `${aiFormData.azureEndpoint}/openai/models?api-version=${aiFormData.apiVersion}`
 
-      const response = await fetch(testUrl, {
-        method: 'GET',
-        headers: {
-          'api-key': formData.apiKey
-        }
-      })
+      const headers = isOpenAI
+        ? { Authorization: `Bearer ${aiFormData.apiKey}` }
+        : { 'api-key': aiFormData.apiKey }
 
-      console.log('[Settings] Response status:', response.status)
+      const response = await fetch(testUrl, { method: 'GET', headers })
 
       if (response.ok) {
         addNotification({
           type: 'success',
           message: 'API connection successful! ✓'
         })
-        console.log('[Settings] ✓ Connection successful')
       } else {
-        const errorText = await response.text()
-        console.error('[Settings] Connection failed:', response.status, errorText)
         addNotification({
           type: 'error',
           message: `API Error: ${response.status} ${response.statusText}`
         })
       }
     } catch (error) {
-      console.error('[Settings] Connection error:', error)
       addNotification({
         type: 'error',
         message: `Connection failed: ${error.message}`
@@ -87,131 +144,665 @@ export default function SettingsDialog() {
     }
   }
 
-  const handleSave = () => {
-    if (!formData.azureEndpoint || !formData.apiKey) {
-      addNotification({
-        type: 'error',
-        message: 'Please fill in all required fields'
-      })
-      return
+  const handleSaveAiSettings = () => {
+    const isOpenAI = aiFormData.provider === 'openai'
+
+    if (isOpenAI) {
+      if (!aiFormData.apiKey) {
+        addNotification({
+          type: 'error',
+          message: 'OpenAI API key is required'
+        })
+        return
+      }
+      if (aiFormData.openaiBaseUrl) {
+        try {
+          new URL(aiFormData.openaiBaseUrl)
+        } catch (error) {
+          addNotification({
+            type: 'error',
+            message: 'Please enter a valid OpenAI base URL'
+          })
+          return
+        }
+      }
+    } else {
+      if (!aiFormData.azureEndpoint || !aiFormData.apiKey) {
+        addNotification({
+          type: 'error',
+          message: 'Please fill in all required fields'
+        })
+        return
+      }
+      try {
+        new URL(aiFormData.azureEndpoint)
+      } catch (error) {
+        addNotification({
+          type: 'error',
+          message: 'Please enter a valid Azure OpenAI endpoint URL'
+        })
+        return
+      }
     }
 
-    try {
-      // Validate endpoint format
-      new URL(formData.azureEndpoint)
-    } catch (error) {
-      addNotification({
-        type: 'error',
-        message: 'Please enter a valid Azure OpenAI endpoint URL'
-      })
-      return
-    }
-
-    updateSettings(formData)
+    updateSettings(aiFormData)
     setSettingsOpen(false)
 
     addNotification({
       type: 'success',
-      message: 'Settings saved successfully!'
+      message: 'AI settings saved successfully!'
     })
   }
 
-  const handleInputChange = (field, value) => {
-    setFormData(prev => ({ ...prev, [field]: value }))
+  const handleSaveProfile = async() => {
+    setSavingProfile(true)
+
+    try {
+      // Validate passwords if changing
+      if (userFormData.newPassword) {
+        if (userFormData.newPassword !== userFormData.confirmPassword) {
+          addNotification({
+            type: 'error',
+            message: 'New passwords do not match'
+          })
+          setSavingProfile(false)
+          return
+        }
+        if (!userFormData.currentPassword) {
+          addNotification({
+            type: 'error',
+            message: 'Current password is required to change password'
+          })
+          setSavingProfile(false)
+          return
+        }
+      }
+
+      // TODO: Add API endpoint to update user profile
+      // For now, just update name and email
+      const updatedUser = {
+        ...user,
+        name: userFormData.name,
+        email: userFormData.email
+      }
+
+      setUser(updatedUser)
+      setSettingsOpen(false)
+
+      addNotification({
+        type: 'success',
+        message: 'Profile updated successfully!'
+      })
+    } catch (error) {
+      addNotification({
+        type: 'error',
+        message: `Failed to update profile: ${error.message}`
+      })
+    } finally {
+      setSavingProfile(false)
+    }
   }
+
+  const handleDeleteAllProjects = async() => {
+    if (!confirm('Are you sure you want to delete ALL projects? This will permanently delete all your projects, tasks, meetings, and data. This action cannot be undone.')) {
+      return
+    }
+
+    if (!confirm('This is your final warning. ALL your data will be permanently deleted. Type "DELETE ALL" to confirm this action.')) {
+      return
+    }
+
+    try {
+      await deleteAllProjects()
+      addNotification({
+        type: 'success',
+        message: 'All projects deleted successfully'
+      })
+      setSettingsOpen(false)
+    } catch (error) {
+      addNotification({
+        type: 'error',
+        message: `Failed to delete all projects: ${error.message}`
+      })
+    }
+  }
+
+  const handleAiInputChange = (field, value) => {
+    setAiFormData(prev => ({ ...prev, [field]: value }))
+  }
+
+  const handleUserInputChange = (field, value) => {
+    setUserFormData(prev => ({ ...prev, [field]: value }))
+  }
+
+  const isAdmin = user?.role === 'admin'
 
   return (
     <Dialog open={isSettingsOpen} onOpenChange={setSettingsOpen}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+      <DialogContent className="w-full h-full max-w-none max-h-none overflow-y-auto p-4 sm:p-6">
+        <DialogHeader className="pb-2">
+          <DialogTitle className="flex items-center gap-2 text-lg justify-center">
             <Settings className="h-5 w-5" />
-            Azure OpenAI Settings
+            Settings
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <label className="text-sm font-medium">
-              Azure OpenAI Endpoint *
-            </label>
-            <Input
-              type="url"
-              placeholder="https://your-resource.openai.azure.com"
-              value={formData.azureEndpoint}
-              onChange={(e) => handleInputChange('azureEndpoint', e.target.value)}
-            />
-          </div>
+        <Tabs defaultValue="general" className="w-full">
+          <TabsList className={`grid w-full gap-1 ${isAdmin ? 'grid-cols-2 lg:grid-cols-4' : 'grid-cols-1'} ${isAdmin ? 'p-1 h-auto min-h-[2.5rem]' : 'h-10'}`}>
+            <TabsTrigger value="general" className="flex-1 text-xs sm:text-sm px-1 sm:px-3 py-2 min-h-[2rem] sm:min-h-[2.5rem]">
+              <User className="h-3 w-3 sm:h-4 sm:w-4 mr-0.5 sm:mr-2 flex-shrink-0" />
+              <span className="hidden sm:inline">General</span>
+              <span className="sm:hidden text-xs">Profile</span>
+            </TabsTrigger>
+            {isAdmin && (
+              <>
+                <TabsTrigger value="ai" className="flex-1 text-xs sm:text-sm px-1 sm:px-3 py-2 min-h-[2rem] sm:min-h-[2.5rem]">
+                  <Bot className="h-3 w-3 sm:h-4 sm:w-4 mr-0.5 sm:mr-2 flex-shrink-0" />
+                  <span className="hidden lg:inline">AI Settings</span>
+                  <span className="lg:hidden text-xs">AI</span>
+                </TabsTrigger>
+                <TabsTrigger value="auth" className="flex-1 text-xs sm:text-sm px-1 sm:px-3 py-2 min-h-[2rem] sm:min-h-[2.5rem]">
+                  <KeyRound className="h-3 w-3 sm:h-4 sm:w-4 mr-0.5 sm:mr-2 flex-shrink-0" />
+                  <span className="hidden lg:inline">Authentication</span>
+                  <span className="lg:hidden text-xs">Auth</span>
+                </TabsTrigger>
+                <TabsTrigger value="users" className="flex-1 text-xs sm:text-sm px-1 sm:px-3 py-2 min-h-[2rem] sm:min-h-[2.5rem]">
+                  <Users className="h-3 w-3 sm:h-4 sm:w-4 mr-0.5 sm:mr-2 flex-shrink-0" />
+                  <span className="hidden lg:inline">Users</span>
+                  <span className="lg:hidden text-xs">Users</span>
+                </TabsTrigger>
+              </>
+            )}
+          </TabsList>
 
-          <div className="space-y-2">
-            <label className="text-sm font-medium">
-              API Key *
-            </label>
-            <Input
-              type="password"
-              placeholder="Your Azure OpenAI API Key"
-              value={formData.apiKey}
-              onChange={(e) => handleInputChange('apiKey', e.target.value)}
-            />
-          </div>
+          {/* General Settings Tab */}
+          <TabsContent value="general" className="space-y-4 px-1">
+            <div className="space-y-4">
+              {/* Tenant Information Section */}
+              {tenantInfo && (
+                <div className="p-4 border rounded-lg bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
+                  <h3 className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-3 flex items-center">
+                    <Settings className="h-4 w-4 mr-2" />
+                    Organization Information
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                    <div>
+                      <span className="font-medium text-blue-800 dark:text-blue-200">Name:</span>
+                      <span className="ml-2 text-blue-700 dark:text-blue-300">{tenantInfo.name}</span>
+                    </div>
+                    <div>
+                      <span className="font-medium text-blue-800 dark:text-blue-200">Access URL:</span>
+                      <span className="ml-2 text-blue-700 dark:text-blue-300">?tenant={tenantInfo.subdomain}</span>
+                    </div>
+                    <div>
+                      <span className="font-medium text-blue-800 dark:text-blue-200">Plan:</span>
+                      <span className="ml-2 text-blue-700 dark:text-blue-300 capitalize">{tenantInfo.plan}</span>
+                    </div>
+                    <div>
+                      <span className="font-medium text-blue-800 dark:text-blue-200">Users:</span>
+                      <span className="ml-2 text-blue-700 dark:text-blue-300">
+                        {tenantInfo.stats?.users || 0} / {tenantInfo.maxUsers}
+                      </span>
+                    </div>
+                    {tenantInfo.stats && (
+                      <>
+                        <div>
+                          <span className="font-medium text-blue-800 dark:text-blue-200">Projects:</span>
+                          <span className="ml-2 text-blue-700 dark:text-blue-300">{tenantInfo.stats.projects}</span>
+                        </div>
+                        <div>
+                          <span className="font-medium text-blue-800 dark:text-blue-200">Tasks:</span>
+                          <span className="ml-2 text-blue-700 dark:text-blue-300">{tenantInfo.stats.tasks}</span>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">
-                API Version
-              </label>
-              <Input
-                value={formData.apiVersion}
-                onChange={(e) => handleInputChange('apiVersion', e.target.value)}
-              />
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Name</label>
+                <Input
+                  value={userFormData.name}
+                  onChange={(e) => handleUserInputChange('name', e.target.value)}
+                  placeholder="Your name"
+                  className="w-full"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Email</label>
+                <Input
+                  type="email"
+                  value={userFormData.email}
+                  onChange={(e) => handleUserInputChange('email', e.target.value)}
+                  placeholder="your@email.com"
+                  className="w-full"
+                />
+              </div>
             </div>
 
-            <div className="space-y-2">
-              <label className="text-sm font-medium">
-                Whisper Deployment
-              </label>
-              <Input
-                value={formData.whisperDeployment}
-                onChange={(e) => handleInputChange('whisperDeployment', e.target.value)}
-              />
+            <div className="border-t pt-6 mt-6">
+              <h3 className="text-sm font-semibold mb-4">Change Password</h3>
+
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Current Password</label>
+                  <Input
+                    type="password"
+                    value={userFormData.currentPassword}
+                    onChange={(e) => handleUserInputChange('currentPassword', e.target.value)}
+                    placeholder="Enter current password"
+                    className="w-full"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">New Password</label>
+                  <Input
+                    type="password"
+                    value={userFormData.newPassword}
+                    onChange={(e) => handleUserInputChange('newPassword', e.target.value)}
+                    placeholder="Enter new password"
+                    className="w-full"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Confirm New Password</label>
+                  <Input
+                    type="password"
+                    value={userFormData.confirmPassword}
+                    onChange={(e) => handleUserInputChange('confirmPassword', e.target.value)}
+                    placeholder="Confirm new password"
+                    className="w-full"
+                  />
+                </div>
+              </div>
+
+              <p className="text-xs text-muted-foreground mt-3">
+                Leave blank to keep current password
+              </p>
             </div>
-          </div>
 
-          <div className="space-y-2">
-            <label className="text-sm font-medium">
-              GPT Deployment
-            </label>
-            <Input
-              value={formData.gptDeployment}
-              onChange={(e) => handleInputChange('gptDeployment', e.target.value)}
-            />
-          </div>
+            {/* Danger Zone */}
+            <div className="border-t border-red-200 pt-6 mt-6">
+              <h3 className="text-sm font-semibold mb-4 text-red-600">Danger Zone</h3>
 
-          <div className="flex justify-between items-center gap-2 pt-4">
-            <Button
-              variant="secondary"
-              onClick={handleTestConnection}
-              disabled={testingConnection}
-            >
-              {testingConnection ? 'Testing...' : 'Test Connection'}
-            </Button>
-            <div className="flex gap-2">
+              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+                <div className="flex items-start gap-3">
+                  <div className="flex-1">
+                    <h4 className="text-sm font-medium text-red-900 dark:text-red-100 mb-1">
+                      Delete All Projects
+                    </h4>
+                    <p className="text-xs text-red-700 dark:text-red-300 mb-3">
+                      This will permanently delete all your projects, tasks, meetings, and associated data. This action cannot be undone.
+                    </p>
+                  </div>
+                </div>
+
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={handleDeleteAllProjects}
+                  className="w-full sm:w-auto"
+                >
+                  Delete All Projects
+                </Button>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row justify-end gap-3 pt-6">
               <Button
                 variant="outline"
                 onClick={() => setSettingsOpen(false)}
+                className="w-full sm:w-auto"
               >
                 Cancel
               </Button>
-              <Button onClick={handleSave}>
-                Save Settings
+              <Button
+                onClick={handleSaveProfile}
+                disabled={savingProfile}
+                className="w-full sm:w-auto"
+              >
+                {savingProfile ? 'Saving...' : 'Save Changes'}
               </Button>
             </div>
-          </div>
+          </TabsContent>
 
-          <div className="text-xs text-muted-foreground">
-            * Required fields. Use "Test Connection" to verify your Azure OpenAI setup.
-          </div>
-        </div>
+          {/* AI Settings Tab (Admin Only) */}
+          {isAdmin && (
+            <TabsContent value="ai" className="space-y-4 px-1">
+              <div className="space-y-4">
+                {/* Provider selector */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">AI Provider *</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleAiInputChange('provider', 'azure')}
+                      className={`flex flex-col items-start gap-1 rounded-md border p-3 text-left transition ${
+                        aiFormData.provider !== 'openai'
+                          ? 'border-primary bg-primary/5 ring-1 ring-primary'
+                          : 'border-border hover:bg-muted/50'
+                      }`}
+                    >
+                      <span className="text-sm font-medium">Azure OpenAI</span>
+                      <span className="text-xs text-muted-foreground">
+                        Endpoint + deployments + API key
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleAiInputChange('provider', 'openai')}
+                      className={`flex flex-col items-start gap-1 rounded-md border p-3 text-left transition ${
+                        aiFormData.provider === 'openai'
+                          ? 'border-primary bg-primary/5 ring-1 ring-primary'
+                          : 'border-border hover:bg-muted/50'
+                      }`}
+                    >
+                      <span className="text-sm font-medium">OpenAI</span>
+                      <span className="text-xs text-muted-foreground">
+                        api.openai.com / compatible
+                      </span>
+                    </button>
+                  </div>
+                </div>
+
+                {aiFormData.provider === 'openai' ? (
+                  <>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">
+                        OpenAI API Key *
+                      </label>
+                      <Input
+                        type="password"
+                        placeholder="sk-..."
+                        value={aiFormData.apiKey}
+                        onChange={(e) => handleAiInputChange('apiKey', e.target.value)}
+                        className="w-full"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">
+                        OpenAI Base URL
+                      </label>
+                      <Input
+                        type="url"
+                        placeholder="https://api.openai.com/v1"
+                        value={aiFormData.openaiBaseUrl}
+                        onChange={(e) => handleAiInputChange('openaiBaseUrl', e.target.value)}
+                        className="w-full text-sm"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Override only for self-hosted or OpenAI-compatible APIs (e.g. OpenRouter, LiteLLM).
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">
+                          Whisper Model
+                        </label>
+                        <Input
+                          placeholder="whisper-1"
+                          value={aiFormData.openaiWhisperModel}
+                          onChange={(e) => handleAiInputChange('openaiWhisperModel', e.target.value)}
+                          className="w-full"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">
+                          GPT Model
+                        </label>
+                        <Input
+                          placeholder="gpt-4o"
+                          value={aiFormData.openaiGptModel}
+                          onChange={(e) => handleAiInputChange('openaiGptModel', e.target.value)}
+                          className="w-full"
+                        />
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">
+                        Azure OpenAI Endpoint *
+                      </label>
+                      <Input
+                        type="url"
+                        placeholder="https://your-resource.openai.azure.com"
+                        value={aiFormData.azureEndpoint}
+                        onChange={(e) => handleAiInputChange('azureEndpoint', e.target.value)}
+                        className="w-full text-sm"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">
+                        API Key *
+                      </label>
+                      <Input
+                        type="password"
+                        placeholder="Your Azure OpenAI API Key"
+                        value={aiFormData.apiKey}
+                        onChange={(e) => handleAiInputChange('apiKey', e.target.value)}
+                        className="w-full"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">
+                          API Version
+                        </label>
+                        <Input
+                          value={aiFormData.apiVersion}
+                          onChange={(e) => handleAiInputChange('apiVersion', e.target.value)}
+                          className="w-full"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">
+                          Whisper Deployment
+                        </label>
+                        <Input
+                          value={aiFormData.whisperDeployment}
+                          onChange={(e) => handleAiInputChange('whisperDeployment', e.target.value)}
+                          className="w-full"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">
+                        GPT Deployment
+                      </label>
+                      <Input
+                        value={aiFormData.gptDeployment}
+                        onChange={(e) => handleAiInputChange('gptDeployment', e.target.value)}
+                        className="w-full"
+                      />
+                    </div>
+                  </>
+                )}
+              </div>
+
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 pt-6">
+                <Button
+                  variant="secondary"
+                  onClick={handleTestConnection}
+                  disabled={testingConnection}
+                  className="w-full sm:w-auto"
+                >
+                  {testingConnection ? 'Testing...' : 'Test Connection'}
+                </Button>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <Button
+                    variant="outline"
+                    onClick={() => setSettingsOpen(false)}
+                    className="w-full sm:w-auto"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={handleSaveAiSettings}
+                    className="w-full sm:w-auto"
+                  >
+                    Save AI Settings
+                  </Button>
+                </div>
+              </div>
+
+              <div className="text-xs text-muted-foreground mt-4">
+                * Required fields. Use "Test Connection" to verify your {aiFormData.provider === 'openai' ? 'OpenAI' : 'Azure OpenAI'} setup.
+              </div>
+            </TabsContent>
+          )}
+
+          {/* Authentication Tab (Admin Only) */}
+          {isAdmin && (
+            <TabsContent value="auth" className="space-y-4 px-1">
+              <div className="space-y-3 mb-6">
+                <h3 className="text-lg font-semibold">PocketID Authentication (OIDC)</h3>
+                <p className="text-sm text-muted-foreground">
+                  Configure OpenID Connect authentication to allow users to sign in with PocketID
+                </p>
+              </div>
+
+              <div className="space-y-4 p-4 bg-muted/30 rounded-lg">
+                <div className="flex items-start sm:items-center gap-3">
+                  <input
+                    type="checkbox"
+                    id="oidcEnabled"
+                    checked={aiFormData.oidcEnabled}
+                    onChange={(e) => handleAiInputChange('oidcEnabled', e.target.checked)}
+                    className="w-4 h-4 text-primary bg-gray-100 border-gray-300 rounded focus:ring-primary focus:ring-2 mt-0.5 sm:mt-0"
+                  />
+                  <div className="flex-1">
+                    <label htmlFor="oidcEnabled" className="text-sm font-medium cursor-pointer block">
+                      Enable PocketID Authentication
+                    </label>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      When enabled, users will see a "Sign in with PocketID" button on the login page
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {aiFormData.oidcEnabled && (
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">
+                      OIDC Issuer URL
+                    </label>
+                    <Input
+                      type="url"
+                      placeholder="https://pocketid.app"
+                      value={aiFormData.oidcIssuer}
+                      onChange={(e) => handleAiInputChange('oidcIssuer', e.target.value)}
+                      className="w-full text-sm"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      The URL of your OpenID Connect provider (default: https://pocketid.app)
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">
+                      Client ID *
+                    </label>
+                    <Input
+                      placeholder="Your PocketID Client ID"
+                      value={aiFormData.oidcClientId}
+                      onChange={(e) => handleAiInputChange('oidcClientId', e.target.value)}
+                      className="w-full"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      The client ID provided by PocketID for your application
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">
+                      Client Secret *
+                    </label>
+                    <Input
+                      type="password"
+                      placeholder="Your PocketID Client Secret"
+                      value={aiFormData.oidcClientSecret}
+                      onChange={(e) => handleAiInputChange('oidcClientSecret', e.target.value)}
+                      className="w-full"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      The client secret provided by PocketID (keep this secure)
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">
+                      Callback URL *
+                    </label>
+                    <Input
+                      type="url"
+                      placeholder="https://notes.rodeomasjid.org/api/auth/oidc/callback"
+                      value={aiFormData.oidcCallbackUrl}
+                      onChange={(e) => handleAiInputChange('oidcCallbackUrl', e.target.value)}
+                      className="w-full text-sm"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      This must exactly match the callback URL registered in PocketID
+                    </p>
+                  </div>
+
+                  <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                    <h4 className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-3">
+                      Setup Instructions
+                    </h4>
+                    <ol className="text-xs text-blue-800 dark:text-blue-200 space-y-2 list-decimal list-inside">
+                      <li>Create an application in PocketID</li>
+                      <li className="break-all">Set the callback URL to: <code className="bg-blue-100 dark:bg-blue-950 px-1 py-0.5 rounded text-xs">https://notes.rodeomasjid.org/api/auth/oidc/callback</code></li>
+                      <li>Copy the Client ID and Client Secret from PocketID</li>
+                      <li>Paste them in the fields above</li>
+                      <li>Enable PocketID Authentication and save</li>
+                    </ol>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex flex-col sm:flex-row justify-end gap-3 pt-6">
+                <Button
+                  variant="outline"
+                  onClick={() => setSettingsOpen(false)}
+                  className="w-full sm:w-auto"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleSaveAiSettings}
+                  className="w-full sm:w-auto"
+                >
+                  Save Authentication Settings
+                </Button>
+              </div>
+
+              <div className="text-xs text-muted-foreground mt-4">
+                * Required fields when PocketID authentication is enabled
+              </div>
+            </TabsContent>
+          )}
+
+          {/* Users Tab (Admin Only) */}
+          {isAdmin && (
+            <TabsContent value="users" className="space-y-4">
+              <UserManagement />
+            </TabsContent>
+          )}
+        </Tabs>
       </DialogContent>
     </Dialog>
   )

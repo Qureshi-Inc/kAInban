@@ -1,24 +1,24 @@
-import React, { useRef, useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Mic, Upload, Square, Pause, Play, FileText } from 'lucide-react'
-import { Button } from './ui/button'
-import { Card, CardContent } from './ui/card'
-import { formatTime } from '../lib/utils'
-import useAppStore from '../stores/useAppStore'
+import React, { useRef, useEffect, useState } from 'react'
+import { formatTime, parseSubtasksFromDescription, processAssignees } from '../lib/utils'
+import apiService from '../services/apiService'
 import audioService from '../services/audioService'
 import openaiService from '../services/openaiService'
 import transcriptionQueue from '../services/transcriptionQueue'
+import useAppStore from '../stores/useAppStore'
+import AudioVisualizer from './AudioVisualizer'
 import PasteTextModal from './PasteTextModal'
+import { Button } from './ui/button'
+import { Card, CardContent } from './ui/card'
 
 export default function AudioControls() {
   const fileInputRef = useRef(null)
-  const canvasRef = useRef(null)
-  const animationRef = useRef(null)
   const timerRef = useRef(null)
-  const chunkInfoRef = useRef(null)
   const [recordingTime, setRecordingTime] = useState(0)
   const [chunkInfo, setChunkInfo] = useState(null)
   const [isPasteTextOpen, setIsPasteTextOpen] = useState(false)
+  const [audioStream, setAudioStream] = useState(null)
   const [transcriptionStatus, setTranscriptionStatus] = useState({
     transcribedChunks: 0,
     totalChunks: 0,
@@ -32,34 +32,57 @@ export default function AudioControls() {
     setPaused,
     setRecordingModalOpen,
     createMeeting,
-    addTask,
+    addTasks,
     addNotification,
     currentProject,
     setUploadProgress,
     resetUploadProgress
   } = useAppStore()
 
-  // Timer and visualization effects
+  // Timer effects
   useEffect(() => {
     if (isRecording) {
       startTimer()
-      startVisualization()
     } else {
       stopTimer()
-      stopVisualization()
       setRecordingTime(0)
     }
 
     return () => {
       stopTimer()
-      stopVisualization()
     }
   }, [isRecording])
 
   const startTimer = () => {
     const startTime = Date.now()
+    let pauseOffset = 0
+    let lastPauseTime = null
+
     timerRef.current = setInterval(() => {
-      const elapsed = Math.floor((Date.now() - startTime) / 1000)
+      // Check if recording is paused by checking the audioService state
+      const currentlyPaused = audioService.isPaused()
+
+      if (currentlyPaused) {
+        // Don't update timer while paused, but track pause time
+        if (!lastPauseTime) {
+          lastPauseTime = Date.now()
+          console.log('[AudioControls] Timer paused at:', lastPauseTime)
+        }
+        return
+      }
+
+      // If resuming from pause, add pause duration to offset
+      if (lastPauseTime) {
+        const pauseDuration = Date.now() - lastPauseTime
+        pauseOffset += pauseDuration
+        console.log(
+          '[AudioControls] Timer resumed, pause duration:',
+          pauseDuration
+        )
+        lastPauseTime = null
+      }
+
+      const elapsed = Math.floor((Date.now() - startTime - pauseOffset) / 1000)
       setRecordingTime(elapsed)
 
       // Update chunk info
@@ -78,81 +101,9 @@ export default function AudioControls() {
     setChunkInfo(null)
   }
 
-  const startVisualization = () => {
-    const canvas = canvasRef.current
-    if (!canvas) return
+  // Visualization is now handled by AudioVisualizer component
 
-    const ctx = canvas.getContext('2d')
-    const analyser = audioService.analyser
-    let dataArray = null
-
-    if (analyser) {
-      const bufferLength = analyser.frequencyBinCount
-      dataArray = new Uint8Array(bufferLength)
-    }
-
-    const draw = () => {
-      const width = canvas.width
-      const height = canvas.height
-
-      if (!dataArray) {
-        // Draw a simple pulse animation
-        ctx.fillStyle = '#f8f9fa'
-        ctx.fillRect(0, 0, width, height)
-
-        const time = Date.now() * 0.005
-        const centerY = height / 2
-        const barCount = 32
-
-        for (let i = 0; i < barCount; i++) {
-          const x = (i / barCount) * width
-          const barHeight = Math.sin(time + i * 0.5) * 20 + 10
-          const gradient = ctx.createLinearGradient(0, centerY - barHeight, 0, centerY + barHeight)
-          gradient.addColorStop(0, '#4285f4')
-          gradient.addColorStop(1, '#34a853')
-
-          ctx.fillStyle = gradient
-          ctx.fillRect(x, centerY - barHeight, width / barCount - 2, barHeight * 2)
-        }
-      } else {
-        analyser.getByteFrequencyData(dataArray)
-
-        ctx.fillStyle = '#f8f9fa'
-        ctx.fillRect(0, 0, width, height)
-
-        const barWidth = (width / dataArray.length) * 2.5
-        let x = 0
-
-        for (let i = 0; i < dataArray.length; i++) {
-          const barHeight = (dataArray[i] / 255) * height * 0.8
-
-          const gradient = ctx.createLinearGradient(0, height - barHeight, 0, height)
-          gradient.addColorStop(0, '#4285f4')
-          gradient.addColorStop(1, '#34a853')
-
-          ctx.fillStyle = gradient
-          ctx.fillRect(x, height - barHeight, barWidth, barHeight)
-
-          x += barWidth + 1
-        }
-      }
-
-      if (isRecording) {
-        animationRef.current = requestAnimationFrame(draw)
-      }
-    }
-
-    draw()
-  }
-
-  const stopVisualization = () => {
-    if (animationRef.current) {
-      cancelAnimationFrame(animationRef.current)
-      animationRef.current = null
-    }
-  }
-
-  const handleStartRecording = async () => {
+  const handleStartRecording = async() => {
     try {
       // Reset transcription queue for new recording
       transcriptionQueue.reset()
@@ -163,39 +114,49 @@ export default function AudioControls() {
       })
 
       // Set up transcription completion callback to update UI when transcription finishes
-      transcriptionQueue.setOnTranscriptionComplete((chunkIndex, transcript, status) => {
-        console.log(`[AudioControls] Chunk ${chunkIndex} transcription completed: ${transcript.length} chars`)
-        console.log(`[AudioControls] Updated status:`, status)
+      transcriptionQueue.setOnTranscriptionComplete(
+        (chunkIndex, transcript, status) => {
+          console.log(
+            `[AudioControls] Chunk ${chunkIndex} transcription completed: ${transcript.length} chars`
+          )
 
-        // Update UI with current status
-        setTranscriptionStatus(prevStatus => ({
-          transcribedChunks: status.transcribed,
-          totalChunks: Math.max(prevStatus.totalChunks, chunkIndex + 1),
-          processing: status.processing || status.queued > 0
-        }))
-      })
+          // Update UI with current status
+          setTranscriptionStatus(prevStatus => ({
+            transcribedChunks: status.transcribed,
+            totalChunks: Math.max(prevStatus.totalChunks, chunkIndex + 1),
+            processing: status.processing || status.queued > 0
+          }))
+        }
+      )
 
       // Set up transcription error callback
-      transcriptionQueue.setOnTranscriptionError((chunkIndex, error, status) => {
-        console.error(`[AudioControls] Chunk ${chunkIndex} transcription failed:`, error)
+      transcriptionQueue.setOnTranscriptionError(
+        (chunkIndex, error, status) => {
+          console.error(
+            `[AudioControls] Chunk ${chunkIndex} transcription failed:`,
+            error
+          )
 
-        // Update UI to show error
-        setTranscriptionStatus(prevStatus => ({
-          transcribedChunks: status.transcribed,
-          totalChunks: Math.max(prevStatus.totalChunks, chunkIndex + 1),
-          processing: status.processing || status.queued > 0
-        }))
+          // Update UI to show error
+          setTranscriptionStatus(prevStatus => ({
+            transcribedChunks: status.transcribed,
+            totalChunks: Math.max(prevStatus.totalChunks, chunkIndex + 1),
+            processing: status.processing || status.queued > 0
+          }))
 
-        // Show notification
-        addNotification({
-          type: 'error',
-          message: `Background transcription error for segment ${chunkIndex + 1}: ${error}`
-        })
-      })
+          // Show notification
+          addNotification({
+            type: 'error',
+            message: `Background transcription error for segment ${chunkIndex + 1}: ${error}`
+          })
+        }
+      )
 
       // Set up chunk completion callback for background transcription
-      audioService.setOnChunkComplete(async (chunkBlob, chunkIndex) => {
-        console.log(`[AudioControls] Chunk ${chunkIndex} completed, queuing for background transcription`)
+      audioService.setOnChunkComplete(async(chunkBlob, chunkIndex) => {
+        console.log(
+          `[AudioControls] Chunk ${chunkIndex} completed, queuing for background transcription`
+        )
 
         // Queue chunk for background transcription
         await transcriptionQueue.enqueueChunk(chunkBlob, chunkIndex)
@@ -207,12 +168,17 @@ export default function AudioControls() {
           processing: true
         }))
 
-        console.log(`[AudioControls] Chunk ${chunkIndex} queued, total segments: ${chunkIndex + 1}`)
+        console.log(
+          `[AudioControls] Chunk ${chunkIndex} queued, total segments: ${chunkIndex + 1}`
+        )
       })
 
       await audioService.startRecording()
       setRecording(true)
       setPaused(false)
+
+      // Update audio stream state to trigger AudioVisualizer re-render
+      setAudioStream(audioService.stream)
     } catch (error) {
       console.error('Recording error:', error)
       addNotification({
@@ -248,7 +214,7 @@ export default function AudioControls() {
     }
   }
 
-  const handleStopRecording = async () => {
+  const handleStopRecording = async() => {
     try {
       console.log('[AudioControls] Stopping recording...')
       const result = await audioService.stopRecording()
@@ -276,6 +242,7 @@ export default function AudioControls() {
       setRecording(false)
       setPaused(false)
       setRecordingModalOpen(false)
+      setAudioStream(null) // Reset audio stream when recording stops
 
       // Start progress tracking
       setUploadProgress({
@@ -284,7 +251,6 @@ export default function AudioControls() {
         message: 'Processing recording...'
       })
 
-      console.log('[AudioControls] Starting transcription...')
       console.log('[AudioControls] Current settings:', {
         hasEndpoint: !!useAppStore.getState().settings.azureEndpoint,
         hasApiKey: !!useAppStore.getState().settings.apiKey
@@ -294,11 +260,8 @@ export default function AudioControls() {
       let transcript = ''
 
       if (isChunked) {
-        console.log(`[AudioControls] Processing ${result.chunks.length} chunks...`)
-
         // Get transcripts that were already processed in the background
         const cachedTranscripts = transcriptionQueue.getAllTranscripts()
-        console.log(`[AudioControls] Found ${cachedTranscripts.length} cached transcripts from background processing`)
 
         // Array to store all transcripts
         const transcripts = [...cachedTranscripts]
@@ -307,11 +270,14 @@ export default function AudioControls() {
         const remainingChunks = result.chunks.slice(cachedTranscripts.length)
 
         if (remainingChunks.length > 0) {
-          console.log(`[AudioControls] Transcribing ${remainingChunks.length} remaining chunks...`)
+          console.log(
+            `[AudioControls] Transcribing ${remainingChunks.length} remaining chunks...`
+          )
 
           for (let i = 0; i < remainingChunks.length; i++) {
             const actualIndex = cachedTranscripts.length + i
-            const progressPercent = 25 + Math.floor(((actualIndex + 1) / result.chunks.length) * 50)
+            const progressPercent =
+              25 + Math.floor(((actualIndex + 1) / result.chunks.length) * 50)
             const progressMsg = `Transcribing final part ${actualIndex + 1} of ${result.chunks.length}...`
 
             setUploadProgress({
@@ -320,28 +286,37 @@ export default function AudioControls() {
               message: progressMsg
             })
 
-            console.log(`[AudioControls] Transcribing chunk ${actualIndex + 1}/${result.chunks.length}`)
+            console.log(
+              `[AudioControls] Transcribing chunk ${actualIndex + 1}/${result.chunks.length}`
+            )
 
             // WebM chunks from recording can be sent directly to Azure Whisper
             // No need to convert to WAV (Azure supports WebM)
-            console.log(`[AudioControls] Transcribing WebM chunk ${actualIndex + 1} directly...`)
-            const chunkTranscript = await openaiService.transcribeAudio(remainingChunks[i])
+            console.log(
+              `[AudioControls] Transcribing WebM chunk ${actualIndex + 1} directly...`
+            )
+            const chunkTranscript = await openaiService.transcribeAudio(
+              remainingChunks[i]
+            )
             transcripts.push(chunkTranscript)
-            console.log(`[AudioControls] Chunk ${actualIndex + 1} transcribed: ${chunkTranscript.length} chars`)
+            console.log(
+              `[AudioControls] Chunk ${actualIndex + 1} transcribed: ${chunkTranscript.length} chars`
+            )
           }
         } else {
-          console.log(`[AudioControls] All chunks were already transcribed in the background!`)
+          console.log(
+            '[AudioControls] All chunks were already transcribed in the background!'
+          )
         }
 
         // Combine all transcripts
         transcript = transcripts.join(' ')
-        console.log(`[AudioControls] Combined transcript: ${transcript.length} total chars (${cachedTranscripts.length} from cache, ${remainingChunks.length} newly transcribed)`)
       } else {
         // Single chunk transcription
         setUploadProgress({
           stage: 'transcribing',
           percentage: 50,
-          message: 'Transcribing audio with Azure AI...'
+          message: 'Transcribing audio...'
         })
 
         transcript = await openaiService.transcribeAudio(audioBlob)
@@ -355,14 +330,19 @@ export default function AudioControls() {
       // Auto-generate summary from transcript
       console.log('[AudioControls] Auto-generating summary...')
       let generatedSummary = ''
+      let meeting = null // Declare meeting at function scope
+
       try {
         generatedSummary = await openaiService.generateSummary(transcript)
-        console.log('[AudioControls] Summary received:', generatedSummary?.length || 0, 'characters')
+        console.log(
+          '[AudioControls] Summary received:',
+          generatedSummary?.length || 0,
+          'characters'
+        )
 
         // Create meeting file
         const meetingName = `Recording - ${new Date().toLocaleDateString()}`
-        await createMeeting(meetingName, transcript, generatedSummary)
-        console.log('[AudioControls] Meeting created:', meetingName)
+        meeting = await createMeeting(meetingName, transcript, generatedSummary)
       } catch (summaryError) {
         console.error('[AudioControls] Summary generation error:', summaryError)
         addNotification({
@@ -373,7 +353,6 @@ export default function AudioControls() {
       }
 
       // Auto-generate tasks from TRANSCRIPT (not summary) with existing context
-      console.log('[AudioControls] Auto-generating tasks from transcript...')
       try {
         setUploadProgress({
           stage: 'extracting',
@@ -381,50 +360,178 @@ export default function AudioControls() {
           message: 'Extracting tasks from transcript...'
         })
 
-        const { tasks: existingTasks, updateTask: storeUpdateTask } = useAppStore.getState()
-        const extractedTasks = await openaiService.extractTasks(transcript, existingTasks)
-        console.log('[AudioControls] Tasks extracted:', extractedTasks.length)
+        // Load users for assignee matching
+        let users = []
+        try {
+          const loadedUsers = await apiService.getUsers()
+          users = Array.isArray(loadedUsers) ? loadedUsers : []
+        } catch (error) {
+          console.warn('[AudioControls] Failed to load users for assignee matching:', error)
+          users = [] // Ensure users is always an array
+        }
+
+        const { tasks: existingTasks, updateTask: storeUpdateTask } =
+          useAppStore.getState()
+        const extractedTasks = await openaiService.extractTasks(
+          transcript,
+          existingTasks
+        )
+
+        // Store meeting ID for consistent access during task creation
+        const sourceMeetingId = meeting?.id
 
         let newCount = 0
         let updatedCount = 0
+        const newTasksToAdd = []
 
         if (extractedTasks.length > 0) {
-          extractedTasks.forEach(task => {
+          for (const task of extractedTasks) {
             if (task.matchId && task.matchId > 0) {
               // Update existing task
               const existingTask = existingTasks[task.matchId - 1]
               if (existingTask) {
-                console.log('[AudioControls] Updating existing task:', existingTask.id)
-                const updatedDescription = existingTask.description +
-                  (task.updates ? `\n\n**Update**: ${task.updates}` : '')
+                console.log(
+                  '[TaskUpdate] Original task description:',
+                  existingTask.description?.substring(0, 100)
+                )
+                console.log(
+                  '[TaskUpdate] AI task description:',
+                  task.description?.substring(0, 100)
+                )
+                console.log('[TaskUpdate] AI task updates field:', task.updates)
 
-                storeUpdateTask(existingTask.id, {
-                  description: updatedDescription,
+                const updates = {
                   status: task.newStatus || existingTask.status,
                   priority: task.newPriority || existingTask.priority,
-                  assignee: task.assignee || existingTask.assignee
-                })
-                updatedCount++
+                  dueDate: task.newDueDate || existingTask.dueDate,
+                  ...(() => {
+                    const newAssignees = task.newAssignee ? processAssignees(task.newAssignee, users) : []
+                    const currentAssignees = existingTask.assignees && Array.isArray(existingTask.assignees) ? existingTask.assignees : (existingTask.assignee ? [existingTask.assignee] : [])
+                    return {
+                      assignees: newAssignees.length > 0 ? newAssignees : currentAssignees,
+                      assignee: newAssignees.length > 0 ? newAssignees[0] : (currentAssignees.length > 0 ? currentAssignees[0] : '')
+                    }
+                  })()
+                }
+
+                // Check if there are actual changes
+                const hasStatusChange = updates.status !== existingTask.status
+                const hasPriorityChange =
+                  updates.priority !== existingTask.priority
+                const hasDueDateChange =
+                  (updates.dueDate || '') !== (existingTask.dueDate || '')
+                const hasAssigneeChange =
+                  updates.assignee !== existingTask.assignee
+                const hasActualChanges =
+                  hasStatusChange || hasPriorityChange || hasDueDateChange || hasAssigneeChange
+
+                storeUpdateTask(existingTask.id, updates)
+
+                // Only add AI comment if there are actual changes AND updates text
+                if (task.updates && hasActualChanges) {
+                  console.log(
+                    '[TaskUpdate] Attempting to add AI comment for task:',
+                    existingTask.id
+                  )
+                  console.log(
+                    '[TaskUpdate] Comment text:',
+                    task.updates.substring(0, 100) + '...'
+                  )
+                  try {
+                    const commentResult = await apiService.addTaskComment(
+                      existingTask.id,
+                      task.updates,
+                      'ai_update',
+                      {
+                        source: 'audio_analysis',
+                        originalTranscript: transcript.substring(0, 200) + '...'
+                      }
+                    )
+                    console.log(
+                      '[TaskUpdate] Raw comment result:',
+                      commentResult
+                    )
+                    if (commentResult && commentResult.success) {
+                      console.log(
+                        '[TaskUpdate] ✓ AI comment added successfully:',
+                        commentResult.id
+                      )
+                    } else {
+                      console.error(
+                        '[TaskUpdate] ✗ AI comment failed - no success flag:',
+                        commentResult
+                      )
+                      addNotification({
+                        type: 'error',
+                        message: `⚠️ AI update added to "${existingTask.title}" but comment creation failed. Check activity panel.`
+                      })
+                    }
+                  } catch (error) {
+                    console.error('[TaskUpdate] ✗ AI comment exception:', error)
+                    console.error(
+                      '[TaskUpdate] ✗ Error details:',
+                      error.message,
+                      error.stack
+                    )
+                    addNotification({
+                      type: 'error',
+                      message: `⚠️ AI update added to "${existingTask.title}" but comment creation failed: ${error.message}`
+                    })
+                  }
+                  // Count as updated regardless of comment status for now
+                  updatedCount++
+                } else {
+                  console.log(
+                    '[TaskUpdate] Skipping AI comment - no updates text or no actual changes'
+                  )
+                  console.log('[TaskUpdate] Updates text:', task.updates)
+                  console.log(
+                    '[TaskUpdate] Has actual changes:',
+                    hasActualChanges
+                  )
+                  // Still count as updated since task data was modified
+                  updatedCount++
+                }
               }
             } else {
-              // Create new task
-              console.log('[AudioControls] Adding task:', task)
-              addTask(task)
+              // Collect new tasks to add in batch
+              const subtasks = parseSubtasksFromDescription(
+                task.description || ''
+              )
+              newTasksToAdd.push({
+                ...task,
+                ...(() => {
+                  const taskAssignees = processAssignees(task.assignee, users)
+                  return {
+                    assignees: taskAssignees,
+                    assignee: taskAssignees.length > 0 ? taskAssignees[0] : ''
+                  }
+                })(),
+                subtasks,
+                meetingId: sourceMeetingId // Add meeting source reference
+              })
               newCount++
             }
-          })
+          }
+
+          // Batch add all new tasks at once
+          if (newTasksToAdd.length > 0) {
+            addTasks(newTasksToAdd)
+          }
 
           const messages = []
-          if (newCount > 0) messages.push(`${newCount} new`)
-          if (updatedCount > 0) messages.push(`${updatedCount} updated`)
+          if (newCount > 0) {
+            messages.push(`${newCount} new`)
+          }
+          if (updatedCount > 0) {
+            messages.push(`${updatedCount} updated`)
+          }
 
           // Only show notification with final result
           addNotification({
             type: 'success',
             message: `Tasks: ${messages.join(', ')}!`
           })
-        } else {
-          console.log('[AudioControls] No actionable tasks found')
         }
 
         // Mark as complete
@@ -489,9 +596,11 @@ export default function AudioControls() {
     }
   }
 
-  const handleFileUpload = async (event) => {
+  const handleFileUpload = async event => {
     const file = event.target.files?.[0]
-    if (!file) return
+    if (!file) {
+      return
+    }
 
     try {
       // Start progress tracking
@@ -514,25 +623,32 @@ export default function AudioControls() {
       setUploadProgress({
         stage: 'transcribing',
         percentage: 50,
-        message: 'Transcribing audio with Azure AI...'
+        message: 'Transcribing audio...'
       })
 
       // Pass progress callback for chunked transcription
-      const transcript = await openaiService.transcribeAudio(processedFile, (progress) => {
-        setUploadProgress(progress)
-      })
+      const transcript = await openaiService.transcribeAudio(
+        processedFile,
+        progress => {
+          setUploadProgress(progress)
+        }
+      )
 
       // Auto-generate summary from transcript
-      console.log('[AudioControls] Auto-generating summary from uploaded file...')
       let generatedSummary = ''
+      let meeting = null // Declare meeting at function scope
+
       try {
         generatedSummary = await openaiService.generateSummary(transcript)
-        console.log('[AudioControls] Summary received:', generatedSummary?.length || 0, 'characters')
+        console.log(
+          '[AudioControls] Summary received:',
+          generatedSummary?.length || 0,
+          'characters'
+        )
 
         // Create meeting file
         const meetingName = `${file.name} - ${new Date().toLocaleDateString()}`
-        await createMeeting(meetingName, transcript, generatedSummary)
-        console.log('[AudioControls] Meeting created:', meetingName)
+        meeting = await createMeeting(meetingName, transcript, generatedSummary)
       } catch (summaryError) {
         console.error('[AudioControls] Summary generation error:', summaryError)
         addNotification({
@@ -552,7 +668,6 @@ export default function AudioControls() {
       }
 
       // Auto-generate tasks from TRANSCRIPT (not summary) with existing context
-      console.log('[AudioControls] Auto-generating tasks from transcript...')
       let newCount = 0
       let updatedCount = 0
 
@@ -563,39 +678,169 @@ export default function AudioControls() {
           message: 'Extracting tasks from transcript...'
         })
 
-        const { tasks: existingTasks, updateTask: storeUpdateTask } = useAppStore.getState()
-        const extractedTasks = await openaiService.extractTasks(transcript, existingTasks)
-        console.log('[AudioControls] Tasks extracted:', extractedTasks.length)
+        // Load users for assignee matching
+        let users = []
+        try {
+          const loadedUsers = await apiService.getUsers()
+          users = Array.isArray(loadedUsers) ? loadedUsers : []
+        } catch (error) {
+          console.warn('[AudioControls] Failed to load users for assignee matching:', error)
+          users = [] // Ensure users is always an array
+        }
+
+        const { tasks: existingTasks, updateTask: storeUpdateTask } =
+          useAppStore.getState()
+        const extractedTasks = await openaiService.extractTasks(
+          transcript,
+          existingTasks
+        )
+
+        // Store meeting ID for consistent access during task creation
+        const sourceMeetingId = meeting?.id
+        const newTasksToAdd = []
 
         if (extractedTasks.length > 0) {
-          extractedTasks.forEach(task => {
+          for (const task of extractedTasks) {
             if (task.matchId && task.matchId > 0) {
               // Update existing task
               const existingTask = existingTasks[task.matchId - 1]
               if (existingTask) {
-                console.log('[AudioControls] Updating existing task:', existingTask.id)
-                const updatedDescription = existingTask.description +
-                  (task.updates ? `\n\n**Update**: ${task.updates}` : '')
+                console.log(
+                  '[TaskUpdate] Original task description:',
+                  existingTask.description?.substring(0, 100)
+                )
+                console.log(
+                  '[TaskUpdate] AI task description:',
+                  task.description?.substring(0, 100)
+                )
+                console.log('[TaskUpdate] AI task updates field:', task.updates)
 
-                storeUpdateTask(existingTask.id, {
-                  description: updatedDescription,
+                const updates = {
                   status: task.newStatus || existingTask.status,
                   priority: task.newPriority || existingTask.priority,
-                  assignee: task.assignee || existingTask.assignee
-                })
-                updatedCount++
+                  dueDate: task.newDueDate || existingTask.dueDate,
+                  ...(() => {
+                    const newAssignees = task.newAssignee ? processAssignees(task.newAssignee, users) : []
+                    const currentAssignees = existingTask.assignees && Array.isArray(existingTask.assignees) ? existingTask.assignees : (existingTask.assignee ? [existingTask.assignee] : [])
+                    return {
+                      assignees: newAssignees.length > 0 ? newAssignees : currentAssignees,
+                      assignee: newAssignees.length > 0 ? newAssignees[0] : (currentAssignees.length > 0 ? currentAssignees[0] : '')
+                    }
+                  })()
+                }
+
+                // Check if there are actual changes
+                const hasStatusChange = updates.status !== existingTask.status
+                const hasPriorityChange =
+                  updates.priority !== existingTask.priority
+                const hasDueDateChange =
+                  (updates.dueDate || '') !== (existingTask.dueDate || '')
+                const hasAssigneeChange =
+                  updates.assignee !== existingTask.assignee
+                const hasActualChanges =
+                  hasStatusChange || hasPriorityChange || hasDueDateChange || hasAssigneeChange
+
+                storeUpdateTask(existingTask.id, updates)
+
+                // Only add AI comment if there are actual changes AND updates text
+                if (task.updates && hasActualChanges) {
+                  console.log(
+                    '[TaskUpdate] Attempting to add AI comment for task:',
+                    existingTask.id
+                  )
+                  console.log(
+                    '[TaskUpdate] Comment text:',
+                    task.updates.substring(0, 100) + '...'
+                  )
+                  try {
+                    const commentResult = await apiService.addTaskComment(
+                      existingTask.id,
+                      task.updates,
+                      'ai_update',
+                      {
+                        source: 'audio_analysis',
+                        originalTranscript: transcript.substring(0, 200) + '...'
+                      }
+                    )
+                    console.log(
+                      '[TaskUpdate] Raw comment result:',
+                      commentResult
+                    )
+                    if (commentResult && commentResult.success) {
+                      console.log(
+                        '[TaskUpdate] ✓ AI comment added successfully:',
+                        commentResult.id
+                      )
+                    } else {
+                      console.error(
+                        '[TaskUpdate] ✗ AI comment failed - no success flag:',
+                        commentResult
+                      )
+                      addNotification({
+                        type: 'error',
+                        message: `⚠️ AI update added to "${existingTask.title}" but comment creation failed. Check activity panel.`
+                      })
+                    }
+                  } catch (error) {
+                    console.error('[TaskUpdate] ✗ AI comment exception:', error)
+                    console.error(
+                      '[TaskUpdate] ✗ Error details:',
+                      error.message,
+                      error.stack
+                    )
+                    addNotification({
+                      type: 'error',
+                      message: `⚠️ AI update added to "${existingTask.title}" but comment creation failed: ${error.message}`
+                    })
+                  }
+                  // Count as updated regardless of comment status for now
+                  updatedCount++
+                } else {
+                  console.log(
+                    '[TaskUpdate] Skipping AI comment - no updates text or no actual changes'
+                  )
+                  console.log('[TaskUpdate] Updates text:', task.updates)
+                  console.log(
+                    '[TaskUpdate] Has actual changes:',
+                    hasActualChanges
+                  )
+                  // Still count as updated since task data was modified
+                  updatedCount++
+                }
               }
             } else {
-              // Create new task
-              console.log('[AudioControls] Adding task:', task)
-              addTask(task)
+              // Collect new tasks to add in batch
+              const subtasks = parseSubtasksFromDescription(
+                task.description || ''
+              )
+              newTasksToAdd.push({
+                ...task,
+                ...(() => {
+                  const taskAssignees = processAssignees(task.assignee, users)
+                  return {
+                    assignees: taskAssignees,
+                    assignee: taskAssignees.length > 0 ? taskAssignees[0] : ''
+                  }
+                })(),
+                subtasks,
+                meetingId: sourceMeetingId // Add meeting source reference
+              })
               newCount++
             }
-          })
+          }
+
+          // Batch add all new tasks at once
+          if (newTasksToAdd.length > 0) {
+            addTasks(newTasksToAdd)
+          }
 
           const messages = []
-          if (newCount > 0) messages.push(`${newCount} new`)
-          if (updatedCount > 0) messages.push(`${updatedCount} updated`)
+          if (newCount > 0) {
+            messages.push(`${newCount} new`)
+          }
+          if (updatedCount > 0) {
+            messages.push(`${updatedCount} updated`)
+          }
 
           // Only show final result notification
           addNotification({
@@ -663,8 +908,10 @@ export default function AudioControls() {
             {/* Button controls - responsive layout */}
             <div className="flex flex-col sm:flex-row gap-3 w-full">
               <Button
-                onClick={isRecording ? handleStopRecording : handleStartRecording}
-                variant={isRecording ? "destructive" : "default"}
+                onClick={
+                  isRecording ? handleStopRecording : handleStartRecording
+                }
+                variant={isRecording ? 'destructive' : 'default'}
                 size="lg"
                 className="flex items-center justify-center gap-2 flex-1 sm:min-w-[160px] h-12 sm:h-10"
                 disabled={!currentProject}
@@ -677,14 +924,18 @@ export default function AudioControls() {
                 ) : (
                   <>
                     <Mic className="h-5 w-5" />
-                    <span className="text-sm sm:text-base">Start Recording</span>
+                    <span className="text-sm sm:text-base">
+                      Start Recording
+                    </span>
                   </>
                 )}
               </Button>
 
               {isRecording && (
                 <Button
-                  onClick={isPaused ? handleResumeRecording : handlePauseRecording}
+                  onClick={
+                    isPaused ? handleResumeRecording : handlePauseRecording
+                  }
                   variant="secondary"
                   size="lg"
                   className="flex items-center justify-center gap-2 flex-1 sm:min-w-[160px] h-12 sm:h-10"
@@ -761,12 +1012,10 @@ export default function AudioControls() {
                 >
                   <div className="pt-4 space-y-4 border-t">
                     {/* Audio Visualization */}
-                    <div className="recording-visualizer p-4 rounded-lg bg-gray-50 dark:bg-gray-900">
-                      <canvas
-                        ref={canvasRef}
-                        width={400}
-                        height={120}
-                        className="w-full h-[120px] rounded-md"
+                    <div className="py-2">
+                      <AudioVisualizer
+                        stream={audioStream}
+                        isActive={isRecording && !isPaused}
                       />
                     </div>
 
@@ -784,9 +1033,13 @@ export default function AudioControls() {
                         <motion.div
                           className={`w-2 h-2 rounded-full ${isPaused ? 'bg-yellow-500' : 'bg-red-500'}`}
                           animate={isPaused ? {} : { opacity: [1, 0.3, 1] }}
-                          transition={isPaused ? {} : { duration: 1.5, repeat: Infinity }}
+                          transition={
+                            isPaused ? {} : { duration: 1.5, repeat: Infinity }
+                          }
                         />
-                        {isPaused ? 'Recording paused' : 'Recording in progress...'}
+                        {isPaused
+                          ? 'Recording paused'
+                          : 'Recording in progress...'}
                       </div>
 
                       {/* Chunk Information */}
@@ -800,10 +1053,12 @@ export default function AudioControls() {
                             📦 Long Recording Detected
                           </div>
                           <div className="text-xs text-blue-700 dark:text-blue-300">
-                            Segment {chunkInfo.currentChunk} • Next split in {formatTime(chunkInfo.remainingInChunk)}
+                            Segment {chunkInfo.currentChunk} • Next split in{' '}
+                            {formatTime(chunkInfo.remainingInChunk)}
                           </div>
                           <div className="text-xs text-blue-600 dark:text-blue-400 mt-1">
-                            Recording will be automatically split every 10 minutes for optimal processing
+                            Recording will be automatically split every 10
+                            minutes for optimal processing
                           </div>
                         </motion.div>
                       )}
@@ -819,11 +1074,15 @@ export default function AudioControls() {
                             ✓ Background Transcription Active
                           </div>
                           <div className="text-xs text-green-700 dark:text-green-300">
-                            {transcriptionStatus.transcribedChunks} of {transcriptionStatus.totalChunks} segments transcribed
-                            {transcriptionStatus.processing && ' (processing...)'}
+                            {transcriptionStatus.transcribedChunks} of{' '}
+                            {transcriptionStatus.totalChunks} segments
+                            transcribed
+                            {transcriptionStatus.processing &&
+                              ' (processing...)'}
                           </div>
                           <div className="text-xs text-green-600 dark:text-green-400 mt-1">
-                            Segments are being transcribed in the background to speed up final processing
+                            Segments are being transcribed in the background to
+                            speed up final processing
                           </div>
                         </motion.div>
                       )}

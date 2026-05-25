@@ -1,8 +1,8 @@
-import React from 'react'
 import { motion } from 'framer-motion'
 import { FileText } from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
+import React from 'react'
 import useAppStore from '../stores/useAppStore'
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
 
 export default function TranscriptPanel() {
   const { getSelectedMeeting } = useAppStore()

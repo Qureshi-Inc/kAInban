@@ -1,44 +1,108 @@
 {
   "name": "kainban",
   "private": true,
-  "version": "2.7.0",
-  "description": "kAInban - Organize Notes with AI",
+  "version": "1.1.1",
+  "description": "AI-powered task management with meeting transcription and intelligent task extraction",
+  "license": "AGPL-3.0",
+  "author": "InterestingSoup",
+  "homepage": "https://github.com/yourusername/kainban",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/kainban.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yourusername/kainban/issues"
+  },
+  "keywords": [
+    "ai",
+    "task-management",
+    "kanban",
+    "transcription",
+    "azure-openai",
+    "react",
+    "productivity",
+    "meeting-notes",
+    "audio-processing",
+    "project-management"
+  ],
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0 --port 8064",
     "build": "vite build",
     "preview": "vite preview --host 0.0.0.0 --port 8064",
-    "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0"
+    "start": "npm run preview",
+    "start:test": "VITE_NODE_ENV=test npm run preview",
+    "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
+    "lint:fix": "eslint . --ext js,jsx --fix",
+    "format": "prettier --write \"src/**/*.{js,jsx,ts,tsx,json,css,md}\" \"server/**/*.{js,ts,json}\" \"*.{js,json,md,yml,yaml}\"",
+    "format:check": "prettier --check \"src/**/*.{js,jsx,ts,tsx,json,css,md}\" \"server/**/*.{js,ts,json}\" \"*.{js,json,md,yml,yaml}\"",
+    "security:audit": "npm audit --audit-level=moderate",
+    "security:fix": "npm audit fix",
+    "type-check": "tsc --noEmit",
+    "analyze": "npm run build && npx vite-bundle-analyzer dist",
+    "clean": "rm -rf dist coverage",
+    "prepare": "husky install || true",
+    "pre-commit": "lint-staged"
   },
   "dependencies": {
+    "@hello-pangea/dnd": "^18.0.1",
     "@radix-ui/react-dialog": "^1.0.5",
     "@radix-ui/react-select": "^2.0.0",
     "@radix-ui/react-toast": "^1.1.5",
     "@tanstack/react-query": "^5.8.4",
+    "audiomotion-analyzer": "^4.5.2",
+    "better-sqlite3": "^12.5.0",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.0.0",
+    "dotenv": "^17.2.3",
     "framer-motion": "^10.16.4",
     "lucide-react": "^0.294.0",
+    "node-fetch": "^3.3.2",
     "react": "^18.2.0",
     "react-beautiful-dnd": "^13.1.1",
     "react-dom": "^18.2.0",
+    "react-kanban-kit": "^0.0.2-beta.5",
     "react-markdown": "^10.1.0",
+    "react-router-dom": "^7.10.1",
+    "react-window": "^2.2.3",
+    "swiper": "^12.0.3",
     "tailwind-merge": "^2.0.0",
     "tailwindcss-animate": "^1.0.7",
     "zustand": "^4.4.6"
   },
   "devDependencies": {
+    "@eslint/js": "^9.0.0",
     "@types/react": "^18.2.37",
     "@types/react-dom": "^18.2.15",
     "@vitejs/plugin-react": "^4.1.1",
     "autoprefixer": "^10.4.16",
-    "eslint": "^8.53.0",
+    "eslint": "^8.57.1",
+    "eslint-import-resolver-alias": "^1.1.2",
+    "eslint-plugin-import": "^2.29.0",
+    "eslint-plugin-jsx-a11y": "^6.8.0",
     "eslint-plugin-react": "^7.33.2",
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-react-refresh": "^0.4.4",
+    "husky": "^8.0.3",
+    "lint-staged": "^15.1.0",
     "postcss": "^8.4.31",
+    "prettier": "^3.1.0",
     "tailwindcss": "^3.3.5",
+    "typescript": "^5.2.2",
     "vite": "^4.5.0",
     "vite-plugin-pwa": "^0.17.4"
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,css,md,yml,yaml}": [
+      "prettier --write"
+    ]
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
   }
 }

@@ -13,6 +13,7 @@ class AudioService {
     this.chunkDuration = 600 // 10 minutes in seconds
     this.chunkStartTime = null
     this.chunkTimer = null
+    this.pauseTime = null // Track when recording was paused
 
     // Callback for when a chunk is completed during recording
     this.onChunkCompleteCallback = null
@@ -135,7 +136,7 @@ class AudioService {
   startChunkTimer() {
     // Check chunk duration every second
     this.chunkTimer = setInterval(() => {
-      if (!this.chunkStartTime) return
+      if (!this.chunkStartTime) {return}
 
       const elapsedSeconds = (Date.now() - this.chunkStartTime) / 1000
 
@@ -147,14 +148,12 @@ class AudioService {
   }
 
   rotateToNextChunk() {
-    console.log(`[AudioService] === CHUNK ROTATION START ===`)
-    console.log(`[AudioService] Rotating from chunk ${this.currentChunkIndex} to ${this.currentChunkIndex + 1}`)
+    console.log('[AudioService] === CHUNK ROTATION START ===')
 
     // Get reference to completed chunk data
     const completedChunkIndex = this.currentChunkIndex
     const completedChunkData = [...this.recordingChunks[completedChunkIndex]] // Copy array
 
-    console.log(`[AudioService] Completed chunk ${completedChunkIndex} has ${completedChunkData.length} fragments`)
 
     // Store mimeType before stopping
     const currentMimeType = this.mediaRecorder.mimeType
@@ -170,7 +169,6 @@ class AudioService {
       if (this.onChunkCompleteCallback && completedChunkData.length > 0) {
         const chunkBlob = new Blob(completedChunkData, { type: currentMimeType })
 
-        console.log(`[AudioService] ✓ Chunk ${completedChunkIndex} finalized:`)
         console.log(`[AudioService]   - Size: ${(chunkBlob.size / 1024 / 1024).toFixed(2)} MB`)
         console.log(`[AudioService]   - Type: ${chunkBlob.type}`)
         console.log(`[AudioService]   - Fragments: ${completedChunkData.length}`)
@@ -185,7 +183,6 @@ class AudioService {
       this.recordingChunks[this.currentChunkIndex] = []
       this.chunkStartTime = Date.now()
 
-      console.log(`[AudioService] Starting NEW MediaRecorder for chunk ${this.currentChunkIndex}...`)
 
       // Create NEW MediaRecorder - this ensures fresh WebM initialization segment
       try {
@@ -207,7 +204,6 @@ class AudioService {
 
         // Start recording with 1-second timeslice
         this.mediaRecorder.start(1000)
-        console.log(`[AudioService] ✓ MediaRecorder restarted for chunk ${this.currentChunkIndex}`)
         console.log('[AudioService] === CHUNK ROTATION COMPLETE ===')
       } catch (error) {
         console.error('[AudioService] ✗ Failed to restart MediaRecorder:', error)
@@ -236,7 +232,7 @@ class AudioService {
   }
 
   getCurrentChunkInfo() {
-    if (!this.chunkStartTime) return null
+    if (!this.chunkStartTime) {return null}
 
     const elapsedSeconds = Math.floor((Date.now() - this.chunkStartTime) / 1000)
     const remainingSeconds = Math.max(0, this.chunkDuration - elapsedSeconds)
@@ -251,7 +247,7 @@ class AudioService {
   }
 
   getVisualizationData() {
-    if (!this.analyser) return null
+    if (!this.analyser) {return null}
 
     const bufferLength = this.analyser.frequencyBinCount
     const dataArray = new Uint8Array(bufferLength)
@@ -266,6 +262,10 @@ class AudioService {
 
     if (this.mediaRecorder.state === 'recording') {
       this.mediaRecorder.pause()
+
+      // Store the pause time to adjust chunk timing when resuming
+      this.pauseTime = Date.now()
+
       console.log('[AudioService] Recording paused')
       return true
     }
@@ -279,6 +279,13 @@ class AudioService {
 
     if (this.mediaRecorder.state === 'paused') {
       this.mediaRecorder.resume()
+
+      // Adjust chunk start time to account for pause duration
+      if (this.pauseTime && this.chunkStartTime) {
+        const pauseDuration = Date.now() - this.pauseTime
+        this.chunkStartTime += pauseDuration
+      }
+
       console.log('[AudioService] Recording resumed')
       return true
     }
@@ -380,6 +387,7 @@ class AudioService {
     this.analyser = null
     this.audioChunks = []
     this.recordingChunks = []
+    this.pauseTime = null
     this.currentChunkIndex = 0
     this.chunkStartTime = null
   }
@@ -427,7 +435,6 @@ class AudioService {
       // Step 1: Read file as array buffer
       let arrayBuffer = await file.arrayBuffer()
       const arrayBufferSize = (arrayBuffer.byteLength / 1024 / 1024).toFixed(2)
-      console.log('[AudioService] Step 1: Loaded arrayBuffer:', arrayBufferSize, 'MB')
 
       // Create audio context
       const audioContext = new (window.AudioContext || window.webkitAudioContext)()
@@ -442,7 +449,6 @@ class AudioService {
 
       // ✅ MEMORY OPTIMIZATION: Release arrayBuffer immediately after decoding
       arrayBuffer = null
-      console.log('[AudioService] ✓ Released arrayBuffer from memory')
 
       // Step 3: Resample to 16kHz mono to reduce file size (voice quality is still excellent)
       console.log('[AudioService] Step 3: Resampling to 16kHz mono...')
@@ -451,7 +457,6 @@ class AudioService {
 
       // ✅ MEMORY OPTIMIZATION: Release original audioBuffer after resampling
       audioBuffer = null
-      console.log('[AudioService] ✓ Released original audioBuffer from memory')
 
       // Step 4: Convert to WAV format
       console.log('[AudioService] Step 4: Converting to WAV...')
@@ -511,7 +516,7 @@ class AudioService {
     const format = 1 // PCM
     const bitDepth = 16
 
-    let length = buffer.length * numChannels * 2
+    const length = buffer.length * numChannels * 2
     let arrayBuffer = new ArrayBuffer(44 + length)
     let view = new DataView(arrayBuffer)
 
@@ -582,7 +587,6 @@ class AudioService {
         throw new Error('Please select a valid audio file (mp3, mp4, m4a, wav, webm, ogg, flac)')
       }
 
-      console.log('[AudioService] ✓ File type validated')
 
       // Azure OpenAI Whisper has a hard limit of 25MB
       const maxSize = 25 * 1024 * 1024 // 25MB
@@ -625,7 +629,6 @@ class AudioService {
         } else {
           // ✅ MEMORY OPTIMIZATION: File under 25MB doesn't need chunking, release buffer
           audioBuffer = null
-          console.log('[AudioService] ✓ File <25MB, released buffer from memory')
         }
       } else {
         // For non-m4a files, check size directly
@@ -635,7 +638,6 @@ class AudioService {
         }
       }
 
-      console.log('[AudioService] ✓ File size validated')
       console.log('[AudioService] ✓ File validated successfully')
       console.log('[AudioService] ===== FILE UPLOAD COMPLETE =====')
       return processedFile

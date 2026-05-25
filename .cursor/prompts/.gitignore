@@ -1,0 +1,4 @@
+# secrets / auth artifacts — never commit
+*cookies*.txt
+server/.env*
+!server/.env.example

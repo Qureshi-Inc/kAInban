@@ -1,21 +1,30 @@
-import React from 'react'
 import { motion } from 'framer-motion'
 import { FileAudio, Calendar, Trash2 } from 'lucide-react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
+import useAppStore from '../stores/useAppStore'
 import { Button } from './ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
-import useAppStore from '../stores/useAppStore'
 
 export default function MeetingFilesPanel() {
-  const { meetings, selectedMeetingId, selectMeeting, deleteMeeting } = useAppStore()
+  const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const projectId = searchParams.get('project')
+  const { meetings, selectedMeetingId, deleteMeeting } = useAppStore()
 
   const handleSelectMeeting = (meetingId) => {
-    selectMeeting(meetingId)
+    // Update URL to include meeting ID (short version)
+    const shortMeetingId = meetingId.split('_')[0]
+    navigate(`/?project=${projectId}&meeting=${shortMeetingId}`)
   }
 
-  const handleDeleteMeeting = async (meetingId, e) => {
+  const handleDeleteMeeting = async(meetingId, e) => {
     e.stopPropagation()
     if (confirm('Are you sure you want to delete this meeting?')) {
       await deleteMeeting(meetingId)
+      // If we just deleted the selected meeting, navigate back to project view
+      if (selectedMeetingId === meetingId) {
+        navigate(`/?project=${projectId}`)
+      }
     }
   }
 
@@ -48,7 +57,7 @@ export default function MeetingFilesPanel() {
             <motion.div
               className="p-2 bg-gradient-to-br from-green-500 to-green-600 rounded-lg shadow-md"
               whileHover={{ scale: 1.1, rotate: 5 }}
-              transition={{ type: "spring", stiffness: 400, damping: 10 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 10 }}
             >
               <FileAudio className="h-5 w-5 text-white" />
             </motion.div>
@@ -70,9 +79,9 @@ export default function MeetingFilesPanel() {
                     group p-3 rounded-lg border-2 cursor-pointer transition-all
                     hover:shadow-lg
                     ${selectedMeetingId === meeting.id
-                      ? 'border-primary bg-gradient-to-r from-primary/10 to-primary/5 shadow-md'
-                      : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-primary/50'
-                    }
+                  ? 'border-primary bg-gradient-to-r from-primary/10 to-primary/5 shadow-md'
+                  : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-primary/50'
+                }
                   `}
                 >
                   <div className="flex items-start justify-between gap-2">
@@ -88,7 +97,7 @@ export default function MeetingFilesPanel() {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-8 w-8 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-50 dark:hover:bg-red-900/20"
+                      className="h-8 w-8 flex-shrink-0 opacity-60 hover:opacity-100 transition-opacity hover:bg-red-50 dark:hover:bg-red-900/20"
                       onClick={(e) => handleDeleteMeeting(meeting.id, e)}
                     >
                       <Trash2 className="h-4 w-4 text-muted-foreground hover:text-destructive" />
