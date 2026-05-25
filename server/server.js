@@ -329,9 +329,16 @@ app.use(async(req, res, next) => {
 //   res.json({ csrfToken: 'disabled-for-mvp' })
 // })
 
-// Health check
+// Health check. Actually pings the DB rather than blindly claiming it's
+// connected - a corrupted/locked DB would now return 503 here, letting
+// orchestrators replace the container.
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok', database: 'connected' })
+  try {
+    dbInstance.prepare('SELECT 1').get()
+    res.json({ status: 'ok', database: 'connected' })
+  } catch (err) {
+    res.status(503).json({ status: 'unhealthy', database: 'error', error: err.message })
+  }
 })
 
 // Separate OIDC dependency healthcheck. Kept off the main /health so a
@@ -1808,10 +1815,22 @@ app.post(
   }
 )
 
+// Per-user rate limit for the similarity detector (which is O(n^2) on the
+// main event loop and previously had no auth-side throttling).
+const detectSimilarLimiter = expressRateLimit({
+  windowMs: 60 * 1000, // 1 minute window
+  max: 10,             // 10 requests per minute per IP+user combo
+  keyGenerator: req => `${req.ip}:${req.session?.user?.id || 'anon'}`,
+  message: { error: 'Too many similarity scans, please wait a moment' },
+  standardHeaders: true,
+  legacyHeaders: false
+})
+
 // Task similarity detection and merging endpoints
 app.post(
   '/api/tasks/detect-similar',
   localAuth.requireAuth,
+  detectSimilarLimiter,
   async(req, res) => {
     try {
       const { projectId } = req.body
@@ -1826,6 +1845,16 @@ app.post(
       const tasks = project.tasks || []
       if (tasks.length < 2) {
         return res.json({ groups: [] })
+      }
+
+      // Cap input size. detectSimilarTasks does O(n^2) regex/string work
+      // on the main event loop; without a cap, a 1000-task project blocks
+      // every other request for 100s of ms.
+      const MAX_TASKS_FOR_SIMILARITY = 200
+      if (tasks.length > MAX_TASKS_FOR_SIMILARITY) {
+        return res.status(400).json({
+          error: `Too many tasks for similarity scan (have ${tasks.length}, max ${MAX_TASKS_FOR_SIMILARITY}). Filter the project first.`
+        })
       }
 
       // Detect similar task groups
@@ -2375,15 +2404,16 @@ app.get('/api/admin/metrics/dashboard', requireAdmin, (req, res) => {
       WHERE created_at > datetime('now', '-7 days')
     `).get()
 
+    // Drops the previous mocked fields (monthlyRevenue, revenueGrowth, etc.)
+    // which were Math.random() or fictional. Returns only values we actually
+    // compute from the DB.
     res.json({
       totalUsers: userCount.count,
-      totalTenants: projectCount.count,
-      monthlyRevenue: taskCount.count * 10, // Mock revenue based on tasks
-      activeUsers: Math.floor(userCount.count * 0.6), // 60% active assumption
-      userGrowth: recentTasks.count > 0 ? Math.round((recentTasks.count / taskCount.count) * 100) : 0,
-      tenantGrowth: recentMeetings.count > 0 ? Math.round((recentMeetings.count / meetingCount.count) * 100) : 0,
-      revenueGrowth: 15.7, // Mock growth
-      activityGrowth: recentTasks.count > 0 ? Math.round((recentTasks.count / taskCount.count) * 100) : 0
+      totalProjects: projectCount.count,
+      totalTasks: taskCount.count,
+      totalMeetings: meetingCount.count,
+      tasksLast30Days: recentTasks.count,
+      meetingsLast7Days: recentMeetings.count
     })
   } catch (error) {
     console.error('[Admin API] Dashboard metrics error:', error)
@@ -2391,23 +2421,37 @@ app.get('/api/admin/metrics/dashboard', requireAdmin, (req, res) => {
   }
 })
 
-// System health
+// System health. Real values from process/os/db. Drops the previous
+// Math.random() placeholders (responseTime, connections, cpu, memory).
 app.get('/api/admin/system/health', requireAdmin, (req, res) => {
   try {
+    const memUsage = process.memoryUsage()
     const dbStats = dbInstance.prepare("SELECT COUNT(*) as tables FROM sqlite_master WHERE type='table'").get()
     const taskCount = dbInstance.prepare('SELECT COUNT(*) as count FROM tasks').get()
 
+    let dbStatus = 'healthy'
+    try {
+      dbInstance.prepare('SELECT 1').get()
+    } catch (_e) {
+      dbStatus = 'unhealthy'
+    }
+
     res.json({
-      api: { status: 'healthy', responseTime: Math.floor(Math.random() * 200) + 50 },
+      api: { status: 'healthy', uptimeSeconds: Math.floor(process.uptime()) },
       database: {
-        status: 'healthy',
-        connections: Math.floor(Math.random() * 20) + 30,
+        status: dbStatus,
         tables: dbStats.tables,
         totalTasks: taskCount.count
       },
-      memory: { usage: Math.floor(Math.random() * 30) + 40 },
-      cpu: { usage: Math.floor(Math.random() * 50) + 20 },
-      uptime: '7d 14h 23m'
+      memory: {
+        rssBytes: memUsage.rss,
+        heapUsedBytes: memUsage.heapUsed,
+        heapTotalBytes: memUsage.heapTotal
+      },
+      node: {
+        version: process.version,
+        platform: process.platform
+      }
     })
   } catch (error) {
     console.error('[Admin API] System health error:', error)

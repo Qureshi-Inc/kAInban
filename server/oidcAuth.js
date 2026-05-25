@@ -247,43 +247,65 @@ export function findOrCreateOIDCUser(userinfo, issuer) {
     return user
   }
 
-  // Account-linking by verified email. Both sides must be verified to prevent
-  // takeover via an unverified Zitadel email squatting on a real account.
+  // We need the resolved tenant first - the email-linking path below must
+  // be scoped to it to prevent cross-tenant account takeover. Concretely:
+  // if alice@acme.com exists in tenant X (verified) and a Zitadel-side
+  // account with the same email is created in tenant Y, linking by email
+  // alone would silently move alice from X to Y. Both sides must agree on
+  // tenant before linking.
+  const tenant = resolveTenantForUserinfo(userinfo)
+
+  // Account-linking by verified email. Both sides must be verified AND
+  // share the same tenant to prevent cross-tenant account takeover.
   //
   // We accept linking from local-auth rows AND from previous-OIDC-provider
   // rows (e.g. PocketID -> Zitadel migration). The Zitadel-side
-  // email_verified=true gate is the security boundary; pre-creating the
-  // bootstrap admin user in Zitadel before deploy prevents squat attacks.
+  // email_verified=true gate is the security boundary; the tenant_id check
+  // below is the multi-tenancy guardrail.
   if (claimedEmail && claimedEmailVerified) {
     const existing = db.getUserByEmail(claimedEmail)
     if (existing && existing.email_verified === 1) {
-      const reason =
-        existing.auth_provider === 'local'
-          ? 'local-auth row'
-          : `prior OIDC issuer ${existing.oidc_issuer || 'unknown'}`
-      console.log(
-        '[OIDC] Linking Zitadel sub to existing user:',
-        existing.email,
-        '(was',
-        reason + ')'
-      )
-      user = db.updateUser(existing.id, {
-        oidc_issuer: issuer,
-        oidc_sub: sub,
-        auth_provider: 'oidc',
-        email_verified: 1,
-        name: userinfo.name || existing.name,
-        picture: userinfo.picture || existing.picture
-      })
-      db.updateUserLogin(user.id)
-      return user
+      // Tenant gate: only link if the existing row is in the same tenant
+      // we resolved for this login. Skip the link otherwise (will fall
+      // through to user creation, which may then collide with the table-
+      // level UNIQUE on users.email - that's a pre-existing schema issue
+      // tracked separately, but a 500 from a UNIQUE failure is far better
+      // than a silent cross-tenant account takeover).
+      if (existing.tenant_id && tenant.id && existing.tenant_id !== tenant.id) {
+        console.warn(
+          '[OIDC] Refusing email-link across tenants:',
+          existing.email,
+          'existing tenant=', existing.tenant_id,
+          'resolved tenant=', tenant.id
+        )
+      } else {
+        const reason =
+          existing.auth_provider === 'local'
+            ? 'local-auth row'
+            : `prior OIDC issuer ${existing.oidc_issuer || 'unknown'}`
+        console.log(
+          '[OIDC] Linking Zitadel sub to existing user:',
+          existing.email,
+          '(was',
+          reason + ')'
+        )
+        user = db.updateUser(existing.id, {
+          oidc_issuer: issuer,
+          oidc_sub: sub,
+          auth_provider: 'oidc',
+          email_verified: 1,
+          name: userinfo.name || existing.name,
+          picture: userinfo.picture || existing.picture
+        })
+        db.updateUserLogin(user.id)
+        return user
+      }
     }
   }
 
   // Create new user. Tenant resolution honors TENANT_STRATEGY env var:
   //   - zitadel_org: map from urn:kainban:org:id custom claim
   //   - default (or unset): single 'kainban' tenant for everyone
-  const tenant = resolveTenantForUserinfo(userinfo)
   const role = determineRoleForNewUser(claimedEmail)
 
   user = db.createUser({
