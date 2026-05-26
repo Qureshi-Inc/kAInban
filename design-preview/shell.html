@@ -1,0 +1,2593 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>kAInban — v3.1 Shell Preview</title>
+    <link rel="preconnect" href="https://rsms.me/" />
+    <link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* =========================================================
+         kAInban v3.1 — AI-native Workspace Shell Preview
+         Aesthetic inherited from v3 (Workhorse Dark + warm amber).
+         New: app shell architecture, view switcher, inspector,
+         command palette, compact task rows.
+         ========================================================= */
+
+      :root[data-theme='dark'] {
+        --bg-base: #0a0a0b;
+        --bg-raised: #141517;
+        --bg-elevated: #1b1c1f;
+        --bg-emphasis: #232428;
+        --hairline-low: #26282b;
+        --hairline-mid: #34363a;
+        --hairline-high: #4a4d52;
+        --accent: #e59149;
+        --accent-hover: #f0a05c;
+        --accent-press: #c87a36;
+        --accent-soft: rgba(229, 145, 73, 0.1);
+        --accent-soft-strong: rgba(229, 145, 73, 0.18);
+        --accent-border: rgba(229, 145, 73, 0.4);
+        --text-primary: #f5f4f1;
+        --text-secondary: #a4a29b;
+        --text-muted: #6b6963;
+        --text-inverse: #15161a;
+        --success: #5a9f6b;
+        --success-soft: rgba(90, 159, 107, 0.12);
+        --warning: #d9a23a;
+        --warning-soft: rgba(217, 162, 58, 0.12);
+        --danger: #c56152;
+        --danger-soft: rgba(197, 97, 82, 0.12);
+        --info: #6b8db3;
+        --info-soft: rgba(107, 141, 179, 0.12);
+        --shadow-pop: 0 12px 32px rgba(0, 0, 0, 0.5);
+      }
+
+      :root[data-theme='light'] {
+        --bg-base: #faf7f2;
+        --bg-raised: #ffffff;
+        --bg-elevated: #f4f1ea;
+        --bg-emphasis: #ebe7df;
+        --hairline-low: #e2ddd2;
+        --hairline-mid: #c8c2b3;
+        --hairline-high: #a8a195;
+        --accent: #c66e1f;
+        --accent-hover: #b25e16;
+        --accent-press: #9c5417;
+        --accent-soft: rgba(198, 110, 31, 0.1);
+        --accent-soft-strong: rgba(198, 110, 31, 0.18);
+        --accent-border: rgba(198, 110, 31, 0.35);
+        --text-primary: #15161a;
+        --text-secondary: #4d4a44;
+        --text-muted: #84807a;
+        --text-inverse: #ffffff;
+        --success: #2f7a45;
+        --success-soft: rgba(47, 122, 69, 0.12);
+        --warning: #a8761f;
+        --warning-soft: rgba(168, 118, 31, 0.14);
+        --danger: #a04738;
+        --danger-soft: rgba(160, 71, 56, 0.12);
+        --info: #2f5a8c;
+        --info-soft: rgba(47, 90, 140, 0.12);
+        --shadow-pop: 0 12px 32px rgba(0, 0, 0, 0.12);
+      }
+
+      :root {
+        --font-sans:
+          'Inter Variable', 'Inter', -apple-system, BlinkMacSystemFont,
+          sans-serif;
+        --font-serif: 'Instrument Serif', 'Iowan Old Style', Palatino, Georgia,
+          serif;
+        --font-mono:
+          'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Monaco, Consolas,
+          monospace;
+        --radius-xs: 4px;
+        --radius-sm: 6px;
+        --radius-md: 8px;
+        --radius-lg: 12px;
+        --radius-full: 9999px;
+        --ease: cubic-bezier(0.16, 1, 0.3, 1);
+        --dur-fast: 120ms;
+        --dur-base: 180ms;
+        --dur-slow: 320ms;
+        --sidebar-w: 240px;
+        --sidebar-rail-w: 56px;
+        --inspector-w: 384px;
+        --topbar-h: 44px;
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        background: var(--bg-base);
+        color: var(--text-primary);
+        font-family: var(--font-sans);
+        font-feature-settings: 'cv01', 'ss03', 'ss01';
+        font-variation-settings: 'wght' 400;
+        font-size: 13px;
+        line-height: 1.55;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      .mono {
+        font-family: var(--font-mono);
+        font-variant-numeric: tabular-nums;
+        letter-spacing: -0.02em;
+      }
+      .serif {
+        font-family: var(--font-serif);
+        font-weight: 400;
+      }
+      .ui {
+        font-size: 12px;
+        font-variation-settings: 'wght' 510;
+      }
+      .caption {
+        font-size: 11px;
+        font-variation-settings: 'wght' 510;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+      }
+
+      /* ========== Page chrome (the preview wrapper) ========== */
+
+      .preview-bar {
+        position: sticky;
+        top: 0;
+        z-index: 30;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 16px;
+        background: var(--bg-raised);
+        border-bottom: 1px solid var(--hairline-low);
+      }
+      .preview-bar .brand {
+        font-family: var(--font-serif);
+        font-size: 18px;
+        color: var(--text-primary);
+      }
+      .preview-bar .badge {
+        font-family: var(--font-mono);
+        font-size: 10px;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        padding: 3px 8px;
+        border-radius: var(--radius-xs);
+        background: var(--accent-soft);
+        color: var(--accent);
+        border: 1px solid var(--accent-border);
+      }
+      .preview-bar .spacer {
+        flex: 1;
+      }
+      .preview-bar button {
+        font: inherit;
+        font-size: 12px;
+        font-variation-settings: 'wght' 510;
+        background: var(--bg-emphasis);
+        color: var(--text-primary);
+        border: 1px solid var(--hairline-mid);
+        border-radius: var(--radius-sm);
+        padding: 6px 10px;
+        cursor: pointer;
+        transition:
+          background var(--dur-fast) var(--ease),
+          border-color var(--dur-fast) var(--ease);
+      }
+      .preview-bar button:hover {
+        background: var(--bg-elevated);
+        border-color: var(--hairline-high);
+      }
+      .preview-bar button.primary {
+        background: var(--accent);
+        color: var(--text-inverse);
+        border-color: transparent;
+      }
+      .preview-bar button.primary:hover {
+        background: var(--accent-hover);
+      }
+      .preview-bar .kbd {
+        font-family: var(--font-mono);
+        font-size: 10px;
+        padding: 2px 6px;
+        border-radius: var(--radius-xs);
+        background: var(--bg-emphasis);
+        color: var(--text-secondary);
+        border: 1px solid var(--hairline-mid);
+        margin-left: 4px;
+      }
+
+      .preview-section {
+        padding: 32px 24px 16px;
+        max-width: 1400px;
+        margin: 0 auto;
+      }
+      .preview-section h2 {
+        font-size: 20px;
+        font-variation-settings: 'wght' 510;
+        margin: 0 0 4px;
+        letter-spacing: -0.22px;
+      }
+      .preview-section .lede {
+        color: var(--text-secondary);
+        margin: 0 0 16px;
+        font-size: 13px;
+        max-width: 72ch;
+      }
+
+      /* ========== The app shell ========== */
+
+      .shell {
+        display: grid;
+        grid-template-columns: var(--sidebar-w) 1fr var(--inspector-w);
+        height: 720px;
+        background: var(--bg-base);
+        border: 1px solid var(--hairline-low);
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+        margin: 0 auto;
+        max-width: 1400px;
+      }
+
+      /* --- Sidebar --- */
+      .sidebar {
+        background: var(--bg-raised);
+        border-right: 1px solid var(--hairline-low);
+        display: flex;
+        flex-direction: column;
+      }
+      .sidebar-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--hairline-low);
+        height: var(--topbar-h);
+      }
+      .workspace-switcher {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 4px 8px 4px 4px;
+        border-radius: var(--radius-sm);
+        cursor: pointer;
+        width: 100%;
+        transition: background var(--dur-fast) var(--ease);
+      }
+      .workspace-switcher:hover {
+        background: var(--bg-elevated);
+      }
+      .workspace-glyph {
+        width: 22px;
+        height: 22px;
+        border-radius: var(--radius-xs);
+        background: var(--accent);
+        color: var(--text-inverse);
+        font-family: var(--font-serif);
+        font-size: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+      }
+      .workspace-name {
+        font-size: 12px;
+        font-variation-settings: 'wght' 510;
+        color: var(--text-primary);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        flex: 1;
+      }
+      .workspace-chevron {
+        width: 14px;
+        height: 14px;
+        color: var(--text-muted);
+        flex-shrink: 0;
+      }
+
+      .nav-group {
+        padding: 8px 6px;
+      }
+      .nav-group + .nav-group {
+        border-top: 1px solid var(--hairline-low);
+      }
+      .nav-eyebrow {
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--text-muted);
+        padding: 6px 8px;
+        font-variation-settings: 'wght' 510;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .nav-eyebrow .nav-action {
+        opacity: 0;
+        transition: opacity var(--dur-fast) var(--ease);
+        cursor: pointer;
+        width: 16px;
+        height: 16px;
+        color: var(--text-muted);
+      }
+      .nav-group:hover .nav-action {
+        opacity: 1;
+      }
+      .nav-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 6px 8px;
+        border-radius: var(--radius-sm);
+        font-size: 12px;
+        font-variation-settings: 'wght' 510;
+        color: var(--text-secondary);
+        cursor: pointer;
+        transition:
+          background var(--dur-fast) var(--ease),
+          color var(--dur-fast) var(--ease);
+      }
+      .nav-item:hover {
+        background: var(--bg-elevated);
+        color: var(--text-primary);
+      }
+      .nav-item.active {
+        background: var(--bg-emphasis);
+        color: var(--text-primary);
+      }
+      .nav-item svg {
+        width: 14px;
+        height: 14px;
+        flex-shrink: 0;
+        color: var(--text-muted);
+      }
+      .nav-item.active svg {
+        color: var(--accent);
+      }
+      .nav-item .count {
+        margin-left: auto;
+        font-family: var(--font-mono);
+        font-size: 10px;
+        font-variation-settings: 'wght' 400;
+        color: var(--text-muted);
+      }
+      .nav-item.active .count {
+        color: var(--text-secondary);
+      }
+      .nav-tree-item {
+        padding-left: 28px;
+      }
+
+      .sidebar-footer {
+        margin-top: auto;
+        padding: 8px 6px;
+        border-top: 1px solid var(--hairline-low);
+      }
+      .user-card {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 4px 8px;
+        border-radius: var(--radius-sm);
+        cursor: pointer;
+        transition: background var(--dur-fast) var(--ease);
+      }
+      .user-card:hover {
+        background: var(--bg-elevated);
+      }
+      .avatar {
+        width: 22px;
+        height: 22px;
+        border-radius: var(--radius-full);
+        background: linear-gradient(180deg, #f0a05c, #c87a36);
+        color: var(--text-inverse);
+        font-size: 10px;
+        font-variation-settings: 'wght' 510;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+      }
+      .user-meta {
+        display: flex;
+        flex-direction: column;
+        line-height: 1.2;
+        min-width: 0;
+      }
+      .user-name {
+        font-size: 12px;
+        font-variation-settings: 'wght' 510;
+        color: var(--text-primary);
+      }
+      .user-email {
+        font-size: 10px;
+        color: var(--text-muted);
+        font-family: var(--font-mono);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      /* --- Top command bar --- */
+      .main {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+      }
+      .topbar {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 0 14px;
+        height: var(--topbar-h);
+        border-bottom: 1px solid var(--hairline-low);
+        background: var(--bg-raised);
+      }
+      .crumbs {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        color: var(--text-secondary);
+      }
+      .crumbs .sep {
+        color: var(--text-muted);
+      }
+      .crumbs .current {
+        color: var(--text-primary);
+        font-variation-settings: 'wght' 510;
+      }
+      .crumbs .id {
+        font-family: var(--font-mono);
+        font-size: 10px;
+        color: var(--text-muted);
+        margin-left: 4px;
+      }
+      .palette-trigger {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 5px 8px 5px 10px;
+        border-radius: var(--radius-sm);
+        background: var(--bg-emphasis);
+        color: var(--text-secondary);
+        border: 1px solid var(--hairline-mid);
+        cursor: pointer;
+        font-size: 12px;
+        min-width: 220px;
+        transition: border-color var(--dur-fast) var(--ease);
+      }
+      .palette-trigger:hover {
+        border-color: var(--hairline-high);
+      }
+      .palette-trigger svg {
+        width: 12px;
+        height: 12px;
+        color: var(--text-muted);
+      }
+      .palette-trigger .placeholder {
+        flex: 1;
+        color: var(--text-muted);
+      }
+      .palette-trigger .kbd-group {
+        display: flex;
+        gap: 2px;
+      }
+      .kbd-sm {
+        font-family: var(--font-mono);
+        font-size: 10px;
+        padding: 1px 5px;
+        border-radius: var(--radius-xs);
+        background: var(--bg-base);
+        color: var(--text-secondary);
+        border: 1px solid var(--hairline-low);
+      }
+      .topbar-spacer {
+        flex: 1;
+      }
+      .topbar-action {
+        width: 28px;
+        height: 28px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: var(--radius-sm);
+        color: var(--text-secondary);
+        cursor: pointer;
+        transition:
+          background var(--dur-fast) var(--ease),
+          color var(--dur-fast) var(--ease);
+      }
+      .topbar-action:hover {
+        background: var(--bg-emphasis);
+        color: var(--text-primary);
+      }
+      .topbar-action svg {
+        width: 14px;
+        height: 14px;
+      }
+      .presence {
+        width: 6px;
+        height: 6px;
+        border-radius: var(--radius-full);
+        background: var(--success);
+        margin-left: 2px;
+      }
+
+      /* --- View switcher + filters bar --- */
+      .view-bar {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 14px;
+        border-bottom: 1px solid var(--hairline-low);
+        background: var(--bg-base);
+      }
+      .view-switcher {
+        display: flex;
+        background: var(--bg-emphasis);
+        border: 1px solid var(--hairline-mid);
+        border-radius: var(--radius-sm);
+        padding: 2px;
+        gap: 2px;
+      }
+      .view-tab {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 3px 10px;
+        border-radius: 4px;
+        font-size: 11px;
+        font-variation-settings: 'wght' 510;
+        color: var(--text-secondary);
+        cursor: pointer;
+        background: transparent;
+        border: 0;
+        transition:
+          background var(--dur-fast) var(--ease),
+          color var(--dur-fast) var(--ease);
+      }
+      .view-tab svg {
+        width: 12px;
+        height: 12px;
+      }
+      .view-tab:hover {
+        color: var(--text-primary);
+      }
+      .view-tab.active {
+        background: var(--bg-raised);
+        color: var(--text-primary);
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+      }
+      .view-bar .pill {
+        font-size: 11px;
+        font-variation-settings: 'wght' 510;
+        padding: 3px 10px;
+        border-radius: var(--radius-sm);
+        color: var(--text-secondary);
+        border: 1px solid transparent;
+        background: transparent;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .view-bar .pill:hover {
+        background: var(--bg-emphasis);
+      }
+      .view-bar .pill svg {
+        width: 11px;
+        height: 11px;
+        color: var(--text-muted);
+      }
+      .view-bar-spacer {
+        flex: 1;
+      }
+      .group-by {
+        font-size: 11px;
+        color: var(--text-muted);
+      }
+      .group-by .val {
+        color: var(--text-secondary);
+        font-variation-settings: 'wght' 510;
+      }
+
+      /* --- Main canvas --- */
+      .canvas {
+        flex: 1;
+        overflow: auto;
+      }
+      .canvas[data-view='kanban'] .list-view {
+        display: none;
+      }
+      .canvas[data-view='list'] .kanban-view {
+        display: none;
+      }
+
+      /* --- Kanban view --- */
+      .kanban-view {
+        display: flex;
+        gap: 8px;
+        padding: 12px;
+        align-items: flex-start;
+        min-height: 100%;
+      }
+      .kanban-column {
+        width: 248px;
+        flex-shrink: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .column-header {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 6px;
+      }
+      .column-header .dot {
+        width: 6px;
+        height: 6px;
+        border-radius: var(--radius-full);
+      }
+      .column-header .label {
+        font-size: 11px;
+        font-variation-settings: 'wght' 510;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--text-secondary);
+      }
+      .column-header .count {
+        font-family: var(--font-mono);
+        font-size: 10px;
+        color: var(--text-muted);
+      }
+      .column-header .add {
+        margin-left: auto;
+        width: 18px;
+        height: 18px;
+        border-radius: var(--radius-xs);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        color: var(--text-muted);
+      }
+      .column-header .add:hover {
+        background: var(--bg-emphasis);
+        color: var(--text-primary);
+      }
+
+      .task-card {
+        background: var(--bg-elevated);
+        border: 1px solid var(--hairline-low);
+        border-radius: var(--radius-sm);
+        padding: 10px 12px;
+        cursor: pointer;
+        transition: border-color var(--dur-fast) var(--ease);
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .task-card:hover {
+        border-color: var(--hairline-mid);
+      }
+      .task-card.ai-active {
+        border-color: var(--accent-border);
+        animation: ai-border-pulse 1.6s var(--ease) infinite;
+      }
+      .task-card .title {
+        font-size: 13px;
+        font-variation-settings: 'wght' 510;
+        color: var(--text-primary);
+        line-height: 1.35;
+      }
+      .task-card .meta {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .task-card .meta .id {
+        font-family: var(--font-mono);
+        font-size: 10px;
+        color: var(--text-muted);
+      }
+      .task-card .meta .date {
+        font-family: var(--font-mono);
+        font-size: 10px;
+        color: var(--text-secondary);
+      }
+      .task-card .meta .avatar-sm {
+        width: 16px;
+        height: 16px;
+        border-radius: var(--radius-full);
+        background: linear-gradient(180deg, #5a9f6b, #2f7a45);
+        color: var(--text-inverse);
+        font-size: 9px;
+        font-variation-settings: 'wght' 510;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-left: auto;
+      }
+
+      .chip {
+        font-size: 10px;
+        font-variation-settings: 'wght' 510;
+        padding: 1px 6px;
+        border-radius: var(--radius-full);
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+      }
+      .chip.priority-high {
+        background: var(--danger-soft);
+        color: var(--danger);
+      }
+      .chip.priority-med {
+        background: var(--warning-soft);
+        color: var(--warning);
+      }
+      .chip.priority-low {
+        background: var(--info-soft);
+        color: var(--info);
+      }
+      .chip.priority-done {
+        background: var(--success-soft);
+        color: var(--success);
+      }
+      .chip.ai {
+        background: var(--accent-soft);
+        color: var(--accent);
+        border: 1px solid var(--accent-border);
+        padding: 0 6px;
+      }
+      .chip.ai svg {
+        width: 9px;
+        height: 9px;
+      }
+
+      @keyframes ai-border-pulse {
+        0%,
+        100% {
+          border-color: var(--accent-border);
+        }
+        50% {
+          border-color: var(--accent);
+        }
+      }
+
+      /* --- Task list view --- */
+      .list-view {
+        padding: 8px 12px 24px;
+      }
+      .list-group {
+        margin-bottom: 4px;
+      }
+      .list-group-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 6px 4px;
+        border-bottom: 1px solid var(--hairline-low);
+        margin-bottom: 2px;
+      }
+      .list-group-header .dot {
+        width: 6px;
+        height: 6px;
+        border-radius: var(--radius-full);
+      }
+      .list-group-header .label {
+        font-size: 11px;
+        font-variation-settings: 'wght' 510;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--text-secondary);
+      }
+      .list-group-header .count {
+        font-family: var(--font-mono);
+        font-size: 10px;
+        color: var(--text-muted);
+      }
+      .list-group-header .add-row {
+        margin-left: auto;
+        font-size: 11px;
+        color: var(--text-muted);
+        cursor: pointer;
+        padding: 2px 8px;
+        border-radius: var(--radius-xs);
+      }
+      .list-group-header .add-row:hover {
+        background: var(--bg-emphasis);
+        color: var(--text-primary);
+      }
+
+      .task-row {
+        display: grid;
+        grid-template-columns: 20px 56px 1fr auto auto auto auto;
+        align-items: center;
+        gap: 10px;
+        padding: 6px 8px;
+        border-radius: var(--radius-sm);
+        cursor: pointer;
+        transition: background var(--dur-fast) var(--ease);
+        font-size: 13px;
+        min-height: 32px;
+      }
+      .task-row:hover {
+        background: var(--bg-elevated);
+      }
+      .task-row.selected {
+        background: var(--bg-emphasis);
+      }
+      .task-row .status-dot {
+        width: 12px;
+        height: 12px;
+        border-radius: var(--radius-full);
+        border: 1.5px solid var(--text-muted);
+        background: transparent;
+      }
+      .task-row .status-dot.in-progress {
+        border-color: var(--info);
+        background: conic-gradient(
+          var(--info) 270deg,
+          transparent 270deg 360deg
+        );
+      }
+      .task-row .status-dot.done {
+        border-color: var(--success);
+        background: var(--success);
+      }
+      .task-row .status-dot.blocked {
+        border-color: var(--danger);
+        background: var(--danger);
+      }
+      .task-row .id {
+        font-family: var(--font-mono);
+        font-size: 11px;
+        color: var(--text-muted);
+        letter-spacing: -0.02em;
+      }
+      .task-row .title {
+        color: var(--text-primary);
+        font-variation-settings: 'wght' 510;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .task-row .row-meta {
+        font-size: 11px;
+        color: var(--text-muted);
+        font-family: var(--font-mono);
+      }
+      .task-row .avatar-sm {
+        width: 18px;
+        height: 18px;
+        border-radius: var(--radius-full);
+        background: linear-gradient(180deg, #6b8db3, #2f5a8c);
+        color: var(--text-inverse);
+        font-size: 9px;
+        font-variation-settings: 'wght' 510;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .task-row .avatar-sm.warm {
+        background: linear-gradient(180deg, #f0a05c, #c87a36);
+      }
+      .task-row .avatar-sm.green {
+        background: linear-gradient(180deg, #5a9f6b, #2f7a45);
+      }
+
+      /* --- Inspector panel --- */
+      .inspector {
+        border-left: 1px solid var(--hairline-low);
+        background: var(--bg-raised);
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+      }
+      .inspector-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 14px;
+        border-bottom: 1px solid var(--hairline-low);
+        height: var(--topbar-h);
+      }
+      .inspector-header .id {
+        font-family: var(--font-mono);
+        font-size: 11px;
+        color: var(--text-muted);
+      }
+      .inspector-header .actions {
+        margin-left: auto;
+        display: flex;
+        gap: 4px;
+      }
+      .inspector-tabs {
+        display: flex;
+        gap: 4px;
+        padding: 8px 12px 0;
+        border-bottom: 1px solid var(--hairline-low);
+      }
+      .inspector-tab {
+        font-size: 11px;
+        font-variation-settings: 'wght' 510;
+        padding: 6px 10px;
+        color: var(--text-secondary);
+        cursor: pointer;
+        border-bottom: 1px solid transparent;
+        margin-bottom: -1px;
+      }
+      .inspector-tab.active {
+        color: var(--text-primary);
+        border-bottom-color: var(--accent);
+      }
+      .inspector-body {
+        flex: 1;
+        overflow: auto;
+        padding: 14px 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+      }
+      .inspector-title {
+        font-size: 16px;
+        font-variation-settings: 'wght' 510;
+        color: var(--text-primary);
+        line-height: 1.3;
+        margin: 0;
+      }
+      .field {
+        display: grid;
+        grid-template-columns: 90px 1fr;
+        align-items: center;
+        gap: 8px;
+        font-size: 12px;
+      }
+      .field-label {
+        color: var(--text-muted);
+        font-variation-settings: 'wght' 510;
+      }
+      .field-value {
+        color: var(--text-primary);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .field-value .avatar-sm {
+        width: 18px;
+        height: 18px;
+        border-radius: var(--radius-full);
+        background: linear-gradient(180deg, #5a9f6b, #2f7a45);
+        color: var(--text-inverse);
+        font-size: 9px;
+        font-variation-settings: 'wght' 510;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .ai-block {
+        border: 1px solid var(--accent-border);
+        background: var(--accent-soft);
+        border-radius: var(--radius-sm);
+        padding: 10px 12px;
+      }
+      .ai-block .head {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin-bottom: 6px;
+      }
+      .ai-block .head .label {
+        font-size: 11px;
+        font-variation-settings: 'wght' 510;
+        color: var(--accent);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+      .ai-block .summary {
+        font-family: var(--font-serif);
+        font-size: 13px;
+        color: var(--text-primary);
+        line-height: 1.45;
+      }
+      .ai-block .src {
+        font-family: var(--font-mono);
+        font-size: 10px;
+        color: var(--text-muted);
+        margin-top: 6px;
+      }
+
+      .subtask {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 4px 6px;
+        font-size: 12px;
+        border-radius: var(--radius-xs);
+      }
+      .subtask:hover {
+        background: var(--bg-elevated);
+      }
+      .subtask .check {
+        width: 12px;
+        height: 12px;
+        border-radius: var(--radius-xs);
+        border: 1.5px solid var(--text-muted);
+      }
+      .subtask.done .check {
+        background: var(--success);
+        border-color: var(--success);
+      }
+      .subtask.done .text {
+        color: var(--text-muted);
+        text-decoration: line-through;
+      }
+
+      .ai-suggest {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 8px;
+        border-radius: var(--radius-xs);
+        cursor: pointer;
+        font-size: 11px;
+        color: var(--accent);
+        font-variation-settings: 'wght' 510;
+      }
+      .ai-suggest:hover {
+        background: var(--accent-soft);
+      }
+      .ai-suggest svg {
+        width: 12px;
+        height: 12px;
+      }
+
+      .activity {
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+      }
+      .activity-item {
+        display: grid;
+        grid-template-columns: 18px 1fr;
+        gap: 8px;
+        padding: 6px 0;
+        font-size: 11px;
+        line-height: 1.45;
+      }
+      .activity-item .dot {
+        width: 6px;
+        height: 6px;
+        border-radius: var(--radius-full);
+        background: var(--text-muted);
+        margin-top: 6px;
+        margin-left: 6px;
+      }
+      .activity-item .dot.ai {
+        background: var(--accent);
+      }
+      .activity-item .who {
+        color: var(--text-primary);
+        font-variation-settings: 'wght' 510;
+      }
+      .activity-item .what {
+        color: var(--text-secondary);
+      }
+      .activity-item .when {
+        color: var(--text-muted);
+        font-family: var(--font-mono);
+        font-size: 10px;
+      }
+
+      .inspector-footer {
+        border-top: 1px solid var(--hairline-low);
+        padding: 10px 12px;
+        display: flex;
+        gap: 6px;
+      }
+      .inspector-footer button {
+        flex: 1;
+        font: inherit;
+        font-size: 11px;
+        font-variation-settings: 'wght' 510;
+        background: var(--bg-emphasis);
+        color: var(--text-primary);
+        border: 1px solid var(--hairline-mid);
+        border-radius: var(--radius-sm);
+        padding: 6px 10px;
+        cursor: pointer;
+      }
+      .inspector-footer button:hover {
+        background: var(--bg-elevated);
+      }
+      .inspector-footer button.primary {
+        background: var(--accent);
+        color: var(--text-inverse);
+        border-color: transparent;
+      }
+      .inspector-footer button.primary:hover {
+        background: var(--accent-hover);
+      }
+
+      /* ========== Command palette overlay ========== */
+
+      .palette-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.55);
+        z-index: 100;
+        display: none;
+        align-items: flex-start;
+        justify-content: center;
+        padding-top: 14vh;
+      }
+      .palette-overlay.open {
+        display: flex;
+      }
+      .palette {
+        width: 560px;
+        max-width: calc(100vw - 32px);
+        background: var(--bg-elevated);
+        border: 1px solid var(--hairline-mid);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-pop);
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        max-height: 60vh;
+      }
+      .palette-input {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 14px;
+        border-bottom: 1px solid var(--hairline-low);
+      }
+      .palette-input svg {
+        width: 14px;
+        height: 14px;
+        color: var(--text-muted);
+      }
+      .palette-input input {
+        flex: 1;
+        background: transparent;
+        border: 0;
+        outline: 0;
+        color: var(--text-primary);
+        font: inherit;
+        font-size: 14px;
+      }
+      .palette-input input::placeholder {
+        color: var(--text-muted);
+      }
+      .palette-input .esc {
+        font-family: var(--font-mono);
+        font-size: 10px;
+        padding: 2px 6px;
+        border-radius: var(--radius-xs);
+        background: var(--bg-base);
+        color: var(--text-secondary);
+        border: 1px solid var(--hairline-low);
+      }
+      .palette-body {
+        overflow: auto;
+        padding: 4px;
+      }
+      .palette-group {
+        padding: 4px 0 8px;
+      }
+      .palette-group-label {
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--text-muted);
+        padding: 6px 10px 4px;
+        font-variation-settings: 'wght' 510;
+      }
+      .palette-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 7px 10px;
+        border-radius: var(--radius-sm);
+        cursor: pointer;
+        font-size: 13px;
+        color: var(--text-primary);
+      }
+      .palette-item.active {
+        background: var(--bg-emphasis);
+      }
+      .palette-item svg {
+        width: 14px;
+        height: 14px;
+        color: var(--text-secondary);
+        flex-shrink: 0;
+      }
+      .palette-item.ai svg,
+      .palette-item.ai .label {
+        color: var(--accent);
+      }
+      .palette-item .label {
+        flex: 1;
+        font-variation-settings: 'wght' 400;
+      }
+      .palette-item .label.bold {
+        font-variation-settings: 'wght' 510;
+      }
+      .palette-item .label .hint {
+        color: var(--text-muted);
+        font-family: var(--font-mono);
+        font-size: 10px;
+        margin-left: 8px;
+      }
+      .palette-item .shortcut {
+        display: flex;
+        gap: 2px;
+      }
+
+      /* ========== Spec / system cards ========== */
+
+      .cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 12px;
+        max-width: 1400px;
+        margin: 12px auto 0;
+      }
+      .card {
+        background: var(--bg-raised);
+        border: 1px solid var(--hairline-low);
+        border-radius: var(--radius-md);
+        padding: 16px;
+      }
+      .card h3 {
+        margin: 0 0 4px;
+        font-size: 14px;
+        font-variation-settings: 'wght' 510;
+      }
+      .card .lede {
+        font-size: 12px;
+        color: var(--text-secondary);
+        margin: 0 0 12px;
+      }
+      .swatch-row {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 4px;
+      }
+      .swatch {
+        display: grid;
+        grid-template-columns: 28px 1fr auto;
+        align-items: center;
+        gap: 10px;
+        padding: 4px 0;
+      }
+      .swatch .chip-color {
+        width: 22px;
+        height: 22px;
+        border-radius: var(--radius-xs);
+        border: 1px solid var(--hairline-mid);
+      }
+      .swatch .name {
+        font-size: 11px;
+        font-family: var(--font-mono);
+        color: var(--text-secondary);
+      }
+      .swatch .hex {
+        font-size: 10px;
+        font-family: var(--font-mono);
+        color: var(--text-muted);
+      }
+
+      .principles {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .principles li {
+        display: grid;
+        grid-template-columns: 18px 1fr;
+        gap: 8px;
+        font-size: 12px;
+        line-height: 1.5;
+        color: var(--text-secondary);
+      }
+      .principles li::before {
+        content: '·';
+        color: var(--accent);
+        text-align: center;
+        line-height: 1;
+      }
+      .principles li b {
+        color: var(--text-primary);
+        font-variation-settings: 'wght' 510;
+      }
+
+      .footer-note {
+        text-align: center;
+        font-family: var(--font-mono);
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--text-muted);
+        padding: 32px 24px 24px;
+      }
+
+      /* ========== Mobile responsive ========== */
+      @media (max-width: 960px) {
+        .shell {
+          grid-template-columns: 1fr;
+          height: auto;
+          min-height: 600px;
+        }
+        .sidebar {
+          display: none;
+        }
+        .inspector {
+          display: none;
+        }
+        .preview-section {
+          padding: 24px 12px 8px;
+        }
+        .palette-trigger {
+          min-width: 0;
+        }
+        .palette-trigger .placeholder {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Preview bar -->
+    <div class="preview-bar">
+      <span class="brand">kAInban</span>
+      <span class="badge">DESIGN v3.1 PREVIEW</span>
+      <span class="spacer"></span>
+      <button onclick="openPalette()">
+        Show command palette <span class="kbd">⌘K</span>
+      </button>
+      <button id="theme-toggle" onclick="toggleTheme()">Light mode</button>
+    </div>
+
+    <!-- Section: The Shell -->
+    <div class="preview-section">
+      <h2>The app shell — three panes</h2>
+      <p class="lede">
+        Sidebar on the left (workspace + nav), command bar across the top
+        (breadcrumb + universal search), main canvas in the middle (switchable
+        between Kanban and Tasks), inspector panel on the right (replaces most
+        modals — task context stays visible).
+      </p>
+
+      <div class="shell">
+        <!-- =================== Sidebar =================== -->
+        <aside class="sidebar">
+          <div class="sidebar-header">
+            <div class="workspace-switcher">
+              <span class="workspace-glyph">k</span>
+              <span class="workspace-name">Qureshi Inc</span>
+              <svg
+                class="workspace-chevron"
+                viewBox="0 0 16 16"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+              >
+                <path d="M5 6l3 3 3-3" />
+              </svg>
+            </div>
+          </div>
+
+          <div class="nav-group">
+            <div class="nav-item active">
+              <svg
+                viewBox="0 0 16 16"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+              >
+                <path d="M2 4h12M2 4v8h12V4" />
+                <path d="M5 4V2h6v2" />
+              </svg>
+              <span>Inbox</span>
+              <span class="count">12</span>
+            </div>
+            <div class="nav-item">
+              <svg
+                viewBox="0 0 16 16"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+              >
+                <circle cx="8" cy="8" r="6" />
+                <path d="M8 4v4l3 2" />
+              </svg>
+              <span>Today</span>
+              <span class="count">5</span>
+            </div>
+            <div class="nav-item">
+              <svg
+                viewBox="0 0 16 16"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+              >
+                <path d="M2 2h12v6H8l-3 3v-3H2z" />
+              </svg>
+              <span>Activity</span>
+            </div>
+          </div>
+
+          <div class="nav-group">
+            <div class="nav-eyebrow">
+              <span>Projects</span>
+              <svg
+                class="nav-action"
+                viewBox="0 0 16 16"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+              >
+                <path d="M8 3v10M3 8h10" />
+              </svg>
+            </div>
+            <div class="nav-item">
+              <svg
+                viewBox="0 0 16 16"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+              >
+                <rect x="2" y="3" width="12" height="10" rx="1" />
+                <path d="M2 6h12" />
+              </svg>
+              <span>Q4 Launch</span>
+              <span class="count">18</span>
+            </div>
+            <div class="nav-item">
+              <svg
+                viewBox="0 0 16 16"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+              >
+                <rect x="2" y="3" width="12" height="10" rx="1" />
+                <path d="M2 6h12" />
+              </svg>
+              <span>Customer Calls</span>
+              <span class="count">7</span>
+            </div>
+            <div class="nav-item nav-tree-item">
+              <span>This week</span>
+              <span class="count">3</span>
+            </div>
+            <div class="nav-item nav-tree-item">
+              <span>Follow-ups</span>
+              <span class="count">4</span>
+            </div>
+            <div class="nav-item">
+              <svg
+                viewBox="0 0 16 16"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+              >
+                <rect x="2" y="3" width="12" height="10" rx="1" />
+                <path d="M2 6h12" />
+              </svg>
+              <span>Hiring</span>
+            </div>
+          </div>
+
+          <div class="nav-group">
+            <div class="nav-eyebrow"><span>Meetings</span></div>
+            <div class="nav-item">
+              <svg
+                viewBox="0 0 16 16"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+              >
+                <rect x="2" y="3" width="12" height="11" rx="1" />
+                <path d="M2 7h12M5 2v3M11 2v3" />
+              </svg>
+              <span>Recent</span>
+            </div>
+            <div class="nav-item">
+              <svg
+                viewBox="0 0 16 16"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+              >
+                <circle cx="8" cy="8" r="5" />
+                <path d="M8 5v3l2 1" />
+              </svg>
+              <span>Upcoming</span>
+              <span class="count">2</span>
+            </div>
+          </div>
+
+          <div class="sidebar-footer">
+            <div class="user-card">
+              <span class="avatar">MQ</span>
+              <span class="user-meta">
+                <span class="user-name">Moiz Qureshi</span>
+                <span class="user-email">moiz@qureshi.io</span>
+              </span>
+            </div>
+          </div>
+        </aside>
+
+        <!-- =================== Main canvas =================== -->
+        <section class="main">
+          <!-- Top command bar -->
+          <header class="topbar">
+            <div class="crumbs">
+              <span>Q4 Launch</span>
+              <span class="sep">/</span>
+              <span class="current">Tasks</span>
+              <span class="id">18</span>
+            </div>
+            <span class="topbar-spacer"></span>
+            <button class="palette-trigger" onclick="openPalette()">
+              <svg
+                viewBox="0 0 16 16"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+              >
+                <circle cx="7" cy="7" r="4.5" />
+                <path d="M11 11l3 3" />
+              </svg>
+              <span class="placeholder"
+                >Search tasks, projects, or ask AI…</span
+              >
+              <span class="kbd-group">
+                <span class="kbd-sm">⌘</span><span class="kbd-sm">K</span>
+              </span>
+            </button>
+            <div class="topbar-action" title="AI actions">
+              <svg
+                viewBox="0 0 16 16"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+              >
+                <path d="M8 2l1.5 4.5L14 8l-4.5 1.5L8 14l-1.5-4.5L2 8l4.5-1.5z" />
+              </svg>
+            </div>
+            <div class="topbar-action" title="Notifications">
+              <svg
+                viewBox="0 0 16 16"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+              >
+                <path
+                  d="M3 12h10l-1-2V7a4 4 0 00-8 0v3z M6 14a2 2 0 004 0"
+                />
+              </svg>
+            </div>
+            <div class="presence" title="Online"></div>
+          </header>
+
+          <!-- View switcher + filters -->
+          <div class="view-bar">
+            <div class="view-switcher" id="view-switcher">
+              <button class="view-tab active" data-view="kanban">
+                <svg
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.5"
+                >
+                  <rect x="2" y="3" width="3.5" height="10" />
+                  <rect x="6.25" y="3" width="3.5" height="7" />
+                  <rect x="10.5" y="3" width="3.5" height="10" />
+                </svg>
+                Kanban
+              </button>
+              <button class="view-tab" data-view="list">
+                <svg
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.5"
+                >
+                  <path d="M2 4h12M2 8h12M2 12h12" />
+                </svg>
+                Tasks
+              </button>
+            </div>
+            <button class="pill">
+              <svg
+                viewBox="0 0 16 16"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+              >
+                <path d="M2 3h12M4 8h8M6 13h4" />
+              </svg>
+              Filter
+            </button>
+            <button class="pill">
+              <svg
+                viewBox="0 0 16 16"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+              >
+                <path d="M3 4l5 5 5-5" />
+              </svg>
+              Sort: Priority
+            </button>
+            <span class="view-bar-spacer"></span>
+            <span class="group-by"
+              >Group by <span class="val">Status</span></span
+            >
+          </div>
+
+          <!-- Canvas: switches between Kanban and List -->
+          <div class="canvas" data-view="kanban" id="canvas">
+            <!-- ---- Kanban view ---- -->
+            <div class="kanban-view">
+              <div class="kanban-column">
+                <div class="column-header">
+                  <span
+                    class="dot"
+                    style="background: var(--text-muted)"
+                  ></span>
+                  <span class="label">Inbox</span>
+                  <span class="count">5</span>
+                  <span class="add">+</span>
+                </div>
+                <div class="task-card ai-active">
+                  <div class="title">Wire ACH webhook idempotency keys</div>
+                  <div class="meta">
+                    <span class="chip ai"
+                      ><svg
+                        viewBox="0 0 16 16"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                      >
+                        <path
+                          d="M8 2l1.5 4.5L14 8l-4.5 1.5L8 14l-1.5-4.5L2 8l4.5-1.5z"
+                        /></svg
+                      >AI</span
+                    >
+                    <span class="chip priority-high">High</span>
+                  </div>
+                  <div class="meta">
+                    <span class="id">PAY-18</span>
+                    <span class="date">Today</span>
+                    <span class="avatar-sm">MQ</span>
+                  </div>
+                </div>
+                <div class="task-card">
+                  <div class="title">Draft press release for v1.2</div>
+                  <div class="meta">
+                    <span class="chip priority-med">Med</span>
+                  </div>
+                  <div class="meta">
+                    <span class="id">MKT-04</span>
+                    <span class="date">Wed</span>
+                    <span class="avatar-sm">SR</span>
+                  </div>
+                </div>
+                <div class="task-card">
+                  <div class="title">Audit unused API endpoints</div>
+                  <div class="meta">
+                    <span class="chip priority-low">Low</span>
+                  </div>
+                  <div class="meta">
+                    <span class="id">SYS-12</span>
+                    <span class="date">Fri</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="kanban-column">
+                <div class="column-header">
+                  <span class="dot" style="background: var(--info)"></span>
+                  <span class="label">In Progress</span>
+                  <span class="count">4</span>
+                  <span class="add">+</span>
+                </div>
+                <div class="task-card">
+                  <div class="title">Fix Zitadel callback on dual-tenant</div>
+                  <div class="meta">
+                    <span class="chip priority-high">High</span>
+                  </div>
+                  <div class="meta">
+                    <span class="id">AUTH-12</span>
+                    <span class="date">Today</span>
+                    <span class="avatar-sm">MQ</span>
+                  </div>
+                </div>
+                <div class="task-card">
+                  <div class="title">
+                    Inspector panel for task detail (replace modal)
+                  </div>
+                  <div class="meta">
+                    <span class="chip ai"
+                      ><svg
+                        viewBox="0 0 16 16"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                      >
+                        <path
+                          d="M8 2l1.5 4.5L14 8l-4.5 1.5L8 14l-1.5-4.5L2 8l4.5-1.5z"
+                        /></svg
+                      >AI</span
+                    >
+                    <span class="chip priority-med">Med</span>
+                  </div>
+                  <div class="meta">
+                    <span class="id">UI-29</span>
+                    <span class="date">Tue</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="kanban-column">
+                <div class="column-header">
+                  <span class="dot" style="background: var(--warning)"></span>
+                  <span class="label">Blocked</span>
+                  <span class="count">2</span>
+                  <span class="add">+</span>
+                </div>
+                <div class="task-card">
+                  <div class="title">Subscription upgrade (Stripe + Coolify)</div>
+                  <div class="meta">
+                    <span class="chip priority-high">High</span>
+                  </div>
+                  <div class="meta">
+                    <span class="id">BIL-07</span>
+                    <span class="date">Mon</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="kanban-column">
+                <div class="column-header">
+                  <span class="dot" style="background: var(--success)"></span>
+                  <span class="label">Done</span>
+                  <span class="count">7</span>
+                </div>
+                <div class="task-card">
+                  <div class="title">Env-first AI provider config</div>
+                  <div class="meta">
+                    <span class="chip priority-done">Done</span>
+                  </div>
+                  <div class="meta">
+                    <span class="id">CFG-16</span>
+                    <span class="date">May 26</span>
+                    <span class="avatar-sm">MQ</span>
+                  </div>
+                </div>
+                <div class="task-card">
+                  <div class="title">Mobile notification overlap fix</div>
+                  <div class="meta">
+                    <span class="chip priority-done">Done</span>
+                  </div>
+                  <div class="meta">
+                    <span class="id">UI-15</span>
+                    <span class="date">May 26</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- ---- List view ---- -->
+            <div class="list-view">
+              <div class="list-group">
+                <div class="list-group-header">
+                  <span
+                    class="dot"
+                    style="background: var(--text-muted)"
+                  ></span>
+                  <span class="label">Inbox</span>
+                  <span class="count">5</span>
+                  <span class="add-row">+ Add task</span>
+                </div>
+                <div class="task-row">
+                  <span class="status-dot"></span>
+                  <span class="id">PAY-18</span>
+                  <span class="title"
+                    >Wire ACH webhook idempotency keys</span
+                  >
+                  <span class="chip ai"
+                    ><svg
+                      viewBox="0 0 16 16"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                    >
+                      <path
+                        d="M8 2l1.5 4.5L14 8l-4.5 1.5L8 14l-1.5-4.5L2 8l4.5-1.5z"
+                      /></svg
+                    >AI</span
+                  >
+                  <span class="chip priority-high">High</span>
+                  <span class="row-meta">Today</span>
+                  <span class="avatar-sm warm">MQ</span>
+                </div>
+                <div class="task-row">
+                  <span class="status-dot"></span>
+                  <span class="id">MKT-04</span>
+                  <span class="title">Draft press release for v1.2</span>
+                  <span></span>
+                  <span class="chip priority-med">Med</span>
+                  <span class="row-meta">Wed</span>
+                  <span class="avatar-sm green">SR</span>
+                </div>
+                <div class="task-row">
+                  <span class="status-dot"></span>
+                  <span class="id">SYS-12</span>
+                  <span class="title">Audit unused API endpoints</span>
+                  <span></span>
+                  <span class="chip priority-low">Low</span>
+                  <span class="row-meta">Fri</span>
+                  <span></span>
+                </div>
+              </div>
+
+              <div class="list-group">
+                <div class="list-group-header">
+                  <span class="dot" style="background: var(--info)"></span>
+                  <span class="label">In Progress</span>
+                  <span class="count">4</span>
+                  <span class="add-row">+ Add task</span>
+                </div>
+                <div class="task-row selected">
+                  <span class="status-dot in-progress"></span>
+                  <span class="id">AUTH-12</span>
+                  <span class="title"
+                    >Fix Zitadel callback on dual-tenant</span
+                  >
+                  <span></span>
+                  <span class="chip priority-high">High</span>
+                  <span class="row-meta">Today</span>
+                  <span class="avatar-sm warm">MQ</span>
+                </div>
+                <div class="task-row">
+                  <span class="status-dot in-progress"></span>
+                  <span class="id">UI-29</span>
+                  <span class="title"
+                    >Inspector panel for task detail (replace modal)</span
+                  >
+                  <span class="chip ai"
+                    ><svg
+                      viewBox="0 0 16 16"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                    >
+                      <path
+                        d="M8 2l1.5 4.5L14 8l-4.5 1.5L8 14l-1.5-4.5L2 8l4.5-1.5z"
+                      /></svg
+                    >AI</span
+                  >
+                  <span class="chip priority-med">Med</span>
+                  <span class="row-meta">Tue</span>
+                  <span></span>
+                </div>
+                <div class="task-row">
+                  <span class="status-dot in-progress"></span>
+                  <span class="id">CLI-03</span>
+                  <span class="title"
+                    >Add CMD+K palette with cmdk + Radix Dialog</span
+                  >
+                  <span></span>
+                  <span class="chip priority-med">Med</span>
+                  <span class="row-meta">Wed</span>
+                  <span class="avatar-sm warm">MQ</span>
+                </div>
+              </div>
+
+              <div class="list-group">
+                <div class="list-group-header">
+                  <span class="dot" style="background: var(--warning)"></span>
+                  <span class="label">Blocked</span>
+                  <span class="count">2</span>
+                </div>
+                <div class="task-row">
+                  <span class="status-dot blocked"></span>
+                  <span class="id">BIL-07</span>
+                  <span class="title"
+                    >Subscription upgrade (Stripe + Coolify)</span
+                  >
+                  <span></span>
+                  <span class="chip priority-high">High</span>
+                  <span class="row-meta">Mon</span>
+                  <span></span>
+                </div>
+                <div class="task-row">
+                  <span class="status-dot blocked"></span>
+                  <span class="id">DAT-11</span>
+                  <span class="title"
+                    >Backfill task_changes for orphaned activity</span
+                  >
+                  <span></span>
+                  <span class="chip priority-low">Low</span>
+                  <span class="row-meta">—</span>
+                  <span></span>
+                </div>
+              </div>
+
+              <div class="list-group">
+                <div class="list-group-header">
+                  <span class="dot" style="background: var(--success)"></span>
+                  <span class="label">Done</span>
+                  <span class="count">7</span>
+                </div>
+                <div class="task-row">
+                  <span class="status-dot done"></span>
+                  <span class="id">CFG-16</span>
+                  <span class="title">Env-first AI provider config</span>
+                  <span></span>
+                  <span class="chip priority-done">Done</span>
+                  <span class="row-meta">May 26</span>
+                  <span class="avatar-sm warm">MQ</span>
+                </div>
+                <div class="task-row">
+                  <span class="status-dot done"></span>
+                  <span class="id">UI-15</span>
+                  <span class="title">Mobile notification overlap fix</span>
+                  <span></span>
+                  <span class="chip priority-done">Done</span>
+                  <span class="row-meta">May 26</span>
+                  <span></span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- =================== Inspector =================== -->
+        <aside class="inspector">
+          <div class="inspector-header">
+            <span class="id">AUTH-12</span>
+            <span class="actions">
+              <div class="topbar-action" title="Copy link">
+                <svg
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.5"
+                >
+                  <rect x="4" y="4" width="8" height="8" rx="1" />
+                  <path d="M2 12V2h10" />
+                </svg>
+              </div>
+              <div class="topbar-action" title="Close">
+                <svg
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.5"
+                >
+                  <path d="M4 4l8 8M12 4l-8 8" />
+                </svg>
+              </div>
+            </span>
+          </div>
+
+          <div class="inspector-tabs">
+            <span class="inspector-tab active">Detail</span>
+            <span class="inspector-tab">Activity</span>
+            <span class="inspector-tab">Source</span>
+          </div>
+
+          <div class="inspector-body">
+            <h3 class="inspector-title">Fix Zitadel callback on dual-tenant</h3>
+
+            <div>
+              <div class="field">
+                <span class="field-label">Status</span>
+                <span class="field-value">
+                  <span
+                    class="status-dot in-progress"
+                    style="width: 10px; height: 10px"
+                  ></span>
+                  In progress
+                </span>
+              </div>
+              <div class="field">
+                <span class="field-label">Priority</span>
+                <span class="field-value">
+                  <span class="chip priority-high">High</span>
+                </span>
+              </div>
+              <div class="field">
+                <span class="field-label">Assignee</span>
+                <span class="field-value">
+                  <span class="avatar-sm" style="background: linear-gradient(180deg, #f0a05c, #c87a36)">MQ</span>
+                  Moiz Qureshi
+                </span>
+              </div>
+              <div class="field">
+                <span class="field-label">Due</span>
+                <span class="field-value mono">May 27</span>
+              </div>
+              <div class="field">
+                <span class="field-label">Project</span>
+                <span class="field-value">Q4 Launch</span>
+              </div>
+            </div>
+
+            <div class="ai-block">
+              <div class="head">
+                <span class="chip ai"
+                  ><svg
+                    viewBox="0 0 16 16"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.5"
+                  >
+                    <path
+                      d="M8 2l1.5 4.5L14 8l-4.5 1.5L8 14l-1.5-4.5L2 8l4.5-1.5z"
+                    /></svg
+                  >AI</span
+                >
+                <span class="label">From standup • 14:32</span>
+              </div>
+              <p class="summary">
+                Callback URL needs to resolve the Zitadel org claim before
+                attaching the tenant context. Current code attaches default
+                tenant which masks the bug.
+              </p>
+              <div class="src">standup-2026-05-26.m4a · 00:14:32 → 00:15:08</div>
+            </div>
+
+            <div>
+              <div class="caption" style="padding: 0 0 6px">Subtasks</div>
+              <div class="subtask done">
+                <span class="check"></span>
+                <span class="text">Reproduce on staging</span>
+              </div>
+              <div class="subtask">
+                <span class="check"></span>
+                <span class="text">Update `attachTenantContext` to read claim</span>
+              </div>
+              <div class="subtask">
+                <span class="check"></span>
+                <span class="text">Add regression test for org=null path</span>
+              </div>
+              <div class="ai-suggest">
+                <svg
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.5"
+                >
+                  <path
+                    d="M8 2l1.5 4.5L14 8l-4.5 1.5L8 14l-1.5-4.5L2 8l4.5-1.5z"
+                  />
+                </svg>
+                Generate subtasks from the meeting transcript
+              </div>
+            </div>
+
+            <div>
+              <div class="caption" style="padding: 0 0 6px">Recent activity</div>
+              <div class="activity">
+                <div class="activity-item">
+                  <span class="dot ai"></span>
+                  <span>
+                    <span class="who">AI</span>
+                    <span class="what"> extracted task from standup recording</span>
+                    <span class="when"> · 1h ago</span>
+                  </span>
+                </div>
+                <div class="activity-item">
+                  <span class="dot"></span>
+                  <span>
+                    <span class="who">Moiz</span>
+                    <span class="what"> moved to In Progress</span>
+                    <span class="when"> · 42m ago</span>
+                  </span>
+                </div>
+                <div class="activity-item">
+                  <span class="dot"></span>
+                  <span>
+                    <span class="who">Moiz</span>
+                    <span class="what"> completed “Reproduce on staging”</span>
+                    <span class="when"> · 8m ago</span>
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="inspector-footer">
+            <button>Comment</button>
+            <button class="primary">Mark Done</button>
+          </div>
+        </aside>
+      </div>
+    </div>
+
+    <!-- Section: Command palette -->
+    <div class="preview-section">
+      <h2>Command palette — universal entry point</h2>
+      <p class="lede">
+        ⌘K from anywhere. Same shortcut launches navigation, creation, AI
+        actions, and view switching. Click the button below or press ⌘K to
+        open the live preview.
+      </p>
+      <div style="text-align: center; padding: 16px 0">
+        <button
+          onclick="openPalette()"
+          style="
+            font: inherit;
+            font-size: 12px;
+            font-variation-settings: 'wght' 510;
+            background: var(--accent);
+            color: var(--text-inverse);
+            border: 0;
+            border-radius: var(--radius-sm);
+            padding: 8px 14px;
+            cursor: pointer;
+          "
+        >
+          Open command palette
+        </button>
+      </div>
+    </div>
+
+    <!-- Section: AI ambient -->
+    <div class="preview-section">
+      <h2>Ambient AI — never a chat window</h2>
+      <p class="lede">
+        AI shows up as inline action chips, badge meta on rows it generated,
+        and contextual suggestions inside the inspector. Never as a floating
+        chat overlay or animated assistant. Below: the four canonical surfaces.
+      </p>
+      <div class="cards">
+        <div class="card">
+          <h3>Inline action chip</h3>
+          <p class="lede">Lives at the bottom of a panel or section.</p>
+          <div
+            class="ai-suggest"
+            style="border: 1px dashed var(--accent-border); padding: 8px 10px"
+          >
+            <svg
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.5"
+            >
+              <path
+                d="M8 2l1.5 4.5L14 8l-4.5 1.5L8 14l-1.5-4.5L2 8l4.5-1.5z"
+              />
+            </svg>
+            Generate subtasks from transcript
+          </div>
+          <div
+            class="ai-suggest"
+            style="
+              border: 1px dashed var(--accent-border);
+              padding: 8px 10px;
+              margin-top: 6px;
+            "
+          >
+            <svg
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.5"
+            >
+              <path
+                d="M8 2l1.5 4.5L14 8l-4.5 1.5L8 14l-1.5-4.5L2 8l4.5-1.5z"
+              />
+            </svg>
+            Find blockers across this project
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>AI badge on row meta</h3>
+          <p class="lede">Marks any row the AI created or last edited.</p>
+          <div
+            class="task-row"
+            style="
+              background: var(--bg-elevated);
+              border: 1px solid var(--hairline-low);
+            "
+          >
+            <span class="status-dot"></span>
+            <span class="id">PAY-18</span>
+            <span class="title">Wire ACH webhook idempotency keys</span>
+            <span class="chip ai"
+              ><svg
+                viewBox="0 0 16 16"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+              >
+                <path
+                  d="M8 2l1.5 4.5L14 8l-4.5 1.5L8 14l-1.5-4.5L2 8l4.5-1.5z"
+                /></svg
+              >AI</span
+            >
+            <span class="chip priority-high">High</span>
+            <span class="row-meta">Today</span>
+            <span class="avatar-sm warm">MQ</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>AI summary block</h3>
+          <p class="lede">Inspector body. Serif body, mono source citation.</p>
+          <div class="ai-block">
+            <div class="head">
+              <span class="chip ai"
+                ><svg
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.5"
+                >
+                  <path
+                    d="M8 2l1.5 4.5L14 8l-4.5 1.5L8 14l-1.5-4.5L2 8l4.5-1.5z"
+                  /></svg
+                >AI</span
+              >
+              <span class="label">From standup</span>
+            </div>
+            <p class="summary">
+              The team agreed to ship Stripe migration this week. Two blockers:
+              ACH webhook idempotency and Coolify env secrets.
+            </p>
+            <div class="src">standup-2026-05-26.m4a · 14:32</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Pulse border on AI-active</h3>
+          <p class="lede">
+            Card the AI is currently editing pulses its border. No glow halo.
+          </p>
+          <div class="task-card ai-active">
+            <div class="title">Wire ACH webhook idempotency keys</div>
+            <div class="meta">
+              <span class="chip ai"
+                ><svg
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.5"
+                >
+                  <path
+                    d="M8 2l1.5 4.5L14 8l-4.5 1.5L8 14l-1.5-4.5L2 8l4.5-1.5z"
+                  /></svg
+                >AI</span
+              >
+              <span class="chip priority-high">High</span>
+            </div>
+            <div class="meta">
+              <span class="id">PAY-18</span>
+              <span class="date">Today</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section: Terminology + decision principles -->
+    <div class="preview-section">
+      <h2>Terminology & decision principles</h2>
+      <p class="lede">
+        The language reinforces the aesthetic. Workspace-OS verbs. Avoid
+        ticketing-system nouns.
+      </p>
+      <div class="cards">
+        <div class="card">
+          <h3>Use</h3>
+          <ul class="principles">
+            <li><b>Tasks</b> — atomic units of work.</li>
+            <li><b>Projects</b> — groups of tasks with a goal.</li>
+            <li><b>Inbox</b> — AI's loading dock; unreviewed extractions.</li>
+            <li><b>Activity</b> — recent events across workspace.</li>
+            <li><b>Actions</b> — things the AI can do for you.</li>
+            <li><b>Workspaces</b> — top-level tenant boundary.</li>
+            <li><b>Meetings</b> — audio sources that produced tasks.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Avoid</h3>
+          <ul class="principles">
+            <li><b>Issues, Tickets</b> — bug-tracker language.</li>
+            <li><b>Epics, Sprints, Stories</b> — agile ceremony language.</li>
+            <li><b>Backlogs</b> — implies dead work pile.</li>
+            <li><b>Cards</b> as a user-facing noun (only internal).</li>
+            <li><b>Dashboard</b> — implies admin panel.</li>
+            <li><b>Notifications</b> use sparingly; prefer <b>Activity</b>.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Inspector vs Modal</h3>
+          <ul class="principles">
+            <li>
+              <b>Inspector</b> — task detail, meeting detail, project detail.
+              Context stays visible.
+            </li>
+            <li>
+              <b>Modal</b> — irreversible confirmation, multi-step wizard,
+              auth flow. Demands full focus.
+            </li>
+            <li>
+              <b>Popover</b> — single-field picker (date, assignee). Inline.
+            </li>
+            <li>
+              <b>Drawer (mobile)</b> — inspector at full screen on phones.
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer-note">
+      kAInban · Design System v3.1 (AI-Native Shell) · Workhorse Dark
+      foundation preserved · Preview generated 2026-05-26
+    </div>
+
+    <!-- ========== Command palette overlay ========== -->
+    <div
+      class="palette-overlay"
+      id="palette-overlay"
+      onclick="if(event.target===this)closePalette()"
+    >
+      <div class="palette">
+        <div class="palette-input">
+          <svg
+            viewBox="0 0 16 16"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+          >
+            <circle cx="7" cy="7" r="4.5" />
+            <path d="M11 11l3 3" />
+          </svg>
+          <input
+            type="text"
+            placeholder="Type a command or search…"
+            id="palette-input"
+            autocomplete="off"
+          />
+          <span class="esc">ESC</span>
+        </div>
+        <div class="palette-body">
+          <div class="palette-group">
+            <div class="palette-group-label">Suggested</div>
+            <div class="palette-item active">
+              <svg
+                viewBox="0 0 16 16"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+              >
+                <path d="M2 4h12M2 4v8h12V4" />
+                <path d="M5 4V2h6v2" />
+              </svg>
+              <span class="label bold">Open Inbox</span>
+              <span class="shortcut">
+                <span class="kbd-sm">G</span><span class="kbd-sm">I</span>
+              </span>
+            </div>
+            <div class="palette-item">
+              <svg
+                viewBox="0 0 16 16"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+              >
+                <path d="M8 2v12M2 8h12" />
+              </svg>
+              <span class="label bold"
+                >New task <span class="hint">in Q4 Launch</span></span
+              >
+              <span class="shortcut">
+                <span class="kbd-sm">C</span>
+              </span>
+            </div>
+          </div>
+
+          <div class="palette-group">
+            <div class="palette-group-label">AI actions</div>
+            <div class="palette-item ai">
+              <svg
+                viewBox="0 0 16 16"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+              >
+                <path
+                  d="M8 2l1.5 4.5L14 8l-4.5 1.5L8 14l-1.5-4.5L2 8l4.5-1.5z"
+                />
+              </svg>
+              <span class="label bold">Generate subtasks</span>
+            </div>
+            <div class="palette-item ai">
+              <svg
+                viewBox="0 0 16 16"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+              >
+                <path
+                  d="M8 2l1.5 4.5L14 8l-4.5 1.5L8 14l-1.5-4.5L2 8l4.5-1.5z"
+                />
+              </svg>
+              <span class="label bold">Summarize meeting…</span>
+            </div>
+            <div class="palette-item ai">
+              <svg
+                viewBox="0 0 16 16"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+              >
+                <path
+                  d="M8 2l1.5 4.5L14 8l-4.5 1.5L8 14l-1.5-4.5L2 8l4.5-1.5z"
+                />
+              </svg>
+              <span class="label bold"
+                >Convert transcript → sprint plan</span
+              >
+            </div>
+            <div class="palette-item ai">
+              <svg
+                viewBox="0 0 16 16"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+              >
+                <path
+                  d="M8 2l1.5 4.5L14 8l-4.5 1.5L8 14l-1.5-4.5L2 8l4.5-1.5z"
+                />
+              </svg>
+              <span class="label bold">Find blockers across project</span>
+            </div>
+          </div>
+
+          <div class="palette-group">
+            <div class="palette-group-label">Navigate</div>
+            <div class="palette-item">
+              <svg
+                viewBox="0 0 16 16"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+              >
+                <rect x="2" y="3" width="12" height="10" rx="1" />
+                <path d="M2 6h12" />
+              </svg>
+              <span class="label">Go to Q4 Launch</span>
+              <span class="shortcut">
+                <span class="kbd-sm">G</span><span class="kbd-sm">P</span>
+              </span>
+            </div>
+            <div class="palette-item">
+              <svg
+                viewBox="0 0 16 16"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+              >
+                <rect x="2" y="3" width="12" height="11" rx="1" />
+                <path d="M2 7h12M5 2v3M11 2v3" />
+              </svg>
+              <span class="label">Recent meetings…</span>
+            </div>
+          </div>
+
+          <div class="palette-group">
+            <div class="palette-group-label">Switch view</div>
+            <div class="palette-item">
+              <svg
+                viewBox="0 0 16 16"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+              >
+                <rect x="2" y="3" width="3.5" height="10" />
+                <rect x="6.25" y="3" width="3.5" height="7" />
+                <rect x="10.5" y="3" width="3.5" height="10" />
+              </svg>
+              <span class="label">Switch to Kanban</span>
+              <span class="shortcut">
+                <span class="kbd-sm">V</span><span class="kbd-sm">B</span>
+              </span>
+            </div>
+            <div class="palette-item">
+              <svg
+                viewBox="0 0 16 16"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+              >
+                <path d="M2 4h12M2 8h12M2 12h12" />
+              </svg>
+              <span class="label">Switch to Tasks</span>
+              <span class="shortcut">
+                <span class="kbd-sm">V</span><span class="kbd-sm">L</span>
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Theme toggle
+      function toggleTheme() {
+        const html = document.documentElement;
+        const next = html.dataset.theme === 'dark' ? 'light' : 'dark';
+        html.dataset.theme = next;
+        document.getElementById('theme-toggle').textContent =
+          next === 'dark' ? 'Light mode' : 'Dark mode';
+      }
+
+      // View switcher
+      const viewSwitcher = document.getElementById('view-switcher');
+      const canvas = document.getElementById('canvas');
+      viewSwitcher.addEventListener('click', e => {
+        const btn = e.target.closest('.view-tab');
+        if (!btn) return;
+        const view = btn.dataset.view;
+        viewSwitcher
+          .querySelectorAll('.view-tab')
+          .forEach(t => t.classList.toggle('active', t === btn));
+        canvas.dataset.view = view;
+      });
+
+      // Command palette
+      function openPalette() {
+        document.getElementById('palette-overlay').classList.add('open');
+        setTimeout(() => document.getElementById('palette-input').focus(), 0);
+      }
+      function closePalette() {
+        document.getElementById('palette-overlay').classList.remove('open');
+      }
+      document.addEventListener('keydown', e => {
+        if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+          e.preventDefault();
+          openPalette();
+        } else if (e.key === 'Escape') {
+          closePalette();
+        }
+      });
+    </script>
+  </body>
+</html>

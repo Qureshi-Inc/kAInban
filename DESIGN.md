@@ -4,9 +4,17 @@
 > making any UI change. If a design choice isn't here, propose it as a PR to this file before
 > implementing in code.
 
-**Version:** 3.0 (Workhorse Dark) **Established:** 2026-05-26 via `/design-consultation`
+**Version:** 3.1 (Workhorse Dark + AI-Native Shell) **Established:** 2026-05-26 via `/design-consultation`
 **Supersedes:** `DESIGN_SYSTEM.md` v2.0 (Dec 2025 — archived to `docs/design-system-v2.archive.md`)
-**Live preview:** `design-preview/index.html`
+**Live preview:** `design-preview/index.html` (aesthetic primitives) ·
+`design-preview/shell.html` (v3.1 shell + view switcher + inspector + palette)
+
+v3.1 keeps every v3 aesthetic decision intact (colors, fonts, motion, density,
+component baselines below). It ADDS the application architecture layer the
+product needs to feel like an AI-native workspace OS rather than a kanban site:
+the 3-pane shell, the inspector-replaces-modals pattern, the Kanban/Tasks
+view switcher, the universal `<Cmd>K` palette, ambient AI surfaces, and the
+workspace-OS terminology. New sections at the end of this document.
 
 ---
 
@@ -443,6 +451,490 @@ the visual contract.
 
 ---
 
+## v3.1 — AI-Native Workspace Shell
+
+The v3 sections above govern visual primitives (color, type, motion, spacing,
+component baselines). v3.1 governs the application architecture that hosts
+those primitives. Same aesthetic, new shell.
+
+The product thesis behind v3.1: **kAInban is not a kanban app, it's a
+workspace OS where conversations become work.** The board is one view of the
+work. The list is another. The AI is ambient infrastructure, not a chat
+window. The user's terminology should reinforce all of that.
+
+---
+
+### v3.1.1 App shell (3 panes)
+
+| Pane             | Width (desktop)   | Width (mobile)         | Role                                                                                 |
+| ---------------- | ----------------- | ---------------------- | ------------------------------------------------------------------------------------ |
+| Sidebar          | `240px` expanded · `56px` rail | full-screen drawer behind hamburger | Workspace switcher + Inbox/Today/Activity + Projects tree + Meetings + user.         |
+| Top command bar  | `100%`, `44px` tall                | same, `44px`                        | Breadcrumb (left) · `<Cmd>K` palette trigger (center-right) · AI menu + presence (right). |
+| Main canvas      | `1fr` (fills)                      | `1fr`                               | Either Kanban or Tasks (toggled via View Switcher). Owns all scrolling.              |
+| Inspector panel  | `384px`, toggleable                | full-screen drawer over canvas      | Task / meeting / project detail. Replaces TaskDetailModal entirely.                  |
+
+```
+┌────────┬───────────────────────────────────────┬────────────┐
+│        │ Breadcrumb     [⌘K]      AI · 🔴      │ TASK-ID    │
+│ Side   ├───────────────────────────────────────┤  Tabs      │
+│  bar   │  [Kanban|Tasks]   Filter   Sort       │            │
+│        ├───────────────────────────────────────┤  body      │
+│        │                                       │            │
+│        │       canvas (kanban or list)         │            │
+│        │                                       │            │
+│        ├───────────────────────────────────────┤  footer    │
+└────────┴───────────────────────────────────────┴────────────┘
+```
+
+Rules:
+
+- **Three panes never overlap.** Sidebar and inspector both push the canvas;
+  neither is a floating overlay (mobile is the exception — both become
+  full-screen drawers).
+- **Inspector default is OPEN with a placeholder** ("Select a task") on
+  desktop ≥ `1280px`. Below that, default closed. Below `960px`, full-screen
+  drawer on demand.
+- **Sidebar collapse to rail** preserves icon-only nav; tooltips on hover
+  surface the label. The rail width is fixed (`56px`) so the canvas doesn't
+  reflow on toggle.
+- **Top command bar height is `44px`.** Never bigger. The bar is chrome, not
+  content.
+- The canvas and the inspector each own their own scroll. The sidebar does
+  not scroll the page — its own footer (user card) sticks to its bottom.
+
+Tokens (add to root):
+
+```css
+:root {
+  --sidebar-w: 240px;
+  --sidebar-rail-w: 56px;
+  --inspector-w: 384px;
+  --topbar-h: 44px;
+}
+```
+
+---
+
+### v3.1.2 Sidebar
+
+**Composition (top to bottom):**
+
+1. **Workspace switcher** (header, height = `var(--topbar-h)`) — workspace
+   glyph + name + chevron. Opens a popover with workspace list +
+   "Create workspace" + settings link.
+2. **Primary nav group** — `Inbox`, `Today`, `Activity`. Always at the top.
+3. **Projects group** — eyebrow label + project list with counts. Each
+   project can expand to show its named saved views (e.g. "This week",
+   "Follow-ups"). One project active at a time.
+4. **Meetings group** — `Recent`, `Upcoming`. Optional; hidden if no
+   meetings exist.
+5. **Sidebar footer** — user avatar + name + email, opens user menu popover.
+
+**Visual rules:**
+
+- Background: `var(--bg-raised)`. Right border: `1px var(--hairline-low)`.
+- Nav item: `padding: 6px 8px`, `border-radius: var(--radius-sm)`,
+  `font-size: 12px`, weight `510`.
+- Active item: `background: var(--bg-emphasis)`, icon in `var(--accent)`.
+- Eyebrows (`Projects`, `Meetings`): `font-size: 10px`, `text-transform: uppercase`,
+  `letter-spacing: 0.06em`, `color: var(--text-muted)`.
+- Group dividers: `border-top: 1px var(--hairline-low)` on the next group.
+- Counts: mono, `font-size: 10px`, right-aligned via `margin-left: auto`.
+- No icons larger than `14×14`. The sidebar is dense, not decorative.
+
+---
+
+### v3.1.3 Top command bar
+
+| Slot       | Content                                                                        |
+| ---------- | ------------------------------------------------------------------------------ |
+| Left       | Breadcrumb: `<Project name> / <View>`. Current view bold (weight 510). Optional mono task count. |
+| Center-right | Palette trigger button — full-width up to `~360px`, placeholder text "Search tasks, projects, or ask AI…" + `<Cmd>K` kbd hint. Opens the command palette. |
+| Right      | AI action menu (sparkle icon) · Notifications (bell) · Presence indicator (`6×6` dot in `--success`). |
+
+**Visual rules:**
+
+- Height: `44px`. Background: `var(--bg-raised)`. Bottom border: `1px var(--hairline-low)`.
+- Palette trigger is the dominant visual element — it telegraphs that the
+  product is keyboard-first.
+- AI action menu opens a popover with the same actions categorized in the
+  palette under "AI actions" (see v3.1.7). Same primitives, different entry
+  point.
+- No tab strip in the top bar. Views toggle below in the View Bar (v3.1.5),
+  never up here.
+
+---
+
+### v3.1.4 Inspector panel (the new default for task detail)
+
+**Why this exists:** modals demand full focus and hide the surrounding
+context. For task detail, hiding the board/list is wrong — you usually want
+to see "what other tasks am I about to compare this to?" while editing.
+Inspectors keep context visible.
+
+**When to use what:**
+
+| Surface       | Use when                                                                          | Avoid for                                                       |
+| ------------- | --------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| **Inspector** | Task detail, meeting detail, project detail, transcript pane, AI conversation log | Irreversible actions, auth flows, multi-step wizards            |
+| **Modal**     | Irreversible confirmation (delete), auth/login, multi-step wizards, settings dialog | Anything that has a "list of N like things" context behind it   |
+| **Popover**   | Single-field picker (date, assignee, priority, status), small menus               | Anything requiring a body of text or multiple fields            |
+| **Drawer (mobile)** | Mobile equivalent of inspector — full-screen with back button             | Bottom sheets — they kill long-form reading area                |
+
+**Composition (top to bottom):**
+
+1. **Header** (`44px` tall, matches topbar) — task ID (mono), action icons
+   (copy link, more, close).
+2. **Tabs** — `Detail` (default) · `Activity` · `Source` (the originating
+   transcript span). Tabs use `border-bottom: 1px var(--accent)` on active,
+   weight `510`.
+3. **Body** (`flex: 1`, scrollable, `padding: 14px 16px`, `gap: 14px`):
+   - **Title** as `<h3>`, `font-size: 16px`, weight `510`. Editable inline.
+   - **Field grid** — `Status / Priority / Assignee / Due / Project`. Each is
+     a row: 90px label column + value column. Values use the same chips,
+     avatars, and pickers as the list view (consistency).
+   - **AI block** (if AI-generated) — accent-bordered, accent-soft background,
+     serif body (this is the AI's voice — see v3 typography rules),
+     mono source citation.
+   - **Subtasks** — inline checklist, AI-suggest chip below ("Generate
+     subtasks from the transcript").
+   - **Recent activity** — last 3-5 events from this task's change log.
+4. **Footer** (`border-top: 1px var(--hairline-low)`, `padding: 10px 12px`) —
+   secondary "Comment" + primary "Mark Done" button. Footer is a fixed
+   pinned bar; never scrolls.
+
+**Width / responsive:**
+
+- Desktop ≥ `1280px`: `384px` wide, opens beside canvas, canvas reflows.
+- Tablet `960-1279px`: `384px` wide, opens as a slide-in overlay (canvas
+  doesn't reflow).
+- Mobile `< 960px`: full-screen drawer with back chevron in the header,
+  covering the canvas entirely.
+
+**Open / close:**
+
+- Selecting a task opens its inspector. URL updates to include the task ID
+  (`?task=AUTH-12`) so the inspector state survives reload and is shareable.
+- Closing returns to canvas with no selected row.
+- `<Esc>` closes the inspector. `j`/`k` navigate to next/previous task and
+  keep the inspector open.
+
+**Migration note:** `src/components/TaskDetailModal.jsx` is the v3.0 entry
+point for task detail. The v3.1 migration replaces it with
+`TaskInspector.jsx` (composition above) and removes the modal portal. The
+"are you sure" delete confirm remains a modal (it's the irreversible-action
+case above).
+
+---
+
+### v3.1.5 View Switcher (Kanban / Tasks)
+
+A two-tab segmented control directly above the canvas, in the **View Bar**
+(below the top command bar). Switches between the same dataset rendered in
+two presentations.
+
+**Visual:**
+
+- Wrapper: `background: var(--bg-emphasis)`, `border: 1px var(--hairline-mid)`,
+  `border-radius: var(--radius-sm)`, `padding: 2px`.
+- Each tab: `padding: 3px 10px`, `font-size: 11px`, weight `510`, icon `12px`.
+- Active tab: `background: var(--bg-raised)`, `color: var(--text-primary)`,
+  subtle `box-shadow: 0 1px 2px rgba(0,0,0,0.2)` for press depth.
+- Sit on the left of the View Bar; Filter / Sort pills sit to its right;
+  "Group by" indicator on the far right.
+
+**Persistence:**
+
+- Last-used view persists per user per workspace in localStorage under
+  `kainban:viewMode:<workspaceId>` (`'kanban' | 'list'`).
+- **New users default to `list`** — it's the AI-native default; kanban is
+  there for users who want it.
+- Server-backed when MULTITENANCY_ENABLED is on (so it follows the user
+  across devices).
+
+**Keyboard:**
+
+- `V then B` → Kanban view
+- `V then L` → Tasks view
+- Same chord exposed in the command palette under "Switch view".
+
+**Mental model:**
+
+- **Kanban view** is the spatial mode — board of columns, drag to change
+  status, good for triage and standup demos.
+- **Tasks view** is the operational mode — compact rows, keyboard-first,
+  good for getting through 50+ items.
+
+Both views render from the same store, both observe the same filters/sort/
+group settings (filters carry across when switching).
+
+---
+
+### v3.1.6 Task List Row primitive
+
+The atomic unit of the Tasks view. One row = one task.
+
+**Visual grid:**
+
+```
+[status] [id] [title......] [chips...] [date] [avatar]
+  20px   56px    1fr           auto      auto    auto
+```
+
+Total row height: `32px` (resting). `padding: 6px 8px`, `gap: 10px`.
+
+**Components left to right:**
+
+1. **Status dot** (`12px` circle) — Todo (hairline border, hollow), In
+   progress (3/4 conic fill in `--info`), Done (solid `--success`), Blocked
+   (solid `--danger`). Click to cycle status — popover for explicit pick.
+2. **Task ID** — mono, `font-size: 11px`, `--text-muted`.
+3. **Title** — `font-size: 13px`, weight `510`, `--text-primary`. Overflows
+   with ellipsis on narrow screens.
+4. **AI badge** (if present) — `chip ai` from v3.
+5. **Priority chip** — semantic-soft variants from v3.
+6. **Due date** — mono, `font-size: 11px`, `--text-muted`, never weight 510.
+   `"Today"`/`"Tue"`/`"May 27"` — never full ISO.
+7. **Assignee avatar** — `18px` circle, semantic-tinted gradient.
+
+**States:**
+
+- **Hover** — `background: var(--bg-elevated)`.
+- **Selected** — `background: var(--bg-emphasis)`. Inspector opens to this
+  task; row stays selected when inspector is open.
+- **Focused (keyboard)** — `1px solid var(--accent)` inset shadow on the
+  left edge (`box-shadow: inset 3px 0 0 var(--accent)`).
+
+**Grouping:**
+
+- Rows live inside a `list-group`. Group header is a `border-bottom: 1px
+  var(--hairline-low)` row with: status dot + label (uppercase 11px) + count
+  (mono) + right-aligned "Add task" trigger.
+- Default group-by = `Status` (Inbox / In progress / Blocked / Done).
+- Other group-by options: `Assignee`, `Project`, `Priority`, `Due date`.
+- Group state (collapsed/expanded) persists per user per workspace.
+
+**Keyboard navigation rules:**
+
+| Key      | Action                                              |
+| -------- | --------------------------------------------------- |
+| `j` / `k` | Next / previous task                                |
+| `o` / `Enter` | Open in inspector                              |
+| `x`      | Toggle selection (for multi-select)                 |
+| `e`      | Inline edit title                                   |
+| `1-5`    | Set priority Low/Med/High (1/2/3); 4=None; 5=Urgent |
+| `s`      | Set status (opens popover)                          |
+| `a`      | Assign to me (or open assignee popover with `Shift`)|
+| `d`      | Set due date popover                                |
+| `Esc`    | Close inspector / clear selection                   |
+| `/`      | Focus search (same as `<Cmd>K` filter)              |
+
+---
+
+### v3.1.7 Command Palette
+
+Universal entry point. `<Cmd>K` / `<Ctrl>K` from anywhere. Single dialog that
+covers navigation, creation, AI actions, view switching, and search.
+
+**Library:** `cmdk` (headless, ~3kb gzipped, shadcn-compatible). NOT `kbar`
+(too opinionated about animations).
+
+**Visual:**
+
+- Overlay: `position: fixed`, `inset: 0`, `background: rgba(0,0,0,0.55)`,
+  no blur, `z-index: 100`.
+- Palette: `width: 560px`, `max-width: calc(100vw - 32px)`, top padded
+  `14vh`, `background: var(--bg-elevated)`, `border: 1px var(--hairline-mid)`,
+  `border-radius: var(--radius-lg)`, `box-shadow: 0 12px 32px rgba(0,0,0,0.5)`.
+- Search input: `padding: 12px 14px`, `font-size: 14px`, search icon left
+  (`14×14`, `--text-muted`), `<Esc>` chip right.
+- Body: `overflow: auto`, `max-height: 60vh`, grouped sections.
+- Group label: `font-size: 10px`, uppercase, `letter-spacing: 0.06em`,
+  `--text-muted`, `padding: 6px 10px 4px`, weight `510`.
+- Item: `padding: 7px 10px`, `border-radius: var(--radius-sm)`, `font-size:
+  13px`. Active item: `background: var(--bg-emphasis)`.
+- AI actions: icon and label in `--accent`. Other items: icon in
+  `--text-secondary`, label in `--text-primary`.
+- Shortcut hint right-aligned, using `kbd-sm` chips.
+
+**Group order (top to bottom):**
+
+1. **Suggested** — context-aware (e.g. "Open Inbox", "New task in <current
+   project>", "Reopen last meeting"). 2-3 items max.
+2. **AI actions** — the verbs. Always present. See list below.
+3. **Navigate** — projects, views, meetings.
+4. **Switch view** — Kanban / Tasks.
+5. **Search results** — when the user starts typing, top-level groups
+   collapse to a single "Results" group with hit type prefix
+   (`Task · AUTH-12 · …`, `Meeting · …`, `Project · …`).
+
+**AI actions (canonical set, MUST appear in every install):**
+
+- Generate subtasks from transcript
+- Summarize meeting
+- Convert transcript → sprint plan
+- Find blockers across this project
+- Extract tasks from pasted text
+- Re-run AI analysis on this task
+
+**Keyboard:**
+
+- `<Cmd>K` / `<Ctrl>K` — toggle open
+- `<Esc>` — close
+- `↑ / ↓` — move within results
+- `Enter` — execute selected
+- `<Cmd>↵` — execute selected and stay open (for chained actions)
+
+**Mobile:** same overlay, repositioned to fill more of the viewport (top
+padded `4vh`, palette `width: calc(100vw - 24px)`).
+
+---
+
+### v3.1.8 Ambient AI patterns
+
+AI is infrastructure, not a personality. It shows up in exactly four places
+across the product — never as a floating chat window, never as an animated
+"assistant" character, never with a glowing typing-indicator dot.
+
+| Surface              | Where                                                                              | What it looks like                                                              |
+| -------------------- | ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| **AI badge**         | On task row meta (list view) or task card meta (kanban). Marks AI-created tasks.   | `chip ai` from v3 — accent-soft bg, accent-border, accent text, sparkle icon.   |
+| **AI summary block** | Inspector body, meeting summary pages. The AI's "voice."                           | Accent-soft background, accent border, serif body text, mono source citation.   |
+| **Inline action chip** | Bottom of relevant sections in the inspector ("Generate subtasks"), in the AI menu of the command bar. | Accent text on transparent bg, sparkle icon, `font-size: 11px`, weight `510`.   |
+| **AI-active pulse**  | Card or row currently being edited by AI (live extraction in progress).            | Border-color pulse from `--accent-border` to `--accent` over 1.6s, infinite.    |
+
+**Banned AI patterns:**
+
+- Chat window overlays (right-side panel or bottom-right floating bubble)
+- Animated typing-dots indicator
+- "AI is thinking..." centered spinner that blocks the UI
+- Glowing halos behind AI elements (no `box-shadow` glow, ever — see v3 motion rules)
+- Gradient text on AI labels (no `gradient-text-ai` class — banned in v3)
+- Personifying the AI ("Sage from kAInban suggests…") — the AI is the product, not a character
+- Auto-opening modals announcing AI completed something — use Activity feed instead
+
+**The AI voice (when written content):**
+
+- Use Instrument Serif body (already a v3 rule for AI output).
+- Be terse. The AI never says "I noticed that…" — it says "ACH webhook
+  idempotency needs a 24h key TTL."
+- Always cite source. Every AI-generated piece of content links back to its
+  transcript span (mono citation: `standup-2026-05-26.m4a · 14:32`).
+- Never use emoji. Never use exclamation points. The AI is a senior staff
+  engineer, not a customer service rep.
+
+---
+
+### v3.1.9 Terminology
+
+The product's verbs reinforce the workspace-OS posture. Match this
+vocabulary in UI strings, error messages, and docs.
+
+**Use:**
+
+| Term         | Meaning                                                                       |
+| ------------ | ----------------------------------------------------------------------------- |
+| Task         | Atomic unit of work.                                                          |
+| Project      | A group of tasks with a shared goal.                                          |
+| Inbox        | The AI's loading dock — extracted-but-unreviewed tasks land here first.       |
+| Today        | Tasks due today across all projects.                                          |
+| Activity     | Recent events across workspace (mutations, AI actions, comments).             |
+| Action       | A thing the AI can do for you (verbs in the palette).                         |
+| Workspace    | Top-level tenant boundary; one workspace = one Zitadel org.                   |
+| Meeting      | An audio source — recording, upload, or paste — that produced tasks.          |
+
+**Avoid:**
+
+| Banned term            | Why                                                                 | Use instead         |
+| ---------------------- | ------------------------------------------------------------------- | ------------------- |
+| Issue                  | Bug-tracker language; implies defect, not work.                     | Task                |
+| Ticket                 | Helpdesk language.                                                  | Task                |
+| Epic, Story            | Agile-ceremony noise; we are not Jira.                              | Project, Task       |
+| Sprint                 | Implies fixed-cadence ceremony.                                     | (omit) or `Cycle` if a cycle UX ships |
+| Backlog                | Implies dead work pile.                                             | Inbox (if AI) or `All tasks` filter |
+| Dashboard              | Implies admin-panel surface; doesn't fit a workspace OS.            | (replace with the actual surface name: Inbox, Today, Project) |
+| Card                   | OK internally for kanban cards. NEVER user-facing — say `task`.     | Task                |
+| Notification           | Use sparingly. Prefer "Activity" for the feed; only use "notification" for push/email/Slack out-bound. | Activity            |
+
+**Microcopy patterns:**
+
+- Empty state: `"No tasks in <View>. Press C to add one."` Never `"You have
+  no items"` or `"It's lonely here"`.
+- AI extraction running: `"Extracting tasks from <meeting>…"` Never `"Sage
+  is thinking…"`.
+- Error: `"Couldn't <verb>. <one-sentence cause>. <one-sentence fix>."` No
+  "Oops" / "Uh oh" / exclamation points.
+
+---
+
+### v3.1 component additions
+
+The following components are added to the library (alongside the v3 primitives).
+All consume v3 tokens, all live in `src/components/ui/` once implemented.
+
+| Component             | Purpose                                                | Notes                                                  |
+| --------------------- | ------------------------------------------------------ | ------------------------------------------------------ |
+| `AppShell`            | The 3-pane grid (sidebar / main / inspector).          | Handles responsive collapse to drawer on mobile.       |
+| `Sidebar`             | Composition wrapper.                                   | Hosts `SidebarSection`, `WorkspaceSwitcher`, `UserCard`. |
+| `SidebarSection`      | Nav group with eyebrow + items + tree.                 | Reusable for Projects, Meetings, custom groups.        |
+| `TopBar`              | Top command bar (breadcrumb + palette trigger + menu). | Fixed `var(--topbar-h)`.                               |
+| `ViewSwitcher`        | Two-tab segmented control (Kanban / Tasks).            | Persists last-used per user per workspace.             |
+| `ViewBar`             | View Switcher + Filter + Sort + Group-by row.          | Sits below TopBar, above canvas.                       |
+| `TaskRow`             | Compact list-view row primitive (above).               | Keyboard-navigable. Replaces SimpleListView rendering. |
+| `TaskListGroup`       | Group header + collapsing rows.                        | Used by Tasks view.                                    |
+| `TaskInspector`       | Right-side inspector for tasks.                        | Replaces `TaskDetailModal.jsx` entirely.               |
+| `MeetingInspector`    | Right-side inspector for meetings.                     | Same composition as TaskInspector; different body.     |
+| `CommandPalette`      | `<Cmd>K` palette built on `cmdk`.                      | Wraps Radix Dialog for accessibility.                  |
+| `AIActionMenu`        | Popover hosting the AI verbs (same as palette group).  | Trigger lives in TopBar.                               |
+| `AIBlock`             | Accent-bordered serif body block.                      | Used in inspectors for AI-generated content.           |
+| `InlineAISuggest`     | Accent chip with sparkle icon, inline action trigger.  | Used at bottom of relevant sections.                   |
+| `ActivityItem`        | Single row in the Activity feed.                       | Variants: user-action, AI-action.                      |
+
+**Out of scope for v3.1 (deferred):**
+
+- Marketing site re-skin.
+- Mobile native app (React Native / Tauri shell) — DESIGN.md doesn't bind
+  native; that's a future spec.
+- Multi-workspace switcher animations.
+- Cmd-K result fuzzy-rank tuning (defer until real usage data exists).
+
+---
+
+### v3.1 migration plan (frontend only — no backend changes)
+
+This document is the contract. The migration is a follow-up PR. Estimated
+shape (in order):
+
+1. **Install `cmdk`** (`npm i cmdk`) and create the empty `CommandPalette`
+   primitive. Wire `<Cmd>K` globally.
+2. **Build `AppShell`** as a top-level layout component. Replace the current
+   `Header` + page-level layout with `AppShell` containing `Sidebar` +
+   `TopBar` + `Outlet` + `TaskInspector` slot.
+3. **Refactor `LeftSidebar.jsx` → `Sidebar` + `SidebarSection`** per the
+   composition above. Pull workspace switcher out of `Header.jsx`.
+4. **Build `TaskRow` and `TaskListGroup`.** Migrate `SimpleListView.jsx` to
+   use them. (`VirtualizedListView.jsx` keeps virtualization wrapper,
+   replaces row renderer.)
+5. **Add `ViewSwitcher` + `ViewBar`.** Persist preference under
+   `kainban:viewMode:<workspaceId>`. Make List the default for new users.
+6. **Build `TaskInspector`.** Move every read pattern out of
+   `TaskDetailModal.jsx`. Delete the modal portal. Move "Are you sure
+   delete?" into a small confirmation `Modal` primitive.
+7. **Populate the command palette** with the canonical AI actions, project
+   nav, view switches, and a fuzzy-search results group.
+8. **Replace any `Notifications` UI naming with `Activity`** (one-shot sweep
+   of strings).
+9. **Add new components to Storybook (if it exists) or design-preview/.**
+10. **Update CLAUDE.md** to flag the new contract: "Before any new component,
+    read DESIGN.md v3.1.8/9; prefer Inspector over Modal; respect
+    terminology."
+
+Estimated effort: 5-8 dev days for a single engineer, longer if also doing
+the full responsive matrix. None of the backend is touched; all changes are
+in `src/components/` and `src/styles/`.
+
+---
+
 ## Decisions log
 
 | Date       | Decision                                            | Rationale                                                                                                                                               |
@@ -456,3 +948,9 @@ the visual contract.
 | 2026-05-26 | 13px body, 4px base spacing                         | Indie-hacker tools live dense. Density signals "I respect your screen." Density toggle for accessibility.                                               |
 | 2026-05-26 | Dark mode is the home, light mode the option        | Category default for the audience. Warm bias carries to light via off-white paper canvas.                                                               |
 | 2026-05-26 | Drop glassmorphism + neumorphism + all gradients    | v2 design system named both. They are 2020 Dribbble tells and the audience reads them as vibe-coded.                                                    |
+| 2026-05-26 | v3.1 — App shell architecture added                 | v3 covered visual primitives but not application architecture. Without a contract for sidebar/topbar/inspector, the next 5 PRs would each reinvent layout differently. |
+| 2026-05-26 | Inspector replaces TaskDetailModal as default       | Modals demand full focus and hide the surrounding context. For task detail, you usually want to see the surrounding board/list to compare. Inspectors keep context visible — Linear and Height both made this move. |
+| 2026-05-26 | View Switcher added; Tasks (list) default for new users | "AI converts conversations into work" reads better as an inbox of rows than a board of cards. Existing users keep last-used per `localStorage` so the change is invisible to them. |
+| 2026-05-26 | `cmdk` chosen over `kbar` for command palette       | Headless (~3kb vs ~12kb), zero default styling means no risk of clashing with v3 Workhorse restraint, shadcn-compatible. |
+| 2026-05-26 | Ambient AI patterns, no chat overlay anywhere       | A chat window is the AI-slop default 2026. Ambient AI (badge / summary block / inline action / pulse) communicates "AI is infrastructure" rather than "AI is a character." |
+| 2026-05-26 | Workspace-OS terminology, ban ticketing nouns       | "Tasks / Projects / Inbox / Activity / Workspaces" reinforces the workspace-OS posture; "Issues / Tickets / Sprints / Backlogs" drag the product back into bug-tracker mental model. |
