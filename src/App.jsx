@@ -12,13 +12,12 @@ import {
 import ActivityPanel from './components/ActivityPanel'
 import AuthPage from './components/AuthPage'
 import DebugPanel from './components/DebugPanel'
-import Header from './components/Header'
 import InviteRegistrationForm from './components/InviteRegistrationForm'
-import LeftSidebar from './components/LeftSidebar'
 import NotificationSystem from './components/NotificationSystem'
 import ProgressIndicator from './components/ProgressIndicator'
 import RecordingModal from './components/RecordingModal'
 import SettingsDialog from './components/SettingsDialog'
+import AppShell from './components/shell/AppShell'
 import CommandPalette from './components/ui/command-palette'
 
 // Pages
@@ -30,7 +29,6 @@ import useAppStore from './stores/useAppStore'
 function AuthenticatedApp() {
   const [loading, setLoading] = React.useState(true)
   const [activityPanelOpen, setActivityPanelOpen] = React.useState(false)
-  const [sidebarOpen, setSidebarOpen] = React.useState(false)
   const user = useAppStore(state => state.user)
   const authChecked = useAppStore(state => state.authChecked)
   const checkAuth = useAppStore(state => state.checkAuth)
@@ -271,38 +269,25 @@ function AuthenticatedApp() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Left Sidebar - Overlay when open */}
-      <LeftSidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+    <>
+      {/* v3.1 app shell — sidebar + topbar + canvas + inspector slot.
+          Replaces the old Header + LeftSidebar overlay layout. Inspector
+          slot stays empty until Slice 3 hooks TaskInspector into it. */}
+      <AppShell onShowActivity={() => setActivityPanelOpen(true)}>
+        <motion.div
+          initial={{ opacity: 0, y: 4 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
+          className="space-y-6 sm:space-y-8 max-w-[1400px] mx-auto px-3 sm:px-6 py-6 sm:py-8"
+        >
+          <Routes>
+            <Route path="/" element={<MainView />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </motion.div>
 
-      {/* Main content area - full width */}
-      <div className="flex flex-col min-h-screen">
-        {/* Sticky header — solid surface, hairline rule */}
-        <div className="sticky top-0 z-40 bg-background border-b border-border">
-          <div className="w-full px-3 sm:px-6 py-3">
-            <Header
-              onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
-              onShowActivity={() => setActivityPanelOpen(true)}
-            />
-          </div>
-        </div>
-
-        {/* Content */}
-        <div className="flex-1 px-3 sm:px-6 py-6 sm:py-8">
-          <motion.div
-            initial={{ opacity: 0, y: 4 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
-            className="space-y-6 sm:space-y-8 max-w-[1400px] mx-auto"
-          >
-            <Routes>
-              <Route path="/" element={<MainView />} />
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-          </motion.div>
-        </div>
-
-        {/* Footer — newspaper colophon style */}
+        {/* Newspaper colophon — keeps the v3 footer signature in the
+            scrollable canvas (not the fixed shell chrome). */}
         <footer className="py-6 border-t border-border bg-background">
           <div className="text-center px-6">
             <p className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider font-mono">
@@ -312,15 +297,18 @@ function AuthenticatedApp() {
             </p>
           </div>
         </footer>
-      </div>
+      </AppShell>
 
-      {/* Activity Panel */}
+      {/* Activity Panel — slides in from the right; replaced by Inspector
+          in Slice 3 for task-specific activity. Keeps the existing
+          workspace-wide activity feed for now. */}
       <ActivityPanel
         isOpen={activityPanelOpen}
         onClose={() => setActivityPanelOpen(false)}
       />
 
-      {/* Modals and overlays */}
+      {/* Modals and overlays — render outside the shell so they portal
+          above the sidebar/inspector chrome. */}
       <SettingsDialog />
       <RecordingModal />
       <CommandPalette />
@@ -336,7 +324,7 @@ function AuthenticatedApp() {
 
       {/* Debug panel for mobile development */}
       {import.meta.env.DEV && <DebugPanel />}
-    </div>
+    </>
   )
 }
 

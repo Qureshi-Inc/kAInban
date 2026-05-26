@@ -112,6 +112,18 @@
   --dur-fast: 120ms;
   --dur-base: 180ms;
   --dur-slow: 320ms;
+
+  /* ---------- App shell architecture (v3.1) ----------
+     See DESIGN.md v3.1.1. The actual values live in src/index.css's
+     @layer base :root block, NOT here — Tailwind's PostCSS pipeline
+     drops the :root block from this imported file before it reaches
+     the build, but @layer base content makes it through reliably.
+     If a future build pipeline change fixes the import, mirror values
+     here and remove from index.css. Sources of truth:
+       --sidebar-w       240px
+       --sidebar-rail-w   56px
+       --inspector-w     384px
+       --topbar-h         44px */
 }
 
 /* Dark mode token overrides — applied via .dark class on <html> AND via

@@ -64,6 +64,16 @@
     --shadow-md: 0 2px 6px -1px rgb(0 0 0 / 0.08);
     --shadow-lg: 0 4px 12px -2px rgb(0 0 0 / 0.10);
     --shadow-xl: 0 8px 24px -4px rgb(0 0 0 / 0.12);
+
+    /* v3.1 app-shell architecture (DESIGN.md v3.1.1). Live here, not in
+       design-tokens.css, because that file's :root block gets eaten by
+       the Tailwind/PostCSS pipeline and these layout primitives need to
+       reach AppShell / Sidebar / TopBar at runtime via inline style
+       var(--*) references. */
+    --sidebar-w: 240px;
+    --sidebar-rail-w: 56px;
+    --inspector-w: 384px;
+    --topbar-h: 44px;
   }
 
   /* -----------------------------------------------------------------------
