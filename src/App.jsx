@@ -1,6 +1,12 @@
 import { motion } from 'framer-motion'
 import React, { useEffect } from 'react'
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+  useLocation
+} from 'react-router-dom'
 
 // Components
 import ActivityPanel from './components/ActivityPanel'
@@ -24,32 +30,36 @@ function AuthenticatedApp() {
   const [loading, setLoading] = React.useState(true)
   const [activityPanelOpen, setActivityPanelOpen] = React.useState(false)
   const [sidebarOpen, setSidebarOpen] = React.useState(false)
-  const user = useAppStore((state) => state.user)
-  const authChecked = useAppStore((state) => state.authChecked)
-  const checkAuth = useAppStore((state) => state.checkAuth)
-  const setUser = useAppStore((state) => state.setUser)
-  const notifications = useAppStore((state) => state.notifications)
-  const uploadProgress = useAppStore((state) => state.uploadProgress)
-  const resetUploadProgress = useAppStore((state) => state.resetUploadProgress)
-  const initialize = useAppStore((state) => state.initialize)
-  const currentProject = useAppStore((state) => state.currentProject)
-  const provider = useAppStore((state) => state.settings.provider)
-  const azureEndpoint = useAppStore((state) => state.settings.azureEndpoint)
-  const openaiBaseUrl = useAppStore((state) => state.settings.openaiBaseUrl)
-  const apiKey = useAppStore((state) => state.settings.apiKey)
-  const apiVersion = useAppStore((state) => state.settings.apiVersion)
-  const whisperDeployment = useAppStore((state) => state.settings.whisperDeployment)
-  const gptDeployment = useAppStore((state) => state.settings.gptDeployment)
-  const openaiWhisperModel = useAppStore((state) => state.settings.openaiWhisperModel)
-  const openaiGptModel = useAppStore((state) => state.settings.openaiGptModel)
+  const user = useAppStore(state => state.user)
+  const authChecked = useAppStore(state => state.authChecked)
+  const checkAuth = useAppStore(state => state.checkAuth)
+  const setUser = useAppStore(state => state.setUser)
+  const notifications = useAppStore(state => state.notifications)
+  const uploadProgress = useAppStore(state => state.uploadProgress)
+  const resetUploadProgress = useAppStore(state => state.resetUploadProgress)
+  const initialize = useAppStore(state => state.initialize)
+  const currentProject = useAppStore(state => state.currentProject)
+  const provider = useAppStore(state => state.settings.provider)
+  const azureEndpoint = useAppStore(state => state.settings.azureEndpoint)
+  const openaiBaseUrl = useAppStore(state => state.settings.openaiBaseUrl)
+  const keyConfigured = useAppStore(state => state.settings.keyConfigured)
+  const apiVersion = useAppStore(state => state.settings.apiVersion)
+  const whisperDeployment = useAppStore(
+    state => state.settings.whisperDeployment
+  )
+  const gptDeployment = useAppStore(state => state.settings.gptDeployment)
+  const openaiWhisperModel = useAppStore(
+    state => state.settings.openaiWhisperModel
+  )
+  const openaiGptModel = useAppStore(state => state.settings.openaiGptModel)
 
   useEffect(() => {
     // Check authentication and initialize in parallel
-    const initApp = async() => {
+    const initApp = async () => {
       try {
         // Check authentication first
         const authenticatedUser = await checkAuth()
-        
+
         if (!authenticatedUser) {
           setLoading(false)
           return
@@ -67,52 +77,6 @@ function AuthenticatedApp() {
         const result = await initialize(urlContext)
         if (result === undefined) {
           // Settings load failed, will use defaults
-        }
-
-        // Check if settings are empty, if so, load from environment variables
-        const { settings, updateSettings } = useAppStore.getState()
-
-
-        // Only auto-fill from env vars if AI settings are unconfigured.
-        // We check both providers: Azure (endpoint+key) or OpenAI (key only).
-        const azureConfigured = settings.azureEndpoint && settings.apiKey
-        const openaiConfigured = settings.provider === 'openai' && settings.apiKey
-        if (!azureConfigured && !openaiConfigured) {
-
-          const envProvider = (import.meta.env.VITE_AI_PROVIDER === 'openai' || import.meta.env.VITE_OPENAI_API_KEY)
-            ? 'openai'
-            : 'azure'
-
-          const envSettings = envProvider === 'openai'
-            ? {
-              provider: 'openai',
-              apiKey: import.meta.env.VITE_OPENAI_API_KEY || '',
-              openaiBaseUrl: import.meta.env.VITE_OPENAI_BASE_URL || 'https://api.openai.com/v1',
-              openaiWhisperModel: import.meta.env.VITE_OPENAI_WHISPER_MODEL || 'whisper-1',
-              openaiGptModel: import.meta.env.VITE_OPENAI_GPT_MODEL || 'gpt-4o'
-            }
-            : {
-              provider: 'azure',
-              azureEndpoint: import.meta.env.VITE_AZURE_OPENAI_ENDPOINT || '',
-              apiKey: import.meta.env.VITE_AZURE_OPENAI_API_KEY || '',
-              apiVersion: import.meta.env.VITE_AZURE_OPENAI_API_VERSION || '2024-02-01',
-              whisperDeployment: import.meta.env.VITE_AZURE_OPENAI_WHISPER_DEPLOYMENT || 'whisper',
-              gptDeployment: import.meta.env.VITE_AZURE_OPENAI_GPT_DEPLOYMENT || 'gpt-4'
-            }
-
-          console.log('[App] Loaded from .env:', {
-            provider: envSettings.provider,
-            hasEndpoint: !!envSettings.azureEndpoint,
-            hasApiKey: !!envSettings.apiKey,
-            whisperModel: envSettings.openaiWhisperModel || envSettings.whisperDeployment,
-            gptModel: envSettings.openaiGptModel || envSettings.gptDeployment
-          })
-
-          // Update settings with environment variables
-          updateSettings(envSettings)
-
-        } else {
-          // Settings were already configured
         }
 
         setLoading(false)
@@ -135,13 +99,12 @@ function AuthenticatedApp() {
     }
 
     try {
-
       // Configure OpenAI service with current settings
       openaiService.configure({
         provider,
         azureEndpoint,
         openaiBaseUrl,
-        apiKey,
+        keyConfigured,
         apiVersion,
         whisperDeployment,
         gptDeployment,
@@ -156,7 +119,7 @@ function AuthenticatedApp() {
     provider,
     azureEndpoint,
     openaiBaseUrl,
-    apiKey,
+    keyConfigured,
     apiVersion,
     whisperDeployment,
     gptDeployment,
@@ -242,7 +205,7 @@ function AuthenticatedApp() {
     }
     return (
       <AuthPage
-        onAuthSuccess={(authenticatedUser) => {
+        onAuthSuccess={authenticatedUser => {
           setUser(authenticatedUser)
           setLoading(true)
 
@@ -259,7 +222,7 @@ function AuthenticatedApp() {
             .then(() => {
               setLoading(false)
             })
-            .catch((error) => {
+            .catch(error => {
               console.error('[App] Post-login initialization error:', error)
               setLoading(false)
             })
@@ -311,74 +274,73 @@ function AuthenticatedApp() {
   }
 
   return (
-      <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
-        {/* Left Sidebar - Overlay when open */}
-        <LeftSidebar
-          isOpen={sidebarOpen}
-          onClose={() => setSidebarOpen(false)}
-        />
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
+      {/* Left Sidebar - Overlay when open */}
+      <LeftSidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
-        {/* Main content area - full width */}
-        <div className="flex flex-col min-h-screen">
-          {/* Header with hamburger menu and activity button */}
-          <div className="sticky top-0 z-40 backdrop-blur-xl bg-background/80 border-b border-border/50">
-            <div className="w-full px-6 py-4">
-              <Header
-                onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
-                onShowActivity={() => setActivityPanelOpen(true)}
-              />
-            </div>
+      {/* Main content area - full width */}
+      <div className="flex flex-col min-h-screen">
+        {/* Header with hamburger menu and activity button */}
+        <div className="sticky top-0 z-40 backdrop-blur-xl bg-background/80 border-b border-border/50">
+          <div className="w-full px-6 py-4">
+            <Header
+              onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
+              onShowActivity={() => setActivityPanelOpen(true)}
+            />
           </div>
-
-          {/* Content */}
-          <div className="flex-1 px-6 py-8">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, ease: 'easeOut' }}
-              className="space-y-8 max-w-[1920px] mx-auto"
-            >
-              <Routes>
-                <Route path="/" element={<MainView />} />
-                <Route path="*" element={<Navigate to="/" replace />} />
-              </Routes>
-            </motion.div>
-          </div>
-
-          {/* Footer */}
-          <footer className="py-8 border-t border-border/50 bg-card/30 backdrop-blur-sm">
-            <div className="text-center px-6">
-              <p className="text-sm text-muted-foreground">
-                Built with <span className="text-red-500">♥</span> by{' '}
-                <span className="font-medium text-foreground">InterestingSoup</span>{' '}
-                <span className="text-xs opacity-70">2025</span>
-              </p>
-            </div>
-          </footer>
         </div>
 
-        {/* Activity Panel */}
-        <ActivityPanel
-          isOpen={activityPanelOpen}
-          onClose={() => setActivityPanelOpen(false)}
-        />
+        {/* Content */}
+        <div className="flex-1 px-6 py-8">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, ease: 'easeOut' }}
+            className="space-y-8 max-w-[1920px] mx-auto"
+          >
+            <Routes>
+              <Route path="/" element={<MainView />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </motion.div>
+        </div>
 
-        {/* Modals and overlays */}
-        <SettingsDialog />
-        <RecordingModal />
-        <NotificationSystem notifications={notifications} />
-
-        {/* Progress indicator for file uploads */}
-        <ProgressIndicator
-          progress={{
-            ...uploadProgress,
-            onDismiss: resetUploadProgress
-          }}
-        />
-
-        {/* Debug panel for mobile development */}
-        {import.meta.env.DEV && <DebugPanel />}
+        {/* Footer */}
+        <footer className="py-8 border-t border-border/50 bg-card/30 backdrop-blur-sm">
+          <div className="text-center px-6">
+            <p className="text-sm text-muted-foreground">
+              Built with <span className="text-red-500">♥</span> by{' '}
+              <span className="font-medium text-foreground">
+                InterestingSoup
+              </span>{' '}
+              <span className="text-xs opacity-70">2025</span>
+            </p>
+          </div>
+        </footer>
       </div>
+
+      {/* Activity Panel */}
+      <ActivityPanel
+        isOpen={activityPanelOpen}
+        onClose={() => setActivityPanelOpen(false)}
+      />
+
+      {/* Modals and overlays */}
+      <SettingsDialog />
+      <RecordingModal />
+      <NotificationSystem notifications={notifications} />
+
+      {/* Progress indicator for file uploads */}
+      <ProgressIndicator
+        progress={{
+          ...uploadProgress,
+          onDismiss: resetUploadProgress
+        }}
+      />
+
+      {/* Debug panel for mobile development */}
+      {import.meta.env.DEV && <DebugPanel />}
+    </div>
   )
 }
 

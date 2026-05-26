@@ -21,7 +21,7 @@ const debouncedUpdateCurrentProject = (projectData, callback) => {
   if (updateProjectTimeout) {
     clearTimeout(updateProjectTimeout)
   }
-  updateProjectTimeout = setTimeout(async() => {
+  updateProjectTimeout = setTimeout(async () => {
     try {
       await callback(projectData)
     } catch (error) {
@@ -41,6 +41,7 @@ const useAppStore = create((set, get) => ({
     provider: 'azure', // 'azure' | 'openai'
     // Shared
     apiKey: '',
+    keyConfigured: false,
     // Azure-specific
     azureEndpoint: '',
     apiVersion: '2024-02-01',
@@ -83,7 +84,7 @@ const useAppStore = create((set, get) => ({
   },
 
   // Authentication Actions
-  checkAuth: async() => {
+  checkAuth: async () => {
     try {
       const user = await apiService.getCurrentUser()
       set({ user, authChecked: true })
@@ -100,7 +101,7 @@ const useAppStore = create((set, get) => ({
     set({ user })
   },
 
-  logout: async() => {
+  logout: async () => {
     try {
       const result = await apiService.logout()
       // If the server returned an IdP end_session URL, navigate there FIRST
@@ -124,7 +125,7 @@ const useAppStore = create((set, get) => ({
   },
 
   // Initialize - Load data from backend
-  initialize: async(urlContext = null) => {
+  initialize: async (urlContext = null) => {
     try {
       // Load settings
       const settings = await apiService.getSettings()
@@ -166,10 +167,18 @@ const useAppStore = create((set, get) => ({
 
       // If URL context has project info, prioritize that over localStorage
       if (urlContext?.projectId) {
-        console.log('[Store] URL context provided, looking for project:', urlContext.projectId)
-        const urlProject = projectsWithTasks.find(p => p.id.startsWith(urlContext.projectId))
+        console.log(
+          '[Store] URL context provided, looking for project:',
+          urlContext.projectId
+        )
+        const urlProject = projectsWithTasks.find(p =>
+          p.id.startsWith(urlContext.projectId)
+        )
         if (urlProject) {
-          console.log('[Store] Loading project from URL context:', urlProject.name)
+          console.log(
+            '[Store] Loading project from URL context:',
+            urlProject.name
+          )
           set({
             currentProject: urlProject,
             tasks: urlProject.tasks || [],
@@ -274,9 +283,9 @@ const useAppStore = create((set, get) => ({
         projects: state.projects.map(p =>
           p.id === projectId
             ? {
-              ...project,
-              lastModified: project.lastModified || new Date().toISOString()
-            }
+                ...project,
+                lastModified: project.lastModified || new Date().toISOString()
+              }
             : p
         )
       }))
@@ -374,7 +383,7 @@ const useAppStore = create((set, get) => ({
     }
   },
 
-  deleteAllProjects: async() => {
+  deleteAllProjects: async () => {
     try {
       // Delete all projects from backend in one call
       await apiService.deleteAllProjects()
@@ -420,7 +429,7 @@ const useAppStore = create((set, get) => ({
   setRecordingModalOpen: open => set({ isRecordingModalOpen: open }),
 
   // Meeting Actions
-  createMeeting: async(name, transcript, summary) => {
+  createMeeting: async (name, transcript, summary) => {
     const meeting = {
       id: generateId(),
       name,

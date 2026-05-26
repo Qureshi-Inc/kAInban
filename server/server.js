@@ -9,6 +9,8 @@ import expressRateLimit from 'express-rate-limit'
 import session from 'express-session'
 import helmet from 'helmet'
 import morgan from 'morgan'
+import multer from 'multer'
+import * as aiProvider from './aiProviderService.js'
 import * as db from './database.js'
 import dbInstance from './database.js'
 import * as localAuth from './localAuth.js'
@@ -16,14 +18,19 @@ import * as oidcAuth from './oidcAuth.js'
 import tenantService from './tenantService.js'
 
 // Tenant middleware - extract and attach tenant context to requests
-const attachTenantContext = async(req, res, next) => {
+const attachTenantContext = async (req, res, next) => {
   try {
     console.log('[Middleware] Starting tenant context extraction')
     if (tenantService.isEnabled()) {
       const tenant = await tenantService.extractTenantFromRequest(req)
       if (tenant) {
         req.tenant = tenant
-        console.log('[Middleware] Tenant context attached:', tenant.subdomain, 'ID:', tenant.id)
+        console.log(
+          '[Middleware] Tenant context attached:',
+          tenant.subdomain,
+          'ID:',
+          tenant.id
+        )
       } else {
         console.log('[Middleware] No tenant context found')
       }
@@ -43,6 +50,12 @@ const PORT = process.env.PORT || 3001
 const STORAGE_DIR = process.env.STORAGE_DIR || './storage'
 const MEETINGS_DIR = path.join(STORAGE_DIR, 'meetings')
 const SQLiteStore = connectSqlite3(session)
+const aiUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 30 * 1024 * 1024
+  }
+})
 
 // Trust proxy (nginx reverse proxy)
 app.set('trust proxy', 1)
@@ -57,11 +70,7 @@ app.use(
         fontSrc: ["'self'", 'https://fonts.gstatic.com'],
         scriptSrc: ["'self'", "'unsafe-eval'"], // unsafe-eval needed for Vite dev
         imgSrc: ["'self'", 'data:', 'https:'],
-        connectSrc: [
-          "'self'",
-          'https://api.openai.com',
-          'https://*.openai.azure.com'
-        ],
+        connectSrc: ["'self'"],
         mediaSrc: ["'self'", 'blob:'],
         objectSrc: ["'none'"],
         baseUri: ["'self'"],
@@ -180,8 +189,8 @@ app.use(
 )
 // Body parsers. JSON only - dropped urlencoded to neutralize the form-CSRF
 // vector (a cross-origin <form method="POST"> can't make the server parse
-// JSON without a CORS preflight). 2mb is plenty for project/task payloads;
-// audio uploads go direct from the browser to Whisper.
+// JSON without a CORS preflight). 2mb is plenty for project/task payloads.
+// AI audio uploads use a dedicated multipart route (/api/ai/transcribe).
 app.use(express.json({ limit: '2mb' }))
 app.use(morgan('combined')) // Changed to combined for better security logging
 
@@ -268,7 +277,7 @@ const requireLocalRegisterFallback = (req, res, next) => {
 // transient blips shouldn't log users out. The next request will retry.
 const refreshLocks = new Map()
 
-app.use(async(req, res, next) => {
+app.use(async (req, res, next) => {
   try {
     const oidcSession = req.session?.oidc
     if (!oidcSession?.refresh_token || !oidcSession?.expires_at) {
@@ -290,15 +299,20 @@ app.use(async(req, res, next) => {
       // Reload session so this request sees the refreshed tokens.
       return req.session.reload(reloadErr => {
         if (reloadErr) {
-          console.warn('[OIDC] session.reload after refresh failed:', reloadErr.message)
+          console.warn(
+            '[OIDC] session.reload after refresh failed:',
+            reloadErr.message
+          )
         }
         next()
       })
     }
 
-    const refreshPromise = (async() => {
+    const refreshPromise = (async () => {
       console.log('[OIDC] Refreshing access token for session', sid)
-      const newTokenSet = await oidcAuth.refreshTokenSet(oidcSession.refresh_token)
+      const newTokenSet = await oidcAuth.refreshTokenSet(
+        oidcSession.refresh_token
+      )
       req.session.oidc = {
         id_token: newTokenSet.id_token || oidcSession.id_token,
         refresh_token: newTokenSet.refresh_token || oidcSession.refresh_token,
@@ -313,13 +327,19 @@ app.use(async(req, res, next) => {
     try {
       await refreshPromise
     } catch (err) {
-      console.warn('[OIDC] token refresh failed (falling through):', err.message)
+      console.warn(
+        '[OIDC] token refresh failed (falling through):',
+        err.message
+      )
     } finally {
       refreshLocks.delete(sid)
     }
     next()
   } catch (err) {
-    console.warn('[OIDC] refresh middleware error (falling through):', err.message)
+    console.warn(
+      '[OIDC] refresh middleware error (falling through):',
+      err.message
+    )
     next()
   }
 })
@@ -337,21 +357,27 @@ app.get('/health', (req, res) => {
     dbInstance.prepare('SELECT 1').get()
     res.json({ status: 'ok', database: 'connected' })
   } catch (err) {
-    res.status(503).json({ status: 'unhealthy', database: 'error', error: err.message })
+    res
+      .status(503)
+      .json({ status: 'unhealthy', database: 'error', error: err.message })
   }
 })
 
 // Separate OIDC dependency healthcheck. Kept off the main /health so a
 // Zitadel blip doesn't take api out of the LB pool for non-auth traffic.
-app.get('/health/oidc', async(req, res) => {
+app.get('/health/oidc', async (req, res) => {
   if (!oidcAuth.isOIDCEnabled()) {
-    return res.status(503).json({ status: 'disabled', reason: 'OIDC env not configured' })
+    return res
+      .status(503)
+      .json({ status: 'disabled', reason: 'OIDC env not configured' })
   }
   const issuer = process.env.ZITADEL_ISSUER
   const ctrl = new AbortController()
   const timeout = setTimeout(() => ctrl.abort(), 2000)
   try {
-    const r = await fetch(`${issuer}/.well-known/openid-configuration`, { signal: ctrl.signal })
+    const r = await fetch(`${issuer}/.well-known/openid-configuration`, {
+      signal: ctrl.signal
+    })
     clearTimeout(timeout)
     if (!r.ok) {
       return res.status(503).json({ status: 'unreachable', http: r.status })
@@ -377,7 +403,7 @@ app.get('/api/config/recaptcha', (req, res) => {
 })
 
 // Get current tenant information
-app.get('/api/tenant/info', localAuth.requireAuth, async(req, res) => {
+app.get('/api/tenant/info', localAuth.requireAuth, async (req, res) => {
   try {
     if (!tenantService.isEnabled()) {
       return res.status(404).json({ error: 'Multi-tenancy not enabled' })
@@ -410,7 +436,7 @@ app.get('/api/tenant/info', localAuth.requireAuth, async(req, res) => {
 })
 
 // Legacy tenant path routing (redirect to query parameter)
-app.get('/tenant/:subdomain', async(req, res) => {
+app.get('/tenant/:subdomain', async (req, res) => {
   try {
     const { subdomain } = req.params
     // Redirect to query parameter format
@@ -422,167 +448,205 @@ app.get('/tenant/:subdomain', async(req, res) => {
 })
 
 // Authentication endpoints (LOCAL FALLBACK ONLY - Zitadel handles registration via hosted UI)
-app.post('/api/auth/register', requireLocalRegisterFallback, authLimiter, async(req, res) => {
-  try {
-    const { email, password, name, tenantName, subdomain, tier, recaptchaToken } = req.body
+app.post(
+  '/api/auth/register',
+  requireLocalRegisterFallback,
+  authLimiter,
+  async (req, res) => {
+    try {
+      const {
+        email,
+        password,
+        name,
+        tenantName,
+        subdomain,
+        tier,
+        recaptchaToken
+      } = req.body
 
-    // Check if registration is allowed
-    const isFirstUser = !db.hasUsers()
-    const allowRegistration =
-      process.env.ALLOW_REGISTRATION === 'true' ||
-      process.env.ALLOW_REGISTRATION === '1'
+      // Check if registration is allowed
+      const isFirstUser = !db.hasUsers()
+      const allowRegistration =
+        process.env.ALLOW_REGISTRATION === 'true' ||
+        process.env.ALLOW_REGISTRATION === '1'
 
-    // Allow registration if it's the first user (admin setup) or if registration is enabled
-    if (!isFirstUser && !allowRegistration) {
-      return res
-        .status(403)
-        .json({ error: 'Registration is currently disabled' })
-    }
-
-    // Verify reCAPTCHA if enabled
-    if (recaptchaService.isEnabled()) {
-      const recaptchaResult = await recaptchaService.verifyToken(recaptchaToken, req.ip)
-      if (!recaptchaResult.success) {
-        console.log('[Auth] reCAPTCHA verification failed:', recaptchaResult.error)
-        return res.status(400).json({
-          error: recaptchaResult.error || 'reCAPTCHA verification failed. Please try again.'
-        })
+      // Allow registration if it's the first user (admin setup) or if registration is enabled
+      if (!isFirstUser && !allowRegistration) {
+        return res
+          .status(403)
+          .json({ error: 'Registration is currently disabled' })
       }
-      console.log('[Auth] reCAPTCHA verified with score:', recaptchaResult.score)
-    }
 
-    let tenant = null
-    let user = null
+      // Verify reCAPTCHA if enabled
+      if (recaptchaService.isEnabled()) {
+        const recaptchaResult = await recaptchaService.verifyToken(
+          recaptchaToken,
+          req.ip
+        )
+        if (!recaptchaResult.success) {
+          console.log(
+            '[Auth] reCAPTCHA verification failed:',
+            recaptchaResult.error
+          )
+          return res.status(400).json({
+            error:
+              recaptchaResult.error ||
+              'reCAPTCHA verification failed. Please try again.'
+          })
+        }
+        console.log(
+          '[Auth] reCAPTCHA verified with score:',
+          recaptchaResult.score
+        )
+      }
 
-    // Every user gets their own tenant
-    if (tenantService.isEnabled()) {
-      console.log('[Auth] Creating tenant for user:', { email, tenantName, tier })
+      let tenant = null
+      let user = null
 
-      // Create tenant first - use organization name or email as fallback
-      try {
-        const tierLimits = {
-          starter: { maxUsers: 5 },
-          professional: { maxUsers: 25 },
-          enterprise: { maxUsers: 100 }
+      // Every user gets their own tenant
+      if (tenantService.isEnabled()) {
+        console.log('[Auth] Creating tenant for user:', {
+          email,
+          tenantName,
+          tier
+        })
+
+        // Create tenant first - use organization name or email as fallback
+        try {
+          const tierLimits = {
+            starter: { maxUsers: 5 },
+            professional: { maxUsers: 25 },
+            enterprise: { maxUsers: 100 }
+          }
+
+          const maxUsers = tierLimits[tier]?.maxUsers || 5
+          const orgName = tenantName || email.split('@')[0]
+          const subdomain = orgName.toLowerCase().replace(/[^a-z0-9]/g, '')
+
+          tenant = await tenantService.createTenant({
+            name: orgName,
+            subdomain,
+            plan: tier || 'starter',
+            maxUsers
+          })
+
+          console.log('[Auth] Created tenant:', tenant.id)
+        } catch (error) {
+          return res.status(400).json({ error: error.message })
         }
 
-        const maxUsers = tierLimits[tier]?.maxUsers || 5
-        const orgName = tenantName || email.split('@')[0]
-        const subdomain = orgName.toLowerCase().replace(/[^a-z0-9]/g, '')
-
-        tenant = await tenantService.createTenant({
-          name: orgName,
-          subdomain,
-          plan: tier || 'starter',
-          maxUsers
+        // Register user with tenant
+        user = await localAuth.registerUser({
+          email,
+          password,
+          name,
+          tenantId: tenant.id
         })
 
-        console.log('[Auth] Created tenant:', tenant.id)
-      } catch (error) {
-        return res.status(400).json({ error: error.message })
+        // Associate user with tenant
+        await tenantService.addUserToTenant(user.id, tenant.id)
+      } else {
+        // Single-tenant registration (existing flow)
+        user = await localAuth.registerUser({ email, password, name })
       }
 
-      // Register user with tenant
-      user = await localAuth.registerUser({ email, password, name, tenantId: tenant.id })
+      // Regenerate session ID before assigning user to prevent session fixation
+      await new Promise((resolve, reject) => {
+        req.session.regenerate(err => (err ? reject(err) : resolve()))
+      })
 
-      // Associate user with tenant
-      await tenantService.addUserToTenant(user.id, tenant.id)
-    } else {
-      // Single-tenant registration (existing flow)
-      user = await localAuth.registerUser({ email, password, name })
+      req.session.user = localAuth.formatUserForSession(user)
+
+      // Explicitly save session
+      req.session.save(err => {
+        if (err) {
+          console.error('[Auth] Session save error:', err)
+          return res.status(500).json({ error: 'Failed to create session' })
+        }
+        console.log('[Auth] User registered and logged in:', user.email)
+
+        const response = {
+          success: true,
+          user: req.session.user
+        }
+
+        // Include tenant info in response for multi-tenant setup
+        if (tenant) {
+          response.tenant = {
+            id: tenant.id,
+            name: tenant.name,
+            subdomain: tenant.subdomain,
+            plan: tenant.plan
+          }
+        }
+
+        res.json(response)
+      })
+    } catch (error) {
+      console.error('[Auth] Registration error:', error.message)
+      res.status(400).json({ error: error.message })
     }
+  }
+)
 
-    // Regenerate session ID before assigning user to prevent session fixation
-    await new Promise((resolve, reject) => {
-      req.session.regenerate(err => (err ? reject(err) : resolve()))
-    })
+app.post(
+  '/api/auth/login',
+  requireLocalLoginFallback,
+  authLimiter,
+  async (req, res) => {
+    try {
+      const { email, password } = req.body
 
-    req.session.user = localAuth.formatUserForSession(user)
+      // Authenticate user
+      const user = await localAuth.authenticateUser(email, password)
 
-    // Explicitly save session
-    req.session.save(err => {
-      if (err) {
-        console.error('[Auth] Session save error:', err)
-        return res.status(500).json({ error: 'Failed to create session' })
-      }
-      console.log('[Auth] User registered and logged in:', user.email)
-
-      const response = {
-        success: true,
-        user: req.session.user
-      }
-
-      // Include tenant info in response for multi-tenant setup
-      if (tenant) {
-        response.tenant = {
-          id: tenant.id,
-          name: tenant.name,
-          subdomain: tenant.subdomain,
-          plan: tenant.plan
+      // Get user's tenant information for redirect
+      let userTenant = null
+      if (tenantService.isEnabled() && user.tenant_id) {
+        try {
+          userTenant = await tenantService.getTenantById(user.tenant_id)
+          console.log('[Auth] User tenant found:', userTenant?.subdomain)
+        } catch (error) {
+          console.error('[Auth] Error getting user tenant:', error)
         }
       }
 
-      res.json(response)
-    })
-  } catch (error) {
-    console.error('[Auth] Registration error:', error.message)
-    res.status(400).json({ error: error.message })
-  }
-})
+      // Regenerate session ID before assigning user to prevent session fixation
+      await new Promise((resolve, reject) => {
+        req.session.regenerate(err => (err ? reject(err) : resolve()))
+      })
 
-app.post('/api/auth/login', requireLocalLoginFallback, authLimiter, async(req, res) => {
-  try {
-    const { email, password } = req.body
+      req.session.user = localAuth.formatUserForSession(user)
 
-    // Authenticate user
-    const user = await localAuth.authenticateUser(email, password)
+      // Explicitly save session
+      req.session.save(err => {
+        if (err) {
+          console.error('[Auth] Session save error:', err)
+          return res.status(500).json({ error: 'Failed to create session' })
+        }
+        console.log('[Auth] User logged in:', user.email)
 
-    // Get user's tenant information for redirect
-    let userTenant = null
-    if (tenantService.isEnabled() && user.tenant_id) {
-      try {
-        userTenant = await tenantService.getTenantById(user.tenant_id)
-        console.log('[Auth] User tenant found:', userTenant?.subdomain)
-      } catch (error) {
-        console.error('[Auth] Error getting user tenant:', error)
-      }
+        const response = {
+          success: true,
+          user: req.session.user
+        }
+
+        // Include tenant redirect URL if user has a tenant
+        if (userTenant) {
+          response.redirectUrl = `/?tenant=${userTenant.subdomain}`
+          console.log('[Auth] User should redirect to:', response.redirectUrl)
+        }
+
+        res.json(response)
+      })
+    } catch (error) {
+      console.error('[Auth] Login error:', error.message)
+      res.status(401).json({ error: error.message })
     }
-
-    // Regenerate session ID before assigning user to prevent session fixation
-    await new Promise((resolve, reject) => {
-      req.session.regenerate(err => (err ? reject(err) : resolve()))
-    })
-
-    req.session.user = localAuth.formatUserForSession(user)
-
-    // Explicitly save session
-    req.session.save(err => {
-      if (err) {
-        console.error('[Auth] Session save error:', err)
-        return res.status(500).json({ error: 'Failed to create session' })
-      }
-      console.log('[Auth] User logged in:', user.email)
-
-      const response = {
-        success: true,
-        user: req.session.user
-      }
-
-      // Include tenant redirect URL if user has a tenant
-      if (userTenant) {
-        response.redirectUrl = `/?tenant=${userTenant.subdomain}`
-        console.log('[Auth] User should redirect to:', response.redirectUrl)
-      }
-
-      res.json(response)
-    })
-  } catch (error) {
-    console.error('[Auth] Login error:', error.message)
-    res.status(401).json({ error: error.message })
   }
-})
+)
 
-app.post('/api/auth/logout', async(req, res) => {
+app.post('/api/auth/logout', async (req, res) => {
   const userEmail = req.session?.user?.email
   const oidcSession = req.session?.oidc
 
@@ -601,7 +665,10 @@ app.post('/api/auth/logout', async(req, res) => {
         postLogoutRedirectUri: process.env.APP_URL || undefined
       })
     } catch (err) {
-      console.warn('[Auth] getEndSessionUrl failed (continuing with local logout):', err.message)
+      console.warn(
+        '[Auth] getEndSessionUrl failed (continuing with local logout):',
+        err.message
+      )
     }
   }
 
@@ -663,7 +730,9 @@ app.get('/api/auth/oidc/config', localAuth.requireAuth, (req, res) => {
     clientId: process.env.ZITADEL_CLIENT_ID || null,
     callbackUrl: process.env.OIDC_CALLBACK_URL || null,
     bootstrapAdminEmails: (process.env.ZITADEL_BOOTSTRAP_ADMIN_EMAILS || '')
-      .split(',').map(s => s.trim()).filter(Boolean),
+      .split(',')
+      .map(s => s.trim())
+      .filter(Boolean),
     readonly: true
   })
 })
@@ -677,13 +746,14 @@ app.get('/api/auth/oidc/status', (req, res) => {
 
 // 302-redirect directly to Zitadel hosted login. Frontend is a plain
 // <a href="/api/auth/oidc/login"> - no fetch/JSON intermediary.
-app.get('/api/auth/oidc/login', authLimiter, async(req, res) => {
+app.get('/api/auth/oidc/login', authLimiter, async (req, res) => {
   try {
     if (!oidcAuth.isOIDCEnabled()) {
       return res.status(400).json({ error: 'OIDC is not enabled' })
     }
 
-    const { authUrl, codeVerifier, state, nonce } = await oidcAuth.getAuthorizationUrl()
+    const { authUrl, codeVerifier, state, nonce } =
+      await oidcAuth.getAuthorizationUrl()
 
     req.session.oidcCodeVerifier = codeVerifier
     req.session.oidcState = state
@@ -702,7 +772,7 @@ app.get('/api/auth/oidc/login', authLimiter, async(req, res) => {
   }
 })
 
-app.get('/api/auth/oidc/callback', authLimiter, async(req, res) => {
+app.get('/api/auth/oidc/callback', authLimiter, async (req, res) => {
   const frontendUrl = process.env.APP_URL || '/'
   const errorRedirect = msg =>
     res.redirect(`${frontendUrl}?oidc_error=${encodeURIComponent(msg)}`)
@@ -762,69 +832,81 @@ app.get('/api/auth/oidc/callback', authLimiter, async(req, res) => {
 // path keeps /api/auth/register only (gated behind LOCAL_REGISTER_FALLBACK).
 
 // Invite endpoints
-app.post('/api/invites/create', localAuth.requireAuth, attachTenantContext, async(req, res) => {
-  try {
-    const { email, role = 'user' } = req.body
-    const userId = req.session.user.id
-    const tenantId = req.tenant?.id
+app.post(
+  '/api/invites/create',
+  localAuth.requireAuth,
+  attachTenantContext,
+  async (req, res) => {
+    try {
+      const { email, role = 'user' } = req.body
+      const userId = req.session.user.id
+      const tenantId = req.tenant?.id
 
-    console.log('[Invite] Debug - req.tenant:', req.tenant)
-    console.log('[Invite] Debug - tenantId:', tenantId)
-    console.log('[Invite] Debug - userId:', userId)
+      console.log('[Invite] Debug - req.tenant:', req.tenant)
+      console.log('[Invite] Debug - tenantId:', tenantId)
+      console.log('[Invite] Debug - userId:', userId)
 
-    if (!tenantId) {
-      return res.status(400).json({ error: 'Multi-tenancy not enabled or no tenant context' })
+      if (!tenantId) {
+        return res
+          .status(400)
+          .json({ error: 'Multi-tenancy not enabled or no tenant context' })
+      }
+
+      if (!email || !localAuth.validateEmail(email).valid) {
+        return res.status(400).json({ error: 'Valid email is required' })
+      }
+
+      // Check if user already exists in this tenant
+      const existingUser = db.getUserByEmailAndTenant(email, tenantId)
+      if (existingUser) {
+        return res
+          .status(400)
+          .json({ error: 'User already exists in this tenant' })
+      }
+
+      // Generate secure token (was require('crypto') - broken in ESM)
+      const tokenId = `invite_${crypto.randomUUID()}`
+      const token = crypto.randomBytes(32).toString('hex')
+
+      // Set expiration to 7 days from now
+      const expiresAt = new Date(
+        Date.now() + 7 * 24 * 60 * 60 * 1000
+      ).toISOString()
+
+      const tokenData = {
+        id: tokenId,
+        token,
+        tenant_id: tenantId,
+        inviter_id: userId,
+        invitee_email: email.toLowerCase(),
+        role,
+        expires_at: expiresAt
+      }
+
+      const created = db.createInviteToken(tokenData)
+      if (!created) {
+        return res.status(500).json({ error: 'Failed to create invite' })
+      }
+
+      // Generate invite URL
+      const baseUrl =
+        process.env.BASE_URL || `${req.protocol}://${req.get('host')}`
+      const inviteUrl = `${baseUrl}/invite/${token}`
+
+      res.json({
+        success: true,
+        inviteUrl,
+        expiresAt,
+        message: `Invite sent to ${email}`
+      })
+    } catch (error) {
+      console.error('[Invite] Create error:', error)
+      res.status(500).json({ error: 'Failed to create invite' })
     }
-
-    if (!email || !localAuth.validateEmail(email).valid) {
-      return res.status(400).json({ error: 'Valid email is required' })
-    }
-
-    // Check if user already exists in this tenant
-    const existingUser = db.getUserByEmailAndTenant(email, tenantId)
-    if (existingUser) {
-      return res.status(400).json({ error: 'User already exists in this tenant' })
-    }
-
-    // Generate secure token (was require('crypto') - broken in ESM)
-    const tokenId = `invite_${crypto.randomUUID()}`
-    const token = crypto.randomBytes(32).toString('hex')
-
-    // Set expiration to 7 days from now
-    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
-
-    const tokenData = {
-      id: tokenId,
-      token,
-      tenant_id: tenantId,
-      inviter_id: userId,
-      invitee_email: email.toLowerCase(),
-      role,
-      expires_at: expiresAt
-    }
-
-    const created = db.createInviteToken(tokenData)
-    if (!created) {
-      return res.status(500).json({ error: 'Failed to create invite' })
-    }
-
-    // Generate invite URL
-    const baseUrl = process.env.BASE_URL || `${req.protocol}://${req.get('host')}`
-    const inviteUrl = `${baseUrl}/invite/${token}`
-
-    res.json({
-      success: true,
-      inviteUrl,
-      expiresAt,
-      message: `Invite sent to ${email}`
-    })
-  } catch (error) {
-    console.error('[Invite] Create error:', error)
-    res.status(500).json({ error: 'Failed to create invite' })
   }
-})
+)
 
-app.get('/api/invites/validate/:token', async(req, res) => {
+app.get('/api/invites/validate/:token', async (req, res) => {
   try {
     const { token } = req.params
     const inviteData = db.getInviteTokenByToken(token)
@@ -847,7 +929,7 @@ app.get('/api/invites/validate/:token', async(req, res) => {
   }
 })
 
-app.post('/api/invites/accept/:token', async(req, res) => {
+app.post('/api/invites/accept/:token', async (req, res) => {
   try {
     const { token } = req.params
     const { name, email, password } = req.body
@@ -927,92 +1009,140 @@ app.post('/api/invites/accept/:token', async(req, res) => {
   }
 })
 
-app.get('/api/invites/list', localAuth.requireAuth, attachTenantContext, (req, res) => {
-  try {
-    const tenantId = req.tenant?.id
+app.get(
+  '/api/invites/list',
+  localAuth.requireAuth,
+  attachTenantContext,
+  (req, res) => {
+    try {
+      const tenantId = req.tenant?.id
 
-    if (!tenantId) {
-      return res.status(400).json({ error: 'No tenant context' })
+      if (!tenantId) {
+        return res.status(400).json({ error: 'No tenant context' })
+      }
+
+      const invites = db.getInviteTokensForTenant(tenantId)
+      res.json(invites)
+    } catch (error) {
+      console.error('[Invite] List error:', error)
+      res.status(500).json({ error: 'Failed to list invites' })
     }
-
-    const invites = db.getInviteTokensForTenant(tenantId)
-    res.json(invites)
-  } catch (error) {
-    console.error('[Invite] List error:', error)
-    res.status(500).json({ error: 'Failed to list invites' })
   }
-})
+)
 
 // Settings endpoints
-app.get('/api/settings', localAuth.requireAuth, attachTenantContext, (req, res) => {
+app.get(
+  '/api/settings',
+  localAuth.requireAuth,
+  attachTenantContext,
+  (req, res) => {
+    try {
+      const userId = req.session.user.id
+      // Security-first: never send provider secrets (api keys) to the browser.
+      // The frontend now calls server-side /api/ai/* proxy endpoints.
+      res.json(aiProvider.getClientSafeAiSettings(userId))
+    } catch (error) {
+      console.error('[Settings] Get error:', error)
+      res.status(500).json({ error: 'Failed to get settings' })
+    }
+  }
+)
+
+app.post(
+  '/api/settings',
+  localAuth.requireAuth,
+  attachTenantContext,
+  (req, res) => {
+    try {
+      if (req.session.user.role !== 'admin') {
+        return res.status(403).json({ error: 'Admin access required' })
+      }
+
+      const userId = req.session.user.id
+      const payload = { ...req.body }
+      const existing = db.getSettings(userId)
+      const providedApiKey =
+        typeof payload.apiKey === 'string' ? payload.apiKey.trim() : ''
+
+      // Keep the currently stored secret unless the admin explicitly provides
+      // a replacement key or asks to clear it.
+      if (payload.clearApiKey === true) {
+        payload.apiKey = ''
+      } else if (!providedApiKey) {
+        payload.apiKey = existing?.api_key || ''
+      } else {
+        payload.apiKey = providedApiKey
+      }
+
+      db.saveSettings(userId, payload)
+      console.log('[Settings] Saved successfully for user:', userId)
+      res.json({ success: true })
+    } catch (error) {
+      console.error('[Settings] Save error:', error)
+      res.status(500).json({ error: 'Failed to save settings' })
+    }
+  }
+)
+
+app.post('/api/ai/test-connection', localAuth.requireAuth, async (req, res) => {
   try {
-    const userId = req.session.user.id
-    const settings = db.getSettings(userId)
-
-    // If no AI settings configured in database, return environment-variable defaults.
-    // "Unconfigured" = no Azure endpoint AND no API key saved.
-    const hasSavedAiConfig =
-      settings && (settings.azure_endpoint || settings.api_key)
-    if (!hasSavedAiConfig) {
-      // Decide default provider from env. If an OpenAI key is set or
-      // AI_PROVIDER=openai, prefer OpenAI; otherwise fall back to Azure.
-      const envProvider =
-        process.env.AI_PROVIDER === 'openai' || process.env.OPENAI_API_KEY
-          ? 'openai'
-          : 'azure'
-
-      return res.json({
-        provider: envProvider,
-        azureEndpoint: process.env.AZURE_OPENAI_ENDPOINT || '',
-        openaiBaseUrl:
-          process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1',
-        apiKey:
-          envProvider === 'openai'
-            ? process.env.OPENAI_API_KEY || ''
-            : process.env.AZURE_OPENAI_API_KEY || '',
-        apiVersion: process.env.AZURE_OPENAI_API_VERSION || '2024-02-01',
-        whisperDeployment:
-          process.env.AZURE_OPENAI_WHISPER_DEPLOYMENT || 'whisper',
-        gptDeployment: process.env.AZURE_OPENAI_GPT_DEPLOYMENT || 'gpt-4',
-        openaiWhisperModel:
-          process.env.OPENAI_WHISPER_MODEL || 'whisper-1',
-        openaiGptModel: process.env.OPENAI_GPT_MODEL || 'gpt-4o'
-      })
+    if (req.session.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Admin access required' })
     }
 
-    // OIDC config is exposed by /api/auth/oidc/config (env-driven, read-only)
-    // and is no longer returned here.
-    res.json({
-      provider: settings.provider === 'openai' ? 'openai' : 'azure',
-      azureEndpoint: settings.azure_endpoint || '',
-      openaiBaseUrl:
-        settings.openai_base_url ||
-        process.env.OPENAI_BASE_URL ||
-        'https://api.openai.com/v1',
-      apiKey: settings.api_key || '',
-      apiVersion: settings.api_version || '2024-02-01',
-      whisperDeployment: settings.whisper_deployment || 'whisper-1',
-      gptDeployment: settings.gpt_deployment || 'gpt-4',
-      openaiWhisperModel: settings.openai_whisper_model || 'whisper-1',
-      openaiGptModel: settings.openai_gpt_model || 'gpt-4o'
-    })
+    const userId = req.session.user.id
+    const result = await aiProvider.testConnection(userId, req.body || {})
+    return res.json({ success: true, provider: result.provider })
   } catch (error) {
-    console.error('[Settings] Get error:', error)
-    res.status(500).json({ error: 'Failed to get settings' })
+    console.error('[AI] Test connection error:', error.message)
+    return res
+      .status(400)
+      .json({ error: error.message || 'Connection test failed' })
   }
 })
 
-app.post('/api/settings', localAuth.requireAuth, attachTenantContext, (req, res) => {
+app.post('/api/ai/chat', localAuth.requireAuth, async (req, res) => {
   try {
     const userId = req.session.user.id
-    db.saveSettings(userId, req.body)
-    console.log('[Settings] Saved successfully for user:', userId)
-    res.json({ success: true })
+    const result = await aiProvider.createChatCompletion(userId, req.body || {})
+    return res.json(result)
   } catch (error) {
-    console.error('[Settings] Save error:', error)
-    res.status(500).json({ error: 'Failed to save settings' })
+    console.error('[AI] Chat proxy error:', error.message)
+    return res
+      .status(400)
+      .json({ error: error.message || 'Chat completion failed' })
   }
 })
+
+app.post(
+  '/api/ai/transcribe',
+  localAuth.requireAuth,
+  aiUpload.single('file'),
+  async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: 'Audio file is required' })
+      }
+
+      const userId = req.session.user.id
+      const text = await aiProvider.transcribeAudio(userId, {
+        buffer: req.file.buffer,
+        filename: req.file.originalname,
+        mimeType: req.file.mimetype,
+        language: req.body?.language,
+        responseFormat: req.body?.response_format,
+        model: req.body?.model
+      })
+
+      return res.json({ text })
+    } catch (error) {
+      console.error('[AI] Transcription proxy error:', error.message)
+      return res
+        .status(400)
+        .json({ error: error.message || 'Transcription failed' })
+    }
+  }
+)
 
 // User management endpoints (admin only)
 app.get('/api/users', localAuth.requireAuth, (req, res) => {
@@ -1069,110 +1199,138 @@ app.delete('/api/users/:id', localAuth.requireAuth, (req, res) => {
 })
 
 // Project endpoints
-app.get('/api/projects', localAuth.requireAuth, attachTenantContext, (req, res) => {
-  try {
-    const userId = req.session.user.id
-    const projects = db.getAllProjects(userId).map(p => ({
-      id: p.id,
-      name: p.name,
-      createdAt: p.created_at,
-      lastModified: p.updated_at
-    }))
-    res.json(projects)
-  } catch (error) {
-    console.error('[Projects] List error:', error)
-    res.status(500).json({ error: 'Failed to get projects' })
-  }
-})
-
-app.get('/api/projects/:id', localAuth.requireAuth, attachTenantContext, (req, res) => {
-  try {
-    const project = db.getProject(req.params.id)
-    if (!project) {
-      return res.status(404).json({ error: 'Project not found' })
+app.get(
+  '/api/projects',
+  localAuth.requireAuth,
+  attachTenantContext,
+  (req, res) => {
+    try {
+      const userId = req.session.user.id
+      const projects = db.getAllProjects(userId).map(p => ({
+        id: p.id,
+        name: p.name,
+        createdAt: p.created_at,
+        lastModified: p.updated_at
+      }))
+      res.json(projects)
+    } catch (error) {
+      console.error('[Projects] List error:', error)
+      res.status(500).json({ error: 'Failed to get projects' })
     }
-
-    // Debug logging for ownership check
-    console.log('[Projects] Ownership check:')
-    console.log('  project.user_id:', project.user_id, typeof project.user_id)
-    console.log(
-      '  req.session.user.id:',
-      req.session.user.id,
-      typeof req.session.user.id
-    )
-    console.log(
-      '  Strict match (===):',
-      project.user_id === req.session.user.id
-    )
-    console.log('  Loose match (==):', project.user_id === String(req.session.user.id))
-
-    // Use loose equality to handle potential type mismatch
-    if (project.user_id !== String(req.session.user.id)) {
-      return res.status(403).json({ error: 'Access denied' })
-    }
-
-    res.json({
-      id: project.id,
-      name: project.name,
-      transcript: project.transcript || '',
-      summary: project.summary || '',
-      tasks: project.tasks || [],
-      meetings: project.meetings || [],
-      createdAt: project.created_at,
-      lastModified: project.updated_at
-    })
-  } catch (error) {
-    console.error('[Projects] Get error:', error)
-    res.status(500).json({ error: 'Failed to get project' })
   }
-})
+)
 
-app.post('/api/projects', localAuth.requireAuth, attachTenantContext, (req, res) => {
-  try {
-    const userId = req.session.user.id
-    db.saveProject(userId, req.body)
-    console.log('[Projects] Saved:', req.body.name, 'for user:', userId)
-    res.json({ success: true, id: req.body.id })
-  } catch (error) {
-    console.error('[Projects] Save error:', error)
-    res.status(500).json({ error: 'Failed to save project' })
-  }
-})
+app.get(
+  '/api/projects/:id',
+  localAuth.requireAuth,
+  attachTenantContext,
+  (req, res) => {
+    try {
+      const project = db.getProject(req.params.id)
+      if (!project) {
+        return res.status(404).json({ error: 'Project not found' })
+      }
 
-app.delete('/api/projects/:id', localAuth.requireAuth, attachTenantContext, (req, res) => {
-  try {
-    // Verify project belongs to user before deleting
-    const project = db.getProject(req.params.id)
-    if (!project) {
-      return res.status(404).json({ error: 'Project not found' })
+      // Debug logging for ownership check
+      console.log('[Projects] Ownership check:')
+      console.log('  project.user_id:', project.user_id, typeof project.user_id)
+      console.log(
+        '  req.session.user.id:',
+        req.session.user.id,
+        typeof req.session.user.id
+      )
+      console.log(
+        '  Strict match (===):',
+        project.user_id === req.session.user.id
+      )
+      console.log(
+        '  Loose match (==):',
+        project.user_id === String(req.session.user.id)
+      )
+
+      // Use loose equality to handle potential type mismatch
+      if (project.user_id !== String(req.session.user.id)) {
+        return res.status(403).json({ error: 'Access denied' })
+      }
+
+      res.json({
+        id: project.id,
+        name: project.name,
+        transcript: project.transcript || '',
+        summary: project.summary || '',
+        tasks: project.tasks || [],
+        meetings: project.meetings || [],
+        createdAt: project.created_at,
+        lastModified: project.updated_at
+      })
+    } catch (error) {
+      console.error('[Projects] Get error:', error)
+      res.status(500).json({ error: 'Failed to get project' })
     }
-    // Use loose equality to handle potential type mismatch
-    if (project.user_id !== String(req.session.user.id)) {
-      return res.status(403).json({ error: 'Access denied' })
-    }
-
-    db.deleteProject(req.params.id)
-    res.json({ success: true })
-  } catch (error) {
-    console.error('[Projects] Delete error:', error)
-    res.status(500).json({ error: 'Failed to delete project' })
   }
-})
+)
+
+app.post(
+  '/api/projects',
+  localAuth.requireAuth,
+  attachTenantContext,
+  (req, res) => {
+    try {
+      const userId = req.session.user.id
+      db.saveProject(userId, req.body)
+      console.log('[Projects] Saved:', req.body.name, 'for user:', userId)
+      res.json({ success: true, id: req.body.id })
+    } catch (error) {
+      console.error('[Projects] Save error:', error)
+      res.status(500).json({ error: 'Failed to save project' })
+    }
+  }
+)
+
+app.delete(
+  '/api/projects/:id',
+  localAuth.requireAuth,
+  attachTenantContext,
+  (req, res) => {
+    try {
+      // Verify project belongs to user before deleting
+      const project = db.getProject(req.params.id)
+      if (!project) {
+        return res.status(404).json({ error: 'Project not found' })
+      }
+      // Use loose equality to handle potential type mismatch
+      if (project.user_id !== String(req.session.user.id)) {
+        return res.status(403).json({ error: 'Access denied' })
+      }
+
+      db.deleteProject(req.params.id)
+      res.json({ success: true })
+    } catch (error) {
+      console.error('[Projects] Delete error:', error)
+      res.status(500).json({ error: 'Failed to delete project' })
+    }
+  }
+)
 
 // Delete all projects for current user
-app.delete('/api/projects', localAuth.requireAuth, attachTenantContext, (req, res) => {
-  try {
-    console.log(
-      '[Projects] Deleting all projects for user:',
-      req.session.user.id
-    )
-    db.deleteAllProjects(req.session.user.id)
-    res.json({ success: true, message: 'All projects deleted successfully' })
-  } catch (error) {
-    console.error('[Projects] Delete all error:', error)
-    res.status(500).json({ error: 'Failed to delete all projects' })
+app.delete(
+  '/api/projects',
+  localAuth.requireAuth,
+  attachTenantContext,
+  (req, res) => {
+    try {
+      console.log(
+        '[Projects] Deleting all projects for user:',
+        req.session.user.id
+      )
+      db.deleteAllProjects(req.session.user.id)
+      res.json({ success: true, message: 'All projects deleted successfully' })
+    } catch (error) {
+      console.error('[Projects] Delete all error:', error)
+      res.status(500).json({ error: 'Failed to delete all projects' })
+    }
   }
-})
+)
 
 // Export all data
 app.get('/api/export', localAuth.requireAuth, (req, res) => {
@@ -1193,8 +1351,10 @@ const MEETING_ID_REGEX = /^[A-Za-z0-9_-]{1,64}$/
 const MEETINGS_DIR_RESOLVED = path.resolve(MEETINGS_DIR)
 function safeMeetingPath(filename) {
   const resolved = path.resolve(path.join(MEETINGS_DIR_RESOLVED, filename))
-  if (!resolved.startsWith(MEETINGS_DIR_RESOLVED + path.sep) &&
-      resolved !== MEETINGS_DIR_RESOLVED) {
+  if (
+    !resolved.startsWith(MEETINGS_DIR_RESOLVED + path.sep) &&
+    resolved !== MEETINGS_DIR_RESOLVED
+  ) {
     throw new Error('Path traversal attempt detected: ' + filename)
   }
   return resolved
@@ -1337,7 +1497,9 @@ app.delete('/api/meetings/:id', localAuth.requireAuth, (req, res) => {
     // MEETINGS_DIR before unlinking - defense against any historical row
     // that may have a tampered path.
     const safeUnlink = filePath => {
-      if (!filePath) {return}
+      if (!filePath) {
+        return
+      }
       try {
         const resolved = path.resolve(filePath)
         if (
@@ -1348,7 +1510,11 @@ app.delete('/api/meetings/:id', localAuth.requireAuth, (req, res) => {
           fs.unlinkSync(resolved)
         }
       } catch (e) {
-        console.warn('[Meetings] Skipped unsafe file unlink:', filePath, e.message)
+        console.warn(
+          '[Meetings] Skipped unsafe file unlink:',
+          filePath,
+          e.message
+        )
       }
     }
     safeUnlink(meeting.summary_file)
@@ -1365,7 +1531,7 @@ app.delete('/api/meetings/:id', localAuth.requireAuth, (req, res) => {
 })
 
 // Analytics insights caching endpoints
-app.post('/api/analytics/insights', localAuth.requireAuth, async(req, res) => {
+app.post('/api/analytics/insights', localAuth.requireAuth, async (req, res) => {
   try {
     const { projectId, insights, taskCount, timestamp } = req.body
     const userId = req.session.user.id
@@ -1396,7 +1562,7 @@ app.post('/api/analytics/insights', localAuth.requireAuth, async(req, res) => {
 app.get(
   '/api/analytics/insights/:projectId',
   localAuth.requireAuth,
-  async(req, res) => {
+  async (req, res) => {
     try {
       const { projectId } = req.params
       const userId = req.session.user.id
@@ -1421,7 +1587,7 @@ app.get(
 app.delete(
   '/api/analytics/insights/:projectId',
   localAuth.requireAuth,
-  async(req, res) => {
+  async (req, res) => {
     try {
       const { projectId } = req.params
       const userId = req.session.user.id
@@ -1442,7 +1608,7 @@ app.delete(
 app.delete(
   '/api/analytics/insights',
   localAuth.requireAuth,
-  async(req, res) => {
+  async (req, res) => {
     try {
       const userId = req.session.user.id
 
@@ -1461,7 +1627,7 @@ app.delete(
 app.get(
   '/api/tasks/:taskId/changes',
   localAuth.requireAuth,
-  async(req, res) => {
+  async (req, res) => {
     try {
       const { taskId } = req.params
       const { limit = 50 } = req.query
@@ -1492,7 +1658,7 @@ app.get(
 app.get(
   '/api/projects/:projectId/changes',
   localAuth.requireAuth,
-  async(req, res) => {
+  async (req, res) => {
     try {
       const { projectId } = req.params
       const { limit = 100 } = req.query
@@ -1524,7 +1690,7 @@ app.get(
 app.get(
   '/api/tasks/:taskId/comments',
   localAuth.requireAuth,
-  async(req, res) => {
+  async (req, res) => {
     try {
       const { taskId } = req.params
       const { limit = 50 } = req.query
@@ -1563,7 +1729,7 @@ app.get(
 app.post(
   '/api/tasks/:taskId/comments',
   localAuth.requireAuth,
-  async(req, res) => {
+  async (req, res) => {
     try {
       const { taskId } = req.params
       const { content, commentType = 'user', metadata = null } = req.body
@@ -1677,7 +1843,7 @@ app.post(
   }
 )
 
-app.put('/api/comments/:commentId', localAuth.requireAuth, async(req, res) => {
+app.put('/api/comments/:commentId', localAuth.requireAuth, async (req, res) => {
   try {
     const { commentId } = req.params
     const { content } = req.body
@@ -1715,7 +1881,7 @@ app.put('/api/comments/:commentId', localAuth.requireAuth, async(req, res) => {
 app.delete(
   '/api/comments/:commentId',
   localAuth.requireAuth,
-  async(req, res) => {
+  async (req, res) => {
     try {
       const { commentId } = req.params
       const userId = req.session.user.id
@@ -1739,7 +1905,7 @@ app.delete(
 // Get single comment by ID (for activity display). Ownership-checked: a
 // comment is visible only to the user who wrote it. Wider visibility (e.g.
 // to other collaborators on the same project) needs an explicit ACL model.
-app.get('/api/comments/:commentId', localAuth.requireAuth, async(req, res) => {
+app.get('/api/comments/:commentId', localAuth.requireAuth, async (req, res) => {
   try {
     const { commentId } = req.params
     const userId = req.session.user.id
@@ -1763,7 +1929,7 @@ app.get('/api/comments/:commentId', localAuth.requireAuth, async(req, res) => {
 app.post(
   '/api/tasks/:taskId/ai-comments-bulletproof',
   localAuth.requireAuth,
-  async(req, res) => {
+  async (req, res) => {
     try {
       const { taskId } = req.params
       const { content, metadata = null } = req.body
@@ -1819,7 +1985,7 @@ app.post(
 // main event loop and previously had no auth-side throttling).
 const detectSimilarLimiter = expressRateLimit({
   windowMs: 60 * 1000, // 1 minute window
-  max: 10,             // 10 requests per minute per IP+user combo
+  max: 10, // 10 requests per minute per IP+user combo
   keyGenerator: req => `${req.ip}:${req.session?.user?.id || 'anon'}`,
   message: { error: 'Too many similarity scans, please wait a moment' },
   standardHeaders: true,
@@ -1831,7 +1997,7 @@ app.post(
   '/api/tasks/detect-similar',
   localAuth.requireAuth,
   detectSimilarLimiter,
-  async(req, res) => {
+  async (req, res) => {
     try {
       const { projectId } = req.body
       const userId = req.session.user.id
@@ -1868,9 +2034,9 @@ app.post(
   }
 )
 
-app.post('/api/tasks/merge', localAuth.requireAuth, async(req, res) => {
+app.post('/api/tasks/merge', localAuth.requireAuth, async (req, res) => {
   try {
-    const { projectId, taskIds, mergeStrategy = 'smart' } = req.body
+    const { projectId, taskIds } = req.body
     const userId = req.session.user.id
 
     // Get project
@@ -1887,7 +2053,7 @@ app.post('/api/tasks/merge', localAuth.requireAuth, async(req, res) => {
     }
 
     // Merge tasks using AI
-    const mergedTask = await mergeTasksWithAI(tasksToMerge, mergeStrategy)
+    const mergedTask = await mergeTasksWithAI(userId, tasksToMerge)
 
     // Store merge metadata for undo functionality
     const mergeMetadata = {
@@ -1935,7 +2101,7 @@ app.post('/api/tasks/merge', localAuth.requireAuth, async(req, res) => {
   }
 })
 
-app.post('/api/tasks/undo-merge', localAuth.requireAuth, async(req, res) => {
+app.post('/api/tasks/undo-merge', localAuth.requireAuth, async (req, res) => {
   try {
     const { projectId, mergeId } = req.body
     const userId = req.session.user.id
@@ -1996,7 +2162,7 @@ app.post('/api/tasks/undo-merge', localAuth.requireAuth, async(req, res) => {
 app.get(
   '/api/tasks/recent-merges/:projectId',
   localAuth.requireAuth,
-  async(req, res) => {
+  async (req, res) => {
     try {
       const { projectId } = req.params
       const userId = req.session.user.id
@@ -2013,8 +2179,8 @@ app.get(
       // Prevent caching to ensure fresh data
       res.set({
         'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0'
+        Pragma: 'no-cache',
+        Expires: '0'
       })
 
       res.json({ merges: recentMerges })
@@ -2276,17 +2442,14 @@ function getSimilarityReason(tasks) {
 }
 
 // AI-powered task merging
-async function mergeTasksWithAI(tasks) {
+async function mergeTasksWithAI(userId, tasks) {
   try {
-    // Import the openai service
-    const openaiService = await import('../src/services/openaiService.js')
-
     const prompt = `You are merging multiple related tasks into a single, comprehensive task.
 
 TASKS TO MERGE:
 ${tasks
-    .map(
-      (task, idx) => `
+  .map(
+    (task, idx) => `
 ${idx + 1}. "${task.title}"
    Description: ${task.description || 'No description'}
    Status: ${task.status}
@@ -2294,8 +2457,8 @@ ${idx + 1}. "${task.title}"
    Assignee: ${task.assignee || 'Unassigned'}
    Due Date: ${task.dueDate || 'No due date'}
 `
-    )
-    .join('')}
+  )
+  .join('')}
 
 Please merge these tasks intelligently by:
 1. Creating a comprehensive title that encompasses all tasks
@@ -2314,9 +2477,28 @@ Return ONLY a JSON object with this structure:
   "assignee": "assignee if consistent, or primary assignee",
   "dueDate": "earliest due date or null"
 }`
+    const completion = await aiProvider.createChatCompletion(userId, {
+      messages: [
+        {
+          role: 'system',
+          content:
+            'You are a precise task-merging assistant. Return only valid JSON.'
+        },
+        {
+          role: 'user',
+          content: prompt
+        }
+      ],
+      temperature: 0.1,
+      max_tokens: 600,
+      response_format: { type: 'json_object' }
+    })
 
-    const response = await openaiService.default.getCompletion(prompt)
-    const mergedTaskData = JSON.parse(response)
+    const content = completion?.choices?.[0]?.message?.content
+    if (!content) {
+      throw new Error('AI merge response was empty')
+    }
+    const mergedTaskData = JSON.parse(content)
 
     // Create merged task with metadata
     const mergedTask = {
@@ -2385,24 +2567,40 @@ const requireAdmin = (req, res, next) => {
 app.get('/api/admin/metrics/dashboard', requireAdmin, (req, res) => {
   try {
     // Get user count
-    const userCount = dbInstance.prepare('SELECT COUNT(*) as count FROM users WHERE active = 1').get()
+    const userCount = dbInstance
+      .prepare('SELECT COUNT(*) as count FROM users WHERE active = 1')
+      .get()
 
     // Get project count (tenants equivalent)
-    const projectCount = dbInstance.prepare('SELECT COUNT(DISTINCT user_id) as count FROM projects').get()
+    const projectCount = dbInstance
+      .prepare('SELECT COUNT(DISTINCT user_id) as count FROM projects')
+      .get()
 
     // Get task count and recent activity
-    const taskCount = dbInstance.prepare('SELECT COUNT(*) as count FROM tasks').get()
-    const recentTasks = dbInstance.prepare(`
+    const taskCount = dbInstance
+      .prepare('SELECT COUNT(*) as count FROM tasks')
+      .get()
+    const recentTasks = dbInstance
+      .prepare(
+        `
       SELECT COUNT(*) as count FROM tasks
       WHERE created_at > datetime('now', '-7 days')
-    `).get()
+    `
+      )
+      .get()
 
     // Get meeting count (activity metric)
-    const meetingCount = dbInstance.prepare('SELECT COUNT(*) as count FROM meetings').get()
-    const recentMeetings = dbInstance.prepare(`
+    const meetingCount = dbInstance
+      .prepare('SELECT COUNT(*) as count FROM meetings')
+      .get()
+    const recentMeetings = dbInstance
+      .prepare(
+        `
       SELECT COUNT(*) as count FROM meetings
       WHERE created_at > datetime('now', '-7 days')
-    `).get()
+    `
+      )
+      .get()
 
     // Drops the previous mocked fields (monthlyRevenue, revenueGrowth, etc.)
     // which were Math.random() or fictional. Returns only values we actually
@@ -2426,8 +2624,14 @@ app.get('/api/admin/metrics/dashboard', requireAdmin, (req, res) => {
 app.get('/api/admin/system/health', requireAdmin, (req, res) => {
   try {
     const memUsage = process.memoryUsage()
-    const dbStats = dbInstance.prepare("SELECT COUNT(*) as tables FROM sqlite_master WHERE type='table'").get()
-    const taskCount = dbInstance.prepare('SELECT COUNT(*) as count FROM tasks').get()
+    const dbStats = dbInstance
+      .prepare(
+        "SELECT COUNT(*) as tables FROM sqlite_master WHERE type='table'"
+      )
+      .get()
+    const taskCount = dbInstance
+      .prepare('SELECT COUNT(*) as count FROM tasks')
+      .get()
 
     let dbStatus = 'healthy'
     try {
@@ -2466,14 +2670,20 @@ app.get('/api/admin/users', requireAdmin, (req, res) => {
     const limit = parseInt(req.query.limit) || 20
     const offset = (page - 1) * limit
 
-    const users = dbInstance.prepare(`
+    const users = dbInstance
+      .prepare(
+        `
       SELECT id, email, name, role, active, auth_provider, created_at, last_login
       FROM users
       ORDER BY created_at DESC
       LIMIT ? OFFSET ?
-    `).all(limit, offset)
+    `
+      )
+      .all(limit, offset)
 
-    const totalUsers = dbInstance.prepare('SELECT COUNT(*) as count FROM users').get()
+    const totalUsers = dbInstance
+      .prepare('SELECT COUNT(*) as count FROM users')
+      .get()
 
     res.json({
       users,
@@ -2497,7 +2707,9 @@ app.get('/api/admin/tenants', requireAdmin, (req, res) => {
     const limit = parseInt(req.query.limit) || 20
     const offset = (page - 1) * limit
 
-    const projects = dbInstance.prepare(`
+    const projects = dbInstance
+      .prepare(
+        `
       SELECT
         p.id, p.name, p.user_id, p.created_at,
         u.email as owner_email,
@@ -2508,9 +2720,13 @@ app.get('/api/admin/tenants', requireAdmin, (req, res) => {
       GROUP BY p.id
       ORDER BY p.created_at DESC
       LIMIT ? OFFSET ?
-    `).all(limit, offset)
+    `
+      )
+      .all(limit, offset)
 
-    const totalProjects = dbInstance.prepare('SELECT COUNT(*) as count FROM projects').get()
+    const totalProjects = dbInstance
+      .prepare('SELECT COUNT(*) as count FROM projects')
+      .get()
 
     res.json({
       tenants: projects.map(p => ({
@@ -2541,7 +2757,9 @@ app.get('/api/admin/analytics', requireAdmin, (req, res) => {
     const timeframe = req.query.timeframe || '30d'
 
     // Task creation over time
-    const tasksByDate = dbInstance.prepare(`
+    const tasksByDate = dbInstance
+      .prepare(
+        `
       SELECT
         DATE(created_at) as date,
         COUNT(*) as count
@@ -2549,10 +2767,14 @@ app.get('/api/admin/analytics', requireAdmin, (req, res) => {
       WHERE created_at > datetime('now', '-30 days')
       GROUP BY DATE(created_at)
       ORDER BY date
-    `).all()
+    `
+      )
+      .all()
 
     // User registration over time
-    const usersByDate = dbInstance.prepare(`
+    const usersByDate = dbInstance
+      .prepare(
+        `
       SELECT
         DATE(created_at) as date,
         COUNT(*) as count
@@ -2560,7 +2782,9 @@ app.get('/api/admin/analytics', requireAdmin, (req, res) => {
       WHERE created_at > datetime('now', '-30 days')
       GROUP BY DATE(created_at)
       ORDER BY date
-    `).all()
+    `
+      )
+      .all()
 
     res.json({
       taskCreation: tasksByDate,

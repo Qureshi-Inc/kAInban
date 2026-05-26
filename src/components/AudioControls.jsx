@@ -1,7 +1,11 @@
 import { motion, AnimatePresence } from 'framer-motion'
 import { Mic, Upload, Square, Pause, Play, FileText } from 'lucide-react'
 import React, { useRef, useEffect, useState } from 'react'
-import { formatTime, parseSubtasksFromDescription, processAssignees } from '../lib/utils'
+import {
+  formatTime,
+  parseSubtasksFromDescription,
+  processAssignees
+} from '../lib/utils'
 import apiService from '../services/apiService'
 import audioService from '../services/audioService'
 import openaiService from '../services/openaiService'
@@ -103,7 +107,7 @@ export default function AudioControls() {
 
   // Visualization is now handled by AudioVisualizer component
 
-  const handleStartRecording = async() => {
+  const handleStartRecording = async () => {
     try {
       // Reset transcription queue for new recording
       transcriptionQueue.reset()
@@ -153,7 +157,7 @@ export default function AudioControls() {
       )
 
       // Set up chunk completion callback for background transcription
-      audioService.setOnChunkComplete(async(chunkBlob, chunkIndex) => {
+      audioService.setOnChunkComplete(async (chunkBlob, chunkIndex) => {
         console.log(
           `[AudioControls] Chunk ${chunkIndex} completed, queuing for background transcription`
         )
@@ -214,7 +218,7 @@ export default function AudioControls() {
     }
   }
 
-  const handleStopRecording = async() => {
+  const handleStopRecording = async () => {
     try {
       console.log('[AudioControls] Stopping recording...')
       const result = await audioService.stopRecording()
@@ -253,7 +257,7 @@ export default function AudioControls() {
 
       console.log('[AudioControls] Current settings:', {
         hasEndpoint: !!useAppStore.getState().settings.azureEndpoint,
-        hasApiKey: !!useAppStore.getState().settings.apiKey
+        keyConfigured: !!useAppStore.getState().settings.keyConfigured
       })
 
       // Transcribe the audio (handles both single and chunked)
@@ -366,7 +370,10 @@ export default function AudioControls() {
           const loadedUsers = await apiService.getUsers()
           users = Array.isArray(loadedUsers) ? loadedUsers : []
         } catch (error) {
-          console.warn('[AudioControls] Failed to load users for assignee matching:', error)
+          console.warn(
+            '[AudioControls] Failed to load users for assignee matching:',
+            error
+          )
           users = [] // Ensure users is always an array
         }
 
@@ -405,11 +412,27 @@ export default function AudioControls() {
                   priority: task.newPriority || existingTask.priority,
                   dueDate: task.newDueDate || existingTask.dueDate,
                   ...(() => {
-                    const newAssignees = task.newAssignee ? processAssignees(task.newAssignee, users) : []
-                    const currentAssignees = existingTask.assignees && Array.isArray(existingTask.assignees) ? existingTask.assignees : (existingTask.assignee ? [existingTask.assignee] : [])
+                    const newAssignees = task.newAssignee
+                      ? processAssignees(task.newAssignee, users)
+                      : []
+                    const currentAssignees =
+                      existingTask.assignees &&
+                      Array.isArray(existingTask.assignees)
+                        ? existingTask.assignees
+                        : existingTask.assignee
+                          ? [existingTask.assignee]
+                          : []
                     return {
-                      assignees: newAssignees.length > 0 ? newAssignees : currentAssignees,
-                      assignee: newAssignees.length > 0 ? newAssignees[0] : (currentAssignees.length > 0 ? currentAssignees[0] : '')
+                      assignees:
+                        newAssignees.length > 0
+                          ? newAssignees
+                          : currentAssignees,
+                      assignee:
+                        newAssignees.length > 0
+                          ? newAssignees[0]
+                          : currentAssignees.length > 0
+                            ? currentAssignees[0]
+                            : ''
                     }
                   })()
                 }
@@ -423,7 +446,10 @@ export default function AudioControls() {
                 const hasAssigneeChange =
                   updates.assignee !== existingTask.assignee
                 const hasActualChanges =
-                  hasStatusChange || hasPriorityChange || hasDueDateChange || hasAssigneeChange
+                  hasStatusChange ||
+                  hasPriorityChange ||
+                  hasDueDateChange ||
+                  hasAssigneeChange
 
                 storeUpdateTask(existingTask.id, updates)
 
@@ -684,7 +710,10 @@ export default function AudioControls() {
           const loadedUsers = await apiService.getUsers()
           users = Array.isArray(loadedUsers) ? loadedUsers : []
         } catch (error) {
-          console.warn('[AudioControls] Failed to load users for assignee matching:', error)
+          console.warn(
+            '[AudioControls] Failed to load users for assignee matching:',
+            error
+          )
           users = [] // Ensure users is always an array
         }
 
@@ -720,11 +749,27 @@ export default function AudioControls() {
                   priority: task.newPriority || existingTask.priority,
                   dueDate: task.newDueDate || existingTask.dueDate,
                   ...(() => {
-                    const newAssignees = task.newAssignee ? processAssignees(task.newAssignee, users) : []
-                    const currentAssignees = existingTask.assignees && Array.isArray(existingTask.assignees) ? existingTask.assignees : (existingTask.assignee ? [existingTask.assignee] : [])
+                    const newAssignees = task.newAssignee
+                      ? processAssignees(task.newAssignee, users)
+                      : []
+                    const currentAssignees =
+                      existingTask.assignees &&
+                      Array.isArray(existingTask.assignees)
+                        ? existingTask.assignees
+                        : existingTask.assignee
+                          ? [existingTask.assignee]
+                          : []
                     return {
-                      assignees: newAssignees.length > 0 ? newAssignees : currentAssignees,
-                      assignee: newAssignees.length > 0 ? newAssignees[0] : (currentAssignees.length > 0 ? currentAssignees[0] : '')
+                      assignees:
+                        newAssignees.length > 0
+                          ? newAssignees
+                          : currentAssignees,
+                      assignee:
+                        newAssignees.length > 0
+                          ? newAssignees[0]
+                          : currentAssignees.length > 0
+                            ? currentAssignees[0]
+                            : ''
                     }
                   })()
                 }
@@ -738,7 +783,10 @@ export default function AudioControls() {
                 const hasAssigneeChange =
                   updates.assignee !== existingTask.assignee
                 const hasActualChanges =
-                  hasStatusChange || hasPriorityChange || hasDueDateChange || hasAssigneeChange
+                  hasStatusChange ||
+                  hasPriorityChange ||
+                  hasDueDateChange ||
+                  hasAssigneeChange
 
                 storeUpdateTask(existingTask.id, updates)
 

@@ -52,7 +52,13 @@ class ApiService {
     }
   }
 
-  async register(name, email, password, tenantData = null, recaptchaToken = null) {
+  async register(
+    name,
+    email,
+    password,
+    tenantData = null,
+    recaptchaToken = null
+  ) {
     try {
       const requestBody = { name, email, password }
 
@@ -241,6 +247,59 @@ class ApiService {
     } catch (error) {
       console.error('[API] Save settings error:', error)
       return false
+    }
+  }
+
+  // AI proxy endpoints (security: provider keys stay server-side)
+  async testAIConnection(settings = {}) {
+    try {
+      const response = await this.secureFetch(`${API_URL}/ai/test-connection`, {
+        method: 'POST',
+        body: JSON.stringify(settings)
+      })
+      const data = await response.json()
+      if (!response.ok) {
+        throw new Error(data.error || 'Connection test failed')
+      }
+      return data
+    } catch (error) {
+      console.error('[API] AI connection test error:', error)
+      throw error
+    }
+  }
+
+  async aiChat(payload = {}) {
+    try {
+      const response = await this.secureFetch(`${API_URL}/ai/chat`, {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      })
+      const data = await response.json()
+      if (!response.ok) {
+        throw new Error(data.error || 'AI chat request failed')
+      }
+      return data
+    } catch (error) {
+      console.error('[API] AI chat error:', error)
+      throw error
+    }
+  }
+
+  async aiTranscribe(formData) {
+    try {
+      const response = await fetch(`${API_URL}/ai/transcribe`, {
+        method: 'POST',
+        credentials: 'include',
+        body: formData
+      })
+      const data = await response.json()
+      if (!response.ok) {
+        throw new Error(data.error || 'AI transcription failed')
+      }
+      return data
+    } catch (error) {
+      console.error('[API] AI transcription error:', error)
+      throw error
     }
   }
 
