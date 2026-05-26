@@ -76,9 +76,9 @@ const TaskRowComponent = ({ index, style, data }) => {
 
   const getPriorityBadge = priority => {
     const colors = {
-      high: 'bg-red-100 text-destructive border-red-200',
-      medium: 'bg-amber-100 text-warning border-amber-200',
-      low: 'bg-green-100 text-success border-green-200'
+      high: 'bg-destructive/15 text-destructive border-destructive/30',
+      medium: 'bg-warning/15 text-warning border-warning/30',
+      low: 'bg-success/15 text-success border-success/30'
     }
     return colors[priority] || 'bg-muted text-foreground border-border'
   }
@@ -130,7 +130,7 @@ const TaskRowComponent = ({ index, style, data }) => {
         <Button
           variant="ghost"
           size="icon"
-          className="h-6 w-6 opacity-0 group-hover:opacity-100 hover:bg-red-50 hover:text-destructive dark:hover:bg-red-900/20 transition-all"
+          className="h-6 w-6 opacity-0 group-hover:opacity-100 hover:bg-destructive/10 hover:text-destructive dark:hover:bg-red-900/20 transition-all"
           onClick={e => {
             e.stopPropagation()
             onTaskDelete(task.id)
@@ -273,7 +273,7 @@ export default function VirtualizedListView({
         id: 'todo',
         title: '📋 To Do',
         tasks: todoTasks,
-        color: 'border-l-slate-400 bg-slate-50 dark:bg-slate-900/20'
+        color: 'border-l-slate-400 bg-muted dark:bg-slate-900/20'
       },
       {
         id: 'in-progress',

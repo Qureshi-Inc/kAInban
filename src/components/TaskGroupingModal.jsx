@@ -264,7 +264,7 @@ export default function TaskGroupingModal({ open, onOpenChange }) {
       case 'high':
         return 'text-success'
       case 'medium':
-        return 'text-yellow-600 dark:text-yellow-400'
+        return 'text-warning dark:text-warning'
       default:
         return 'text-muted-foreground'
     }
@@ -326,12 +326,12 @@ export default function TaskGroupingModal({ open, onOpenChange }) {
                   onClick={() => {
                     setShowMergeHistory(!showMergeHistory)
                   }}
-                  className="flex items-center gap-2 text-info border-info/30 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                  className="flex items-center gap-2 text-info border-info/30 hover:bg-info/10 dark:hover:bg-blue-900/20"
                 >
                   <Clock className="h-4 w-4" />
                   Merge History
                   {recentMerges.length > 0 && (
-                    <span className="bg-blue-100 dark:bg-blue-900 text-info text-xs px-1.5 py-0.5 rounded-full font-medium">
+                    <span className="bg-info/15 dark:bg-blue-900 text-info text-xs px-1.5 py-0.5 rounded-full font-medium">
                       {recentMerges.length}
                     </span>
                   )}
@@ -367,7 +367,7 @@ export default function TaskGroupingModal({ open, onOpenChange }) {
                         <Undo2 className="h-4 w-4" />
                         Merge History
                         {recentMerges.length > 0 && (
-                          <span className="bg-blue-100 dark:bg-blue-900 text-info text-xs px-1.5 py-0.5 rounded-full font-medium ml-2">
+                          <span className="bg-info/15 dark:bg-blue-900 text-info text-xs px-1.5 py-0.5 rounded-full font-medium ml-2">
                             {recentMerges.length}
                           </span>
                         )}
@@ -505,7 +505,7 @@ export default function TaskGroupingModal({ open, onOpenChange }) {
                                 return (
                                   <div
                                     key={task.id}
-                                    className={`flex items-center gap-3 p-2 rounded border-2 transition-colors ${
+                                    className={`flex items-center gap-3 p-2 rounded border transition-colors ${
                                       isTaskSelected
                                         ? 'bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-700'
                                         : 'bg-muted border-transparent'
@@ -533,11 +533,11 @@ export default function TaskGroupingModal({ open, onOpenChange }) {
                                         <span
                                           className={`text-xs px-1.5 py-0.5 rounded ${
                                             task.status === 'done'
-                                              ? 'bg-green-100 text-success'
+                                              ? 'bg-success/15 text-success'
                                               : task.status === 'in-progress'
-                                                ? 'bg-blue-100 text-info'
+                                                ? 'bg-info/15 text-info'
                                                 : task.status === 'blocked'
-                                                  ? 'bg-red-100 text-destructive'
+                                                  ? 'bg-destructive/15 text-destructive'
                                                   : 'bg-muted text-foreground'
                                           }`}
                                         >
@@ -546,16 +546,16 @@ export default function TaskGroupingModal({ open, onOpenChange }) {
                                         <span
                                           className={`text-xs px-1.5 py-0.5 rounded ${
                                             task.priority === 'high'
-                                              ? 'bg-red-100 text-destructive'
+                                              ? 'bg-destructive/15 text-destructive'
                                               : task.priority === 'medium'
-                                                ? 'bg-yellow-100 text-yellow-700'
+                                                ? 'bg-warning/15 text-warning'
                                                 : 'bg-muted text-foreground'
                                           }`}
                                         >
                                           {task.priority}
                                         </span>
                                         {task.assignee && (
-                                          <span className="text-xs px-1.5 py-0.5 rounded bg-blue-100 text-info">
+                                          <span className="text-xs px-1.5 py-0.5 rounded bg-info/15 text-info">
                                             {task.assignee}
                                           </span>
                                         )}

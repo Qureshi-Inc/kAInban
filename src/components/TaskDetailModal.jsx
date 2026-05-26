@@ -682,11 +682,11 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
   const getPriorityColor = priority => {
     switch (priority) {
       case 'high':
-        return 'text-destructive bg-red-50 border-red-200'
+        return 'text-destructive bg-destructive/10 border-destructive/30'
       case 'medium':
-        return 'text-yellow-600 bg-yellow-50 border-yellow-200'
+        return 'text-warning bg-warning/10 border-warning/30'
       case 'low':
-        return 'text-info bg-blue-50 border-blue-200'
+        return 'text-success bg-success/10 border-success/30'
       default:
         return 'text-muted-foreground bg-muted border-border'
     }
@@ -695,13 +695,13 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
   const getStatusColor = status => {
     switch (status) {
       case 'done':
-        return 'text-success bg-green-50 border-green-200'
+        return 'text-success bg-success/10 border-success/30'
       case 'in-progress':
-        return 'text-info bg-blue-50 border-blue-200'
+        return 'text-info bg-info/10 border-info/30'
       case 'blocked':
-        return 'text-destructive bg-red-50 border-red-200'
+        return 'text-destructive bg-destructive/10 border-destructive/30'
       case 'on-hold':
-        return 'text-destructive bg-red-50 border-red-200' // Legacy support, treated as blocked
+        return 'text-destructive bg-destructive/10 border-destructive/30' // Legacy support, treated as blocked
       case 'todo':
         return 'text-muted-foreground bg-muted border-border'
       default:
@@ -1284,7 +1284,7 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
           return (
             <span
               key={index}
-              className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-info rounded text-sm font-medium"
+              className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-info/15 dark:bg-blue-900/30 text-info rounded text-sm font-medium"
               title={mentionedUser.email}
             >
               <span className="w-3 h-3 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs">
@@ -1337,7 +1337,7 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                   type="text"
                   value={title}
                   onChange={e => setTitle(e.target.value)}
-                  className="text-2xl font-bold w-full bg-transparent border-none focus:outline-none focus:ring-0"
+                  className="text-2xl font-emphasis w-full bg-transparent border-none focus:outline-none focus:ring-0"
                   placeholder="Task title..."
                 />
               </div>
@@ -1477,7 +1477,7 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                                   variant="ghost"
                                   size="sm"
                                   onClick={() => handleRemoveAssignee(assigneeName)}
-                                  className="h-6 w-6 p-0 hover:bg-red-100 text-destructive"
+                                  className="h-6 w-6 p-0 hover:bg-destructive/15 text-destructive"
                                 >
                                   <X className="h-3 w-3" />
                                 </Button>
@@ -1578,7 +1578,7 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                                         e.stopPropagation()
                                         handleAddAssignee(assigneeSearchQuery.trim())
                                       }}
-                                      className="w-full text-left px-3 py-2 hover:bg-green-50 dark:hover:bg-green-900/20 flex items-center gap-2 border-b border-border last:border-b-0 cursor-pointer bg-green-50/50 dark:bg-green-900/10"
+                                      className="w-full text-left px-3 py-2 hover:bg-success/10 dark:hover:bg-green-900/20 flex items-center gap-2 border-b border-border last:border-b-0 cursor-pointer bg-green-50/50 dark:bg-green-900/10"
                                     >
                                       <div className="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center text-white text-xs font-medium flex-shrink-0">
                                         +
@@ -1662,10 +1662,10 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                                 <span
                                   className={`text-xs px-1.5 py-0.5 rounded ${
                                     linkedTask.priority === 'high'
-                                      ? 'bg-red-100 text-destructive'
+                                      ? 'bg-destructive/15 text-destructive'
                                       : linkedTask.priority === 'medium'
-                                        ? 'bg-yellow-100 text-yellow-600'
-                                        : 'bg-blue-100 text-info'
+                                        ? 'bg-warning/15 text-warning'
+                                        : 'bg-info/15 text-info'
                                   }`}
                                 >
                                   {linkedTask.priority}
@@ -1675,7 +1675,7 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => handleUnlinkTask(linkedTaskId)}
-                                className="h-6 w-6 p-0 hover:bg-red-100 text-destructive"
+                                className="h-6 w-6 p-0 hover:bg-destructive/15 text-destructive"
                               >
                                 <X className="h-3 w-3" />
                               </Button>
@@ -1724,10 +1724,10 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                                 <span
                                   className={`text-xs px-1.5 py-0.5 rounded ${
                                     aiLinkedTask.priority === 'high'
-                                      ? 'bg-red-100 text-destructive'
+                                      ? 'bg-destructive/15 text-destructive'
                                       : aiLinkedTask.priority === 'medium'
-                                        ? 'bg-yellow-100 text-yellow-600'
-                                        : 'bg-blue-100 text-info'
+                                        ? 'bg-warning/15 text-warning'
+                                        : 'bg-info/15 text-info'
                                   }`}
                                 >
                                   {aiLinkedTask.priority}
@@ -1740,7 +1740,7 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                                   onClick={() =>
                                     handleAcceptAiSuggestion(aiLinkId, 'created')
                                   }
-                                  className="h-6 w-6 p-0 hover:bg-green-100 text-success"
+                                  className="h-6 w-6 p-0 hover:bg-success/15 text-success"
                                   title="Accept and promote to manual link"
                                 >
                                   <Check className="h-3 w-3" />
@@ -1751,7 +1751,7 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                                   onClick={() =>
                                     handleRejectAiSuggestion(aiLinkId, 'created')
                                   }
-                                  className="h-6 w-6 p-0 hover:bg-red-100 text-destructive"
+                                  className="h-6 w-6 p-0 hover:bg-destructive/15 text-destructive"
                                   title="Reject AI suggestion"
                                 >
                                   <X className="h-3 w-3" />
@@ -1804,10 +1804,10 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                                 <span
                                   className={`text-xs px-1.5 py-0.5 rounded ${
                                     aiDiscoveredTask.priority === 'high'
-                                      ? 'bg-red-100 text-destructive'
+                                      ? 'bg-destructive/15 text-destructive'
                                       : aiDiscoveredTask.priority === 'medium'
-                                        ? 'bg-yellow-100 text-yellow-600'
-                                        : 'bg-blue-100 text-info'
+                                        ? 'bg-warning/15 text-warning'
+                                        : 'bg-info/15 text-info'
                                   }`}
                                 >
                                   {aiDiscoveredTask.priority}
@@ -1823,7 +1823,7 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                                       'discovered'
                                     )
                                   }
-                                  className="h-6 w-6 p-0 hover:bg-green-100 text-success"
+                                  className="h-6 w-6 p-0 hover:bg-success/15 text-success"
                                   title="Accept and promote to manual link"
                                 >
                                   <Check className="h-3 w-3" />
@@ -1837,7 +1837,7 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                                       'discovered'
                                     )
                                   }
-                                  className="h-6 w-6 p-0 hover:bg-red-100 text-destructive"
+                                  className="h-6 w-6 p-0 hover:bg-destructive/15 text-destructive"
                                   title="Reject AI suggestion"
                                 >
                                   <X className="h-3 w-3" />
@@ -1928,10 +1928,10 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                                   <span
                                     className={`text-xs px-1.5 py-0.5 rounded ${
                                       availableTask.priority === 'high'
-                                        ? 'bg-red-100 text-destructive'
+                                        ? 'bg-destructive/15 text-destructive'
                                         : availableTask.priority === 'medium'
-                                          ? 'bg-yellow-100 text-yellow-600'
-                                          : 'bg-blue-100 text-info'
+                                          ? 'bg-warning/15 text-warning'
+                                          : 'bg-info/15 text-info'
                                     }`}
                                   >
                                     {availableTask.priority}
@@ -2050,7 +2050,7 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                                       disabled={
                                         isLoading || loadingAiAction !== null
                                       }
-                                      className="h-7 px-2 text-xs bg-blue-50 hover:bg-blue-100 text-info border border-blue-200 hover:border-blue-300 flex items-center gap-1.5 min-w-0 disabled:opacity-50"
+                                      className="h-7 px-2 text-xs bg-info/10 hover:bg-info/15 text-info border border-info/30 hover:border-info/30 flex items-center gap-1.5 min-w-0 disabled:opacity-50"
                                       title={
                                         isLoading
                                           ? 'Generating...'
@@ -2096,7 +2096,7 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                             variant="ghost"
                             size="icon"
                             onClick={() => deleteSubtask(subtask.id)}
-                            className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-red-50"
+                            className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -2139,7 +2139,7 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                   {serverComments.map(comment => (
                     <Card
                       key={comment.id}
-                      className={`p-3 ${comment.comment_type === 'ai_update' ? 'border-blue-200 bg-info/10' : ''}`}
+                      className={`p-3 ${comment.comment_type === 'ai_update' ? 'border-info/30 bg-info/10' : ''}`}
                     >
                       <div className="flex items-start justify-between mb-1">
                         <div className="flex items-center gap-2">
@@ -2149,7 +2149,7 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                             </span>
                           )}
                           {comment.comment_type === 'ai_update' && (
-                            <span className="text-xs bg-blue-100 text-info px-1.5 py-0.5 rounded">
+                            <span className="text-xs bg-info/15 text-info px-1.5 py-0.5 rounded">
                               AI Update
                             </span>
                           )}
@@ -2256,7 +2256,7 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.95, y: -10 }}
                         transition={{ duration: 0.1 }}
-                        className="absolute left-0 bottom-full mb-2 w-48 bg-card rounded-lg shadow-lg border-2 border-border overflow-hidden z-50"
+                        className="absolute left-0 bottom-full mb-2 w-48 bg-card rounded-lg shadow-lg border border-border overflow-hidden z-50"
                       >
                         {/* Add Context option */}
                         <button
@@ -2276,7 +2276,7 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                             setIsMenuOpen(false)
                             handleDelete()
                           }}
-                          className="w-full px-4 py-3 text-left text-sm hover:bg-red-50 dark:hover:bg-red-900/20 text-destructive flex items-center gap-2 transition-colors"
+                          className="w-full px-4 py-3 text-left text-sm hover:bg-destructive/10 dark:hover:bg-red-900/20 text-destructive flex items-center gap-2 transition-colors"
                         >
                           <Trash2 className="h-4 w-4" />
                           Delete Task
@@ -2317,7 +2317,7 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                   {/* Header */}
                   <div className="flex items-center justify-between p-4 border-b">
                     <h3 className="text-lg font-semibold flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
+                      <div className="w-8 h-8 rounded-lg bg-info/15 dark:bg-blue-900 flex items-center justify-center">
                         {aiContentModal.type === 'email' && (
                           <Mail className="h-4 w-4 text-info" />
                         )}

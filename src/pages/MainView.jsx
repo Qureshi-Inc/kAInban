@@ -81,14 +81,14 @@ export default function MainView() {
     return (
       <div className="space-y-6">
         <motion.div
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.1 }}
-          className="flex items-center gap-2 text-sm text-muted-foreground"
+          initial={{ opacity: 0, y: 4 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
+          className="flex items-center gap-3 text-xs text-muted-foreground uppercase tracking-wider font-emphasis"
         >
-          <span className="font-medium">Dashboard</span>
-          <span className="text-xs">•</span>
-          <span>Overview & Analytics</span>
+          <span className="text-foreground">Dashboard</span>
+          <span className="h-px w-6 bg-border" aria-hidden />
+          <span>Overview &amp; Analytics</span>
         </motion.div>
         <AnalyticsDashboard />
       </div>
@@ -114,14 +114,13 @@ export default function MainView() {
         transition={{ delay: 0.1 }}
         className="space-y-4"
       >
-        {/* Breadcrumb navigation */}
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        {/* v3 breadcrumb — uppercase mono kicker, hairline divider, mono task count */}
+        <div className="flex items-center gap-3 text-xs uppercase tracking-wider font-emphasis flex-wrap">
           <button
             type="button"
-            className="hover:text-foreground cursor-pointer transition-colors font-medium bg-transparent border-0 p-0"
+            className="text-muted-foreground hover:text-foreground transition-colors bg-transparent border-0 p-0"
             onClick={() => {
               clearCurrentProject()
-              // Preserve tenant parameter when navigating to dashboard
               const currentParams = new URLSearchParams(window.location.search)
               const tenant = currentParams.get('tenant')
               const dashboardUrl = tenant ? `/?tenant=${tenant}` : '/'
@@ -130,10 +129,11 @@ export default function MainView() {
           >
             Dashboard
           </button>
-          <span className="text-xs">→</span>
-          <span className="font-medium text-foreground">{currentProject.name}</span>
-          <span className="text-xs">•</span>
-          <span className="px-2 py-1 bg-primary/10 text-primary text-xs rounded-full">
+          <span className="h-px w-6 bg-border" aria-hidden />
+          <span className="text-foreground normal-case font-serif text-base tracking-normal">
+            {currentProject.name}
+          </span>
+          <span className="font-mono text-[10px] text-muted-foreground tabular-nums normal-case tracking-normal">
             {currentProject.tasks?.length || 0} tasks
           </span>
         </div>

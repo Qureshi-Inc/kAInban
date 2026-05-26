@@ -261,7 +261,7 @@ export default function InviteRegistrationForm() {
                 <motion.div
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  className="flex items-center gap-2 p-3 rounded-lg bg-red-50 border border-red-200 text-destructive text-sm"
+                  className="flex items-center gap-2 p-3 rounded-lg bg-destructive/10 border border-destructive/30 text-destructive text-sm"
                 >
                   <AlertCircle className="h-4 w-4 flex-shrink-0" />
                   {error}
@@ -275,7 +275,7 @@ export default function InviteRegistrationForm() {
               >
                 {loading ? (
                   <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2" />
+                    <div className="animate-spin rounded-full h-4 w-4 border border-white border-t-transparent mr-2" />
                     Creating Account...
                   </>
                 ) : (

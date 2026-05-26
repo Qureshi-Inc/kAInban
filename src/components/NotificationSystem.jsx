@@ -22,12 +22,12 @@ const NotificationItem = ({ notification }) => {
   const getColors = type => {
     switch (type) {
       case 'success':
-        return 'bg-green-50 border-green-200 text-success'
+        return 'bg-success/10 border-success/30 text-success'
       case 'error':
-        return 'bg-red-50 border-red-200 text-destructive'
+        return 'bg-destructive/10 border-destructive/30 text-destructive'
       case 'info':
       default:
-        return 'bg-blue-50 border-blue-200 text-info'
+        return 'bg-info/10 border-info/30 text-info'
     }
   }
 

@@ -98,7 +98,7 @@ export default function DebugPanel() {
               key={idx}
               className={`p-1 rounded ${
                 log.type === 'error' ? 'bg-red-900/30 text-destructive' :
-                  log.type === 'warn' ? 'bg-yellow-900/30 text-yellow-300' :
+                  log.type === 'warn' ? 'bg-yellow-900/30 text-warning' :
                     'bg-gray-900/30 text-gray-300'
               }`}
             >

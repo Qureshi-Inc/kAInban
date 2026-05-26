@@ -129,31 +129,29 @@ export default function Header({ onToggleSidebar, onShowActivity }) {
 
   return (
     <motion.header
-      initial={{ opacity: 0, y: -20 }}
+      initial={{ opacity: 0, y: -4 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, ease: 'easeOut' }}
-      className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
+      transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
+      className="flex flex-row items-center justify-between gap-2 sm:gap-4 flex-wrap"
     >
-      {/* Brand and logo with hamburger menu */}
-      <div className="flex items-center gap-4">
-        {/* Hamburger Menu Button */}
+      {/* Brand and hamburger */}
+      <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+        {/* Hamburger */}
         <Button
           variant="ghost"
           size="sm"
           onClick={onToggleSidebar}
-          className="h-10 w-10 p-0"
+          className="h-9 w-9 p-0 flex-shrink-0"
           title="Open Menu"
+          aria-label="Open menu"
         >
           <Menu className="h-5 w-5" />
         </Button>
 
-        <motion.div
-          className="w-10 h-10 flex items-center justify-center cursor-pointer"
-          whileHover={{ scale: 1.05 }}
-          transition={{ type: 'spring', stiffness: 400, damping: 20 }}
+        <div
+          className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center cursor-pointer flex-shrink-0"
           onClick={() => {
-            clearCurrentProject() // Clear any selected project
-            // Preserve tenant parameter when navigating to dashboard
+            clearCurrentProject()
             const currentParams = new URLSearchParams(window.location.search)
             const tenant = currentParams.get('tenant')
             const dashboardUrl = tenant ? `/?tenant=${tenant}` : '/'
@@ -161,15 +159,14 @@ export default function Header({ onToggleSidebar, onShowActivity }) {
           }}
           title="Go to Dashboard"
         >
-          <img src="/icon-192.png" alt="kAInban" className="w-10 h-10 object-contain" />
-        </motion.div>
-        <div>
-          <div className="flex items-center gap-3">
+          <img src="/icon-192.png" alt="kAInban" className="w-full h-full object-contain" />
+        </div>
+        <div className="min-w-0">
+          <div className="flex items-baseline gap-2">
             <h1
-              className="text-xl font-emphasis tracking-tight text-foreground cursor-pointer hover:text-primary transition-colors"
+              className="font-serif text-2xl sm:text-3xl text-foreground cursor-pointer hover:text-primary transition-colors leading-none"
               onClick={() => {
-                clearCurrentProject() // Clear any selected project
-                // Preserve tenant parameter when navigating to dashboard
+                clearCurrentProject()
                 const currentParams = new URLSearchParams(window.location.search)
                 const tenant = currentParams.get('tenant')
                 const dashboardUrl = tenant ? `/?tenant=${tenant}` : '/'
@@ -179,7 +176,7 @@ export default function Header({ onToggleSidebar, onShowActivity }) {
             >
               kAInban
             </h1>
-            <span className="text-xs font-medium text-muted-foreground bg-muted/50 px-2 py-1 rounded-md">
+            <span className="hidden sm:inline text-[10px] font-mono text-muted-foreground tabular-nums uppercase tracking-wider">
               v1.1.1
             </span>
           </div>
@@ -187,14 +184,14 @@ export default function Header({ onToggleSidebar, onShowActivity }) {
       </div>
 
       {/* Navigation and controls */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-2 flex-wrap justify-end">
         {/* Project navigation */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <Select
             value={currentProject?.id || 'none'}
             onValueChange={handleProjectChange}
           >
-            <SelectTrigger className="w-56 h-10 bg-card border border-border hover:border-input transition-colors">
+            <SelectTrigger className="w-40 sm:w-56 h-9 bg-card border border-border hover:border-input transition-colors text-sm">
               <div className="flex items-center gap-2">
                 {currentProject ? (
                   <Folder className="h-4 w-4 text-primary" />
@@ -239,9 +236,10 @@ export default function Header({ onToggleSidebar, onShowActivity }) {
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-10 px-3 bg-card hover:bg-secondary border border-border transition-colors"
+                className="h-9 w-9 p-0 bg-card hover:bg-secondary border border-border transition-colors"
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
                 title="Project actions"
+                aria-label="Project actions"
               >
                 <MoreVertical className="h-4 w-4" />
               </Button>
@@ -286,7 +284,7 @@ export default function Header({ onToggleSidebar, onShowActivity }) {
           variant="ghost"
           size="sm"
           onClick={toggleTheme}
-          className="h-10 w-10 p-0 bg-card hover:bg-secondary border border-border transition-colors"
+          className="h-9 w-9 p-0 bg-card hover:bg-secondary border border-border transition-colors"
           title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
           aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
         >
@@ -297,14 +295,15 @@ export default function Header({ onToggleSidebar, onShowActivity }) {
           )}
         </Button>
 
-        {/* Activity button - only show when in a project */}
+        {/* Activity — only when in a project */}
         {currentProject && onShowActivity && (
           <Button
             variant="ghost"
             size="sm"
             onClick={onShowActivity}
-            className="h-10 w-10 p-0 bg-card hover:bg-secondary border border-border transition-colors"
+            className="h-9 w-9 p-0 bg-card hover:bg-secondary border border-border transition-colors"
             title="Show Activity"
+            aria-label="Show activity"
           >
             <Activity className="h-4 w-4" />
           </Button>

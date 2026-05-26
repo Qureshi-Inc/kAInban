@@ -251,9 +251,9 @@ function AuthenticatedApp() {
 
       {/* Main content area - full width */}
       <div className="flex flex-col min-h-screen">
-        {/* Header — solid surface, no backdrop-blur */}
+        {/* Sticky header — solid surface, hairline rule */}
         <div className="sticky top-0 z-40 bg-background border-b border-border">
-          <div className="w-full px-6 py-4">
+          <div className="w-full px-3 sm:px-6 py-3">
             <Header
               onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
               onShowActivity={() => setActivityPanelOpen(true)}
@@ -262,12 +262,12 @@ function AuthenticatedApp() {
         </div>
 
         {/* Content */}
-        <div className="flex-1 px-6 py-8">
+        <div className="flex-1 px-3 sm:px-6 py-6 sm:py-8">
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 4 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, ease: 'easeOut' }}
-            className="space-y-8 max-w-[1920px] mx-auto"
+            transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
+            className="space-y-6 sm:space-y-8 max-w-[1400px] mx-auto"
           >
             <Routes>
               <Route path="/" element={<MainView />} />
@@ -276,15 +276,13 @@ function AuthenticatedApp() {
           </motion.div>
         </div>
 
-        {/* Footer */}
-        <footer className="py-8 border-t border-border bg-card">
+        {/* Footer — newspaper colophon style */}
+        <footer className="py-6 border-t border-border bg-background">
           <div className="text-center px-6">
-            <p className="text-sm text-muted-foreground">
-              Built with <span className="text-destructive">♥</span> by{' '}
-              <span className="font-medium text-foreground">
-                InterestingSoup
-              </span>{' '}
-              <span className="text-xs opacity-70">2025</span>
+            <p className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider font-mono">
+              kAInban · built by{' '}
+              <span className="text-foreground">InterestingSoup</span>{' '}
+              · 2026
             </p>
           </div>
         </footer>

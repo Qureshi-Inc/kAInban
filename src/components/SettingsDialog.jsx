@@ -484,7 +484,7 @@ export default function SettingsDialog() {
             </div>
 
             {/* Danger Zone */}
-            <div className="border-t border-red-200 pt-6 mt-6">
+            <div className="border-t border-destructive/30 pt-6 mt-6">
               <h3 className="text-sm font-semibold mb-4 text-destructive">
                 Danger Zone
               </h3>

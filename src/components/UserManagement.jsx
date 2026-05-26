@@ -115,7 +115,7 @@ Type "DELETE" to confirm:`
     <div className="p-2 sm:p-6 max-w-6xl mx-auto">
       <div className="flex items-center gap-3 mb-4 sm:mb-6">
         <Users className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
-        <h2 className="text-lg sm:text-2xl font-bold">User Management</h2>
+        <h2 className="text-lg sm:text-2xl font-emphasis">User Management</h2>
       </div>
 
       {/* Mobile Card View (sm and below) */}
@@ -157,7 +157,7 @@ Type "DELETE" to confirm:`
                   variant="ghost"
                   size="sm"
                   onClick={() => handleDeleteUser(u.id, u.name || u.email)}
-                  className="text-destructive hover:text-destructive hover:bg-red-50 dark:hover:bg-red-900/20 p-2"
+                  className="text-destructive hover:text-destructive hover:bg-destructive/10 dark:hover:bg-red-900/20 p-2"
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>
@@ -322,7 +322,7 @@ Type "DELETE" to confirm:`
                         variant="ghost"
                         size="sm"
                         onClick={() => handleDeleteUser(u.id, u.name || u.email)}
-                        className="text-destructive hover:text-destructive hover:bg-red-50 dark:hover:bg-red-900/20"
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10 dark:hover:bg-red-900/20"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>

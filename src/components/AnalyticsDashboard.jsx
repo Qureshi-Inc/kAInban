@@ -347,7 +347,7 @@ export default function AnalyticsDashboard() {
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.95, y: -10 }}
                     transition={{ duration: 0.15 }}
-                    className="absolute right-0 mt-2 w-72 bg-card rounded-lg shadow-xl border-2 border-border overflow-hidden z-50"
+                    className="absolute right-0 mt-2 w-72 bg-card rounded-lg shadow-xl border border-border overflow-hidden z-50"
                   >
                     {/* All Projects Option */}
                     <button
@@ -559,7 +559,7 @@ export default function AnalyticsDashboard() {
                 <Target className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold text-success">
+                <div className="text-3xl font-emphasis text-success tabular-nums">
                   {analytics.completionRate}%
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
@@ -590,7 +590,7 @@ export default function AnalyticsDashboard() {
                 <BarChart3 className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold">{analytics.total}</div>
+                <div className="text-3xl font-emphasis tabular-nums">{analytics.total}</div>
                 <p className="text-xs text-muted-foreground mt-1">
                   {selectedProjectId === 'all' ? `Across ${projects.length} projects` : 'In selected project'}
                 </p>
@@ -610,7 +610,7 @@ export default function AnalyticsDashboard() {
                 <TrendingUp className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold text-info">
+                <div className="text-3xl font-emphasis text-info tabular-nums">
                   {analytics.inProgress}
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
@@ -632,7 +632,7 @@ export default function AnalyticsDashboard() {
                 <Clock className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className={`text-3xl font-bold ${analytics.overdue > 0 ? 'text-destructive' : 'text-muted-foreground'}`}>
+                <div className={`text-3xl font-emphasis tabular-nums ${analytics.overdue > 0 ? 'text-destructive' : 'text-muted-foreground'}`}>
                   {analytics.overdue}
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
@@ -660,25 +660,25 @@ export default function AnalyticsDashboard() {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {/* Todo */}
                 <div className="text-center p-4 rounded-lg bg-muted">
-                  <div className="text-2xl font-bold text-foreground">{analytics.todo}</div>
+                  <div className="text-2xl font-emphasis text-foreground">{analytics.todo}</div>
                   <div className="text-xs text-muted-foreground mt-1">To Do</div>
                 </div>
 
                 {/* In Progress */}
-                <div className="text-center p-4 rounded-lg bg-blue-100 dark:bg-blue-900/30">
-                  <div className="text-2xl font-bold text-info">{analytics.inProgress}</div>
+                <div className="text-center p-4 rounded-lg bg-info/15 dark:bg-blue-900/30">
+                  <div className="text-2xl font-emphasis text-info">{analytics.inProgress}</div>
                   <div className="text-xs text-muted-foreground mt-1">In Progress</div>
                 </div>
 
                 {/* Blocked */}
                 <div className="text-center p-4 rounded-lg bg-destructive/15">
-                  <div className="text-2xl font-bold text-destructive">{analytics.blocked}</div>
+                  <div className="text-2xl font-emphasis text-destructive">{analytics.blocked}</div>
                   <div className="text-xs text-muted-foreground mt-1">Blocked</div>
                 </div>
 
                 {/* Done */}
                 <div className="text-center p-4 rounded-lg bg-success/15">
-                  <div className="text-2xl font-bold text-success">{analytics.completed}</div>
+                  <div className="text-2xl font-emphasis text-success">{analytics.completed}</div>
                   <div className="text-xs text-muted-foreground mt-1">Done</div>
                 </div>
               </div>
@@ -703,19 +703,19 @@ export default function AnalyticsDashboard() {
               <div className="grid grid-cols-3 gap-4">
                 {/* High Priority */}
                 <div className="text-center p-4 rounded-lg bg-destructive/15">
-                  <div className="text-2xl font-bold text-destructive">{analytics.highPriority}</div>
+                  <div className="text-2xl font-emphasis text-destructive">{analytics.highPriority}</div>
                   <div className="text-xs text-muted-foreground mt-1">High Priority</div>
                 </div>
 
                 {/* Medium Priority */}
-                <div className="text-center p-4 rounded-lg bg-yellow-100 dark:bg-yellow-900/30">
-                  <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{analytics.mediumPriority}</div>
+                <div className="text-center p-4 rounded-lg bg-warning/15 dark:bg-yellow-900/30">
+                  <div className="text-2xl font-emphasis text-warning dark:text-warning">{analytics.mediumPriority}</div>
                   <div className="text-xs text-muted-foreground mt-1">Medium Priority</div>
                 </div>
 
                 {/* Low Priority */}
                 <div className="text-center p-4 rounded-lg bg-success/15">
-                  <div className="text-2xl font-bold text-success">{analytics.lowPriority}</div>
+                  <div className="text-2xl font-emphasis text-success">{analytics.lowPriority}</div>
                   <div className="text-xs text-muted-foreground mt-1">Low Priority</div>
                 </div>
               </div>

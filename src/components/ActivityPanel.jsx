@@ -351,11 +351,11 @@ export default function ActivityPanel({ isOpen, onClose }) {
             {activity.details.field}:
           </span>
           <div className="flex items-center gap-2 mt-1">
-            <span className="px-2 py-1 bg-red-100 text-destructive rounded text-xs">
+            <span className="px-2 py-1 bg-destructive/15 text-destructive rounded text-xs">
               {activity.details.oldValue}
             </span>
             <ArrowRight className="h-3 w-3" />
-            <span className="px-2 py-1 bg-green-100 text-success rounded text-xs">
+            <span className="px-2 py-1 bg-success/15 text-success rounded text-xs">
               {activity.details.newValue}
             </span>
           </div>
@@ -370,7 +370,7 @@ export default function ActivityPanel({ isOpen, onClose }) {
         <div className="mt-2 text-xs bg-muted/50 rounded p-2 space-y-1">
           {/* Show task title prominently for AI comments */}
           {metadata.taskTitle && (
-            <div className="bg-info/10 p-2 rounded border-l-2 border-blue-400">
+            <div className="bg-info/10 p-2 rounded border-l-2 border-info/30">
               <span className="font-medium text-info">
                 📝 Task:
               </span>
@@ -414,7 +414,7 @@ export default function ActivityPanel({ isOpen, onClose }) {
 
           {/* Enhanced labels for specific change types */}
           {activity.type === 'status_changed' && (metadata.taskTitle || activity.details?.taskTitle) && (
-            <div className="bg-success/10 p-2 rounded border-l-2 border-green-400">
+            <div className="bg-success/10 p-2 rounded border-l-2 border-success/30">
               <span className="font-medium text-success">
                 📋 Task:
               </span>
@@ -553,7 +553,7 @@ export default function ActivityPanel({ isOpen, onClose }) {
                       {/* Activity item */}
                       <div className="flex gap-4">
                         {/* Icon */}
-                        <div className="w-12 h-12 rounded-xl bg-background border border-border/50 flex items-center justify-center flex-shrink-0">
+                        <div className="w-12 h-12 rounded-md bg-background border border-border/50 flex items-center justify-center flex-shrink-0">
                           {getActivityIcon(activity.type)}
                         </div>
 

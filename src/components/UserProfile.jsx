@@ -28,7 +28,7 @@ export default function UserProfile({ collapsed = false }) {
         className={`flex items-center gap-2 ${collapsed ? 'w-10 h-10 p-0 justify-center' : ''}`}
       >
         <div className="relative">
-          <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-medium text-sm border-2 border-black">
+          <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-medium text-sm border border-black">
             {user.name?.charAt(0).toUpperCase() ||
               user.email?.charAt(0).toUpperCase()}
           </div>
@@ -62,12 +62,12 @@ export default function UserProfile({ collapsed = false }) {
                 collapsed
                   ? 'absolute left-full bottom-0 ml-2'
                   : 'absolute left-0 bottom-full mb-2'
-              } w-64 max-w-[calc(100vw-2rem)] bg-card rounded-lg shadow-xl border-2 border-border overflow-hidden z-[9999]`}
+              } w-64 max-w-[calc(100vw-2rem)] bg-card rounded-lg shadow-xl border border-border overflow-hidden z-[9999]`}
             >
               {/* User Info */}
               <div className="px-4 py-3 border-b border-border">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-lg border-2 border-black">
+                  <div className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-lg border border-black">
                     {user.name?.charAt(0).toUpperCase() ||
                       user.email?.charAt(0).toUpperCase()}
                   </div>

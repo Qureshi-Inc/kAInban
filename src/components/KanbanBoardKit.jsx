@@ -150,7 +150,7 @@ const TaskCard = ({ task, onDelete, onClick, users = [] }) => {
         <Button
           variant="ghost"
           size="icon"
-          className="h-7 w-7 opacity-0 group-hover:opacity-100 hover:bg-red-50 hover:text-destructive dark:hover:bg-red-900/20 transition-all"
+          className="h-7 w-7 opacity-0 group-hover:opacity-100 hover:bg-destructive/10 hover:text-destructive dark:hover:bg-red-900/20 transition-all"
           onClick={e => {
             e.stopPropagation()
             onDelete(task.id)
@@ -659,7 +659,7 @@ export default function KanbanBoardKit({ taskToOpen }) {
                           animate={{ opacity: 1, scale: 1, y: 0 }}
                           exit={{ opacity: 0, scale: 0.95, y: -10 }}
                           transition={{ duration: 0.1 }}
-                          className="absolute right-0 mt-2 w-48 bg-card rounded-lg shadow-lg border-2 border-border overflow-hidden z-50"
+                          className="absolute right-0 mt-2 w-48 bg-card rounded-lg shadow-lg border border-border overflow-hidden z-50"
                         >
                           {/* View Toggle */}
                           <button
@@ -703,7 +703,7 @@ export default function KanbanBoardKit({ taskToOpen }) {
                                 setIsMenuOpen(false)
                                 handleClearAll()
                               }}
-                              className="w-full px-4 py-3 text-left text-sm hover:bg-red-50 dark:hover:bg-red-900/20 text-destructive flex items-center gap-2 transition-colors"
+                              className="w-full px-4 py-3 text-left text-sm hover:bg-destructive/10 dark:hover:bg-red-900/20 text-destructive flex items-center gap-2 transition-colors"
                             >
                               <Trash2 className="h-4 w-4" />
                               Clear All Tasks
@@ -741,7 +741,7 @@ export default function KanbanBoardKit({ taskToOpen }) {
                           <div
                             ref={provided.innerRef}
                             {...provided.droppableProps}
-                            className="space-y-2 min-h-32 p-2 rounded-lg border-2 border-dashed border-transparent"
+                            className="space-y-2 min-h-32 p-2 rounded-lg border border-dashed border-transparent"
                             style={{
                               backgroundColor: snapshot.isDraggingOver
                                 ? 'rgba(59, 130, 246, 0.1)'

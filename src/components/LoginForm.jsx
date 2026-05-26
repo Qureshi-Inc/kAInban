@@ -46,7 +46,7 @@ export default function LoginForm({ onLogin, onSwitchToRegister, error }) {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
-      className="w-full max-w-md mx-auto p-8 bg-card rounded-2xl shadow-2xl border-2 border-border"
+      className="w-full max-w-md mx-auto p-8 bg-card rounded-md shadow-2xl border border-border"
     >
       <div className="text-center mb-8">
         <motion.div

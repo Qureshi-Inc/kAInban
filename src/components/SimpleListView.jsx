@@ -31,7 +31,7 @@ const TaskRow = ({ task, onTaskClick, onTaskDelete }) => {
       <Button
         variant="ghost"
         size="icon"
-        className="h-6 w-6 opacity-0 group-hover:opacity-100 hover:bg-red-50 hover:text-destructive dark:hover:bg-red-900/20 transition-all flex-shrink-0"
+        className="h-6 w-6 opacity-0 group-hover:opacity-100 hover:bg-destructive/10 hover:text-destructive dark:hover:bg-red-900/20 transition-all flex-shrink-0"
         onClick={e => {
           e.stopPropagation()
           onTaskDelete(task.id)
@@ -164,7 +164,7 @@ export default function SimpleListView({
         id: 'todo',
         title: '📋 To Do',
         tasks: todoTasks,
-        color: 'border-l-slate-400 bg-slate-50 dark:bg-slate-900/20'
+        color: 'border-l-slate-400 bg-muted dark:bg-slate-900/20'
       },
       {
         id: 'in-progress',

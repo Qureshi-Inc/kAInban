@@ -232,7 +232,7 @@ const TaskCard = React.memo(({
         <Button
           variant="ghost"
           size="icon"
-          className="h-7 w-7 opacity-0 group-hover:opacity-100 hover:bg-red-50 hover:text-destructive dark:hover:bg-red-900/20 transition-all"
+          className="h-7 w-7 opacity-0 group-hover:opacity-100 hover:bg-destructive/10 hover:text-destructive dark:hover:bg-red-900/20 transition-all"
           onClick={e => {
             e.stopPropagation()
             onDelete(task.id)
@@ -737,25 +737,25 @@ export default function KanbanBoard({ taskToOpen }) {
         return {
           title: '📋 To Do',
           tasks: todoTasks,
-          color: 'border-l-slate-400 bg-slate-50'
+          color: 'border-l-slate-400 bg-muted'
         }
       case 'in-progress':
         return {
           title: '⚡ In Progress',
           tasks: inProgressTasks,
-          color: 'border-l-blue-500 bg-blue-50'
+          color: 'border-l-blue-500 bg-info/10'
         }
       case 'blocked':
         return {
           title: '🚫 Blocked',
           tasks: blockedTasks,
-          color: 'border-l-red-500 bg-red-50'
+          color: 'border-l-red-500 bg-destructive/10'
         }
       case 'done':
         return {
           title: '✅ Done',
           tasks: doneTasks,
-          color: 'border-l-green-500 bg-green-50'
+          color: 'border-l-green-500 bg-success/10'
         }
       default:
         return {
@@ -835,7 +835,7 @@ export default function KanbanBoard({ taskToOpen }) {
                                 e.stopPropagation()
                                 handleTaskDelete(task.id)
                               }}
-                              className="h-6 w-6 opacity-0 group-hover:opacity-100 hover:bg-red-50 text-destructive flex-shrink-0 ml-2"
+                              className="h-6 w-6 opacity-0 group-hover:opacity-100 hover:bg-destructive/10 text-destructive flex-shrink-0 ml-2"
                             >
                               <Trash2 className="h-3 w-3" />
                             </Button>
@@ -929,7 +929,7 @@ export default function KanbanBoard({ taskToOpen }) {
                           animate={{ opacity: 1, scale: 1, y: 0 }}
                           exit={{ opacity: 0, scale: 0.95, y: -10 }}
                           transition={{ duration: 0.1 }}
-                          className="absolute right-0 mt-2 w-48 bg-card rounded-lg shadow-lg border-2 border-border overflow-hidden z-50"
+                          className="absolute right-0 mt-2 w-48 bg-card rounded-lg shadow-lg border border-border overflow-hidden z-50"
                         >
                           {/* View Toggle */}
                           <button
@@ -973,7 +973,7 @@ export default function KanbanBoard({ taskToOpen }) {
                                 setIsMenuOpen(false)
                                 handleClearAll()
                               }}
-                              className="w-full px-4 py-3 text-left text-sm hover:bg-red-50 dark:hover:bg-red-900/20 text-destructive flex items-center gap-2 transition-colors"
+                              className="w-full px-4 py-3 text-left text-sm hover:bg-destructive/10 dark:hover:bg-red-900/20 text-destructive flex items-center gap-2 transition-colors"
                             >
                               <Trash2 className="h-4 w-4" />
                               Clear All Tasks

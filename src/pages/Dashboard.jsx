@@ -4,16 +4,16 @@ import AnalyticsDashboard from '../components/AnalyticsDashboard'
 export default function Dashboard() {
   return (
     <div className="space-y-6">
-      {/* Breadcrumb for context */}
+      {/* v3 breadcrumb: hairline rule, mono kicker, no decorative bullets */}
       <motion.div
-        initial={{ opacity: 0, x: -20 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ delay: 0.1 }}
-        className="flex items-center gap-2 text-sm text-muted-foreground"
+        initial={{ opacity: 0, y: 4 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
+        className="flex items-center gap-3 text-xs text-muted-foreground uppercase tracking-wider font-emphasis"
       >
-        <span className="font-medium">Dashboard</span>
-        <span className="text-xs">•</span>
-        <span>Overview & Analytics</span>
+        <span className="text-foreground">Dashboard</span>
+        <span className="h-px w-6 bg-border" aria-hidden />
+        <span>Overview &amp; Analytics</span>
       </motion.div>
 
       <AnalyticsDashboard />

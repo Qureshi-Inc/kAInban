@@ -247,7 +247,7 @@ Example:
 - Schedule a meeting with the design team next week
 - Review the Q4 budget proposal
 - Fix the bug in the payment processing module"
-            className="w-full h-64 px-4 py-3 border-2 border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent resize-none font-mono text-sm"
+            className="w-full h-64 px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent resize-none font-mono text-sm"
             disabled={isProcessing}
           />
 
