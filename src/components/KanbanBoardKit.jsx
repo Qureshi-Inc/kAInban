@@ -270,13 +270,13 @@ export default function KanbanBoardKit({ taskToOpen }) {
     checkRecentMerges()
   }, [currentProject?.id, tasks])
 
-  // Handle opening specific task from URL
+  // Handle opening specific task from URL — route to inspector (v3.1.4).
   useEffect(() => {
     if (taskToOpen && tasks.length > 0) {
       const task = tasks.find(t => t.id === taskToOpen)
       if (task) {
-        setSelectedTask(task)
-        setIsModalOpen(true)
+        const { openTaskInspector } = useAppStore.getState()
+        openTaskInspector(task.id)
       }
     }
   }, [taskToOpen, tasks])
@@ -552,13 +552,12 @@ export default function KanbanBoardKit({ taskToOpen }) {
     }
   }
 
+  // v3.1.4 — clicking a task opens the right-side inspector. The modal
+  // path stays only for new-task creation (multi-step wizard surface
+  // per the inspector-vs-modal rules).
   const handleTaskClick = task => {
-    setSelectedTask(task)
-    setIsModalOpen(true)
-
-    const newParams = new URLSearchParams(searchParams)
-    newParams.set('task', task.id)
-    navigate(`?${newParams.toString()}`, { replace: false })
+    const { openTaskInspector } = useAppStore.getState()
+    openTaskInspector(task.id)
   }
 
   const handleModalClose = () => {

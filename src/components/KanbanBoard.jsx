@@ -527,14 +527,14 @@ export default function KanbanBoard({ taskToOpen }) {
     checkRecentMerges()
   }, [currentProject?.id, tasks]) // Re-check when project or tasks change
 
-  // Handle opening specific task from URL
+  // Handle opening specific task from URL — route to the inspector now
+  // (v3.1.4). Falls back silently if the task isn't yet loaded.
   React.useEffect(() => {
     if (taskToOpen && tasks.length > 0) {
-      // Find task by exact ID match (taskToOpen is now full ID)
       const task = tasks.find(t => t.id === taskToOpen)
       if (task) {
-        setSelectedTask(task)
-        setIsModalOpen(true)
+        const { openTaskInspector } = useAppStore.getState()
+        openTaskInspector(task.id)
       }
     }
   }, [taskToOpen, tasks])
@@ -684,21 +684,24 @@ export default function KanbanBoard({ taskToOpen }) {
     }
   }
 
+  // v3.1.4 — clicking a task opens the right-side inspector (not the
+  // legacy modal). The inspector's "Open full editor" menu still routes
+  // to TaskDetailModal for features not yet ported (mentions, AI
+  // templates, linked tasks). New-task creation still uses the modal
+  // since modals are the right call for multi-step / wizard flows
+  // (v3.1.4 inspector-vs-modal rules).
   const handleTaskClick = task => {
-    setSelectedTask(task)
-    setIsModalOpen(true)
-
-    // Add full task ID to URL for bookmarking and sharing
-    const newParams = new URLSearchParams(searchParams)
-    newParams.set('task', task.id)
-    navigate(`?${newParams.toString()}`, { replace: false })
+    const { openTaskInspector } = useAppStore.getState()
+    openTaskInspector(task.id)
   }
 
   const handleModalClose = () => {
     setIsModalOpen(false)
     setSelectedTask(null)
 
-    // Clear task parameter from URL if it exists
+    // Clear task parameter from URL if it exists (only the new-task
+    // modal path still sets the URL itself; inspector handles its own
+    // URL sync via store actions).
     if (searchParams.get('task')) {
       const newParams = new URLSearchParams(searchParams)
       newParams.delete('task')

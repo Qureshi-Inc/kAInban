@@ -124,20 +124,28 @@ export default function AppShell({ children, inspector = null, onShowActivity })
         )}
       </AnimatePresence>
 
-      {/* Mobile inspector drawer — slot exists for Slice 3 when a child
-          passes `inspector`. Today we skip rendering it on small screens
-          since no surface requests one yet. */}
-      {inspector && (
-        <aside
-          className="xl:hidden fixed inset-0 z-50 bg-card border-l border-border overflow-auto"
-          style={{
-            display: 'none' // toggled from store in Slice 3
-          }}
-          data-shell-inspector-mobile
-        >
-          {inspector}
-        </aside>
-      )}
+      {/* Mobile / tablet inspector — full-screen overlay below xl (1280px).
+          Slice 3 wires this in: whenever a task is selected, the inspector
+          covers the canvas with its own back chevron in the header. Above
+          xl, the inspector renders in its desktop column above; this drawer
+          is hidden via xl:hidden. */}
+      <AnimatePresence>
+        {inspector && (
+          <motion.aside
+            key="mobile-inspector"
+            initial={{ opacity: 0, x: '100%' }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: '100%' }}
+            transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+            className="xl:hidden fixed inset-0 z-40 bg-card overflow-hidden"
+            role="dialog"
+            aria-label="Task inspector"
+            data-shell-inspector-mobile
+          >
+            {inspector}
+          </motion.aside>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

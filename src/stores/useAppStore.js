@@ -78,6 +78,13 @@ const useAppStore = create((set, get) => ({
   // surface can request it open (currently: global keyboard listener +
   // the future TopBar palette-trigger button).
   isCommandPaletteOpen: false,
+  // Task inspector — DESIGN.md v3.1.4. currentTaskId points at the task
+  // being read/edited in the right-side inspector panel. Null = inspector
+  // closed (AppShell hides the slot). Setting this navigates the URL
+  // (?task=<id>) so the state survives reload + is shareable. The
+  // openTaskInspector / closeTaskInspector actions own URL sync so call
+  // sites don't have to repeat it.
+  currentTaskId: null,
   notifications: [],
 
   // Progress tracking for file upload/processing
@@ -869,6 +876,42 @@ const useAppStore = create((set, get) => ({
   setCommandPaletteOpen: open => set({ isCommandPaletteOpen: open }),
   toggleCommandPalette: () =>
     set(state => ({ isCommandPaletteOpen: !state.isCommandPaletteOpen })),
+
+  /*
+   * Task inspector (DESIGN.md v3.1.4). Owns URL sync so any caller can
+   * open/close without duplicating the `?task=<id>` dance. Pass the
+   * full task id (not the short id) — the URL stores the full id today.
+   * Closing clears the URL param so a refresh after Esc doesn't reopen
+   * the inspector you just dismissed.
+   */
+  openTaskInspector: taskId => {
+    if (!taskId) return
+    set({ currentTaskId: taskId })
+    try {
+      const params = new URLSearchParams(window.location.search)
+      params.set('task', taskId)
+      window.history.pushState({}, '', `?${params.toString()}`)
+    } catch (_e) {
+      // window unavailable (SSR / tests) — silent.
+    }
+  },
+  closeTaskInspector: () => {
+    set({ currentTaskId: null })
+    try {
+      const params = new URLSearchParams(window.location.search)
+      if (params.has('task')) {
+        params.delete('task')
+        const qs = params.toString()
+        window.history.replaceState(
+          {},
+          '',
+          qs ? `?${qs}` : window.location.pathname
+        )
+      }
+    } catch (_e) {
+      // window unavailable — silent.
+    }
+  },
 
   addNotification: notification => {
     const id = generateId()

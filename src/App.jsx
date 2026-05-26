@@ -18,6 +18,7 @@ import ProgressIndicator from './components/ProgressIndicator'
 import RecordingModal from './components/RecordingModal'
 import SettingsDialog from './components/SettingsDialog'
 import AppShell from './components/shell/AppShell'
+import TaskInspector from './components/shell/TaskInspector'
 import CommandPalette from './components/ui/command-palette'
 
 // Pages
@@ -30,6 +31,7 @@ function AuthenticatedApp() {
   const [loading, setLoading] = React.useState(true)
   const [activityPanelOpen, setActivityPanelOpen] = React.useState(false)
   const user = useAppStore(state => state.user)
+  const currentTaskId = useAppStore(state => state.currentTaskId)
   const authChecked = useAppStore(state => state.authChecked)
   const checkAuth = useAppStore(state => state.checkAuth)
   const setUser = useAppStore(state => state.setUser)
@@ -271,9 +273,14 @@ function AuthenticatedApp() {
   return (
     <>
       {/* v3.1 app shell — sidebar + topbar + canvas + inspector slot.
-          Replaces the old Header + LeftSidebar overlay layout. Inspector
-          slot stays empty until Slice 3 hooks TaskInspector into it. */}
-      <AppShell onShowActivity={() => setActivityPanelOpen(true)}>
+          Inspector slot is filled by TaskInspector whenever a task is
+          selected (currentTaskId in the store). On mobile the inspector
+          renders as a full-screen drawer; on desktop it sits in the
+          right column. */}
+      <AppShell
+        onShowActivity={() => setActivityPanelOpen(true)}
+        inspector={currentTaskId ? <TaskInspector /> : null}
+      >
         <motion.div
           initial={{ opacity: 0, y: 4 }}
           animate={{ opacity: 1, y: 0 }}
