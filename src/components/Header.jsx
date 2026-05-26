@@ -136,7 +136,7 @@ export default function Header({ onToggleSidebar, onShowActivity }) {
         <div>
           <div className="flex items-center gap-3">
             <h1
-              className="text-2xl font-bold bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent cursor-pointer hover:opacity-80 transition-opacity"
+              className="text-xl font-emphasis tracking-tight text-foreground cursor-pointer hover:text-primary transition-colors"
               onClick={() => {
                 clearCurrentProject() // Clear any selected project
                 // Preserve tenant parameter when navigating to dashboard
@@ -164,7 +164,7 @@ export default function Header({ onToggleSidebar, onShowActivity }) {
             value={currentProject?.id || 'none'}
             onValueChange={handleProjectChange}
           >
-            <SelectTrigger className="w-56 h-10 bg-card/50 backdrop-blur-sm border-border/50 hover:bg-card/80 transition-all duration-200">
+            <SelectTrigger className="w-56 h-10 bg-card border border-border hover:border-input transition-colors">
               <div className="flex items-center gap-2">
                 {currentProject ? (
                   <Folder className="h-4 w-4 text-primary" />
@@ -209,7 +209,7 @@ export default function Header({ onToggleSidebar, onShowActivity }) {
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-10 px-3 bg-card/30 hover:bg-card/60 backdrop-blur-sm border border-border/50"
+                className="h-10 px-3 bg-card hover:bg-secondary border border-border transition-colors"
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
                 title="Project actions"
               >
@@ -232,7 +232,7 @@ export default function Header({ onToggleSidebar, onShowActivity }) {
                       animate={{ opacity: 1, scale: 1, y: 0 }}
                       exit={{ opacity: 0, scale: 0.95, y: -10 }}
                       transition={{ duration: 0.2, ease: 'easeOut' }}
-                      className="absolute right-0 mt-2 w-52 bg-card/95 backdrop-blur-md border border-border/50 rounded-xl shadow-xl overflow-hidden z-50"
+                      className="absolute right-0 mt-2 w-52 bg-popover border border-border rounded-md shadow-lg overflow-hidden z-50"
                     >
                       <div className="p-1">
                         <button
@@ -257,7 +257,7 @@ export default function Header({ onToggleSidebar, onShowActivity }) {
             variant="ghost"
             size="sm"
             onClick={onShowActivity}
-            className="h-10 w-10 p-0 bg-card/30 hover:bg-card/60 backdrop-blur-sm border border-border/50"
+            className="h-10 w-10 p-0 bg-card hover:bg-secondary border border-border transition-colors"
             title="Show Activity"
           >
             <Activity className="h-4 w-4" />

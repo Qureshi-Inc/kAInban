@@ -512,7 +512,7 @@ export default function AnalyticsDashboard() {
                               initial={{ opacity: 0 }}
                               animate={{ opacity: 1 }}
                               transition={{ duration: 0.3 }}
-                              className="bg-white/60 dark:bg-gray-900/40 backdrop-blur-sm rounded-lg p-6 border border-white/20 dark:border-gray-800/20"
+                              className="bg-card border border-border rounded-md p-6"
                             >
                               <div className="flex items-start gap-4">
                                 <div className="flex-shrink-0">
@@ -546,7 +546,7 @@ export default function AnalyticsDashboard() {
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="flex items-center justify-center gap-2 text-xs text-muted-foreground bg-white/30 dark:bg-gray-900/30 backdrop-blur-sm rounded-full px-4 py-2 border border-white/20 dark:border-gray-800/20"
+                  className="flex items-center justify-center gap-2 text-xs text-muted-foreground bg-card rounded-full px-4 py-2 border border-border"
                 >
                   <Sparkles className="h-3 w-3" />
                   <span>Insights refresh daily at midnight or when you add new tasks</span>

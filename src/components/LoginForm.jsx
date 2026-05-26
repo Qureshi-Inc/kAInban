@@ -56,8 +56,8 @@ export default function LoginForm({ onLogin, onSwitchToRegister, error }) {
         >
           <img src="/icon-192.png" alt="kAInban" className="w-16 h-16 object-contain" />
         </motion.div>
-        <h2 className="text-3xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
-          kAInban Login
+        <h2 className="font-serif-display text-4xl text-foreground">
+          Sign in to kAInban
         </h2>
         <p className="text-muted-foreground mt-2">Sign in to your account</p>
       </div>
@@ -66,7 +66,7 @@ export default function LoginForm({ onLogin, onSwitchToRegister, error }) {
         <motion.div
           initial={{ opacity: 0, height: 0 }}
           animate={{ opacity: 1, height: 'auto' }}
-          className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-600 dark:text-red-400 text-sm"
+          className="mb-4 p-3 bg-destructive/10 border border-destructive/30 rounded-sm text-destructive text-sm"
         >
           {error}
         </motion.div>

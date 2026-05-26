@@ -51,17 +51,13 @@ export default function MeetingFilesPanel() {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: 0.3 }}
     >
-      <Card className="border-2 shadow-xl hover:shadow-2xl transition-shadow duration-300 bg-gradient-to-br from-white to-gray-50/50 dark:from-gray-800 dark:to-gray-900/50">
-        <CardHeader className="bg-gradient-to-r from-green-50/50 to-transparent dark:from-green-900/10 border-b-2">
+      <Card className="border border-border bg-card">
+        <CardHeader className="border-b border-border bg-card">
           <CardTitle className="flex items-center gap-3">
-            <motion.div
-              className="p-2 bg-gradient-to-br from-green-500 to-green-600 rounded-lg shadow-md"
-              whileHover={{ scale: 1.1, rotate: 5 }}
-              transition={{ type: 'spring', stiffness: 400, damping: 10 }}
-            >
-              <FileAudio className="h-5 w-5 text-white" />
-            </motion.div>
-            <span className="text-xl font-bold">Meeting Files</span>
+            <div className="p-2 bg-success/15 border border-success/30 rounded-md text-success">
+              <FileAudio className="h-4 w-4" />
+            </div>
+            <span className="font-serif-display text-2xl">Meeting files</span>
           </CardTitle>
         </CardHeader>
         <CardContent className="p-6">
@@ -76,11 +72,10 @@ export default function MeetingFilesPanel() {
                   whileHover={{ scale: 1.02, x: 4 }}
                   transition={{ duration: 0.2 }}
                   className={`
-                    group p-3 rounded-lg border-2 cursor-pointer transition-all
-                    hover:shadow-lg
+                    group p-3 rounded-sm border cursor-pointer transition-colors duration-150
                     ${selectedMeetingId === meeting.id
-                  ? 'border-primary bg-gradient-to-r from-primary/10 to-primary/5 shadow-md'
-                  : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-primary/50'
+                  ? 'border-primary/50 bg-primary/8'
+                  : 'border-border bg-popover hover:border-input'
                 }
                   `}
                 >

@@ -266,11 +266,29 @@
         right: 16px;
         z-index: 50;
         display: flex;
-        gap: 4px;
-        padding: 4px;
+        gap: 8px;
+        align-items: center;
+        padding: 4px 6px 4px 12px;
         background: var(--bg-raised);
         border: 1px solid var(--hairline-low);
         border-radius: var(--radius-md);
+      }
+      .toolbar .toolbar-link {
+        font-size: 11px;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        text-decoration: none;
+        font-variation-settings: "wght" 510;
+        transition: color var(--dur-fast) var(--ease);
+      }
+      .toolbar .toolbar-link:hover {
+        color: var(--accent);
+      }
+      .toolbar .toolbar-divider {
+        width: 1px;
+        height: 16px;
+        background: var(--hairline-low);
       }
       .toolbar button {
         appearance: none;
@@ -1211,7 +1229,9 @@
     </style>
   </head>
   <body>
-    <div class="toolbar" role="group" aria-label="Theme toggle">
+    <div class="toolbar" role="group" aria-label="Theme and navigation">
+      <a class="toolbar-link" href="newspaper.html">Newspaper-Light →</a>
+      <div class="toolbar-divider"></div>
       <button type="button" data-theme-btn="dark" aria-pressed="true">Dark</button>
       <button type="button" data-theme-btn="light" aria-pressed="false">Light</button>
     </div>

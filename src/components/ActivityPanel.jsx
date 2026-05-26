@@ -489,7 +489,7 @@ export default function ActivityPanel({ isOpen, onClose }) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40"
+            className="fixed inset-0 bg-black/55 z-40"
             onClick={onClose}
           />
 
@@ -499,7 +499,7 @@ export default function ActivityPanel({ isOpen, onClose }) {
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className="fixed right-0 top-0 bottom-0 w-96 bg-card/95 backdrop-blur-lg border-l border-border/50 shadow-2xl z-50 flex flex-col"
+            className="fixed right-0 top-0 bottom-0 w-96 bg-card border-l border-border shadow-lg z-50 flex flex-col"
           >
             {/* Header */}
             <div className="p-6 border-b border-border/50">

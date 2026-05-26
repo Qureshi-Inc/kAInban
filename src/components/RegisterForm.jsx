@@ -115,18 +115,14 @@ export default function RegisterForm({ onRegister, onSwitchToLogin, error, isFir
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
-      className="w-full max-w-md mx-auto p-8 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border-2 border-gray-200 dark:border-gray-700"
+      className="w-full max-w-md mx-auto p-8 bg-card rounded-md shadow-lg border border-border"
     >
       <div className="text-center mb-8">
-        <motion.div
-          className="w-16 h-16 mx-auto rounded-xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center text-white font-bold text-3xl shadow-lg ring-2 ring-primary/20 mb-4"
-          whileHover={{ scale: 1.1, rotate: 10 }}
-          transition={{ type: 'spring', stiffness: 400, damping: 10 }}
-        >
+        <div className="w-14 h-14 mx-auto rounded-md bg-primary text-primary-foreground flex items-center justify-center text-2xl border border-primary mb-4">
           🎤
-        </motion.div>
-        <h2 className="text-3xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
-          {isFirstUser ? 'Create Admin Account' : 'Create Account'}
+        </div>
+        <h2 className="font-serif-display text-4xl text-foreground">
+          {isFirstUser ? 'Create admin account' : 'Create account'}
         </h2>
         <p className="text-muted-foreground mt-2">
           {isFirstUser ? 'Set up your admin account to get started' : 'Sign up to get started'}

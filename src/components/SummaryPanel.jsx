@@ -271,18 +271,14 @@ export default function SummaryPanel() {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: 0.3 }}
     >
-      <Card className="border-2 shadow-xl hover:shadow-2xl transition-shadow duration-300 bg-gradient-to-br from-white to-gray-50/50 dark:from-gray-800 dark:to-gray-900/50">
-        <CardHeader className="bg-gradient-to-r from-blue-50/50 to-transparent dark:from-blue-900/10 border-b-2">
+      <Card className="border border-border bg-card">
+        <CardHeader className="border-b border-border bg-card">
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-3">
-              <motion.div
-                className="p-2 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg shadow-md"
-                whileHover={{ scale: 1.1, rotate: 5 }}
-                transition={{ type: 'spring', stiffness: 400, damping: 10 }}
-              >
-                <FileText className="h-5 w-5 text-white" />
-              </motion.div>
-              <span className="text-xl font-bold">Meeting Summary</span>
+              <div className="p-2 bg-info/15 border border-info/30 rounded-md text-info">
+                <FileText className="h-4 w-4" />
+              </div>
+              <span className="font-serif-display text-2xl">Meeting summary</span>
             </CardTitle>
 
             {summary && summary.trim() && (
@@ -291,7 +287,7 @@ export default function SummaryPanel() {
                   variant="ghost"
                   size="sm"
                   onClick={handleCopySummary}
-                  className="h-8 px-2 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                  className="h-8 px-2 hover:bg-muted"
                   title="Copy to clipboard"
                 >
                   <Copy className="h-4 w-4" />
@@ -300,7 +296,7 @@ export default function SummaryPanel() {
                   variant="ghost"
                   size="sm"
                   onClick={handleShareSummary}
-                  className="h-8 px-2 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                  className="h-8 px-2 hover:bg-muted"
                   title="Share summary"
                 >
                   <Share2 className="h-4 w-4" />
@@ -309,7 +305,7 @@ export default function SummaryPanel() {
                   variant="ghost"
                   size="sm"
                   onClick={handleExportSummary}
-                  className="h-8 px-2 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                  className="h-8 px-2 hover:bg-muted"
                   title="Export as markdown file"
                 >
                   <Download className="h-4 w-4" />

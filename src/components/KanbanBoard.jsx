@@ -116,22 +116,25 @@ const TaskCard = React.memo(({
     )
   }
 
+  // Priority chip — soft semantic background, no gradients, no shadow glow.
+  // See DESIGN.md → Components → Badge / chip.
   const getPriorityColor = priority => {
     switch (priority) {
       case 'high':
-        return 'border-red-400 bg-gradient-to-br from-red-50 to-red-100 text-red-900 shadow-red-100'
+        return 'bg-destructive/12 text-destructive border border-destructive/30'
       case 'medium':
-        return 'border-amber-400 bg-gradient-to-br from-amber-50 to-amber-100 text-amber-900 shadow-amber-100'
+        return 'bg-warning/12 text-warning border border-warning/30'
       case 'low':
-        return 'border-emerald-400 bg-gradient-to-br from-emerald-50 to-emerald-100 text-emerald-900 shadow-emerald-100'
+        return 'bg-success/12 text-success border border-success/30'
       default:
-        return 'border-gray-300 bg-gradient-to-br from-gray-50 to-gray-100 text-gray-900 shadow-gray-100'
+        return 'bg-muted text-muted-foreground border border-border'
     }
   }
 
+  // Drag styles — modest elevation only, no scale/rotate/glow halo.
   const getDragStyles = () => {
     if (isDragging) {
-      return 'scale-105 rotate-3 shadow-2xl ring-2 ring-primary/50 ring-offset-2 ring-offset-white dark:ring-offset-gray-900 bg-gradient-to-br from-primary/5 to-primary/10 border-primary/60'
+      return 'dragging opacity-90'
     }
     return ''
   }
@@ -140,7 +143,7 @@ const TaskCard = React.memo(({
     <div
       role="button"
       tabIndex={0}
-      className={`group task-card interactive-element bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-xl p-3 sm:p-4 mb-3 shadow-lg hover:shadow-2xl cursor-pointer backdrop-blur-sm transition-all duration-200 hover:border-primary/40 hover:bg-gradient-to-br hover:from-gray-50/50 hover:to-white dark:hover:from-gray-700/50 dark:hover:to-gray-800 focus:ring-2 focus:ring-primary/50 focus:outline-none ${getDragStyles()}`}
+      className={`group task-card interactive-element cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background ${getDragStyles()}`}
       style={{
         transformOrigin: 'center center',
         contain: 'layout style paint'
@@ -248,15 +251,13 @@ const TaskCard = React.memo(({
       <div className="flex justify-between items-end gap-2">
         <div className="flex flex-col gap-2">
           <span
-            className={`text-xs px-3 py-1.5 rounded-full border-2 font-bold ${getPriorityColor(task.priority)} w-fit shadow-md`}
+            className={`text-[10px] px-2 py-0.5 rounded-sm font-semibold tracking-wider ${getPriorityColor(task.priority)} w-fit`}
           >
             {task.priority.toUpperCase()}
           </span>
           {task.dueDate && (
-            <span className="text-xs text-orange-600 dark:text-orange-400 font-semibold bg-orange-50 dark:bg-orange-900/20 px-2 py-1 rounded-md border border-orange-200 dark:border-orange-800">
-              📅{' '}
+            <span className="text-[10px] text-warning font-mono-tabular bg-warning/10 px-2 py-0.5 rounded-sm border border-warning/30">
               {(() => {
-                // Parse as local date to avoid timezone issues
                 const parts = task.dueDate.split('-')
                 if (parts.length === 3) {
                   const date = new Date(parts[0], parts[1] - 1, parts[2])
@@ -272,8 +273,11 @@ const TaskCard = React.memo(({
           )}
           {getAssigneesDisplay(task)}
         </div>
-        <span className="text-xs text-muted-foreground bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-md border border-gray-200 dark:border-gray-600">
-          {new Date(task.createdAt).toLocaleDateString()}
+        <span className="text-[10px] text-muted-foreground font-mono-tabular">
+          {new Date(task.createdAt).toLocaleDateString([], {
+            month: 'short',
+            day: 'numeric'
+          })}
         </span>
       </div>
     </div>
@@ -367,54 +371,42 @@ const Column = ({
     }
   }
 
+  // Drop zone styles — drag-over handled by .kanban-column.drag-over in CSS.
+  // No per-status colored rings, no gradients, no scale transforms.
   const getDropZoneStyles = () => {
-    if (isDragOver) {
-      switch (status) {
-        case 'todo':
-          return 'ring-2 ring-slate-400/50 ring-offset-2 bg-gradient-to-b from-slate-50/80 to-slate-100/50 border-slate-400/60 transform scale-[1.02]'
-        case 'in-progress':
-          return 'ring-2 ring-blue-400/50 ring-offset-2 bg-gradient-to-b from-blue-50/80 to-blue-100/50 border-blue-400/60 transform scale-[1.02]'
-        case 'done':
-          return 'ring-2 ring-green-400/50 ring-offset-2 bg-gradient-to-b from-green-50/80 to-green-100/50 border-green-400/60 transform scale-[1.02]'
-        case 'blocked':
-          return 'ring-2 ring-red-400/50 ring-offset-2 bg-gradient-to-b from-red-50/80 to-red-100/50 border-red-400/60 transform scale-[1.02]'
-        default:
-          return 'ring-2 ring-primary/50 ring-offset-2 bg-gradient-to-b from-primary/5 to-primary/10 border-primary/60 transform scale-[1.02]'
-      }
-    }
-    return ''
+    return isDragOver ? 'drag-over' : ''
   }
 
+  // Column accent — a single 2px top border in the status semantic color.
+  // Replaces the per-column gradient backgrounds.
   const getColumnStyle = () => {
     switch (status) {
       case 'todo':
-        return 'border-t-4 border-t-slate-400 bg-gradient-to-b from-slate-50 to-white dark:from-slate-900 dark:to-gray-800'
+        return 'border-t-2 border-t-muted-foreground/40'
       case 'in-progress':
-        return 'border-t-4 border-t-blue-500 bg-gradient-to-b from-blue-50 to-white dark:from-blue-900/20 dark:to-gray-800'
+        return 'border-t-2 border-t-info'
       case 'done':
-        return 'border-t-4 border-t-green-500 bg-gradient-to-b from-green-50 to-white dark:from-green-900/20 dark:to-gray-800'
+        return 'border-t-2 border-t-success'
       case 'blocked':
-        return 'border-t-4 border-t-red-500 bg-gradient-to-b from-red-50 to-white dark:from-red-900/20 dark:to-gray-800'
+        return 'border-t-2 border-t-destructive'
       default:
-        return 'border-t-4 border-t-gray-400'
+        return 'border-t-2 border-t-border'
     }
   }
 
   return (
     <Card
-      className={`kanban-column w-full min-w-0 min-h-[500px] transition-all duration-300 hover:shadow-xl ${getColumnStyle()} ${getDropZoneStyles()} ${isDragOver ? 'drag-over' : ''}`}
+      className={`kanban-column w-full min-w-0 min-h-[500px] ${getColumnStyle()} ${getDropZoneStyles()}`}
       data-status={status}
     >
-      <CardHeader className="pb-4 sticky top-0 bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm z-10 border-b border-gray-200/50 dark:border-gray-700/50">
-        <CardTitle className="flex items-center justify-between text-base">
-          <span className="font-bold text-lg">{title}</span>
-          <motion.span
-            className="bg-gradient-to-r from-primary/20 to-primary/10 text-primary px-3 py-1.5 rounded-full text-sm font-bold shadow-sm ring-1 ring-primary/20"
-            whileHover={{ scale: 1.1, rotate: [0, -5, 5, 0] }}
-            transition={{ type: 'spring', stiffness: 400, damping: 10 }}
-          >
-            {count}
-          </motion.span>
+      <CardHeader className="pb-3 sticky top-0 bg-card z-10 border-b border-border">
+        <CardTitle className="flex items-center justify-between">
+          <span className="text-sm font-emphasis uppercase tracking-wider text-foreground">
+            {title}
+          </span>
+          <span className="text-xs font-mono-tabular text-muted-foreground">
+            {String(count).padStart(2, '0')}
+          </span>
         </CardTitle>
       </CardHeader>
       <CardContent
@@ -868,22 +860,18 @@ export default function KanbanBoard({ taskToOpen }) {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, delay: 0.2 }}
       >
-        <Card className="border-2 shadow-2xl bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900">
-          <CardHeader className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border-b-2">
+        <Card className="border border-border bg-card">
+          <CardHeader className="border-b border-border bg-card">
             <div className="flex items-center justify-between">
               <CardTitle className="flex items-center gap-3">
-                <motion.div
-                  className="p-2 bg-gradient-to-br from-primary to-primary/80 rounded-lg shadow-lg"
-                  whileHover={{ scale: 1.1, rotate: 5 }}
-                  transition={{ type: 'spring', stiffness: 400, damping: 10 }}
-                >
-                  <CheckSquare className="h-6 w-6 text-white" />
-                </motion.div>
+                <div className="p-2 bg-primary/10 border border-primary/20 rounded-md">
+                  <CheckSquare className="h-5 w-5 text-primary" />
+                </div>
                 <div>
-                  <div className="text-2xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+                  <div className="text-lg font-emphasis tracking-tight text-foreground">
                     Task Board
                   </div>
-                  <div className="text-xs text-muted-foreground font-normal">
+                  <div className="text-xs text-muted-foreground font-mono-tabular">
                     {tasks.length} total tasks
                   </div>
                 </div>
@@ -891,20 +879,15 @@ export default function KanbanBoard({ taskToOpen }) {
 
               <div className="flex items-center gap-2">
                 {/* Add Task Button */}
-                <motion.div
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
+                <Button
+                  onClick={handleCreateTask}
+                  variant="default"
+                  size="sm"
+                  className="flex items-center gap-2"
                 >
-                  <Button
-                    onClick={handleCreateTask}
-                    variant="default"
-                    size="sm"
-                    className="flex items-center gap-2 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-md"
-                  >
-                    <Plus className="h-4 w-4" />
-                    <span className="hidden sm:inline">Add Task</span>
-                  </Button>
-                </motion.div>
+                  <Plus className="h-4 w-4" />
+                  <span className="hidden sm:inline">Add Task</span>
+                </Button>
 
                 {/* Menu Button */}
                 <div className="relative">

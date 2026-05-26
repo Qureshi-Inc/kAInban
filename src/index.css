@@ -2,82 +2,127 @@
 @tailwind components;
 @tailwind utilities;
 
+/* =========================================================================
+   kAInban Design System v3 — Workhorse Dark
+   Source of truth: /DESIGN.md
+   Token contract:  /src/styles/design-tokens.css (imported below for direct
+                    consumption alongside the shadcn-shaped HSL aliases that
+                    Tailwind needs).
+
+   Color tokens are exposed in TWO formats so the existing Tailwind
+   utility classes (bg-primary, text-foreground, border-border, etc.) keep
+   working unchanged while components that want direct hex access can read
+   --bg-base, --accent, --text-secondary, --hairline-low and friends.
+   ========================================================================= */
+
+@import "./styles/design-tokens.css";
+
 @layer base {
+  /* -----------------------------------------------------------------------
+     Light mode (paper canvas) — secondary. Audience defaults to dark.
+     HSL tokens here are the shadcn-shaped Tailwind aliases.
+     The hex tokens (--bg-base, --accent, etc.) are inherited from
+     design-tokens.css's :root block — those override correctly because
+     html[data-theme="light"] is more specific than :root, but for the
+     default light state we leave the design-tokens.css :root values.
+     ----------------------------------------------------------------------- */
   :root {
-    /* Light theme - Enhanced with better contrast */
-    --background: 0 0% 99%;
-    --foreground: 240 10% 4%;
+    --background: 40 33% 97%;
+    --foreground: 225 11% 9%;
     --card: 0 0% 100%;
-    --card-foreground: 240 10% 4%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 4%;
-    --primary: 214 95% 54%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 146 85% 47%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 240 6% 94%;
-    --muted-foreground: 240 4% 46%;
-    --accent: 45 93% 58%;
-    --accent-foreground: 240 10% 4%;
-    --destructive: 0 72% 51%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 240 6% 88%;
-    --input: 240 6% 88%;
-    --ring: 214 95% 54%;
-    --radius: 0.75rem;
+    --card-foreground: 225 11% 9%;
+    --popover: 42 27% 93%;
+    --popover-foreground: 225 11% 9%;
+    --primary: 27 72% 45%;
+    --primary-foreground: 43 24% 95%;
+    --secondary: 42 18% 90%;
+    --secondary-foreground: 225 11% 9%;
+    --muted: 42 27% 93%;
+    --muted-foreground: 36 7% 28%;
+    --accent: 42 27% 93%;
+    --accent-foreground: 225 11% 9%;
+    --destructive: 8 47% 55%;
+    --destructive-foreground: 43 24% 95%;
+    --border: 40 22% 85%;
+    --input: 40 16% 74%;
+    --ring: 27 72% 45%;
+    --radius: 0.375rem; /* 6px — v3 default radius */
 
-    /* New semantic colors for modern UI */
-    --success: 142 71% 45%;
-    --success-foreground: 0 0% 98%;
-    --warning: 38 92% 50%;
-    --warning-foreground: 0 0% 98%;
-    --info: 199 89% 48%;
-    --info-foreground: 0 0% 98%;
+    --success: 132 27% 39%;
+    --success-foreground: 43 24% 95%;
+    --warning: 40 66% 44%;
+    --warning-foreground: 43 24% 95%;
+    --info: 213 30% 46%;
+    --info-foreground: 43 24% 95%;
 
-    /* Enhanced shadows */
-    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-    --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
-    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-    --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.04);
+    --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.06);
+    --shadow-md: 0 2px 6px -1px rgb(0 0 0 / 0.08);
+    --shadow-lg: 0 4px 12px -2px rgb(0 0 0 / 0.10);
+    --shadow-xl: 0 8px 24px -4px rgb(0 0 0 / 0.12);
   }
 
-  .dark {
-    /* Dark theme - Enhanced with better contrast and modern colors */
-    --background: 240 10% 4%;
-    --foreground: 0 0% 98%;
-    --card: 240 10% 8%;
-    --card-foreground: 0 0% 98%;
-    --popover: 240 10% 8%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 214 100% 64%;
-    --primary-foreground: 240 10% 4%;
-    --secondary: 146 85% 52%;
-    --secondary-foreground: 240 10% 4%;
-    --muted: 240 4% 16%;
-    --muted-foreground: 240 5% 65%;
-    --accent: 45 93% 63%;
-    --accent-foreground: 240 10% 4%;
-    --destructive: 0 72% 56%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 240 4% 18%;
-    --input: 240 4% 18%;
-    --ring: 214 100% 64%;
+  /* -----------------------------------------------------------------------
+     Dark mode — the home for kAInban. Activated by either the .dark class
+     on a parent OR data-theme="dark" on <html>. We override BOTH the
+     shadcn HSL aliases (for Tailwind utilities) AND the v3 hex tokens
+     (for direct CSS consumption) here so a single class toggles both
+     systems coherently.
+     ----------------------------------------------------------------------- */
+  .dark,
+  html[data-theme="dark"] {
+    /* shadcn-shaped HSL aliases */
+    --background: 240 4% 4%;
+    --foreground: 43 24% 95%;
+    --card: 220 7% 9%;
+    --card-foreground: 43 24% 95%;
+    --popover: 225 6% 12%;
+    --popover-foreground: 43 24% 95%;
+    --primary: 25 76% 59%;
+    --primary-foreground: 225 11% 9%;
+    --secondary: 225 8% 15%;
+    --secondary-foreground: 43 24% 95%;
+    --muted: 225 6% 12%;
+    --muted-foreground: 40 5% 62%;
+    --accent: 225 6% 12%;
+    --accent-foreground: 43 24% 95%;
+    --destructive: 8 47% 55%;
+    --destructive-foreground: 43 24% 95%;
+    --border: 220 6% 16%;
+    --input: 225 5% 22%;
+    --ring: 25 76% 59%;
 
-    /* Dark theme semantic colors */
-    --success: 142 71% 50%;
-    --success-foreground: 240 10% 4%;
-    --warning: 38 92% 55%;
-    --warning-foreground: 240 10% 4%;
-    --info: 199 89% 53%;
-    --info-foreground: 240 10% 4%;
+    --success: 132 27% 49%;
+    --success-foreground: 225 11% 9%;
+    --warning: 40 66% 54%;
+    --warning-foreground: 225 11% 9%;
+    --info: 213 30% 56%;
+    --info-foreground: 225 11% 9%;
 
-    /* Dark theme shadows */
-    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
-    --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.4), 0 1px 2px -1px rgb(0 0 0 / 0.4);
-    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.4), 0 2px 4px -2px rgb(0 0 0 / 0.4);
-    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.4), 0 4px 6px -4px rgb(0 0 0 / 0.4);
-    --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.4), 0 8px 10px -6px rgb(0 0 0 / 0.4);
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.4);
+    --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.5);
+    --shadow-md: 0 2px 6px -1px rgb(0 0 0 / 0.55);
+    --shadow-lg: 0 4px 12px -2px rgb(0 0 0 / 0.6);
+    --shadow-xl: 0 8px 24px -4px rgb(0 0 0 / 0.65);
+
+    /* v3 hex tokens — override design-tokens.css :root defaults */
+    --bg-base: #0a0a0b;
+    --bg-raised: #141517;
+    --bg-elevated: #1b1c1f;
+    --bg-emphasis: #232428;
+    --hairline-low: #26282b;
+    --hairline-mid: #34363a;
+    --hairline-high: #4a4d52;
+    --text-primary: #f5f4f1;
+    --text-secondary: #a4a29b;
+    --text-muted: #6b6963;
+    --text-inverse: #15161a;
+    --accent-color: #e59149;
+    --accent-hover: #f0a05c;
+    --accent-press: #c87a36;
+    --accent-soft: rgba(229, 145, 73, 0.1);
+    --accent-soft-strong: rgba(229, 145, 73, 0.18);
+    --accent-border: rgba(229, 145, 73, 0.4);
   }
 }
 
@@ -88,154 +133,205 @@
 
   html {
     scroll-behavior: smooth;
+    background: hsl(var(--background));
   }
 
+  /* The Inter recipe — non-negotiable per DESIGN.md.
+     cv01 = single-story 'a' glyph (the engineered look)
+     ss03 = geometric alternates (sharper letterforms)
+     ss01 = open digits (harmonize with tabular-nums)
+     Plus the standard rendering features (kern, calt, rlig). */
   body {
     @apply bg-background text-foreground;
-    font-feature-settings: "rlig" 1, "calt" 1, "kern" 1;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    font-family: "Inter Variable", "Inter", -apple-system, BlinkMacSystemFont,
+      "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-feature-settings: "cv01", "ss03", "ss01", "rlig", "calt", "kern";
+    font-variation-settings: "wght" 400;
+    font-size: 14px;
+    line-height: 1.5;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    line-height: 1.6;
-    font-weight: 400;
+    text-rendering: optimizeLegibility;
   }
 
-  /* Improved focus styles for accessibility */
+  /* Headings and emphasis use Linear's signature 510 weight.
+     Variable Inter only — falls back gracefully to weight 500 with regular Inter. */
+  h1, h2, h3, h4, h5, h6,
+  .font-emphasis {
+    font-variation-settings: "wght" 510;
+  }
+
+  /* Tabular numerals for any element that should align numerically. */
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "cv01", "ss03", "ss01", "tnum";
+  }
+
+  /* Focus styles — amber ring on dark, deeper amber on light. */
   *:focus-visible {
     @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
   }
 
-  /* Better button focus */
   button:focus-visible,
   [role="button"]:focus-visible {
     @apply outline-none ring-2 ring-primary ring-offset-2 ring-offset-background;
   }
 
-  /* Improved scroll bars */
+  /* Scrollbars — match the surface ladder. */
   ::-webkit-scrollbar {
     width: 8px;
     height: 8px;
   }
 
   ::-webkit-scrollbar-track {
-    @apply bg-muted/30;
+    background: transparent;
   }
 
   ::-webkit-scrollbar-thumb {
-    @apply bg-muted-foreground/20 rounded-full;
+    background: hsl(var(--muted-foreground) / 0.25);
+    border-radius: 9999px;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    @apply bg-muted-foreground/30;
+    background: hsl(var(--muted-foreground) / 0.4);
   }
 }
 
 @layer components {
-  /* Modern glassmorphism effects */
-  .glass-subtle {
-    @apply backdrop-blur-sm bg-card/50 border border-border/50;
-  }
+  /* -----------------------------------------------------------------------
+     v3 component patterns.
+     The old glassmorphism/neumorphism/gradient utility classes were removed
+     wholesale (.glass-subtle, .glass-medium, .glass-strong,
+     .recording-visualizer with its purple gradient, the gradient task-card
+     and kanban-column backdrop-blur). These classes are NOT to return.
+     If a component needs depth, use the surface ladder: bg-card → bg-popover
+     → bg-secondary, hairline borders, and modest box-shadows.
+     ----------------------------------------------------------------------- */
 
-  .glass-medium {
-    @apply backdrop-blur-md bg-card/70 border border-border/60;
-  }
-
-  .glass-strong {
-    @apply backdrop-blur-xl bg-card/80 border border-border/70;
-  }
-
-  /* Enhanced recording animations */
-  .mic-pulse {
-    @apply animate-pulse;
-    animation-duration: 1.8s;
-    animation-timing-function: ease-in-out;
-  }
-
+  /* Recording visualizer — solid accent surface, no gradient. */
   .recording-visualizer {
-    background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--secondary)));
-    border-radius: 12px;
-    box-shadow: var(--shadow-lg);
+    background: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
   }
 
-  /* Modern kanban styling */
+  /* Kanban column — clean surface ladder, no backdrop-blur. */
   .kanban-column {
     min-height: 240px;
-    @apply bg-muted/30 backdrop-blur-sm rounded-xl p-5 border border-border/40;
-    transition: all 0.3s ease;
+    background: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
+    border-radius: var(--radius);
+    padding: 1rem;
+    transition: border-color var(--dur-fast, 120ms) var(--ease, ease);
   }
 
   .kanban-column:hover {
-    @apply bg-muted/40 border-border/60;
+    border-color: hsl(var(--input));
   }
 
-  /* Enhanced task cards */
+  /* Task card — surface elevated, hairline border, modest shadow.
+     No backdrop-blur. No gradient. No scale-on-hover. */
   .task-card {
-    @apply bg-card/80 backdrop-blur-sm border border-border/60 rounded-xl p-4 mb-4 cursor-grab;
-    box-shadow: var(--shadow-sm);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    background: hsl(var(--popover));
+    border: 1px solid hsl(var(--border));
+    border-radius: var(--radius);
+    padding: 0.75rem 0.875rem;
+    margin-bottom: 0.5rem;
+    cursor: grab;
+    transition:
+      border-color var(--dur-fast, 120ms) var(--ease, ease),
+      background var(--dur-fast, 120ms) var(--ease, ease),
+      box-shadow var(--dur-fast, 120ms) var(--ease, ease);
   }
 
   .task-card:hover {
-    @apply -translate-y-1 border-border/80;
-    box-shadow: var(--shadow-md);
+    background: hsl(var(--secondary));
+    border-color: hsl(var(--input));
   }
 
   .task-card.dragging {
-    @apply opacity-60 rotate-1 scale-105;
     box-shadow: var(--shadow-lg);
+    opacity: 0.92;
   }
 
-  /* Modern priority styling */
+  /* AI-active task — hairline border pulse, no glow halo.
+     Keyframe defined in design-tokens.css. */
+  .task-card.ai-active {
+    border-color: var(--accent-border, rgba(229, 145, 73, 0.4));
+    animation: ai-border-pulse 1.6s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+  }
+
+  /* Priority — soft semantic chip pattern (no gradients, no shadow glow).
+     Used as classes on a span/div directly; pairs with text-* token colors. */
   .priority-high {
-    @apply bg-destructive/8 text-destructive border-l-4 border-l-destructive/60;
+    background: hsl(var(--destructive) / 0.12);
+    color: hsl(var(--destructive));
+    border-left: 2px solid hsl(var(--destructive));
   }
 
   .priority-medium {
-    @apply bg-warning/8 text-orange-700 dark:text-orange-300 border-l-4 border-l-warning/60;
+    background: hsl(var(--warning) / 0.12);
+    color: hsl(var(--warning));
+    border-left: 2px solid hsl(var(--warning));
   }
 
   .priority-low {
-    @apply bg-success/8 text-success border-l-4 border-l-success/60;
+    background: hsl(var(--success) / 0.12);
+    color: hsl(var(--success));
+    border-left: 2px solid hsl(var(--success));
   }
 
-  /* Status indicators */
+  /* Status — flat semantic chip, used on column headers and status badges. */
   .status-todo {
-    @apply bg-muted/60 text-muted-foreground;
+    background: hsl(var(--muted));
+    color: hsl(var(--muted-foreground));
   }
 
   .status-in-progress {
-    @apply bg-info/10 text-info border border-info/20;
+    background: hsl(var(--info) / 0.12);
+    color: hsl(var(--info));
+    border: 1px solid hsl(var(--info) / 0.3);
   }
 
   .status-done {
-    @apply bg-success/10 text-success border border-success/20;
+    background: hsl(var(--success) / 0.12);
+    color: hsl(var(--success));
+    border: 1px solid hsl(var(--success) / 0.3);
   }
 
   .status-blocked {
-    @apply bg-destructive/10 text-destructive border border-destructive/20;
+    background: hsl(var(--destructive) / 0.12);
+    color: hsl(var(--destructive));
+    border: 1px solid hsl(var(--destructive) / 0.3);
   }
 
-  /* Modern form elements */
+  /* Form section — clean card, no glass. */
   .form-section {
-    @apply space-y-6 p-6 bg-card/50 backdrop-blur-sm rounded-xl border border-border/50;
+    @apply space-y-6 p-6;
+    background: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
+    border-radius: var(--radius);
   }
 
-  /* Improved animations */
+  /* Animations — functional only. fadeIn for content arrival,
+     slideUp for sheets, scaleIn for popovers. */
   .fade-in {
-    animation: fadeIn 0.5s ease-out forwards;
+    animation: fadeIn 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   }
 
   .slide-up {
-    animation: slideUp 0.4s ease-out forwards;
+    animation: slideUp 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   }
 
   .scale-in {
-    animation: scaleIn 0.3s ease-out forwards;
+    animation: scaleIn 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   }
 
-  /* Loading states */
+  /* Skeleton loading — uses surface ladder colors, not branded shimmer. */
   .skeleton {
-    @apply animate-pulse bg-muted/60 rounded;
+    @apply animate-pulse rounded;
+    background: hsl(var(--muted));
   }
 
   .skeleton-text {
@@ -249,38 +345,55 @@
   .skeleton-avatar {
     @apply skeleton h-10 w-10 rounded-full;
   }
-}
 
-/* Enhanced mobile experience */
-@media (pointer: coarse) {
-  .task-card {
-    min-height: 72px;
-    padding: 20px;
-    @apply rounded-2xl;
+  /* Mic pulse — kept, but quieter (subtle opacity wobble, no halo). */
+  .mic-pulse {
+    @apply animate-pulse;
+    animation-duration: 1.8s;
+    animation-timing-function: ease-in-out;
   }
 
-  button, [role="button"] {
-    min-height: 48px;
-    min-width: 48px;
+  /* Editorial accents — used sparingly per DESIGN.md (AI output only). */
+  .font-serif-display {
+    font-family: var(--font-serif);
+    font-weight: 400;
+    letter-spacing: -0.01em;
+  }
+
+  /* Mono — used for any tabular/numeric/code/id surface. */
+  .font-mono-tabular {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+  }
+}
+
+/* Mobile pointer-coarse: keep functional touch sizes but no rounding bloat. */
+@media (pointer: coarse) {
+  .task-card {
+    min-height: 64px;
+    padding: 0.875rem 1rem;
+  }
+
+  button,
+  [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
     @apply touch-manipulation;
   }
 
-  /* Larger touch targets for mobile */
   .mobile-touch {
-    @apply p-4 min-h-[48px] min-w-[48px];
+    @apply p-4;
+    min-height: 44px;
+    min-width: 44px;
   }
-
-  /* Better mobile typography */
-  h1 { @apply text-2xl; }
-  h2 { @apply text-xl; }
-  h3 { @apply text-lg; }
 }
 
-/* Enhanced animations */
+/* Animations — kept minimal, single easing. */
 @keyframes fadeIn {
   from {
     opacity: 0;
-    transform: translateY(8px);
+    transform: translateY(4px);
   }
   to {
     opacity: 1;
@@ -291,7 +404,7 @@
 @keyframes slideUp {
   from {
     opacity: 0;
-    transform: translateY(16px);
+    transform: translateY(12px);
   }
   to {
     opacity: 1;
@@ -302,7 +415,7 @@
 @keyframes scaleIn {
   from {
     opacity: 0;
-    transform: scale(0.95);
+    transform: scale(0.97);
   }
   to {
     opacity: 1;
@@ -321,57 +434,19 @@
   }
 }
 
-/* Accessibility improvements */
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
-  }
-}
-
-/* High contrast mode support */
+/* High contrast — boost border weight on cards. */
 @media (prefers-contrast: high) {
-  .task-card {
-    @apply border-2 border-foreground/20;
-  }
-
-  .glass-subtle,
-  .glass-medium,
-  .glass-strong {
-    @apply bg-card border-2 border-border;
-    backdrop-filter: none;
+  .task-card,
+  .kanban-column {
+    border-width: 2px;
   }
 }
 
-/* Dark mode specific improvements */
-.dark .recording-visualizer {
-  background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--secondary)));
-  box-shadow: 0 8px 32px hsl(var(--primary) / 0.3);
-}
-
-.dark .task-card {
-  box-shadow: 0 1px 3px rgb(0 0 0 / 0.3);
-}
-
-.dark .task-card:hover {
-  box-shadow: 0 4px 12px rgb(0 0 0 / 0.4);
-}
-
-/* Mobile Modal and Keyboard Handling */
+/* Mobile modal handling (kept from previous setup — functional, not visual). */
 @media (max-width: 768px) {
-  /* Prevent background scroll when modal is open - removed aggressive positioning */
-
-  /* Modal specific styles */
   .mobile-modal-overlay {
     position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
+    inset: 0;
     overflow: hidden;
     overscroll-behavior: none;
     -webkit-overflow-scrolling: touch;
@@ -384,21 +459,19 @@
     -webkit-overflow-scrolling: touch;
   }
 
-  /* Handle iOS Safari viewport issues */
   .mobile-modal-container {
     min-height: -webkit-fill-available;
     min-height: 100dvh;
   }
 
-  /* Keyboard handling for input fields */
-  input, textarea, select {
-    font-size: 16px; /* Prevents iOS zoom */
+  /* Prevent iOS zoom on input focus — 16px font-size is the threshold. */
+  input,
+  textarea,
+  select {
+    font-size: 16px;
     -webkit-appearance: none;
   }
 
-  /* Removed aggressive input positioning that was causing issues */
-
-  /* User dropdown positioning fixes */
   .user-dropdown-mobile {
     position: fixed !important;
     top: auto !important;
@@ -410,31 +483,28 @@
     z-index: 9999 !important;
   }
 
-  /* Task modal mobile improvements */
   .task-modal-mobile {
     margin: 0.5rem;
     max-height: calc(100vh - 1rem);
     width: calc(100vw - 1rem);
   }
 
-  /* Prevent pull-to-refresh on modals */
   .modal-overlay {
     overscroll-behavior-y: none;
     -webkit-overflow-scrolling: touch;
   }
 }
 
-/* Touch device specific styles */
+/* Touch device — disable hover transforms (no scale on press, just opacity). */
 @media (hover: none) and (pointer: coarse) {
-  /* Remove hover effects on touch devices */
   .task-card:hover {
-    transform: none;
-    box-shadow: var(--shadow-sm);
+    background: hsl(var(--popover));
+    border-color: hsl(var(--border));
   }
 
-  /* Better button interaction feedback */
-  button:active, [role="button"]:active {
-    transform: scale(0.98);
-    transition: transform 0.1s ease;
+  button:active,
+  [role="button"]:active {
+    opacity: 0.85;
+    transition: opacity 0.08s ease;
   }
 }
