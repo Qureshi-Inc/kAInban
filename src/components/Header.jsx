@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, Trash2, MoreVertical, Home, Folder, AlertTriangle, Activity, Menu } from 'lucide-react'
-import React, { useState } from 'react'
+import { Plus, Trash2, MoreVertical, Home, Folder, AlertTriangle, Activity, Menu, Sun, Moon } from 'lucide-react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { getShortId } from '../lib/utils'
 import useAppStore from '../stores/useAppStore'
@@ -26,6 +26,36 @@ export default function Header({ onToggleSidebar, onShowActivity }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false)
   const [projectToDelete, setProjectToDelete] = useState(null)
+
+  // Theme state. Light is the home; dark is the option.
+  // The synchronous boot script in index.html already set the initial
+  // <html> class before React mounts, so we read it from there to stay
+  // in sync (rather than re-reading localStorage and risking a flicker).
+  const [theme, setTheme] = useState(() => {
+    if (typeof document === 'undefined') return 'light'
+    return document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+  })
+
+  useEffect(() => {
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark')
+      document.documentElement.setAttribute('data-theme', 'dark')
+      const meta = document.querySelector('meta[name="theme-color"]')
+      if (meta) meta.setAttribute('content', '#0A0A0B')
+    } else {
+      document.documentElement.classList.remove('dark')
+      document.documentElement.setAttribute('data-theme', 'light')
+      const meta = document.querySelector('meta[name="theme-color"]')
+      if (meta) meta.setAttribute('content', '#FAF7F2')
+    }
+    try {
+      localStorage.setItem('kainban-theme', theme)
+    } catch (_e) {
+      // localStorage unavailable — toggle still works in-session.
+    }
+  }, [theme])
+
+  const toggleTheme = () => setTheme((t) => (t === 'dark' ? 'light' : 'dark'))
 
   const handleCreateProject = async() => {
     if (!newProjectName.trim()) {
@@ -250,6 +280,22 @@ export default function Header({ onToggleSidebar, onShowActivity }) {
             </div>
           )}
         </div>
+
+        {/* Theme toggle — light is the home, dark is the option */}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={toggleTheme}
+          className="h-10 w-10 p-0 bg-card hover:bg-secondary border border-border transition-colors"
+          title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+          aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+        >
+          {theme === 'dark' ? (
+            <Sun className="h-4 w-4" />
+          ) : (
+            <Moon className="h-4 w-4" />
+          )}
+        </Button>
 
         {/* Activity button - only show when in a project */}
         {currentProject && onShowActivity && (

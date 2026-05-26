@@ -166,7 +166,7 @@ export default function AnalyticsDashboard() {
           iconColor = 'text-green-500'
         } else if (emojiMatch === '⚠️' || cleanTitle.toLowerCase().includes('urgent') || cleanTitle.toLowerCase().includes('really urgent')) {
           iconComponent = AlertCircle
-          iconColor = 'text-red-500'
+          iconColor = 'text-destructive'
         }
 
         if (cleanTitle && content) {
@@ -306,7 +306,7 @@ export default function AnalyticsDashboard() {
           className="flex flex-row items-start justify-between gap-2"
         >
           <div className="flex-1 min-w-0 pr-2">
-            <h2 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+            <h2 className="font-serif-display text-3xl sm:text-4xl text-foreground">
               Analytics Dashboard
             </h2>
             <p className="text-xs sm:text-sm text-muted-foreground mt-1 truncate">
@@ -347,7 +347,7 @@ export default function AnalyticsDashboard() {
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.95, y: -10 }}
                     transition={{ duration: 0.15 }}
-                    className="absolute right-0 mt-2 w-72 bg-white dark:bg-gray-800 rounded-lg shadow-xl border-2 border-gray-200 dark:border-gray-700 overflow-hidden z-50"
+                    className="absolute right-0 mt-2 w-72 bg-card rounded-lg shadow-xl border-2 border-border overflow-hidden z-50"
                   >
                     {/* All Projects Option */}
                     <button
@@ -355,7 +355,7 @@ export default function AnalyticsDashboard() {
                         setSelectedProjectId('all')
                         setIsFilterOpen(false)
                       }}
-                      className={`w-full px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors border-b border-gray-100 dark:border-gray-700 ${
+                      className={`w-full px-4 py-3 text-left hover:bg-secondary transition-colors border-b border-border ${
                         selectedProjectId === 'all' ? 'bg-primary/10 text-primary font-medium' : ''
                       }`}
                     >
@@ -368,7 +368,7 @@ export default function AnalyticsDashboard() {
                     {/* Individual Projects */}
                     {projects.length > 0 && (
                       <>
-                        <div className="px-4 py-2 text-xs font-semibold text-muted-foreground bg-gray-50 dark:bg-gray-700/50">
+                        <div className="px-4 py-2 text-xs font-semibold text-muted-foreground bg-muted">
                           Individual Projects
                         </div>
                         {projects.map((project) => (
@@ -378,7 +378,7 @@ export default function AnalyticsDashboard() {
                               setSelectedProjectId(project.id)
                               setIsFilterOpen(false)
                             }}
-                            className={`w-full px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${
+                            className={`w-full px-4 py-3 text-left hover:bg-secondary transition-colors ${
                               selectedProjectId === project.id ? 'bg-primary/10 text-primary font-medium' : ''
                             }`}
                           >
@@ -405,21 +405,16 @@ export default function AnalyticsDashboard() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
         >
-          <Card className="relative overflow-hidden bg-gradient-to-br from-blue-50/50 via-purple-50/30 to-pink-50/50 dark:from-blue-950/30 dark:via-purple-950/20 dark:to-pink-950/30 border-2 border-blue-200/30 dark:border-blue-800/30 shadow-lg">
-            {/* Animated background gradient */}
-            <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 via-purple-500/5 to-pink-500/5 animate-pulse" />
+          <Card className="relative overflow-hidden bg-card border border-border shadow-sm">
+            {/* No animated background — v3 stays quiet, accent border on header carries hierarchy */}
 
-            <CardHeader className="relative bg-gradient-to-r from-blue-600/10 via-purple-600/10 to-pink-600/10 border-b border-blue-200/20 dark:border-blue-800/20">
+            <CardHeader className="border-b border-border bg-card">
               <CardTitle className="flex items-center gap-3">
-                <motion.div
-                  className="p-2 bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 rounded-xl shadow-lg"
-                  whileHover={{ scale: 1.1, rotate: 5 }}
-                  transition={{ type: 'spring', stiffness: 400, damping: 10 }}
-                >
-                  <Sparkles className="h-6 w-6 text-white" />
-                </motion.div>
+                <div className="p-2 bg-primary/10 border border-primary/30 rounded-md text-primary">
+                  <Sparkles className="h-5 w-5" />
+                </div>
                 <div>
-                  <span className="text-xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+                  <span className="font-serif-display text-2xl text-foreground">
                     kAInban Recommendations
                   </span>
                   <p className="text-sm text-muted-foreground font-normal mt-1">
@@ -438,8 +433,7 @@ export default function AnalyticsDashboard() {
                     transition={{ duration: 0.5 }}
                   >
                     <div className="relative mb-6">
-                      <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-pink-500/20 rounded-full blur-xl" />
-                      <Sparkles className="relative h-16 w-16 mx-auto text-blue-500/40" />
+                      <Sparkles className="relative h-12 w-12 mx-auto text-muted-foreground/60" />
                     </div>
                     <h3 className="text-lg font-semibold text-muted-foreground mb-2">No Tasks to Analyze</h3>
                     <p className="text-sm text-muted-foreground max-w-md mx-auto">
@@ -456,15 +450,10 @@ export default function AnalyticsDashboard() {
                   >
                     <div className="relative mb-6">
                       <motion.div
-                        animate={{ rotate: 360 }}
-                        transition={{ duration: 3, repeat: Infinity, ease: 'linear' }}
-                        className="absolute inset-0 bg-gradient-to-r from-blue-500/30 via-purple-500/30 to-pink-500/30 rounded-full blur-xl"
-                      />
-                      <motion.div
-                        animate={{ rotate: -360 }}
-                        transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+                        animate={{ opacity: [0.5, 1, 0.5] }}
+                        transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}
                       >
-                        <Sparkles className="relative h-16 w-16 mx-auto text-blue-500" />
+                        <Sparkles className="relative h-12 w-12 mx-auto text-primary" />
                       </motion.div>
                     </div>
                     <h3 className="text-lg font-semibold mb-2">Analyzing Your Tasks</h3>
@@ -516,7 +505,7 @@ export default function AnalyticsDashboard() {
                             >
                               <div className="flex items-start gap-4">
                                 <div className="flex-shrink-0">
-                                  <div className={`p-2 rounded-full bg-white/50 dark:bg-gray-800/50 ${item.iconColor}`}>
+                                  <div className={`p-2 rounded-full bg-card ${item.iconColor}`}>
                                     <item.iconComponent className="h-6 w-6" />
                                   </div>
                                 </div>
@@ -524,7 +513,7 @@ export default function AnalyticsDashboard() {
                                   <h3 className="text-lg font-semibold mb-3 text-purple-700 dark:text-purple-300">
                                     {item.title}
                                   </h3>
-                                  <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
+                                  <p className="text-foreground leading-relaxed">
                                     {item.content}
                                   </p>
                                 </div>
@@ -570,16 +559,16 @@ export default function AnalyticsDashboard() {
                 <Target className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold text-green-600 dark:text-green-400">
+                <div className="text-3xl font-bold text-success">
                   {analytics.completionRate}%
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
                   {analytics.completed} of {analytics.total} tasks completed
                 </p>
                 {/* Progress bar */}
-                <div className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-full mt-3 overflow-hidden">
+                <div className="w-full h-2 bg-secondary rounded-full mt-3 overflow-hidden">
                   <motion.div
-                    className="h-full bg-gradient-to-r from-green-500 to-green-600"
+                    className="h-full bg-success"
                     initial={{ width: 0 }}
                     animate={{ width: `${analytics.completionRate}%` }}
                     transition={{ duration: 1, ease: 'easeOut' }}
@@ -621,7 +610,7 @@ export default function AnalyticsDashboard() {
                 <TrendingUp className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">
+                <div className="text-3xl font-bold text-info">
                   {analytics.inProgress}
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
@@ -643,7 +632,7 @@ export default function AnalyticsDashboard() {
                 <Clock className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className={`text-3xl font-bold ${analytics.overdue > 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-400'}`}>
+                <div className={`text-3xl font-bold ${analytics.overdue > 0 ? 'text-destructive' : 'text-muted-foreground'}`}>
                   {analytics.overdue}
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
@@ -670,26 +659,26 @@ export default function AnalyticsDashboard() {
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {/* Todo */}
-                <div className="text-center p-4 rounded-lg bg-gray-100 dark:bg-gray-800">
-                  <div className="text-2xl font-bold text-gray-600 dark:text-gray-300">{analytics.todo}</div>
+                <div className="text-center p-4 rounded-lg bg-muted">
+                  <div className="text-2xl font-bold text-foreground">{analytics.todo}</div>
                   <div className="text-xs text-muted-foreground mt-1">To Do</div>
                 </div>
 
                 {/* In Progress */}
                 <div className="text-center p-4 rounded-lg bg-blue-100 dark:bg-blue-900/30">
-                  <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{analytics.inProgress}</div>
+                  <div className="text-2xl font-bold text-info">{analytics.inProgress}</div>
                   <div className="text-xs text-muted-foreground mt-1">In Progress</div>
                 </div>
 
                 {/* Blocked */}
-                <div className="text-center p-4 rounded-lg bg-red-100 dark:bg-red-900/30">
-                  <div className="text-2xl font-bold text-red-600 dark:text-red-400">{analytics.blocked}</div>
+                <div className="text-center p-4 rounded-lg bg-destructive/15">
+                  <div className="text-2xl font-bold text-destructive">{analytics.blocked}</div>
                   <div className="text-xs text-muted-foreground mt-1">Blocked</div>
                 </div>
 
                 {/* Done */}
-                <div className="text-center p-4 rounded-lg bg-green-100 dark:bg-green-900/30">
-                  <div className="text-2xl font-bold text-green-600 dark:text-green-400">{analytics.completed}</div>
+                <div className="text-center p-4 rounded-lg bg-success/15">
+                  <div className="text-2xl font-bold text-success">{analytics.completed}</div>
                   <div className="text-xs text-muted-foreground mt-1">Done</div>
                 </div>
               </div>
@@ -713,8 +702,8 @@ export default function AnalyticsDashboard() {
             <CardContent>
               <div className="grid grid-cols-3 gap-4">
                 {/* High Priority */}
-                <div className="text-center p-4 rounded-lg bg-red-100 dark:bg-red-900/30">
-                  <div className="text-2xl font-bold text-red-600 dark:text-red-400">{analytics.highPriority}</div>
+                <div className="text-center p-4 rounded-lg bg-destructive/15">
+                  <div className="text-2xl font-bold text-destructive">{analytics.highPriority}</div>
                   <div className="text-xs text-muted-foreground mt-1">High Priority</div>
                 </div>
 
@@ -725,8 +714,8 @@ export default function AnalyticsDashboard() {
                 </div>
 
                 {/* Low Priority */}
-                <div className="text-center p-4 rounded-lg bg-green-100 dark:bg-green-900/30">
-                  <div className="text-2xl font-bold text-green-600 dark:text-green-400">{analytics.lowPriority}</div>
+                <div className="text-center p-4 rounded-lg bg-success/15">
+                  <div className="text-2xl font-bold text-success">{analytics.lowPriority}</div>
                   <div className="text-xs text-muted-foreground mt-1">Low Priority</div>
                 </div>
               </div>

@@ -315,7 +315,7 @@ export default function SummaryPanel() {
           </div>
         </CardHeader>
         <CardContent className="p-6">
-          <div className="min-h-[300px] max-h-[500px] overflow-y-auto rounded-lg bg-white/50 dark:bg-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
+          <div className="min-h-[300px] max-h-[500px] overflow-y-auto rounded-lg bg-card/50 p-4 border border-border">
             {loading ? (
               <div className="flex items-center justify-center h-[300px] text-muted-foreground">
                 <motion.div

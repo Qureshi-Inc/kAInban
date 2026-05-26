@@ -46,7 +46,7 @@ export default function LoginForm({ onLogin, onSwitchToRegister, error }) {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
-      className="w-full max-w-md mx-auto p-8 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border-2 border-gray-200 dark:border-gray-700"
+      className="w-full max-w-md mx-auto p-8 bg-card rounded-2xl shadow-2xl border-2 border-border"
     >
       <div className="text-center mb-8">
         <motion.div
@@ -74,7 +74,7 @@ export default function LoginForm({ onLogin, onSwitchToRegister, error }) {
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          <label className="block text-sm font-medium text-foreground mb-2">
             Email
           </label>
           <div className="relative">
@@ -92,7 +92,7 @@ export default function LoginForm({ onLogin, onSwitchToRegister, error }) {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          <label className="block text-sm font-medium text-foreground mb-2">
             Password
           </label>
           <div className="relative">
@@ -129,10 +129,10 @@ export default function LoginForm({ onLogin, onSwitchToRegister, error }) {
         <>
           <div className="relative my-6">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-300 dark:border-gray-600" />
+              <div className="w-full border-t border-input" />
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-white dark:bg-gray-800 text-muted-foreground">
+              <span className="px-2 bg-card text-muted-foreground">
                 Or continue with
               </span>
             </div>

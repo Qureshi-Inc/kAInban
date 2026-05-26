@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/x-icon" href="/favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#0A0A0B" />
+    <meta name="theme-color" content="#FAF7F2" />
     <meta name="description" content="kAInban - AI-powered task management with meeting transcription and intelligent task extraction" />
 
     <!--
@@ -43,10 +43,9 @@
     <!--
       Theme bootstrap — runs synchronously before React mounts to avoid the
       flash of unstyled content (FOUC) on dark/light switch.
-      Workhorse Dark is the home theme, so we default to dark unless the
-      user has previously selected light (persisted in localStorage under
-      'kainban-theme') OR the OS reports light preference AND no user
-      override is set.
+      Light (paper canvas) is the home theme; dark is the toggle. Reads
+      localStorage['kainban-theme'] for user preference and falls back to
+      light. Stored under the same key React reads/writes from.
     -->
     <script>
       (function () {
@@ -56,20 +55,20 @@
           if (stored === 'light' || stored === 'dark') {
             theme = stored;
           } else {
-            // No user preference: default to dark (the home for this audience).
-            theme = 'dark';
+            theme = 'light';
           }
           if (theme === 'dark') {
             document.documentElement.classList.add('dark');
             document.documentElement.setAttribute('data-theme', 'dark');
+            document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0A0A0B');
           } else {
             document.documentElement.classList.remove('dark');
             document.documentElement.setAttribute('data-theme', 'light');
+            document.querySelector('meta[name="theme-color"]').setAttribute('content', '#FAF7F2');
           }
         } catch (_e) {
-          // localStorage unavailable (e.g. private browsing) — default dark.
-          document.documentElement.classList.add('dark');
-          document.documentElement.setAttribute('data-theme', 'dark');
+          document.documentElement.classList.remove('dark');
+          document.documentElement.setAttribute('data-theme', 'light');
         }
       })();
     </script>

@@ -87,8 +87,8 @@ const TaskCard = React.memo(({
               key={assigneeName}
               className={`flex items-center gap-1 text-xs px-1.5 py-0.5 rounded border ${
                 isDbUser
-                  ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800'
-                  : 'bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-600'
+                  ? 'bg-info/10 text-info border-info/30'
+                  : 'bg-muted text-muted-foreground border-border'
               }`}
             >
               <User className="h-2.5 w-2.5" />
@@ -108,7 +108,7 @@ const TaskCard = React.memo(({
           )
         })}
         {assigneesList.length > 2 && (
-          <div className="flex items-center justify-center text-xs px-1.5 py-0.5 rounded border bg-gray-100 dark:bg-gray-600 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-500">
+          <div className="flex items-center justify-center text-xs px-1.5 py-0.5 rounded border bg-secondary text-muted-foreground border-border">
             +{assigneesList.length - 2}
           </div>
         )}
@@ -226,13 +226,13 @@ const TaskCard = React.memo(({
       aria-label={`Open task: ${task.title}`}
     >
       <div className="flex justify-between items-start mb-3">
-        <h4 className="font-bold text-sm line-clamp-2 flex-1 pr-2 text-gray-900 dark:text-gray-100">
+        <h4 className="font-bold text-sm line-clamp-2 flex-1 pr-2 text-foreground">
           {task.title}
         </h4>
         <Button
           variant="ghost"
           size="icon"
-          className="h-7 w-7 opacity-0 group-hover:opacity-100 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 transition-all"
+          className="h-7 w-7 opacity-0 group-hover:opacity-100 hover:bg-red-50 hover:text-destructive dark:hover:bg-red-900/20 transition-all"
           onClick={e => {
             e.stopPropagation()
             onDelete(task.id)
@@ -298,7 +298,7 @@ const TaskSource = ({ meetingId, onNavigateToMeeting }) => {
   }
 
   return (
-    <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-600">
+    <div className="mt-2 pt-2 border-t border-border">
       <button
         onClick={e => {
           e.stopPropagation()
@@ -761,7 +761,7 @@ export default function KanbanBoard({ taskToOpen }) {
         return {
           title: status,
           tasks: [],
-          color: 'border-l-gray-400 bg-gray-50'
+          color: 'border-l-gray-400 bg-muted'
         }
     }
   }
@@ -773,9 +773,9 @@ export default function KanbanBoard({ taskToOpen }) {
         const isExpanded = expandedSections[status]
 
         return (
-          <Card key={status} className={`border-l-4 ${color} dark:bg-gray-800`}>
+          <Card key={status} className={`border-l-4 ${color}`}>
             <CardHeader
-              className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              className="cursor-pointer hover:bg-secondary transition-colors"
               onClick={() => toggleSection(status)}
             >
               <CardTitle className="flex items-center justify-between">
@@ -786,7 +786,7 @@ export default function KanbanBoard({ taskToOpen }) {
                     <ChevronRight className="h-4 w-4" />
                   )}
                   <span>{title}</span>
-                  <span className="text-sm bg-gray-200 dark:bg-gray-700 px-2 py-1 rounded-full">
+                  <span className="text-sm bg-secondary px-2 py-1 rounded-full">
                     {statusTasks.length}
                   </span>
                 </div>
@@ -803,7 +803,7 @@ export default function KanbanBoard({ taskToOpen }) {
                 >
                   <CardContent className="pt-0">
                     {statusTasks.length === 0 ? (
-                      <p className="text-gray-500 italic py-4">
+                      <p className="text-muted-foreground italic py-4">
                         No tasks in this status
                       </p>
                     ) : (
@@ -815,7 +815,7 @@ export default function KanbanBoard({ taskToOpen }) {
                             animate={{ opacity: 1, x: 0 }}
                             role="button"
                             tabIndex={0}
-                            className="group flex items-center justify-between py-2 px-3 hover:bg-gray-50 dark:hover:bg-gray-600 rounded cursor-pointer transition-colors focus:ring-2 focus:ring-primary/50 focus:outline-none"
+                            className="group flex items-center justify-between py-2 px-3 hover:bg-gray-50 rounded cursor-pointer transition-colors focus:ring-2 focus:ring-primary/50 focus:outline-none"
                             onClick={() => handleTaskClick(task)}
                             onKeyDown={e => {
                               if (e.key === 'Enter' || e.key === ' ') {
@@ -825,7 +825,7 @@ export default function KanbanBoard({ taskToOpen }) {
                             }}
                             aria-label={`Open task: ${task.title}`}
                           >
-                            <span className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate flex-1">
+                            <span className="text-sm font-medium text-foreground truncate flex-1">
                               {task.title}
                             </span>
                             <Button
@@ -835,7 +835,7 @@ export default function KanbanBoard({ taskToOpen }) {
                                 e.stopPropagation()
                                 handleTaskDelete(task.id)
                               }}
-                              className="h-6 w-6 opacity-0 group-hover:opacity-100 hover:bg-red-50 text-red-500 flex-shrink-0 ml-2"
+                              className="h-6 w-6 opacity-0 group-hover:opacity-100 hover:bg-red-50 text-destructive flex-shrink-0 ml-2"
                             >
                               <Trash2 className="h-3 w-3" />
                             </Button>
@@ -929,7 +929,7 @@ export default function KanbanBoard({ taskToOpen }) {
                           animate={{ opacity: 1, scale: 1, y: 0 }}
                           exit={{ opacity: 0, scale: 0.95, y: -10 }}
                           transition={{ duration: 0.1 }}
-                          className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border-2 border-gray-200 dark:border-gray-700 overflow-hidden z-50"
+                          className="absolute right-0 mt-2 w-48 bg-card rounded-lg shadow-lg border-2 border-border overflow-hidden z-50"
                         >
                           {/* View Toggle */}
                           <button
@@ -939,7 +939,7 @@ export default function KanbanBoard({ taskToOpen }) {
                               )
                               setIsMenuOpen(false)
                             }}
-                            className="w-full px-4 py-3 text-left text-sm hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2 transition-colors border-b border-gray-200 dark:border-gray-700"
+                            className="w-full px-4 py-3 text-left text-sm hover:bg-secondary flex items-center gap-2 transition-colors border-b border-border"
                           >
                             {viewMode === 'kanban' ? (
                               <>
@@ -973,7 +973,7 @@ export default function KanbanBoard({ taskToOpen }) {
                                 setIsMenuOpen(false)
                                 handleClearAll()
                               }}
-                              className="w-full px-4 py-3 text-left text-sm hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 flex items-center gap-2 transition-colors"
+                              className="w-full px-4 py-3 text-left text-sm hover:bg-red-50 dark:hover:bg-red-900/20 text-destructive flex items-center gap-2 transition-colors"
                             >
                               <Trash2 className="h-4 w-4" />
                               Clear All Tasks

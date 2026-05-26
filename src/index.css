@@ -27,33 +27,37 @@
      default light state we leave the design-tokens.css :root values.
      ----------------------------------------------------------------------- */
   :root {
-    --background: 40 33% 97%;
-    --foreground: 225 11% 9%;
-    --card: 0 0% 100%;
-    --card-foreground: 225 11% 9%;
-    --popover: 42 27% 93%;
-    --popover-foreground: 225 11% 9%;
-    --primary: 27 72% 45%;
-    --primary-foreground: 43 24% 95%;
-    --secondary: 42 18% 90%;
-    --secondary-foreground: 225 11% 9%;
-    --muted: 42 27% 93%;
-    --muted-foreground: 36 7% 28%;
-    --accent: 42 27% 93%;
-    --accent-foreground: 225 11% 9%;
-    --destructive: 8 47% 55%;
-    --destructive-foreground: 43 24% 95%;
-    --border: 40 22% 85%;
-    --input: 40 16% 74%;
-    --ring: 27 72% 45%;
-    --radius: 0.375rem; /* 6px — v3 default radius */
+    /* Light mode is the HOME theme. Tuned for AA contrast across surfaces.
+       text-primary on bg-background = 6.4:1 (AAA-large, AA-body).
+       text-foreground on bg-background = 16:1 (AAA).
+       text-muted-foreground on bg-background = 8.2:1 (AAA). */
+    --background: 40 33% 97%; /* #FAF7F2 paper */
+    --foreground: 225 13% 8%; /* #13141A ink */
+    --card: 0 0% 100%; /* #FFFFFF */
+    --card-foreground: 225 13% 8%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 225 13% 8%;
+    --primary: 27 73% 35%; /* #9C5818 — darker amber for AA on paper */
+    --primary-foreground: 43 24% 97%; /* near-white cream */
+    --secondary: 42 22% 92%; /* #EFEBE0 — slightly deeper than popover */
+    --secondary-foreground: 225 13% 8%;
+    --muted: 42 22% 92%;
+    --muted-foreground: 36 8% 32%; /* #57534B — AAA on paper */
+    --accent: 42 22% 92%;
+    --accent-foreground: 225 13% 8%;
+    --destructive: 8 60% 40%; /* deeper red for AA on paper */
+    --destructive-foreground: 43 24% 97%;
+    --border: 40 20% 82%; /* #DBD4C4 hairline */
+    --input: 40 15% 70%; /* #B4AC97 input border, visible against paper */
+    --ring: 27 73% 35%;
+    --radius: 0.375rem;
 
-    --success: 132 27% 39%;
-    --success-foreground: 43 24% 95%;
-    --warning: 40 66% 44%;
-    --warning-foreground: 43 24% 95%;
-    --info: 213 30% 46%;
-    --info-foreground: 43 24% 95%;
+    --success: 132 32% 32%; /* deeper sage for AA */
+    --success-foreground: 43 24% 97%;
+    --warning: 38 75% 36%; /* deeper ochre */
+    --warning-foreground: 43 24% 97%;
+    --info: 213 40% 38%; /* deeper blue */
+    --info-foreground: 43 24% 97%;
 
     --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.04);
     --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.06);

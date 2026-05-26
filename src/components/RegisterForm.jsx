@@ -102,9 +102,9 @@ export default function RegisterForm({ onRegister, onSwitchToLogin, error, isFir
       {valid ? (
         <Check className="h-3 w-3 text-green-500" />
       ) : (
-        <X className="h-3 w-3 text-gray-400" />
+        <X className="h-3 w-3 text-muted-foreground" />
       )}
-      <span className={valid ? 'text-green-600 dark:text-green-400' : 'text-gray-500'}>
+      <span className={valid ? 'text-success' : 'text-muted-foreground'}>
         {text}
       </span>
     </div>
@@ -133,7 +133,7 @@ export default function RegisterForm({ onRegister, onSwitchToLogin, error, isFir
         <motion.div
           initial={{ opacity: 0, height: 0 }}
           animate={{ opacity: 1, height: 'auto' }}
-          className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg text-blue-600 dark:text-blue-400 text-sm"
+          className="mb-4 p-3 bg-info/10 border border-info/30 rounded-lg text-info text-sm"
         >
           This will be the first admin account. You'll have full access to manage users and settings.
         </motion.div>
@@ -143,7 +143,7 @@ export default function RegisterForm({ onRegister, onSwitchToLogin, error, isFir
         <motion.div
           initial={{ opacity: 0, height: 0 }}
           animate={{ opacity: 1, height: 'auto' }}
-          className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-600 dark:text-red-400 text-sm"
+          className="mb-4 p-3 bg-destructive/10 border border-destructive/30 rounded-lg text-destructive text-sm"
         >
           {error}
         </motion.div>
@@ -151,7 +151,7 @@ export default function RegisterForm({ onRegister, onSwitchToLogin, error, isFir
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          <label className="block text-sm font-medium text-foreground mb-2">
             Name
           </label>
           <div className="relative">
@@ -170,7 +170,7 @@ export default function RegisterForm({ onRegister, onSwitchToLogin, error, isFir
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          <label className="block text-sm font-medium text-foreground mb-2">
             Email
           </label>
           <div className="relative">
@@ -188,7 +188,7 @@ export default function RegisterForm({ onRegister, onSwitchToLogin, error, isFir
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          <label className="block text-sm font-medium text-foreground mb-2">
             Password
           </label>
           <div className="relative">
@@ -204,7 +204,7 @@ export default function RegisterForm({ onRegister, onSwitchToLogin, error, isFir
             />
           </div>
           {password && (
-            <div className="mt-2 space-y-1 p-2 bg-gray-50 dark:bg-gray-900 rounded">
+            <div className="mt-2 space-y-1 p-2 bg-muted rounded">
               <ValidationItem valid={passwordValidation.minLength} text="At least 8 characters" />
               <ValidationItem valid={passwordValidation.hasUpper} text="One uppercase letter" />
               <ValidationItem valid={passwordValidation.hasLower} text="One lowercase letter" />
@@ -214,7 +214,7 @@ export default function RegisterForm({ onRegister, onSwitchToLogin, error, isFir
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          <label className="block text-sm font-medium text-foreground mb-2">
             Confirm Password
           </label>
           <div className="relative">
@@ -242,7 +242,7 @@ export default function RegisterForm({ onRegister, onSwitchToLogin, error, isFir
               <h3 className="text-lg font-medium mb-4 text-center">Organization Setup</h3>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-foreground mb-2">
                   Organization Name
                 </label>
                 <Input
@@ -257,13 +257,13 @@ export default function RegisterForm({ onRegister, onSwitchToLogin, error, isFir
 
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-foreground mb-2">
                   Plan
                 </label>
                 <select
                   value={tier}
                   onChange={(e) => setTier(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                  className="w-full px-3 py-2 border border-input rounded-md bg-card text-foreground"
                   disabled={loading}
                 >
                   <option value="starter">Starter (5 users) - Free</option>
@@ -295,10 +295,10 @@ export default function RegisterForm({ onRegister, onSwitchToLogin, error, isFir
         <>
           <div className="relative my-6">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-300 dark:border-gray-600" />
+              <div className="w-full border-t border-input" />
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-white dark:bg-gray-800 text-muted-foreground">
+              <span className="px-2 bg-card text-muted-foreground">
                 Or continue with
               </span>
             </div>

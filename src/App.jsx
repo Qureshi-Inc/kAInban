@@ -280,7 +280,7 @@ function AuthenticatedApp() {
         <footer className="py-8 border-t border-border bg-card">
           <div className="text-center px-6">
             <p className="text-sm text-muted-foreground">
-              Built with <span className="text-red-500">♥</span> by{' '}
+              Built with <span className="text-destructive">♥</span> by{' '}
               <span className="font-medium text-foreground">
                 InterestingSoup
               </span>{' '}

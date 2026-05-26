@@ -18,40 +18,43 @@
    ========================================================================= */
 
 :root {
+  /* Light mode is the HOME theme — hex tokens here mirror the HSL aliases
+     in src/index.css :root. Dark mode overrides land in .dark below. */
+
   /* ---------- Surface ladder ---------- */
-  --bg-base: #0a0a0b;
-  --bg-raised: #141517;
-  --bg-elevated: #1b1c1f;
-  --bg-emphasis: #232428;
+  --bg-base: #faf7f2;
+  --bg-raised: #ffffff;
+  --bg-elevated: #f4f1ea;
+  --bg-emphasis: #ebe7df;
 
   /* ---------- Hairlines ---------- */
-  --hairline-low: #26282b;
-  --hairline-mid: #34363a;
-  --hairline-high: #4a4d52;
+  --hairline-low: #dbd4c4;
+  --hairline-mid: #b4ac97;
+  --hairline-high: #87807a;
 
   /* ---------- Text ---------- */
-  --text-primary: #f5f4f1;
-  --text-secondary: #a4a29b;
-  --text-muted: #6b6963;
-  --text-inverse: #15161a;
+  --text-primary: #13141a;
+  --text-secondary: #57534b;
+  --text-muted: #87807a;
+  --text-inverse: #faf7f2;
 
-  /* ---------- Single warm accent ---------- */
-  --accent: #e59149;
-  --accent-hover: #f0a05c;
-  --accent-press: #c87a36;
-  --accent-soft: rgba(229, 145, 73, 0.1);
-  --accent-soft-strong: rgba(229, 145, 73, 0.18);
-  --accent-border: rgba(229, 145, 73, 0.4);
+  /* ---------- Single warm accent (darker on paper for AA contrast) ---------- */
+  --accent: #9c5818;
+  --accent-hover: #864a14;
+  --accent-press: #6b3a0f;
+  --accent-soft: rgba(156, 88, 24, 0.1);
+  --accent-soft-strong: rgba(156, 88, 24, 0.18);
+  --accent-border: rgba(156, 88, 24, 0.4);
 
-  /* ---------- Semantic (kept quiet, never neon) ---------- */
-  --success: #5a9f6b;
-  --success-soft: rgba(90, 159, 107, 0.12);
-  --warning: #d9a23a;
-  --warning-soft: rgba(217, 162, 58, 0.12);
-  --danger: #c56152;
-  --danger-soft: rgba(197, 97, 82, 0.12);
-  --info: #6b8db3;
-  --info-soft: rgba(107, 141, 179, 0.12);
+  /* ---------- Semantic (deeper on paper for AA) ---------- */
+  --success: #3a6e4d;
+  --success-soft: rgba(58, 110, 77, 0.12);
+  --warning: #a16a18;
+  --warning-soft: rgba(161, 106, 24, 0.12);
+  --danger: #a3392a;
+  --danger-soft: rgba(163, 57, 42, 0.12);
+  --info: #3a567d;
+  --info-soft: rgba(58, 86, 125, 0.12);
 
   /* ---------- Typography ---------- */
   --font-sans:
@@ -111,25 +114,36 @@
   --dur-slow: 320ms;
 }
 
-html[data-theme='light'] {
-  /* Light mode — warm bias carries via paper canvas */
-  --bg-base: #faf7f2;
-  --bg-raised: #ffffff;
-  --bg-elevated: #f4f1ea;
-  --bg-emphasis: #ebe7df;
-  --hairline-low: #e2ddd2;
-  --hairline-mid: #c8c2b3;
-  --hairline-high: #9a9485;
-  --text-primary: #15161a;
-  --text-secondary: #4d4a44;
-  --text-muted: #84807a;
-  --text-inverse: #f5f4f1;
-  --accent: #c66e1f; /* AA on warm paper */
-  --accent-hover: #b0601a;
-  --accent-press: #944e15;
-  --accent-soft: rgba(198, 110, 31, 0.1);
-  --accent-soft-strong: rgba(198, 110, 31, 0.18);
-  --accent-border: rgba(198, 110, 31, 0.35);
+/* Dark mode token overrides — applied via .dark class on <html> AND via
+   data-theme="dark". The shadcn HSL aliases in src/index.css .dark match
+   these hex values one-for-one. */
+.dark,
+html[data-theme='dark'] {
+  --bg-base: #0a0a0b;
+  --bg-raised: #141517;
+  --bg-elevated: #1b1c1f;
+  --bg-emphasis: #232428;
+  --hairline-low: #26282b;
+  --hairline-mid: #34363a;
+  --hairline-high: #4a4d52;
+  --text-primary: #f5f4f1;
+  --text-secondary: #a4a29b;
+  --text-muted: #6b6963;
+  --text-inverse: #15161a;
+  --accent: #e59149;
+  --accent-hover: #f0a05c;
+  --accent-press: #c87a36;
+  --accent-soft: rgba(229, 145, 73, 0.1);
+  --accent-soft-strong: rgba(229, 145, 73, 0.18);
+  --accent-border: rgba(229, 145, 73, 0.4);
+  --success: #5a9f6b;
+  --success-soft: rgba(90, 159, 107, 0.12);
+  --warning: #d9a23a;
+  --warning-soft: rgba(217, 162, 58, 0.12);
+  --danger: #c56152;
+  --danger-soft: rgba(197, 97, 82, 0.12);
+  --info: #6b8db3;
+  --info-soft: rgba(107, 141, 179, 0.12);
 }
 
 /* =========================================================================

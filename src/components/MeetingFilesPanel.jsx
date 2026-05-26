@@ -81,7 +81,7 @@ export default function MeetingFilesPanel() {
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-bold text-sm truncate text-gray-900 dark:text-gray-100">
+                      <h3 className="font-bold text-sm truncate text-foreground">
                         {meeting.name}
                       </h3>
                       <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1 font-medium">

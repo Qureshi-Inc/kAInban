@@ -65,7 +65,7 @@ export default function LeftSidebar({ isOpen, onClose }) {
               <div className="flex items-center gap-3">
                 <img src="/icon-192.png" alt="kAInban" className="w-8 h-8 object-contain" />
                 <div>
-                  <h1 className="text-lg font-bold bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent">
+                  <h1 className="text-lg font-emphasis tracking-tight text-foreground">
                     kAInban
                   </h1>
                 </div>

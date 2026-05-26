@@ -80,19 +80,19 @@ const MeetingSource = ({ meetingId, onClose }) => {
   }
 
   return (
-    <div className="flex items-start gap-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-      <FileText className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+    <div className="flex items-start gap-3 p-3 bg-info/10 rounded-lg border border-info/30">
+      <FileText className="h-5 w-5 text-info flex-shrink-0 mt-0.5" />
       <div className="flex-1 min-w-0">
-        <div className="text-xs font-medium text-blue-900 dark:text-blue-100 mb-1">
+        <div className="text-xs font-medium text-info mb-1">
           Source Meeting
         </div>
         <button
           onClick={handleNavigateToMeeting}
-          className="text-sm text-blue-700 dark:text-blue-300 hover:text-blue-900 dark:hover:text-blue-100 hover:underline transition-colors text-left"
+          className="text-sm text-info hover:text-info dark:hover:text-blue-100 hover:underline transition-colors text-left"
         >
           {meeting.name}
         </button>
-        <div className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+        <div className="text-xs text-info mt-1">
           Created: {new Date(meeting.createdAt).toLocaleDateString()}
         </div>
       </div>
@@ -682,30 +682,30 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
   const getPriorityColor = priority => {
     switch (priority) {
       case 'high':
-        return 'text-red-600 bg-red-50 border-red-200'
+        return 'text-destructive bg-red-50 border-red-200'
       case 'medium':
         return 'text-yellow-600 bg-yellow-50 border-yellow-200'
       case 'low':
-        return 'text-blue-600 bg-blue-50 border-blue-200'
+        return 'text-info bg-blue-50 border-blue-200'
       default:
-        return 'text-gray-600 bg-gray-50 border-gray-200'
+        return 'text-muted-foreground bg-muted border-border'
     }
   }
 
   const getStatusColor = status => {
     switch (status) {
       case 'done':
-        return 'text-green-600 bg-green-50 border-green-200'
+        return 'text-success bg-green-50 border-green-200'
       case 'in-progress':
-        return 'text-blue-600 bg-blue-50 border-blue-200'
+        return 'text-info bg-blue-50 border-blue-200'
       case 'blocked':
-        return 'text-red-600 bg-red-50 border-red-200'
+        return 'text-destructive bg-red-50 border-red-200'
       case 'on-hold':
-        return 'text-red-600 bg-red-50 border-red-200' // Legacy support, treated as blocked
+        return 'text-destructive bg-red-50 border-red-200' // Legacy support, treated as blocked
       case 'todo':
-        return 'text-gray-600 bg-gray-50 border-gray-200'
+        return 'text-muted-foreground bg-muted border-border'
       default:
-        return 'text-gray-600 bg-gray-50 border-gray-200'
+        return 'text-muted-foreground bg-muted border-border'
     }
   }
 
@@ -1284,7 +1284,7 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
           return (
             <span
               key={index}
-              className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded text-sm font-medium"
+              className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-info rounded text-sm font-medium"
               title={mentionedUser.email}
             >
               <span className="w-3 h-3 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs">
@@ -1359,7 +1359,7 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                 <div>
                   <label
                     htmlFor="task-status"
-                    className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block"
+                    className="text-sm font-medium text-foreground mb-2 block"
                   >
                     Status
                   </label>
@@ -1380,7 +1380,7 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                 <div>
                   <label
                     htmlFor="task-priority"
-                    className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block flex items-center gap-2"
+                    className="text-sm font-medium text-foreground mb-2 block flex items-center gap-2"
                   >
                     <Flag className="h-4 w-4" />
                     Priority
@@ -1404,7 +1404,7 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                 <div>
                   <label
                     htmlFor="task-due-date"
-                    className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block flex items-center gap-2"
+                    className="text-sm font-medium text-foreground mb-2 block flex items-center gap-2"
                   >
                     <Calendar className="h-4 w-4" />
                     Due Date
@@ -1414,10 +1414,10 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                     type="date"
                     value={dueDate}
                     onChange={e => setDueDate(e.target.value)}
-                    className="w-full px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700"
+                    className="w-full px-3 py-2 rounded-md border border-input bg-card"
                   />
                   {dueDate && (
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="text-xs text-muted-foreground mt-1">
                       {formatDate(dueDate)}
                     </p>
                   )}
@@ -1425,7 +1425,7 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
 
                 {/* Assignees */}
                 <div>
-                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3 block flex items-center gap-2">
+                  <label className="text-sm font-medium text-foreground mb-3 block flex items-center gap-2">
                     <User className="h-4 w-4" />
                     Assignees ({assignees.length})
                   </label>
@@ -1450,8 +1450,8 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                                 key={assigneeName}
                                 className={`flex items-center justify-between p-2 border rounded-md ${
                                   isDbUser
-                                    ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800'
-                                    : 'bg-gray-50 dark:bg-gray-900/20 border-gray-200 dark:border-gray-700'
+                                    ? 'bg-info/10 border-info/30'
+                                    : 'bg-muted/20 border-border'
                                 }`}
                               >
                                 <div className="flex items-center gap-2 flex-1 min-w-0">
@@ -1466,7 +1466,7 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                                       {isDbUser && user ? user.name : assigneeName}
                                     </div>
                                     {isDbUser && user && (
-                                      <div className="text-xs text-gray-500 truncate">
+                                      <div className="text-xs text-muted-foreground truncate">
                                         {user.email}
                                       </div>
                                     )}
@@ -1477,7 +1477,7 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                                   variant="ghost"
                                   size="sm"
                                   onClick={() => handleRemoveAssignee(assigneeName)}
-                                  className="h-6 w-6 p-0 hover:bg-red-100 text-red-500"
+                                  className="h-6 w-6 p-0 hover:bg-red-100 text-destructive"
                                 >
                                   <X className="h-3 w-3" />
                                 </Button>
@@ -1507,11 +1507,11 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                       </Button>
 
                       {showAssigneeDropdown && (
-                        <div className="assignee-dropdown absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg max-h-64 overflow-hidden">
+                        <div className="assignee-dropdown absolute z-10 w-full mt-1 bg-card border border-border rounded-md shadow-lg max-h-64 overflow-hidden">
                           {/* Search Input */}
-                          <div className="p-3 border-b border-gray-200 dark:border-gray-700">
+                          <div className="p-3 border-b border-border">
                             <div className="relative">
-                              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                               <input
                                 type="text"
                                 value={assigneeSearchQuery}
@@ -1530,7 +1530,7 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                                   }
                                 }}
                                 placeholder="Search users or type name to add manually..."
-                                className="w-full pl-10 pr-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-primary/50"
+                                className="w-full pl-10 pr-3 py-2 text-sm border border-input rounded-md bg-card focus:outline-none focus:ring-2 focus:ring-primary/50"
                                 autoFocus
                                 onClick={e => e.stopPropagation()}
                               />
@@ -1554,7 +1554,7 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                                         e.stopPropagation()
                                         handleAddAssignee(availableUser.name)
                                       }}
-                                      className="w-full text-left px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2 border-b border-gray-100 dark:border-gray-700 last:border-b-0 cursor-pointer"
+                                      className="w-full text-left px-3 py-2 hover:bg-secondary flex items-center gap-2 border-b border-border last:border-b-0 cursor-pointer"
                                     >
                                       <div className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs font-medium flex-shrink-0">
                                         {availableUser.name.charAt(0).toUpperCase()}
@@ -1563,7 +1563,7 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                                         <div className="text-sm font-medium truncate">
                                           {availableUser.name}
                                         </div>
-                                        <div className="text-xs text-gray-500 truncate">
+                                        <div className="text-xs text-muted-foreground truncate">
                                           {availableUser.email}
                                         </div>
                                       </div>
@@ -1578,7 +1578,7 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                                         e.stopPropagation()
                                         handleAddAssignee(assigneeSearchQuery.trim())
                                       }}
-                                      className="w-full text-left px-3 py-2 hover:bg-green-50 dark:hover:bg-green-900/20 flex items-center gap-2 border-b border-gray-100 dark:border-gray-700 last:border-b-0 cursor-pointer bg-green-50/50 dark:bg-green-900/10"
+                                      className="w-full text-left px-3 py-2 hover:bg-green-50 dark:hover:bg-green-900/20 flex items-center gap-2 border-b border-border last:border-b-0 cursor-pointer bg-green-50/50 dark:bg-green-900/10"
                                     >
                                       <div className="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center text-white text-xs font-medium flex-shrink-0">
                                         +
@@ -1587,7 +1587,7 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                                         <div className="text-sm font-medium truncate">
                                           Add "{assigneeSearchQuery.trim()}" as assignee
                                         </div>
-                                        <div className="text-xs text-gray-500 truncate">
+                                        <div className="text-xs text-muted-foreground truncate">
                                           Manual assignee (not a registered user)
                                         </div>
                                       </div>
@@ -1596,7 +1596,7 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                                   )}
 
                                   {!hasSearchQuery && availableUsers.length === 0 && (
-                                    <div className="px-3 py-6 text-center text-sm text-gray-500">
+                                    <div className="px-3 py-6 text-center text-sm text-muted-foreground">
                                       No users available to assign
                                     </div>
                                   )}
@@ -1613,7 +1613,7 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
 
               {/* Task Relationships */}
               <div>
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3 block flex items-center gap-2">
+                <label className="text-sm font-medium text-foreground mb-3 block flex items-center gap-2">
                   <Link className="h-4 w-4" />
                   Task Relationships (
                   {linkedTasks.length +
@@ -1626,7 +1626,7 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                   {/* Manual Linked Tasks */}
                   {linkedTasks.length > 0 && (
                     <div>
-                      <h4 className="text-xs font-semibold text-blue-600 dark:text-blue-400 mb-2 flex items-center gap-1">
+                      <h4 className="text-xs font-semibold text-info mb-2 flex items-center gap-1">
                         <Link className="h-3 w-3" />
                         Manual Links ({linkedTasks.length}) - Auto-complete
                       </h4>
@@ -1642,7 +1642,7 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                           return (
                             <div
                               key={linkedTaskId}
-                              className="flex items-center justify-between p-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md"
+                              className="flex items-center justify-between p-2 bg-info/10 border border-info/30 rounded-md"
                             >
                               <div className="flex items-center gap-2 flex-1 min-w-0">
                                 <div
@@ -1662,10 +1662,10 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                                 <span
                                   className={`text-xs px-1.5 py-0.5 rounded ${
                                     linkedTask.priority === 'high'
-                                      ? 'bg-red-100 text-red-600'
+                                      ? 'bg-red-100 text-destructive'
                                       : linkedTask.priority === 'medium'
                                         ? 'bg-yellow-100 text-yellow-600'
-                                        : 'bg-blue-100 text-blue-600'
+                                        : 'bg-blue-100 text-info'
                                   }`}
                                 >
                                   {linkedTask.priority}
@@ -1675,7 +1675,7 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => handleUnlinkTask(linkedTaskId)}
-                                className="h-6 w-6 p-0 hover:bg-red-100 text-red-500"
+                                className="h-6 w-6 p-0 hover:bg-red-100 text-destructive"
                               >
                                 <X className="h-3 w-3" />
                               </Button>
@@ -1724,10 +1724,10 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                                 <span
                                   className={`text-xs px-1.5 py-0.5 rounded ${
                                     aiLinkedTask.priority === 'high'
-                                      ? 'bg-red-100 text-red-600'
+                                      ? 'bg-red-100 text-destructive'
                                       : aiLinkedTask.priority === 'medium'
                                         ? 'bg-yellow-100 text-yellow-600'
-                                        : 'bg-blue-100 text-blue-600'
+                                        : 'bg-blue-100 text-info'
                                   }`}
                                 >
                                   {aiLinkedTask.priority}
@@ -1740,7 +1740,7 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                                   onClick={() =>
                                     handleAcceptAiSuggestion(aiLinkId, 'created')
                                   }
-                                  className="h-6 w-6 p-0 hover:bg-green-100 text-green-600"
+                                  className="h-6 w-6 p-0 hover:bg-green-100 text-success"
                                   title="Accept and promote to manual link"
                                 >
                                   <Check className="h-3 w-3" />
@@ -1751,7 +1751,7 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                                   onClick={() =>
                                     handleRejectAiSuggestion(aiLinkId, 'created')
                                   }
-                                  className="h-6 w-6 p-0 hover:bg-red-100 text-red-500"
+                                  className="h-6 w-6 p-0 hover:bg-red-100 text-destructive"
                                   title="Reject AI suggestion"
                                 >
                                   <X className="h-3 w-3" />
@@ -1767,7 +1767,7 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                   {/* AI Discovered Links */}
                   {aiDiscoveredLinks.length > 0 && (
                     <div>
-                      <h4 className="text-xs font-semibold text-amber-600 dark:text-amber-400 mb-2 flex items-center gap-1">
+                      <h4 className="text-xs font-semibold text-warning mb-2 flex items-center gap-1">
                         <Sparkles className="h-3 w-3" />
                         AI Discovered Links ({aiDiscoveredLinks.length}) - Found
                         when completing tasks
@@ -1784,7 +1784,7 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                           return (
                             <div
                               key={aiDiscoveredId}
-                              className="flex items-center justify-between p-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-md"
+                              className="flex items-center justify-between p-2 bg-warning/10 border border-warning/30 rounded-md"
                             >
                               <div className="flex items-center gap-2 flex-1 min-w-0">
                                 <div
@@ -1804,10 +1804,10 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                                 <span
                                   className={`text-xs px-1.5 py-0.5 rounded ${
                                     aiDiscoveredTask.priority === 'high'
-                                      ? 'bg-red-100 text-red-600'
+                                      ? 'bg-red-100 text-destructive'
                                       : aiDiscoveredTask.priority === 'medium'
                                         ? 'bg-yellow-100 text-yellow-600'
-                                        : 'bg-blue-100 text-blue-600'
+                                        : 'bg-blue-100 text-info'
                                   }`}
                                 >
                                   {aiDiscoveredTask.priority}
@@ -1823,7 +1823,7 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                                       'discovered'
                                     )
                                   }
-                                  className="h-6 w-6 p-0 hover:bg-green-100 text-green-600"
+                                  className="h-6 w-6 p-0 hover:bg-green-100 text-success"
                                   title="Accept and promote to manual link"
                                 >
                                   <Check className="h-3 w-3" />
@@ -1837,7 +1837,7 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                                       'discovered'
                                     )
                                   }
-                                  className="h-6 w-6 p-0 hover:bg-red-100 text-red-500"
+                                  className="h-6 w-6 p-0 hover:bg-red-100 text-destructive"
                                   title="Reject AI suggestion"
                                 >
                                   <X className="h-3 w-3" />
@@ -1852,7 +1852,7 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
 
                   {/* Add Manual Link Dropdown */}
                   <div>
-                    <h4 className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-2">
+                    <h4 className="text-xs font-semibold text-muted-foreground mb-2">
                       Add Manual Link
                     </h4>
                     <div className="relative">
@@ -1875,17 +1875,17 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                       </Button>
 
                       {showLinkedTasksDropdown && (
-                        <div className="task-link-dropdown absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg max-h-64 overflow-hidden">
+                        <div className="task-link-dropdown absolute z-10 w-full mt-1 bg-card border border-border rounded-md shadow-lg max-h-64 overflow-hidden">
                           {/* Search Input */}
-                          <div className="p-3 border-b border-gray-200 dark:border-gray-700">
+                          <div className="p-3 border-b border-border">
                             <div className="relative">
-                              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                               <input
                                 type="text"
                                 value={linkSearchQuery}
                                 onChange={e => setLinkSearchQuery(e.target.value)}
                                 placeholder="Search tasks..."
-                                className="w-full pl-10 pr-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-primary/50"
+                                className="w-full pl-10 pr-3 py-2 text-sm border border-input rounded-md bg-card focus:outline-none focus:ring-2 focus:ring-primary/50"
                                 autoFocus
                                 onClick={e => e.stopPropagation()}
                               />
@@ -1903,7 +1903,7 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                                     e.stopPropagation()
                                     handleLinkTask(availableTask.id)
                                   }}
-                                  className="w-full text-left px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2 border-b border-gray-100 dark:border-gray-700 last:border-b-0 cursor-pointer"
+                                  className="w-full text-left px-3 py-2 hover:bg-secondary flex items-center gap-2 border-b border-border last:border-b-0 cursor-pointer"
                                 >
                                   <div
                                     className={`w-2 h-2 rounded-full ${
@@ -1920,7 +1920,7 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                                     <div className="text-sm font-medium truncate">
                                       {availableTask.title}
                                     </div>
-                                    <div className="text-xs text-gray-500 truncate">
+                                    <div className="text-xs text-muted-foreground truncate">
                                       {availableTask.description ||
                                       'No description'}
                                     </div>
@@ -1928,10 +1928,10 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                                   <span
                                     className={`text-xs px-1.5 py-0.5 rounded ${
                                       availableTask.priority === 'high'
-                                        ? 'bg-red-100 text-red-600'
+                                        ? 'bg-red-100 text-destructive'
                                         : availableTask.priority === 'medium'
                                           ? 'bg-yellow-100 text-yellow-600'
-                                          : 'bg-blue-100 text-blue-600'
+                                          : 'bg-blue-100 text-info'
                                     }`}
                                   >
                                     {availableTask.priority}
@@ -1939,7 +1939,7 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                                 </button>
                               ))
                             ) : (
-                              <div className="px-3 py-6 text-center text-sm text-gray-500">
+                              <div className="px-3 py-6 text-center text-sm text-muted-foreground">
                                 {linkSearchQuery.trim()
                                   ? `No tasks found matching "${linkSearchQuery}"`
                                   : 'No tasks available to link'}
@@ -1955,10 +1955,10 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
 
               {/* Description */}
               <div>
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">
+                <label className="text-sm font-medium text-foreground mb-2 block">
                   Description
                   {subtasks.length > 0 && (
-                    <span className="text-xs text-blue-600 ml-2">
+                    <span className="text-xs text-info ml-2">
                       (Bullet points moved to subtasks)
                     </span>
                   )}
@@ -1969,7 +1969,7 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                     onChange={e => setDescription(e.target.value)}
                     placeholder="Add a detailed description..."
                     rows={4}
-                    className="w-full px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 resize-none"
+                    className="w-full px-3 py-2 rounded-md border border-input bg-card resize-none"
                   />
                 </div>
               </div>
@@ -1977,12 +1977,12 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
               {/* Subtasks/Checklist */}
               <div>
                 <div className="flex items-center justify-between mb-3">
-                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                  <label className="text-sm font-medium text-foreground flex items-center gap-2">
                     <CheckSquare className="h-4 w-4" />
                     Subtasks ({completedSubtasks}/{totalSubtasks})
                   </label>
                   {totalSubtasks > 0 && (
-                    <span className="text-xs text-gray-500">
+                    <span className="text-xs text-muted-foreground">
                       {Math.round(progress)}% complete
                     </span>
                   )}
@@ -1990,7 +1990,7 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
 
                 {/* Progress Bar */}
                 {totalSubtasks > 0 && (
-                  <div className="w-full h-2 bg-gray-200 rounded-full mb-3">
+                  <div className="w-full h-2 bg-secondary rounded-full mb-3">
                     <div
                       className="h-full bg-green-500 rounded-full transition-all duration-300"
                       style={{ width: `${progress}%` }}
@@ -2006,22 +2006,22 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                     return (
                       <div
                         key={subtask.id}
-                        className="flex items-start gap-2 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 border border-transparent hover:border-gray-200 dark:hover:border-gray-600 transition-all"
+                        className="flex items-start gap-2 p-3 rounded-lg hover:bg-secondary border border-transparent hover:border-gray-200 transition-all"
                       >
                         <button
                           onClick={() => toggleSubtask(subtask.id)}
                           className="flex-shrink-0 mt-1"
                         >
                           {subtask.completed ? (
-                            <CheckSquare className="h-5 w-5 text-green-600" />
+                            <CheckSquare className="h-5 w-5 text-success" />
                           ) : (
-                            <Square className="h-5 w-5 text-gray-400" />
+                            <Square className="h-5 w-5 text-muted-foreground" />
                           )}
                         </button>
 
                         <div className="flex-1 min-w-0">
                           <div
-                            className={`${subtask.completed ? 'line-through text-gray-500' : ''}`}
+                            className={`${subtask.completed ? 'line-through text-muted-foreground' : ''}`}
                           >
                             {subtask.text}
                           </div>
@@ -2032,7 +2032,7 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                               {/* AI Actions Header */}
                               <div className="flex items-center gap-1">
                                 <Sparkles className="h-3 w-3 text-blue-500 flex-shrink-0" />
-                                <span className="text-xs text-gray-600 font-medium">
+                                <span className="text-xs text-muted-foreground font-medium">
                                   AI Actions
                                 </span>
                               </div>
@@ -2050,7 +2050,7 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                                       disabled={
                                         isLoading || loadingAiAction !== null
                                       }
-                                      className="h-7 px-2 text-xs bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 hover:border-blue-300 flex items-center gap-1.5 min-w-0 disabled:opacity-50"
+                                      className="h-7 px-2 text-xs bg-blue-50 hover:bg-blue-100 text-info border border-blue-200 hover:border-blue-300 flex items-center gap-1.5 min-w-0 disabled:opacity-50"
                                       title={
                                         isLoading
                                           ? 'Generating...'
@@ -2096,7 +2096,7 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                             variant="ghost"
                             size="icon"
                             onClick={() => deleteSubtask(subtask.id)}
-                            className="h-8 w-8 text-gray-400 hover:text-red-600 hover:bg-red-50"
+                            className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-red-50"
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -2115,7 +2115,7 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                       onChange={e => setNewSubtask(e.target.value)}
                       onKeyPress={e => e.key === 'Enter' && addSubtask()}
                       placeholder="Add a subtask..."
-                      className="w-full px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm"
+                      className="w-full px-3 py-2 rounded-md border border-input bg-card text-sm"
                     />
                   </div>
                   <Button onClick={addSubtask} size="sm">
@@ -2126,11 +2126,11 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
 
               {/* Comments/Activity */}
               <div>
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3 block flex items-center gap-2">
+                <label className="text-sm font-medium text-foreground mb-3 block flex items-center gap-2">
                   <MessageSquare className="h-4 w-4" />
                   Comments ({serverComments.length})
                   {loadingComments && (
-                    <div className="animate-spin h-3 w-3 border border-gray-300 border-t-gray-600 rounded-full" />
+                    <div className="animate-spin h-3 w-3 border border-input border-t-gray-600 rounded-full" />
                   )}
                 </label>
 
@@ -2139,7 +2139,7 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                   {serverComments.map(comment => (
                     <Card
                       key={comment.id}
-                      className={`p-3 ${comment.comment_type === 'ai_update' ? 'border-blue-200 bg-blue-50 dark:bg-blue-900/20' : ''}`}
+                      className={`p-3 ${comment.comment_type === 'ai_update' ? 'border-blue-200 bg-info/10' : ''}`}
                     >
                       <div className="flex items-start justify-between mb-1">
                         <div className="flex items-center gap-2">
@@ -2149,23 +2149,23 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                             </span>
                           )}
                           {comment.comment_type === 'ai_update' && (
-                            <span className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">
+                            <span className="text-xs bg-blue-100 text-info px-1.5 py-0.5 rounded">
                               AI Update
                             </span>
                           )}
                         </div>
-                        <span className="text-xs text-gray-500 flex items-center gap-1">
+                        <span className="text-xs text-muted-foreground flex items-center gap-1">
                           <Clock className="h-3 w-3" />
                           {formatTimestamp(comment.created_at)}
                         </span>
                       </div>
-                      <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
+                      <p className="text-sm text-foreground whitespace-pre-wrap">
                         {renderCommentWithMentions(comment.content)}
                       </p>
                     </Card>
                   ))}
                   {serverComments.length === 0 && !loadingComments && (
-                    <p className="text-sm text-gray-500 text-center py-4">
+                    <p className="text-sm text-muted-foreground text-center py-4">
                       No comments yet. Add the first comment below.
                     </p>
                   )}
@@ -2187,17 +2187,17 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                       }}
                       placeholder="Add a comment... (Press Enter to post, @ to mention)"
                       rows={2}
-                      className="w-full px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm resize-none"
+                      className="w-full px-3 py-2 rounded-md border border-input bg-card text-sm resize-none"
                     />
 
                     {/* @mention dropdown */}
                     {showMentionDropdown && filteredUsers.length > 0 && (
-                      <div className="absolute bottom-full left-0 mb-1 w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg max-h-48 overflow-y-auto z-50">
+                      <div className="absolute bottom-full left-0 mb-1 w-full bg-card border border-input rounded-md shadow-lg max-h-48 overflow-y-auto z-50">
                         {filteredUsers.map((user, index) => (
                           <div
                             key={user.id}
-                            className={`px-3 py-2 cursor-pointer flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-700 ${
-                              index === selectedUserIndex ? 'bg-blue-50 dark:bg-blue-900/20' : ''
+                            className={`px-3 py-2 cursor-pointer flex items-center gap-2 hover:bg-secondary ${
+                              index === selectedUserIndex ? 'bg-info/10' : ''
                             }`}
                             onClick={() => insertMention(user)}
                           >
@@ -2206,7 +2206,7 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                             </div>
                             <div>
                               <div className="text-sm font-medium">{user.name}</div>
-                              <div className="text-xs text-gray-500">{user.email}</div>
+                              <div className="text-xs text-muted-foreground">{user.email}</div>
                             </div>
                           </div>
                         ))}
@@ -2221,14 +2221,14 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
 
               {/* Meeting Source */}
               {task.meetingId && (
-                <div className="pt-4 mt-4 border-t border-gray-200 dark:border-gray-700">
+                <div className="pt-4 mt-4 border-t border-border">
                   <MeetingSource meetingId={task.meetingId} onClose={onClose} />
                 </div>
               )}
             </div>
 
             {/* Footer */}
-            <div className="flex items-center justify-between p-6 border-t bg-gray-50 dark:bg-gray-900">
+            <div className="flex items-center justify-between p-6 border-t bg-muted">
               <div className="relative">
                 {/* Three-dot menu button */}
                 <Button
@@ -2256,7 +2256,7 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.95, y: -10 }}
                         transition={{ duration: 0.1 }}
-                        className="absolute left-0 bottom-full mb-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border-2 border-gray-200 dark:border-gray-700 overflow-hidden z-50"
+                        className="absolute left-0 bottom-full mb-2 w-48 bg-card rounded-lg shadow-lg border-2 border-border overflow-hidden z-50"
                       >
                         {/* Add Context option */}
                         <button
@@ -2264,7 +2264,7 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                             setIsMenuOpen(false)
                             setContextModal({ isOpen: true, context: '', loading: false })
                           }}
-                          className="w-full px-4 py-3 text-left text-sm hover:bg-purple-50 dark:hover:bg-purple-900/20 text-purple-600 dark:text-purple-400 flex items-center gap-2 transition-colors border-b border-gray-200 dark:border-gray-700"
+                          className="w-full px-4 py-3 text-left text-sm hover:bg-purple-50 dark:hover:bg-purple-900/20 text-purple-600 dark:text-purple-400 flex items-center gap-2 transition-colors border-b border-border"
                         >
                           <Brain className="h-4 w-4" />
                           Add Context
@@ -2276,7 +2276,7 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                             setIsMenuOpen(false)
                             handleDelete()
                           }}
-                          className="w-full px-4 py-3 text-left text-sm hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 flex items-center gap-2 transition-colors"
+                          className="w-full px-4 py-3 text-left text-sm hover:bg-red-50 dark:hover:bg-red-900/20 text-destructive flex items-center gap-2 transition-colors"
                         >
                           <Trash2 className="h-4 w-4" />
                           Delete Task
@@ -2312,26 +2312,26 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                   animate={{ scale: 1, opacity: 1 }}
                   exit={{ scale: 0.9, opacity: 0 }}
                   onClick={e => e.stopPropagation()}
-                  className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-hidden flex flex-col"
+                  className="bg-card rounded-lg shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-hidden flex flex-col"
                 >
                   {/* Header */}
                   <div className="flex items-center justify-between p-4 border-b">
                     <h3 className="text-lg font-semibold flex items-center gap-2">
                       <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
                         {aiContentModal.type === 'email' && (
-                          <Mail className="h-4 w-4 text-blue-600" />
+                          <Mail className="h-4 w-4 text-info" />
                         )}
                         {aiContentModal.type === 'document' && (
-                          <FileText className="h-4 w-4 text-blue-600" />
+                          <FileText className="h-4 w-4 text-info" />
                         )}
                         {aiContentModal.type === 'code' && (
-                          <Code className="h-4 w-4 text-blue-600" />
+                          <Code className="h-4 w-4 text-info" />
                         )}
                         {aiContentModal.type === 'research' && (
-                          <Search className="h-4 w-4 text-blue-600" />
+                          <Search className="h-4 w-4 text-info" />
                         )}
                         {aiContentModal.type === 'message' && (
-                          <MessageSquare className="h-4 w-4 text-blue-600" />
+                          <MessageSquare className="h-4 w-4 text-info" />
                         )}
                       </div>
                       {aiContentModal.title}
@@ -2350,15 +2350,15 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                   {/* Content */}
                   <div className="flex-1 overflow-y-auto p-4">
                     <div className="relative">
-                      <pre className="whitespace-pre-wrap text-sm bg-gray-50 dark:bg-gray-900 p-4 rounded-lg border overflow-x-auto">
+                      <pre className="whitespace-pre-wrap text-sm bg-muted p-4 rounded-lg border overflow-x-auto">
                         {aiContentModal.content}
                       </pre>
                     </div>
                   </div>
 
                   {/* Footer with Copy Button */}
-                  <div className="p-4 border-t bg-gray-50 dark:bg-gray-900 flex justify-between items-center">
-                    <span className="text-sm text-gray-600 dark:text-gray-400">
+                  <div className="p-4 border-t bg-muted flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">
                       Generated by AI • Ready to use
                     </span>
                     <div className="flex gap-2">
@@ -2436,7 +2436,7 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                   animate={{ scale: 1, opacity: 1 }}
                   exit={{ scale: 0.9, opacity: 0 }}
                   onClick={e => e.stopPropagation()}
-                  className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl max-w-lg w-full max-h-[80vh] overflow-hidden flex flex-col"
+                  className="bg-card rounded-lg shadow-2xl max-w-lg w-full max-h-[80vh] overflow-hidden flex flex-col"
                 >
                   {/* Header */}
                   <div className="flex items-center justify-between p-4 border-b">
@@ -2459,24 +2459,24 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
                   {/* Content */}
                   <div className="flex-1 p-4 space-y-4">
                     <div className="space-y-2">
-                      <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                      <label className="text-sm font-medium text-foreground">
                         Context Information
                       </label>
                       <textarea
                         value={contextModal.context}
                         onChange={e => setContextModal(prev => ({ ...prev, context: e.target.value }))}
                         placeholder="Enter additional context, requirements, or details about this task. AI will use this information to update the task intelligently..."
-                        className="w-full h-32 p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 resize-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                        className="w-full h-32 p-3 border border-input rounded-lg bg-card text-foreground resize-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                         disabled={contextModal.loading}
                       />
                     </div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400">
+                    <div className="text-xs text-muted-foreground">
                       The AI will analyze your context and intelligently update the task title, description, priority, assignees, due date, and subtasks as needed.
                     </div>
                   </div>
 
                   {/* Footer */}
-                  <div className="flex items-center justify-end gap-2 p-4 border-t bg-gray-50 dark:bg-gray-900">
+                  <div className="flex items-center justify-end gap-2 p-4 border-t bg-muted">
                     <Button
                       variant="outline"
                       onClick={() => setContextModal({ isOpen: false, context: '', loading: false })}

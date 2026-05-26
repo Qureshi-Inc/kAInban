@@ -261,7 +261,7 @@ export default function InviteRegistrationForm() {
                 <motion.div
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  className="flex items-center gap-2 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm"
+                  className="flex items-center gap-2 p-3 rounded-lg bg-red-50 border border-red-200 text-destructive text-sm"
                 >
                   <AlertCircle className="h-4 w-4 flex-shrink-0" />
                   {error}

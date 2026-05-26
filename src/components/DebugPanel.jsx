@@ -91,18 +91,18 @@ export default function DebugPanel() {
 
       <div className="flex-1 overflow-y-auto p-3 space-y-1 font-mono text-xs">
         {logs.length === 0 ? (
-          <div className="text-gray-500">No logs yet...</div>
+          <div className="text-muted-foreground">No logs yet...</div>
         ) : (
           logs.map((log, idx) => (
             <div
               key={idx}
               className={`p-1 rounded ${
-                log.type === 'error' ? 'bg-red-900/30 text-red-300' :
+                log.type === 'error' ? 'bg-red-900/30 text-destructive' :
                   log.type === 'warn' ? 'bg-yellow-900/30 text-yellow-300' :
                     'bg-gray-900/30 text-gray-300'
               }`}
             >
-              <span className="text-gray-500 mr-2">
+              <span className="text-muted-foreground mr-2">
                 {new Date(log.time).toLocaleTimeString()}
               </span>
               {log.message}

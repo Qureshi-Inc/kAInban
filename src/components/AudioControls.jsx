@@ -1095,16 +1095,16 @@ export default function AudioControls() {
                         <motion.div
                           initial={{ opacity: 0, y: -10 }}
                           animate={{ opacity: 1, y: 0 }}
-                          className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800"
+                          className="mt-3 p-3 bg-info/10 rounded-lg border border-info/30"
                         >
-                          <div className="text-xs font-medium text-blue-900 dark:text-blue-100 mb-1">
+                          <div className="text-xs font-medium text-info mb-1">
                             📦 Long Recording Detected
                           </div>
-                          <div className="text-xs text-blue-700 dark:text-blue-300">
+                          <div className="text-xs text-info">
                             Segment {chunkInfo.currentChunk} • Next split in{' '}
                             {formatTime(chunkInfo.remainingInChunk)}
                           </div>
-                          <div className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                          <div className="text-xs text-info mt-1">
                             Recording will be automatically split every 10
                             minutes for optimal processing
                           </div>
@@ -1116,19 +1116,19 @@ export default function AudioControls() {
                         <motion.div
                           initial={{ opacity: 0, y: -10 }}
                           animate={{ opacity: 1, y: 0 }}
-                          className="mt-3 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800"
+                          className="mt-3 p-3 bg-success/10 rounded-lg border border-success/30"
                         >
-                          <div className="text-xs font-medium text-green-900 dark:text-green-100 mb-1">
+                          <div className="text-xs font-medium text-success mb-1">
                             ✓ Background Transcription Active
                           </div>
-                          <div className="text-xs text-green-700 dark:text-green-300">
+                          <div className="text-xs text-success">
                             {transcriptionStatus.transcribedChunks} of{' '}
                             {transcriptionStatus.totalChunks} segments
                             transcribed
                             {transcriptionStatus.processing &&
                               ' (processing...)'}
                           </div>
-                          <div className="text-xs text-green-600 dark:text-green-400 mt-1">
+                          <div className="text-xs text-success mt-1">
                             Segments are being transcribed in the background to
                             speed up final processing
                           </div>
