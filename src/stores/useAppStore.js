@@ -645,19 +645,65 @@ const useAppStore = create((set, get) => ({
     get().updateCurrentProject()
   },
 
-  deleteTask: taskId => {
+  deleteTask: async taskId => {
+    // Persist the delete to the backend FIRST, then mutate local state on
+    // success. Previously this only filtered the local tasks array and let
+    // the debounced updateCurrentProject() pick up the removal via a full
+    // project-save diff — that 100ms setTimeout could be canceled by a tab
+    // close, a subsequent action, or fail silently in saveProject, leaving
+    // a "deleted" task that reappeared on the next page refresh.
     const taskToDelete = get().tasks.find(t => t.id === taskId)
+    if (!taskToDelete) {
+      console.warn('[Store] deleteTask: task not found in local state:', taskId)
+      return false
+    }
 
-    console.log('[Store] Task title:', taskToDelete?.title || 'Unknown')
+    console.log('[Store] Task title:', taskToDelete.title || 'Unknown')
 
-    set(state => ({
-      tasks: state.tasks.filter(task => task.id !== taskId)
-    }))
+    try {
+      const success = await apiService.deleteTask(taskId)
+      if (!success) {
+        throw new Error('Failed to delete task from server')
+      }
 
-    // Invalidate analytics cache since task was deleted
-    invalidateAnalyticsCache(get().currentProject)
+      // Backend delete succeeded — now drop it from local state and the
+      // current project's tasks array. Skip the debounced project save:
+      // the row is already gone server-side, and re-POSTing the full
+      // project would just record redundant change events.
+      set(state => {
+        const newTasks = state.tasks.filter(task => task.id !== taskId)
+        const newProjects = state.currentProject
+          ? state.projects.map(p =>
+              p.id === state.currentProject.id
+                ? {
+                    ...p,
+                    tasks: newTasks,
+                    lastModified: new Date().toISOString()
+                  }
+                : p
+            )
+          : state.projects
+        return {
+          tasks: newTasks,
+          currentProject: state.currentProject
+            ? {
+                ...state.currentProject,
+                tasks: newTasks,
+                lastModified: new Date().toISOString()
+              }
+            : state.currentProject,
+          projects: newProjects
+        }
+      })
 
-    get().updateCurrentProject()
+      // Invalidate analytics cache since task was deleted
+      invalidateAnalyticsCache(get().currentProject)
+
+      return true
+    } catch (error) {
+      console.error('[Store] Delete task failed:', error)
+      throw error
+    }
   },
 
   moveTask: (taskId, newStatus) => {

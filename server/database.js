@@ -1252,9 +1252,35 @@ export const saveTask = task => {
   )
 }
 
+// Look up the user that owns the project a task lives in. Used by the
+// /api/tasks/:id DELETE route to do an ownership check before deleting.
+// Returns null if the task doesn't exist or its project row is missing.
+export const getTaskOwnerUserId = taskId => {
+  const row = db
+    .prepare(
+      `SELECT p.user_id AS user_id
+         FROM tasks t
+         JOIN projects p ON p.id = t.project_id
+        WHERE t.id = ?`
+    )
+    .get(taskId)
+  return row ? row.user_id : null
+}
+
+// Delete a single task and clean up its dependent rows. SQLite is configured
+// without `PRAGMA foreign_keys = ON` here, so the FKs from task_comments and
+// task_changes -> tasks are documentary, not enforced. If we only delete the
+// task row, comments and the historical change log are orphaned and start
+// leaking into per-user activity queries that join on task_id. So we delete
+// them explicitly inside one transaction. Returns the better-sqlite3 RunResult
+// from the tasks delete so callers can detect "task not found" via .changes.
 export const deleteTask = taskId => {
-  const stmt = db.prepare('DELETE FROM tasks WHERE id = ?')
-  stmt.run(taskId)
+  const tx = db.transaction(() => {
+    db.prepare('DELETE FROM task_comments WHERE task_id = ?').run(taskId)
+    db.prepare('DELETE FROM task_changes WHERE task_id = ?').run(taskId)
+    return db.prepare('DELETE FROM tasks WHERE id = ?').run(taskId)
+  })
+  return tx()
 }
 
 // Meeting operations
