@@ -58,78 +58,198 @@ async function parseJsonResponse(response, fallbackMessage) {
   throw new Error(errorMessage)
 }
 
-function getEnvProviderFallback() {
-  if (process.env.AI_PROVIDER === 'openai' || process.env.OPENAI_API_KEY) {
-    return 'openai'
+// Resolution precedence (env-first):
+//   1. process.env.<VAR>  — if set to a non-empty trimmed string, wins
+//   2. db settings row    — per-user value saved via the SettingsDialog
+//   3. hard-coded default — last resort
+//
+// Previously this was db-first with env as a fallback; an operator could set
+// OPENAI_API_KEY in .env but the platform would keep using whatever the admin
+// had saved in the web UI. That's the wrong default for a self-hosted deploy
+// where the .env is the source of truth. Reversing the precedence means the
+// .env wins when set, and the web UI is still useful for users with no env
+// override.
+//
+// We track which fields came from env in an `__envManaged` set on the
+// resolved config so the SettingsDialog can mark them read-only ("Managed
+// by environment") and avoid the confusing UX of saving a value that has
+// no effect.
+
+function isEnvSet(value) {
+  return typeof value === 'string' && value.trim() !== ''
+}
+
+function pickEnvFirst(envValue, dbValue, fallback = '') {
+  if (isEnvSet(envValue)) {
+    return { value: envValue, source: 'env' }
   }
-  return 'azure'
+  if (dbValue != null && String(dbValue).trim() !== '') {
+    return { value: dbValue, source: 'db' }
+  }
+  return { value: fallback, source: 'default' }
+}
+
+// Decide which provider to use. Order:
+//   1. AI_PROVIDER env var if explicitly "openai" or "azure"
+//   2. DB settings.provider if set
+//   3. If only OPENAI_API_KEY is set in env (no AZURE_OPENAI_API_KEY),
+//      assume "openai" — keeps existing back-compat behavior
+//   4. Default to "azure"
+function pickProvider(settings) {
+  if (process.env.AI_PROVIDER === 'openai') {
+    return { value: 'openai', source: 'env' }
+  }
+  if (process.env.AI_PROVIDER === 'azure') {
+    return { value: 'azure', source: 'env' }
+  }
+  if (settings.provider === 'openai') {
+    return { value: 'openai', source: 'db' }
+  }
+  if (settings.provider === 'azure') {
+    return { value: 'azure', source: 'db' }
+  }
+  if (
+    isEnvSet(process.env.OPENAI_API_KEY) &&
+    !isEnvSet(process.env.AZURE_OPENAI_API_KEY)
+  ) {
+    return { value: 'openai', source: 'env' }
+  }
+  return { value: 'azure', source: 'default' }
 }
 
 function getSettingsWithEnvFallback(userId) {
   const settings = db.getSettings(userId) || {}
-  const provider =
-    settings.provider === 'openai' ? 'openai' : getEnvProviderFallback()
+  const providerPick = pickProvider(settings)
+  const envManaged = new Set()
 
-  if (provider === 'openai') {
-    return {
+  // Helper to resolve a field and record env-managed source for the UI.
+  const resolve = (key, envValue, dbValue, fallback = '', transform = v => v) => {
+    const picked = pickEnvFirst(envValue, dbValue, fallback)
+    if (picked.source === 'env') {
+      envManaged.add(key)
+    }
+    return transform(picked.value)
+  }
+
+  if (providerPick.source === 'env') {
+    envManaged.add('provider')
+  }
+
+  if (providerPick.value === 'openai') {
+    const config = {
       provider: 'openai',
       azureEndpoint: '',
-      openaiBaseUrl: cleanBaseUrl(
-        settings.openai_base_url || process.env.OPENAI_BASE_URL,
-        DEFAULT_OPENAI_BASE_URL
+      openaiBaseUrl: resolve(
+        'openaiBaseUrl',
+        process.env.OPENAI_BASE_URL,
+        settings.openai_base_url,
+        DEFAULT_OPENAI_BASE_URL,
+        v => cleanBaseUrl(v, DEFAULT_OPENAI_BASE_URL)
       ),
-      apiKey: settings.api_key || process.env.OPENAI_API_KEY || '',
-      apiVersion:
-        settings.api_version ||
-        process.env.AZURE_OPENAI_API_VERSION ||
-        DEFAULT_AZURE_API_VERSION,
-      whisperDeployment:
-        settings.whisper_deployment ||
-        process.env.AZURE_OPENAI_WHISPER_DEPLOYMENT ||
-        'whisper',
-      gptDeployment:
-        settings.gpt_deployment ||
-        process.env.AZURE_OPENAI_GPT_DEPLOYMENT ||
-        'gpt-4',
-      openaiWhisperModel:
-        settings.openai_whisper_model ||
-        process.env.OPENAI_WHISPER_MODEL ||
-        'whisper-1',
-      openaiGptModel:
-        settings.openai_gpt_model || process.env.OPENAI_GPT_MODEL || 'gpt-4o'
+      apiKey: resolve(
+        'apiKey',
+        process.env.OPENAI_API_KEY,
+        settings.api_key,
+        ''
+      ),
+      apiVersion: resolve(
+        'apiVersion',
+        process.env.AZURE_OPENAI_API_VERSION,
+        settings.api_version,
+        DEFAULT_AZURE_API_VERSION
+      ),
+      whisperDeployment: resolve(
+        'whisperDeployment',
+        process.env.AZURE_OPENAI_WHISPER_DEPLOYMENT,
+        settings.whisper_deployment,
+        'whisper'
+      ),
+      gptDeployment: resolve(
+        'gptDeployment',
+        process.env.AZURE_OPENAI_GPT_DEPLOYMENT,
+        settings.gpt_deployment,
+        'gpt-4'
+      ),
+      openaiWhisperModel: resolve(
+        'openaiWhisperModel',
+        process.env.OPENAI_WHISPER_MODEL,
+        settings.openai_whisper_model,
+        'whisper-1'
+      ),
+      openaiGptModel: resolve(
+        'openaiGptModel',
+        process.env.OPENAI_GPT_MODEL,
+        settings.openai_gpt_model,
+        'gpt-4o'
+      )
     }
+    Object.defineProperty(config, '__envManaged', {
+      value: envManaged,
+      enumerable: false,
+      writable: false
+    })
+    return config
   }
 
-  return {
+  const config = {
     provider: 'azure',
-    azureEndpoint: cleanBaseUrl(
-      settings.azure_endpoint || process.env.AZURE_OPENAI_ENDPOINT,
+    azureEndpoint: resolve(
+      'azureEndpoint',
+      process.env.AZURE_OPENAI_ENDPOINT,
+      settings.azure_endpoint,
+      '',
+      v => cleanBaseUrl(v, '')
+    ),
+    openaiBaseUrl: resolve(
+      'openaiBaseUrl',
+      process.env.OPENAI_BASE_URL,
+      settings.openai_base_url,
+      DEFAULT_OPENAI_BASE_URL,
+      v => cleanBaseUrl(v, DEFAULT_OPENAI_BASE_URL)
+    ),
+    apiKey: resolve(
+      'apiKey',
+      process.env.AZURE_OPENAI_API_KEY,
+      settings.api_key,
       ''
     ),
-    openaiBaseUrl: cleanBaseUrl(
-      settings.openai_base_url || process.env.OPENAI_BASE_URL,
-      DEFAULT_OPENAI_BASE_URL
+    apiVersion: resolve(
+      'apiVersion',
+      process.env.AZURE_OPENAI_API_VERSION,
+      settings.api_version,
+      DEFAULT_AZURE_API_VERSION
     ),
-    apiKey: settings.api_key || process.env.AZURE_OPENAI_API_KEY || '',
-    apiVersion:
-      settings.api_version ||
-      process.env.AZURE_OPENAI_API_VERSION ||
-      DEFAULT_AZURE_API_VERSION,
-    whisperDeployment:
-      settings.whisper_deployment ||
-      process.env.AZURE_OPENAI_WHISPER_DEPLOYMENT ||
-      'whisper',
-    gptDeployment:
-      settings.gpt_deployment ||
-      process.env.AZURE_OPENAI_GPT_DEPLOYMENT ||
-      'gpt-4',
-    openaiWhisperModel:
-      settings.openai_whisper_model ||
-      process.env.OPENAI_WHISPER_MODEL ||
-      'whisper-1',
-    openaiGptModel:
-      settings.openai_gpt_model || process.env.OPENAI_GPT_MODEL || 'gpt-4o'
+    whisperDeployment: resolve(
+      'whisperDeployment',
+      process.env.AZURE_OPENAI_WHISPER_DEPLOYMENT,
+      settings.whisper_deployment,
+      'whisper'
+    ),
+    gptDeployment: resolve(
+      'gptDeployment',
+      process.env.AZURE_OPENAI_GPT_DEPLOYMENT,
+      settings.gpt_deployment,
+      'gpt-4'
+    ),
+    openaiWhisperModel: resolve(
+      'openaiWhisperModel',
+      process.env.OPENAI_WHISPER_MODEL,
+      settings.openai_whisper_model,
+      'whisper-1'
+    ),
+    openaiGptModel: resolve(
+      'openaiGptModel',
+      process.env.OPENAI_GPT_MODEL,
+      settings.openai_gpt_model,
+      'gpt-4o'
+    )
   }
+  Object.defineProperty(config, '__envManaged', {
+    value: envManaged,
+    enumerable: false,
+    writable: false
+  })
+  return config
 }
 
 function applyOverrides(config, overrides = {}) {
@@ -137,7 +257,7 @@ function applyOverrides(config, overrides = {}) {
     return config
   }
 
-  return {
+  const result = {
     ...config,
     provider:
       overrides.provider === 'openai'
@@ -161,6 +281,21 @@ function applyOverrides(config, overrides = {}) {
       overrides.openaiWhisperModel || config.openaiWhisperModel,
     openaiGptModel: overrides.openaiGptModel || config.openaiGptModel
   }
+
+  // Carry the env-managed tracking Set through. Object spread above only
+  // copies enumerable properties; __envManaged is defined as non-enumerable
+  // (so JSON.stringify ignores it) and would otherwise be dropped here,
+  // leaving getClientSafeAiSettings with no way to report which fields are
+  // env-managed.
+  if (config.__envManaged instanceof Set) {
+    Object.defineProperty(result, '__envManaged', {
+      value: config.__envManaged,
+      enumerable: false,
+      writable: false
+    })
+  }
+
+  return result
 }
 
 function assertConfigForChat(config) {
@@ -203,6 +338,12 @@ export function getResolvedAiConfig(userId, overrides = null) {
 
 export function getClientSafeAiSettings(userId) {
   const config = getResolvedAiConfig(userId)
+  // envManaged is a Set of resolved-config keys (apiKey, provider, ...) that
+  // came from a process.env override. Serialize as a plain object map for the
+  // UI to read. The SettingsDialog uses this to lock the corresponding inputs
+  // and surface "Managed by environment" so the admin doesn't try to save a
+  // value that has no effect.
+  const envManaged = config.__envManaged instanceof Set ? config.__envManaged : new Set()
   return {
     provider: config.provider,
     azureEndpoint: config.azureEndpoint,
@@ -213,7 +354,18 @@ export function getClientSafeAiSettings(userId) {
     whisperDeployment: config.whisperDeployment,
     gptDeployment: config.gptDeployment,
     openaiWhisperModel: config.openaiWhisperModel,
-    openaiGptModel: config.openaiGptModel
+    openaiGptModel: config.openaiGptModel,
+    envManaged: {
+      provider: envManaged.has('provider'),
+      apiKey: envManaged.has('apiKey'),
+      azureEndpoint: envManaged.has('azureEndpoint'),
+      openaiBaseUrl: envManaged.has('openaiBaseUrl'),
+      apiVersion: envManaged.has('apiVersion'),
+      whisperDeployment: envManaged.has('whisperDeployment'),
+      gptDeployment: envManaged.has('gptDeployment'),
+      openaiWhisperModel: envManaged.has('openaiWhisperModel'),
+      openaiGptModel: envManaged.has('openaiGptModel')
+    }
   }
 }
 
