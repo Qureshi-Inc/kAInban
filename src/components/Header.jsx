@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, Trash2, MoreVertical, Home, Folder, AlertTriangle, Activity, Menu } from 'lucide-react'
-import React, { useState } from 'react'
+import { Plus, Trash2, MoreVertical, Home, Folder, AlertTriangle, Activity, Menu, Sun, Moon } from 'lucide-react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { getShortId } from '../lib/utils'
 import useAppStore from '../stores/useAppStore'
@@ -26,6 +26,36 @@ export default function Header({ onToggleSidebar, onShowActivity }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false)
   const [projectToDelete, setProjectToDelete] = useState(null)
+
+  // Theme state. Light is the home; dark is the option.
+  // The synchronous boot script in index.html already set the initial
+  // <html> class before React mounts, so we read it from there to stay
+  // in sync (rather than re-reading localStorage and risking a flicker).
+  const [theme, setTheme] = useState(() => {
+    if (typeof document === 'undefined') return 'light'
+    return document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+  })
+
+  useEffect(() => {
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark')
+      document.documentElement.setAttribute('data-theme', 'dark')
+      const meta = document.querySelector('meta[name="theme-color"]')
+      if (meta) meta.setAttribute('content', '#0A0A0B')
+    } else {
+      document.documentElement.classList.remove('dark')
+      document.documentElement.setAttribute('data-theme', 'light')
+      const meta = document.querySelector('meta[name="theme-color"]')
+      if (meta) meta.setAttribute('content', '#FAF7F2')
+    }
+    try {
+      localStorage.setItem('kainban-theme', theme)
+    } catch (_e) {
+      // localStorage unavailable — toggle still works in-session.
+    }
+  }, [theme])
+
+  const toggleTheme = () => setTheme((t) => (t === 'dark' ? 'light' : 'dark'))
 
   const handleCreateProject = async() => {
     if (!newProjectName.trim()) {
@@ -99,31 +129,29 @@ export default function Header({ onToggleSidebar, onShowActivity }) {
 
   return (
     <motion.header
-      initial={{ opacity: 0, y: -20 }}
+      initial={{ opacity: 0, y: -4 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, ease: 'easeOut' }}
-      className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
+      transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
+      className="flex flex-row items-center justify-between gap-2 sm:gap-4 flex-wrap"
     >
-      {/* Brand and logo with hamburger menu */}
-      <div className="flex items-center gap-4">
-        {/* Hamburger Menu Button */}
+      {/* Brand and hamburger */}
+      <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+        {/* Hamburger */}
         <Button
           variant="ghost"
           size="sm"
           onClick={onToggleSidebar}
-          className="h-10 w-10 p-0"
+          className="h-9 w-9 p-0 flex-shrink-0"
           title="Open Menu"
+          aria-label="Open menu"
         >
           <Menu className="h-5 w-5" />
         </Button>
 
-        <motion.div
-          className="w-10 h-10 flex items-center justify-center cursor-pointer"
-          whileHover={{ scale: 1.05 }}
-          transition={{ type: 'spring', stiffness: 400, damping: 20 }}
+        <div
+          className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center cursor-pointer flex-shrink-0"
           onClick={() => {
-            clearCurrentProject() // Clear any selected project
-            // Preserve tenant parameter when navigating to dashboard
+            clearCurrentProject()
             const currentParams = new URLSearchParams(window.location.search)
             const tenant = currentParams.get('tenant')
             const dashboardUrl = tenant ? `/?tenant=${tenant}` : '/'
@@ -131,15 +159,14 @@ export default function Header({ onToggleSidebar, onShowActivity }) {
           }}
           title="Go to Dashboard"
         >
-          <img src="/icon-192.png" alt="kAInban" className="w-10 h-10 object-contain" />
-        </motion.div>
-        <div>
-          <div className="flex items-center gap-3">
+          <img src="/icon-192.png" alt="kAInban" className="w-full h-full object-contain" />
+        </div>
+        <div className="min-w-0">
+          <div className="flex items-baseline gap-2">
             <h1
-              className="text-2xl font-bold bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent cursor-pointer hover:opacity-80 transition-opacity"
+              className="font-serif text-2xl sm:text-3xl text-foreground cursor-pointer hover:text-primary transition-colors leading-none"
               onClick={() => {
-                clearCurrentProject() // Clear any selected project
-                // Preserve tenant parameter when navigating to dashboard
+                clearCurrentProject()
                 const currentParams = new URLSearchParams(window.location.search)
                 const tenant = currentParams.get('tenant')
                 const dashboardUrl = tenant ? `/?tenant=${tenant}` : '/'
@@ -149,7 +176,7 @@ export default function Header({ onToggleSidebar, onShowActivity }) {
             >
               kAInban
             </h1>
-            <span className="text-xs font-medium text-muted-foreground bg-muted/50 px-2 py-1 rounded-md">
+            <span className="hidden sm:inline text-[10px] font-mono text-muted-foreground tabular-nums uppercase tracking-wider">
               v1.1.1
             </span>
           </div>
@@ -157,14 +184,14 @@ export default function Header({ onToggleSidebar, onShowActivity }) {
       </div>
 
       {/* Navigation and controls */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-2 flex-wrap justify-end">
         {/* Project navigation */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <Select
             value={currentProject?.id || 'none'}
             onValueChange={handleProjectChange}
           >
-            <SelectTrigger className="w-56 h-10 bg-card/50 backdrop-blur-sm border-border/50 hover:bg-card/80 transition-all duration-200">
+            <SelectTrigger className="w-40 sm:w-56 h-9 bg-card border border-border hover:border-input transition-colors text-sm">
               <div className="flex items-center gap-2">
                 {currentProject ? (
                   <Folder className="h-4 w-4 text-primary" />
@@ -209,9 +236,10 @@ export default function Header({ onToggleSidebar, onShowActivity }) {
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-10 px-3 bg-card/30 hover:bg-card/60 backdrop-blur-sm border border-border/50"
+                className="h-9 w-9 p-0 bg-card hover:bg-secondary border border-border transition-colors"
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
                 title="Project actions"
+                aria-label="Project actions"
               >
                 <MoreVertical className="h-4 w-4" />
               </Button>
@@ -232,7 +260,7 @@ export default function Header({ onToggleSidebar, onShowActivity }) {
                       animate={{ opacity: 1, scale: 1, y: 0 }}
                       exit={{ opacity: 0, scale: 0.95, y: -10 }}
                       transition={{ duration: 0.2, ease: 'easeOut' }}
-                      className="absolute right-0 mt-2 w-52 bg-card/95 backdrop-blur-md border border-border/50 rounded-xl shadow-xl overflow-hidden z-50"
+                      className="absolute right-0 mt-2 w-52 bg-popover border border-border rounded-md shadow-lg overflow-hidden z-50"
                     >
                       <div className="p-1">
                         <button
@@ -251,14 +279,31 @@ export default function Header({ onToggleSidebar, onShowActivity }) {
           )}
         </div>
 
-        {/* Activity button - only show when in a project */}
+        {/* Theme toggle — light is the home, dark is the option */}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={toggleTheme}
+          className="h-9 w-9 p-0 bg-card hover:bg-secondary border border-border transition-colors"
+          title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+          aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+        >
+          {theme === 'dark' ? (
+            <Sun className="h-4 w-4" />
+          ) : (
+            <Moon className="h-4 w-4" />
+          )}
+        </Button>
+
+        {/* Activity — only when in a project */}
         {currentProject && onShowActivity && (
           <Button
             variant="ghost"
             size="sm"
             onClick={onShowActivity}
-            className="h-10 w-10 p-0 bg-card/30 hover:bg-card/60 backdrop-blur-sm border border-border/50"
+            className="h-9 w-9 p-0 bg-card hover:bg-secondary border border-border transition-colors"
             title="Show Activity"
+            aria-label="Show activity"
           >
             <Activity className="h-4 w-4" />
           </Button>

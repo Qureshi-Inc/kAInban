@@ -1,7 +1,16 @@
-# 🎨 kAInban Design System 2.0
+# 🎨 kAInban Design System 2.0 — ARCHIVED
+
+> **This document is archived.** The active design system is `DESIGN.md` at the repo root (v3.0,
+> "Workhorse Dark", 2026-05-26). This v2 doc described a glassmorphism + neumorphism +
+> premium-gradient + AI-glow aesthetic that was only ever partially implemented and reads as
+> 2020-era AI-slop to the indie hacker audience this product targets. Kept for historical reference.
+
+---
 
 ## Overview
-A cutting-edge design system that positions kAInban as a premium AI-powered productivity platform, incorporating 2025 design trends while maintaining 100% functionality.
+
+A cutting-edge design system that positions kAInban as a premium AI-powered productivity platform,
+incorporating 2025 design trends while maintaining 100% functionality.
 
 ---
 
@@ -10,6 +19,7 @@ A cutting-edge design system that positions kAInban as a premium AI-powered prod
 ### "Intelligent Minimalism Meets Ambient Computing"
 
 **Core Principles:**
+
 1. **AI-First Design** - UI adapts to user behavior and context
 2. **Spatial Computing** - Depth, layers, and dimensional awareness
 3. **Fluid Motion** - Physics-based animations that feel natural
@@ -21,7 +31,9 @@ A cutting-edge design system that positions kAInban as a premium AI-powered prod
 ## 🎨 Visual Design Language
 
 ### Glassmorphism
+
 Modern translucent surfaces with backdrop blur for depth perception:
+
 ```css
 .glass {
   background: rgba(255, 255, 255, 0.7);
@@ -32,26 +44,33 @@ Modern translucent surfaces with backdrop blur for depth perception:
 ```
 
 **Usage:**
+
 - Task cards
 - Modal overlays
 - Floating panels
 - Navigation elements
 
 ### Neumorphism
+
 Soft, extruded surfaces with subtle shadows:
+
 ```css
 .neu-raised {
-  box-shadow: 12px 12px 24px #d1d9e6, -12px -12px 24px #ffffff;
+  box-shadow:
+    12px 12px 24px #d1d9e6,
+    -12px -12px 24px #ffffff;
   background: linear-gradient(145deg, #f0f0f0, #cacaca);
 }
 ```
 
 **Usage:**
+
 - Interactive buttons
 - Input fields
 - Control panels
 
 ### Premium Gradients
+
 Vibrant, multi-directional gradients for visual hierarchy:
 
 - **Primary**: `linear-gradient(135deg, #667eea 0%, #764ba2 100%)`
@@ -64,10 +83,12 @@ Vibrant, multi-directional gradients for visual hierarchy:
 ## 🎯 Component Redesigns
 
 ### Task Cards
-**Before:** Flat, simple cards with basic borders
-**After:** Glassmorphic cards with magnetic hover and ripple effects
+
+**Before:** Flat, simple cards with basic borders **After:** Glassmorphic cards with magnetic hover
+and ripple effects
 
 #### Features:
+
 - ✅ Glassmorphism with backdrop blur
 - ✅ Magnetic hover effect (scale 1.02)
 - ✅ Ripple interaction on click
@@ -77,33 +98,38 @@ Vibrant, multi-directional gradients for visual hierarchy:
 - ✅ Smooth micro-interactions
 
 ```jsx
-<div className="glass magnetic ripple gpu-accelerated rounded-2xl">
-  {/* Card content */}
-</div>
+<div className="glass magnetic ripple gpu-accelerated rounded-2xl">{/* Card content */}</div>
 ```
 
 ### Priority Badges
-**Before:** Flat colored backgrounds
-**After:** Vibrant gradient badges with glowing shadows
+
+**Before:** Flat colored backgrounds **After:** Vibrant gradient badges with glowing shadows
 
 #### Color Mapping:
+
 - **High Priority**: Red-Pink gradient with shadow
 - **Medium Priority**: Amber-Orange gradient
 - **Low Priority**: Emerald-Teal gradient
 - **Default**: Gray gradient
 
 ```jsx
-<span className="bg-gradient-to-r from-red-500 to-pink-500 text-white
-                 shadow-lg shadow-red-200 hover:scale-105">
+<span
+  className="bg-gradient-to-r from-red-500 to-pink-500 text-white
+                 shadow-lg shadow-red-200 hover:scale-105"
+>
   HIGH
 </span>
 ```
 
 ### Due Date Badges
+
 Gradient badges with orange-red color scheme for urgency:
+
 ```jsx
-<span className="bg-gradient-to-r from-orange-500 to-red-500 text-white
-                 shadow-md shadow-orange-200 hover:scale-105">
+<span
+  className="bg-gradient-to-r from-orange-500 to-red-500 text-white
+                 shadow-md shadow-orange-200 hover:scale-105"
+>
   📅 {date}
 </span>
 ```
@@ -113,13 +139,16 @@ Gradient badges with orange-red color scheme for urgency:
 ## 🎬 Animation System
 
 ### Spring Physics
+
 Natural, physics-based animations using cubic-bezier:
+
 ```css
 --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
 ```
 
 ### Timing Scale
+
 - **Fast**: 150ms - Quick feedback
 - **Base**: 250ms - Standard interactions
 - **Slow**: 350ms - Complex transitions
@@ -127,6 +156,7 @@ Natural, physics-based animations using cubic-bezier:
 ### Key Animations
 
 #### Magnetic Hover
+
 ```css
 .magnetic:hover {
   transform: scale(1.05) translateZ(0);
@@ -135,27 +165,42 @@ Natural, physics-based animations using cubic-bezier:
 ```
 
 #### Ripple Effect
+
 ```css
 .ripple:active::after {
   width: 300px;
   height: 300px;
-  transition: width 0.6s, height 0.6s;
+  transition:
+    width 0.6s,
+    height 0.6s;
 }
 ```
 
 #### AI Glow
+
 ```css
 @keyframes aiGlow {
-  0%, 100% { filter: drop-shadow(0 0 8px rgba(0, 242, 254, 0.4)); }
-  50% { filter: drop-shadow(0 0 20px rgba(0, 242, 254, 0.4)); }
+  0%,
+  100% {
+    filter: drop-shadow(0 0 8px rgba(0, 242, 254, 0.4));
+  }
+  50% {
+    filter: drop-shadow(0 0 20px rgba(0, 242, 254, 0.4));
+  }
 }
 ```
 
 #### Floating
+
 ```css
 @keyframes floating {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-10px); }
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
 }
 ```
 
@@ -164,7 +209,9 @@ Natural, physics-based animations using cubic-bezier:
 ## 🎨 Color System
 
 ### AI-Powered Colors
+
 Special colors for AI features and indicators:
+
 ```css
 --ai-primary: #00f2fe;
 --ai-secondary: #4facfe;
@@ -173,6 +220,7 @@ Special colors for AI features and indicators:
 ```
 
 ### Semantic Colors
+
 - **Primary**: #667eea (Vibrant Purple)
 - **Secondary**: #764ba2 (Deep Purple)
 - **Accent**: #00f2fe (AI Cyan)
@@ -186,25 +234,28 @@ Special colors for AI features and indicators:
 ## 📐 Spacing & Layout
 
 ### 8px Base Grid
+
 All spacing follows 8px increments:
+
 ```css
---space-xs: 0.25rem;  /* 4px */
---space-sm: 0.5rem;   /* 8px */
---space-md: 1rem;     /* 16px */
---space-lg: 1.5rem;   /* 24px */
---space-xl: 2rem;     /* 32px */
---space-2xl: 3rem;    /* 48px */
---space-3xl: 4rem;    /* 64px */
+--space-xs: 0.25rem; /* 4px */
+--space-sm: 0.5rem; /* 8px */
+--space-md: 1rem; /* 16px */
+--space-lg: 1.5rem; /* 24px */
+--space-xl: 2rem; /* 32px */
+--space-2xl: 3rem; /* 48px */
+--space-3xl: 4rem; /* 64px */
 ```
 
 ### Border Radius
+
 ```css
---radius-sm: 0.375rem;   /* 6px */
---radius-md: 0.5rem;     /* 8px */
---radius-lg: 0.75rem;    /* 12px */
---radius-xl: 1rem;       /* 16px */
---radius-2xl: 1.5rem;    /* 24px */
---radius-full: 9999px;   /* Fully rounded */
+--radius-sm: 0.375rem; /* 6px */
+--radius-md: 0.5rem; /* 8px */
+--radius-lg: 0.75rem; /* 12px */
+--radius-xl: 1rem; /* 16px */
+--radius-2xl: 1.5rem; /* 24px */
+--radius-full: 9999px; /* Fully rounded */
 ```
 
 ---
@@ -212,13 +263,23 @@ All spacing follows 8px increments:
 ## ✍️ Typography
 
 ### Font Stack
+
 ```css
-font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI',
-             Roboto, 'Helvetica Neue', Arial, sans-serif;
+font-family:
+  'Inter',
+  -apple-system,
+  BlinkMacSystemFont,
+  'Segoe UI',
+  Roboto,
+  'Helvetica Neue',
+  Arial,
+  sans-serif;
 ```
 
 ### Fluid Typography
+
 Uses `clamp()` for responsive scaling:
+
 ```css
 --text-base: clamp(1rem, 0.95rem + 0.25vw, 1.125rem);
 --text-lg: clamp(1.125rem, 1.05rem + 0.375vw, 1.5rem);
@@ -230,6 +291,7 @@ Uses `clamp()` for responsive scaling:
 ## 🌙 Dark Mode
 
 ### Enhanced Dark Theme
+
 True dark mode with better contrast and depth:
 
 ```css
@@ -245,11 +307,13 @@ True dark mode with better contrast and depth:
 ## 🎯 Utility Classes
 
 ### Glassmorphism
+
 - `.glass` - Standard glass effect
 - `.glass-strong` - Stronger opacity glass
 - `.glass-dark` - Dark glass variant
 
 ### Effects
+
 - `.magnetic` - Hover scale effect
 - `.ripple` - Click ripple animation
 - `.shimmer` - Animated shimmer overlay
@@ -257,10 +321,12 @@ True dark mode with better contrast and depth:
 - `.floating` - Gentle floating animation
 
 ### Performance
+
 - `.gpu-accelerated` - Hardware acceleration
 - `.will-change-transform` - Optimize transforms
 
 ### Text
+
 - `.gradient-text` - Primary gradient text
 - `.gradient-text-ai` - Animated AI gradient text
 - `.text-shadow` - Subtle text shadow
@@ -270,11 +336,13 @@ True dark mode with better contrast and depth:
 ## 📱 Responsive Design
 
 ### Breakpoints
+
 - **Mobile**: `< 640px`
 - **Tablet**: `641px - 1024px`
 - **Desktop**: `> 1025px`
 
 ### Mobile Enhancements
+
 ```css
 @media (max-width: 640px) {
   .task-card {
@@ -294,7 +362,9 @@ True dark mode with better contrast and depth:
 ## ⚡ Performance
 
 ### GPU Acceleration
+
 All animations use `transform` and `opacity` for 60fps:
+
 ```css
 .gpu-accelerated {
   transform: translateZ(0);
@@ -304,7 +374,9 @@ All animations use `transform` and `opacity` for 60fps:
 ```
 
 ### Will-Change
+
 Strategic use of `will-change` for smooth animations:
+
 ```css
 .magnetic {
   will-change: transform;
@@ -316,6 +388,7 @@ Strategic use of `will-change` for smooth animations:
 ## 🎨 Usage Examples
 
 ### Creating a Glass Card
+
 ```jsx
 <div className="glass rounded-2xl p-6 shadow-lg">
   <h3 className="gradient-text">Premium Feature</h3>
@@ -324,17 +397,19 @@ Strategic use of `will-change` for smooth animations:
 ```
 
 ### AI-Powered Element
+
 ```jsx
-<button className="ai-glow magnetic ripple">
-  AI Analyze
-</button>
+<button className="ai-glow magnetic ripple">AI Analyze</button>
 ```
 
 ### Gradient Badge
+
 ```jsx
-<span className="bg-gradient-to-r from-purple-500 to-pink-500
+<span
+  className="bg-gradient-to-r from-purple-500 to-pink-500
                text-white px-4 py-2 rounded-full shadow-lg
-               hover:scale-105 transition-transform">
+               hover:scale-105 transition-transform"
+>
   New Feature
 </span>
 ```
@@ -344,6 +419,7 @@ Strategic use of `will-change` for smooth animations:
 ## 📊 Implementation Status
 
 ### ✅ Completed (Phase 1)
+
 - [x] Design system CSS file
 - [x] Glassmorphism utilities
 - [x] Gradient system
@@ -353,6 +429,7 @@ Strategic use of `will-change` for smooth animations:
 - [x] Responsive enhancements
 
 ### 🚧 In Progress (Phase 2-3)
+
 - [ ] Floating action button
 - [ ] Command palette
 - [ ] AI conversation interface
@@ -361,6 +438,7 @@ Strategic use of `will-change` for smooth animations:
 - [ ] Loading states
 
 ### 📅 Planned (Phase 4-5)
+
 - [ ] Advanced animations
 - [ ] Gesture controls
 - [ ] Voice commands
@@ -372,6 +450,7 @@ Strategic use of `will-change` for smooth animations:
 ## 🔧 Maintenance
 
 ### Adding New Gradients
+
 ```css
 :root {
   --gradient-custom: linear-gradient(135deg, #startColor 0%, #endColor 100%);
@@ -379,10 +458,15 @@ Strategic use of `will-change` for smooth animations:
 ```
 
 ### Creating Custom Animations
+
 ```css
 @keyframes customAnimation {
-  from { /* start state */ }
-  to { /* end state */ }
+  from {
+    /* start state */
+  }
+  to {
+    /* end state */
+  }
 }
 
 .custom-animation {
@@ -403,11 +487,10 @@ Strategic use of `will-change` for smooth animations:
 
 ## 👨‍🎨 Design Credits
 
-**Design System**: kAInban Design Team
-**Implementation**: Claude Code
-**Version**: 2.0.0
-**Last Updated**: December 2025
+**Design System**: kAInban Design Team **Implementation**: Claude Code **Version**: 2.0.0 **Last
+Updated**: December 2025
 
 ---
 
-*This design system is a living document and will evolve with user feedback and technological advances.*
+_This design system is a living document and will evolve with user feedback and technological
+advances._

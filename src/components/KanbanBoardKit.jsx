@@ -64,8 +64,8 @@ const TaskCard = ({ task, onDelete, onClick, users = [] }) => {
               key={assigneeName}
               className={`flex items-center gap-1 text-xs px-1.5 py-0.5 rounded border ${
                 isDbUser
-                  ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800'
-                  : 'bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-600'
+                  ? 'bg-info/10 text-info border-info/30'
+                  : 'bg-muted text-muted-foreground border-border'
               }`}
             >
               <User className="h-2.5 w-2.5" />
@@ -85,7 +85,7 @@ const TaskCard = ({ task, onDelete, onClick, users = [] }) => {
           )
         })}
         {assigneesList.length > 2 && (
-          <div className="flex items-center justify-center text-xs px-1.5 py-0.5 rounded border bg-gray-100 dark:bg-gray-600 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-500">
+          <div className="flex items-center justify-center text-xs px-1.5 py-0.5 rounded border bg-secondary text-muted-foreground border-border">
             +{assigneesList.length - 2}
           </div>
         )}
@@ -93,22 +93,23 @@ const TaskCard = ({ task, onDelete, onClick, users = [] }) => {
     )
   }
 
+  // Soft semantic chip — see DESIGN.md → Components → Badge / chip.
   const getPriorityColor = priority => {
     switch (priority) {
       case 'high':
-        return 'border-red-400 bg-gradient-to-br from-red-50 to-red-100 text-red-900 shadow-red-100'
+        return 'bg-destructive/12 text-destructive border border-destructive/30'
       case 'medium':
-        return 'border-amber-400 bg-gradient-to-br from-amber-50 to-amber-100 text-amber-900 shadow-amber-100'
+        return 'bg-warning/12 text-warning border border-warning/30'
       case 'low':
-        return 'border-emerald-400 bg-gradient-to-br from-emerald-50 to-emerald-100 text-emerald-900 shadow-emerald-100'
+        return 'bg-success/12 text-success border border-success/30'
       default:
-        return 'border-gray-300 bg-gradient-to-br from-gray-50 to-gray-100 text-gray-900 shadow-gray-100'
+        return 'bg-muted text-muted-foreground border border-border'
     }
   }
 
   return (
     <div
-      className="group bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-xl p-3 shadow-lg cursor-pointer"
+      className="group task-card cursor-pointer"
       onClick={() => onClick(task)}
       onKeyDown={e => {
         if (e.key === 'Enter' || e.key === ' ') {
@@ -134,7 +135,7 @@ const TaskCard = ({ task, onDelete, onClick, users = [] }) => {
     >
       <div className="flex justify-between items-start mb-3">
         <h4
-          className="font-bold text-sm flex-1 pr-2 text-gray-900 dark:text-gray-100"
+          className="font-bold text-sm flex-1 pr-2 text-foreground"
           style={{
             display: '-webkit-box',
             WebkitLineClamp: 2,
@@ -149,7 +150,7 @@ const TaskCard = ({ task, onDelete, onClick, users = [] }) => {
         <Button
           variant="ghost"
           size="icon"
-          className="h-7 w-7 opacity-0 group-hover:opacity-100 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 transition-all"
+          className="h-7 w-7 opacity-0 group-hover:opacity-100 hover:bg-destructive/10 hover:text-destructive dark:hover:bg-red-900/20 transition-all"
           onClick={e => {
             e.stopPropagation()
             onDelete(task.id)
@@ -178,15 +179,13 @@ const TaskCard = ({ task, onDelete, onClick, users = [] }) => {
       <div className="flex justify-between items-end gap-2">
         <div className="flex flex-col gap-2">
           <span
-            className={`text-xs px-3 py-1.5 rounded-full border-2 font-bold ${getPriorityColor(task.priority)} w-fit shadow-md`}
+            className={`text-[10px] px-2 py-0.5 rounded-sm font-semibold tracking-wider ${getPriorityColor(task.priority)} w-fit`}
           >
             {task.priority.toUpperCase()}
           </span>
           {task.dueDate && (
-            <span className="text-xs text-orange-600 dark:text-orange-400 font-semibold bg-orange-50 dark:bg-orange-900/20 px-2 py-1 rounded-md border border-orange-200 dark:border-orange-800">
-              📅{' '}
+            <span className="text-[10px] text-warning font-mono-tabular bg-warning/10 px-2 py-0.5 rounded-sm border border-warning/30">
               {(() => {
-                // Parse as local date to avoid timezone issues
                 const parts = task.dueDate.split('-')
                 if (parts.length === 3) {
                   const date = new Date(parts[0], parts[1] - 1, parts[2])
@@ -202,8 +201,11 @@ const TaskCard = ({ task, onDelete, onClick, users = [] }) => {
           )}
           {getAssigneesDisplay(task)}
         </div>
-        <span className="text-xs text-muted-foreground bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-md border border-gray-200 dark:border-gray-600">
-          {new Date(task.createdAt).toLocaleDateString()}
+        <span className="text-[10px] text-muted-foreground font-mono-tabular">
+          {new Date(task.createdAt).toLocaleDateString([], {
+            month: 'short',
+            day: 'numeric'
+          })}
         </span>
       </div>
     </div>
@@ -599,22 +601,18 @@ export default function KanbanBoardKit({ taskToOpen }) {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, delay: 0.2 }}
       >
-        <Card className="border-2 shadow-2xl bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900">
-          <CardHeader className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border-b-2">
+        <Card className="border border-border bg-card">
+          <CardHeader className="border-b border-border bg-card">
             <div className="flex items-center justify-between">
               <CardTitle className="flex items-center gap-3">
-                <motion.div
-                  className="p-2 bg-gradient-to-br from-primary to-primary/80 rounded-lg shadow-lg"
-                  whileHover={{ scale: 1.1, rotate: 5 }}
-                  transition={{ type: 'spring', stiffness: 400, damping: 10 }}
-                >
-                  <CheckSquare className="h-6 w-6 text-white" />
-                </motion.div>
+                <div className="p-2 bg-primary/10 border border-primary/20 rounded-md">
+                  <CheckSquare className="h-5 w-5 text-primary" />
+                </div>
                 <div>
-                  <div className="text-2xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+                  <div className="text-lg font-emphasis tracking-tight text-foreground">
                     Task Board
                   </div>
-                  <div className="text-xs text-muted-foreground font-normal">
+                  <div className="text-xs text-muted-foreground font-mono-tabular">
                     {tasks.length} total tasks
                   </div>
                 </div>
@@ -622,20 +620,15 @@ export default function KanbanBoardKit({ taskToOpen }) {
 
               <div className="flex items-center gap-2">
                 {/* Add Task Button */}
-                <motion.div
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
+                <Button
+                  onClick={handleCreateTask}
+                  variant="default"
+                  size="sm"
+                  className="flex items-center gap-2"
                 >
-                  <Button
-                    onClick={handleCreateTask}
-                    variant="default"
-                    size="sm"
-                    className="flex items-center gap-2 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-md"
-                  >
-                    <Plus className="h-4 w-4" />
-                    <span className="hidden sm:inline">Add Task</span>
-                  </Button>
-                </motion.div>
+                  <Plus className="h-4 w-4" />
+                  <span className="hidden sm:inline">Add Task</span>
+                </Button>
 
                 {/* Menu Button */}
                 <div className="relative">
@@ -674,7 +667,7 @@ export default function KanbanBoardKit({ taskToOpen }) {
                           animate={{ opacity: 1, scale: 1, y: 0 }}
                           exit={{ opacity: 0, scale: 0.95, y: -10 }}
                           transition={{ duration: 0.1 }}
-                          className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border-2 border-gray-200 dark:border-gray-700 overflow-hidden z-50"
+                          className="absolute right-0 mt-2 w-48 bg-card rounded-lg shadow-lg border border-border overflow-hidden z-50"
                         >
                           {/* View Toggle */}
                           <button
@@ -684,7 +677,7 @@ export default function KanbanBoardKit({ taskToOpen }) {
                               )
                               setIsMenuOpen(false)
                             }}
-                            className="w-full px-4 py-3 text-left text-sm hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2 transition-colors border-b border-gray-200 dark:border-gray-700"
+                            className="w-full px-4 py-3 text-left text-sm hover:bg-secondary flex items-center gap-2 transition-colors border-b border-border"
                           >
                             {viewMode === 'kanban' ? (
                               <>
@@ -718,7 +711,7 @@ export default function KanbanBoardKit({ taskToOpen }) {
                                 setIsMenuOpen(false)
                                 handleClearAll()
                               }}
-                              className="w-full px-4 py-3 text-left text-sm hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 flex items-center gap-2 transition-colors"
+                              className="w-full px-4 py-3 text-left text-sm hover:bg-destructive/10 dark:hover:bg-red-900/20 text-destructive flex items-center gap-2 transition-colors"
                             >
                               <Trash2 className="h-4 w-4" />
                               Clear All Tasks
@@ -748,7 +741,7 @@ export default function KanbanBoardKit({ taskToOpen }) {
                 >
                   {columns.map(column => (
                     <div key={column.id} className="flex-none w-80">
-                      <h3 className="font-semibold text-sm text-gray-700 dark:text-gray-300 px-2 py-1 mb-3 bg-gray-100 dark:bg-gray-700 rounded-lg">
+                      <h3 className="font-semibold text-sm text-foreground px-2 py-1 mb-3 bg-secondary rounded-lg">
                         {column.title} ({column.tasks.length})
                       </h3>
                       <Droppable droppableId={column.id}>
@@ -756,7 +749,7 @@ export default function KanbanBoardKit({ taskToOpen }) {
                           <div
                             ref={provided.innerRef}
                             {...provided.droppableProps}
-                            className="space-y-2 min-h-32 p-2 rounded-lg border-2 border-dashed border-transparent"
+                            className="space-y-2 min-h-32 p-2 rounded-lg border border-dashed border-transparent"
                             style={{
                               backgroundColor: snapshot.isDraggingOver
                                 ? 'rgba(59, 130, 246, 0.1)'

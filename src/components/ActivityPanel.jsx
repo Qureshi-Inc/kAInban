@@ -61,7 +61,7 @@ const CommentContent = ({ commentId, fallbackText }) => {
   }, [commentId])
 
   if (loading) {
-    return <span className="text-gray-500">Loading comment...</span>
+    return <span className="text-muted-foreground">Loading comment...</span>
   }
 
   if (comment?.content) {
@@ -301,7 +301,7 @@ export default function ActivityPanel({ isOpen, onClose }) {
       case 'status_changed':
         return <CheckCircle2 className="h-4 w-4 text-green-500" />
       case 'priority_changed':
-        return <AlertCircle className="h-4 w-4 text-orange-500" />
+        return <AlertCircle className="h-4 w-4 text-warning" />
       case 'assignee_changed':
         return <User className="h-4 w-4 text-blue-500" />
       case 'assignees_changed':
@@ -315,11 +315,11 @@ export default function ActivityPanel({ isOpen, onClose }) {
       case 'tasks_merged':
         return <Merge className="h-4 w-4 text-purple-500" />
       case 'merge_undone':
-        return <Undo2 className="h-4 w-4 text-orange-500" />
+        return <Undo2 className="h-4 w-4 text-warning" />
       case 'deleted':
-        return <X className="h-4 w-4 text-red-500" />
+        return <X className="h-4 w-4 text-destructive" />
       default:
-        return <Calendar className="h-4 w-4 text-gray-500" />
+        return <Calendar className="h-4 w-4 text-muted-foreground" />
     }
   }
 
@@ -351,11 +351,11 @@ export default function ActivityPanel({ isOpen, onClose }) {
             {activity.details.field}:
           </span>
           <div className="flex items-center gap-2 mt-1">
-            <span className="px-2 py-1 bg-red-100 text-red-800 rounded text-xs">
+            <span className="px-2 py-1 bg-destructive/15 text-destructive rounded text-xs">
               {activity.details.oldValue}
             </span>
             <ArrowRight className="h-3 w-3" />
-            <span className="px-2 py-1 bg-green-100 text-green-800 rounded text-xs">
+            <span className="px-2 py-1 bg-success/15 text-success rounded text-xs">
               {activity.details.newValue}
             </span>
           </div>
@@ -370,11 +370,11 @@ export default function ActivityPanel({ isOpen, onClose }) {
         <div className="mt-2 text-xs bg-muted/50 rounded p-2 space-y-1">
           {/* Show task title prominently for AI comments */}
           {metadata.taskTitle && (
-            <div className="bg-blue-50 dark:bg-blue-900/20 p-2 rounded border-l-2 border-blue-400">
-              <span className="font-medium text-blue-700 dark:text-blue-300">
+            <div className="bg-info/10 p-2 rounded border-l-2 border-info/30">
+              <span className="font-medium text-info">
                 📝 Task:
               </span>
-              <span className="ml-1 font-semibold text-blue-800 dark:text-blue-200">
+              <span className="ml-1 font-semibold text-info">
                 {metadata.taskTitle}
               </span>
             </div>
@@ -384,7 +384,7 @@ export default function ActivityPanel({ isOpen, onClose }) {
           {metadata.taskId && (
             <div>
               <span className="font-medium">Task ID:</span>
-              <code className="ml-1 px-1 bg-gray-100 dark:bg-gray-800 rounded text-xs">
+              <code className="ml-1 px-1 bg-muted rounded text-xs">
                 {metadata.taskId}
               </code>
             </div>
@@ -406,7 +406,7 @@ export default function ActivityPanel({ isOpen, onClose }) {
           {metadata.source && (
             <div>
               <span className="font-medium">Source:</span>
-              <span className="ml-1 text-gray-600 dark:text-gray-400">
+              <span className="ml-1 text-muted-foreground">
                 {metadata.source}
               </span>
             </div>
@@ -414,11 +414,11 @@ export default function ActivityPanel({ isOpen, onClose }) {
 
           {/* Enhanced labels for specific change types */}
           {activity.type === 'status_changed' && (metadata.taskTitle || activity.details?.taskTitle) && (
-            <div className="bg-green-50 dark:bg-green-900/20 p-2 rounded border-l-2 border-green-400">
-              <span className="font-medium text-green-700 dark:text-green-300">
+            <div className="bg-success/10 p-2 rounded border-l-2 border-success/30">
+              <span className="font-medium text-success">
                 📋 Task:
               </span>
-              <span className="ml-1 font-semibold text-green-800 dark:text-green-200">
+              <span className="ml-1 font-semibold text-success">
                 {metadata.taskTitle || activity.details.taskTitle}
               </span>
             </div>
@@ -489,7 +489,7 @@ export default function ActivityPanel({ isOpen, onClose }) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40"
+            className="fixed inset-0 bg-black/55 z-40"
             onClick={onClose}
           />
 
@@ -499,7 +499,7 @@ export default function ActivityPanel({ isOpen, onClose }) {
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className="fixed right-0 top-0 bottom-0 w-96 bg-card/95 backdrop-blur-lg border-l border-border/50 shadow-2xl z-50 flex flex-col"
+            className="fixed right-0 top-0 bottom-0 w-96 bg-card border-l border-border shadow-lg z-50 flex flex-col"
           >
             {/* Header */}
             <div className="p-6 border-b border-border/50">
@@ -553,7 +553,7 @@ export default function ActivityPanel({ isOpen, onClose }) {
                       {/* Activity item */}
                       <div className="flex gap-4">
                         {/* Icon */}
-                        <div className="w-12 h-12 rounded-xl bg-background border border-border/50 flex items-center justify-center flex-shrink-0">
+                        <div className="w-12 h-12 rounded-md bg-background border border-border/50 flex items-center justify-center flex-shrink-0">
                           {getActivityIcon(activity.type)}
                         </div>
 

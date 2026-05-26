@@ -107,9 +107,9 @@ export default function AuthPage({ onAuthSuccess }) {
 
   if (showLocal) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 p-4">
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
         <div className="w-full max-w-md">
-          <div className="mb-3 text-xs text-amber-700 dark:text-amber-400 text-center">
+          <div className="mb-3 text-xs text-warning text-center">
             Local-auth fallback mode (rollback). Remove <code>?local=1</code> for normal sign-in.
           </div>
           <LoginForm
@@ -124,9 +124,9 @@ export default function AuthPage({ onAuthSuccess }) {
 
   if (showLocal === 'register') {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 p-4">
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
         <div className="w-full max-w-md">
-          <div className="mb-3 text-xs text-amber-700 dark:text-amber-400 text-center">
+          <div className="mb-3 text-xs text-warning text-center">
             Local-auth fallback mode.
           </div>
           <RegisterForm
@@ -141,32 +141,28 @@ export default function AuthPage({ onAuthSuccess }) {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
-        className="w-full max-w-md mx-auto p-8 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border-2 border-gray-200 dark:border-gray-700"
+        transition={{ duration: 0.32, ease: [0.16, 1, 0.3, 1] }}
+        className="w-full max-w-md mx-auto p-8 bg-card rounded-md shadow-lg border border-border"
       >
         <div className="text-center mb-8">
-          <motion.div
-            className="w-16 h-16 mx-auto flex items-center justify-center mb-4"
-            whileHover={{ scale: 1.1, rotate: 10 }}
-            transition={{ type: 'spring', stiffness: 400, damping: 10 }}
-          >
-            <img src="/icon-192.png" alt="kAInban" className="w-16 h-16 object-contain" />
-          </motion.div>
-          <h2 className="text-3xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+          <div className="w-14 h-14 mx-auto flex items-center justify-center mb-4">
+            <img src="/icon-192.png" alt="kAInban" className="w-14 h-14 object-contain" />
+          </div>
+          <h2 className="font-serif-display text-4xl text-foreground">
             kAInban
           </h2>
-          <p className="text-muted-foreground mt-2">Sign in to continue</p>
+          <p className="text-muted-foreground mt-2 text-sm">Sign in to continue</p>
         </div>
 
         {oidcError && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
-            className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-600 dark:text-red-400 text-sm"
+            className="mb-4 p-3 bg-destructive/10 border border-destructive/30 rounded-sm text-destructive text-sm"
           >
             {oidcError}
           </motion.div>

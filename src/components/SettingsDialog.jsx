@@ -348,59 +348,59 @@ export default function SettingsDialog() {
             <div className="space-y-4">
               {/* Tenant Information Section */}
               {tenantInfo && (
-                <div className="p-4 border rounded-lg bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
-                  <h3 className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-3 flex items-center">
+                <div className="p-4 border rounded-lg bg-info/10 border-info/30">
+                  <h3 className="text-sm font-semibold text-info mb-3 flex items-center">
                     <Settings className="h-4 w-4 mr-2" />
                     Organization Information
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
                     <div>
-                      <span className="font-medium text-blue-800 dark:text-blue-200">
+                      <span className="font-medium text-info">
                         Name:
                       </span>
-                      <span className="ml-2 text-blue-700 dark:text-blue-300">
+                      <span className="ml-2 text-info">
                         {tenantInfo.name}
                       </span>
                     </div>
                     <div>
-                      <span className="font-medium text-blue-800 dark:text-blue-200">
+                      <span className="font-medium text-info">
                         Access URL:
                       </span>
-                      <span className="ml-2 text-blue-700 dark:text-blue-300">
+                      <span className="ml-2 text-info">
                         ?tenant={tenantInfo.subdomain}
                       </span>
                     </div>
                     <div>
-                      <span className="font-medium text-blue-800 dark:text-blue-200">
+                      <span className="font-medium text-info">
                         Plan:
                       </span>
-                      <span className="ml-2 text-blue-700 dark:text-blue-300 capitalize">
+                      <span className="ml-2 text-info capitalize">
                         {tenantInfo.plan}
                       </span>
                     </div>
                     <div>
-                      <span className="font-medium text-blue-800 dark:text-blue-200">
+                      <span className="font-medium text-info">
                         Users:
                       </span>
-                      <span className="ml-2 text-blue-700 dark:text-blue-300">
+                      <span className="ml-2 text-info">
                         {tenantInfo.stats?.users || 0} / {tenantInfo.maxUsers}
                       </span>
                     </div>
                     {tenantInfo.stats && (
                       <>
                         <div>
-                          <span className="font-medium text-blue-800 dark:text-blue-200">
+                          <span className="font-medium text-info">
                             Projects:
                           </span>
-                          <span className="ml-2 text-blue-700 dark:text-blue-300">
+                          <span className="ml-2 text-info">
                             {tenantInfo.stats.projects}
                           </span>
                         </div>
                         <div>
-                          <span className="font-medium text-blue-800 dark:text-blue-200">
+                          <span className="font-medium text-info">
                             Tasks:
                           </span>
-                          <span className="ml-2 text-blue-700 dark:text-blue-300">
+                          <span className="ml-2 text-info">
                             {tenantInfo.stats.tasks}
                           </span>
                         </div>
@@ -484,18 +484,18 @@ export default function SettingsDialog() {
             </div>
 
             {/* Danger Zone */}
-            <div className="border-t border-red-200 pt-6 mt-6">
-              <h3 className="text-sm font-semibold mb-4 text-red-600">
+            <div className="border-t border-destructive/30 pt-6 mt-6">
+              <h3 className="text-sm font-semibold mb-4 text-destructive">
                 Danger Zone
               </h3>
 
-              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+              <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-4">
                 <div className="flex items-start gap-3">
                   <div className="flex-1">
-                    <h4 className="text-sm font-medium text-red-900 dark:text-red-100 mb-1">
+                    <h4 className="text-sm font-medium text-destructive mb-1">
                       Delete All Projects
                     </h4>
-                    <p className="text-xs text-red-700 dark:text-red-300 mb-3">
+                    <p className="text-xs text-destructive mb-3">
                       This will permanently delete all your projects, tasks,
                       meetings, and associated data. This action cannot be
                       undone.
@@ -854,11 +854,11 @@ export default function SettingsDialog() {
                 </dl>
               </div>
 
-              <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-                <h4 className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-2">
+              <div className="p-4 bg-info/10 border border-info/30 rounded-lg">
+                <h4 className="text-sm font-semibold text-info mb-2">
                   How sign-in works
                 </h4>
-                <ul className="text-xs text-blue-800 dark:text-blue-200 space-y-1 list-disc list-inside">
+                <ul className="text-xs text-info space-y-1 list-disc list-inside">
                   <li>
                     Users click <strong>Sign in</strong> and are redirected to
                     the issuer&apos;s hosted UI

@@ -3,8 +3,8 @@ import { UserPlus, Mail, Lock, User, Building, AlertCircle, CheckCircle } from '
 import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Button } from './ui/button'
-import { Input } from './ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
+import { Input } from './ui/input'
 
 export default function InviteRegistrationForm() {
   const { token } = useParams()
@@ -24,7 +24,7 @@ export default function InviteRegistrationForm() {
     validateInvite()
   }, [token])
 
-  const validateInvite = async () => {
+  const validateInvite = async() => {
     try {
       const response = await fetch(`/api/invites/validate/${token}`)
 
@@ -46,7 +46,7 @@ export default function InviteRegistrationForm() {
     }
   }
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async(e) => {
     e.preventDefault()
     setError('')
     setLoading(true)
@@ -120,16 +120,16 @@ export default function InviteRegistrationForm() {
 
   if (validating) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           className="text-center"
         >
-          <div className="w-16 h-16 mx-auto rounded-xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center text-white font-bold text-3xl shadow-lg mb-4 animate-pulse">
+          <div className="w-14 h-14 mx-auto rounded-md bg-primary text-primary-foreground flex items-center justify-center text-2xl border border-primary mb-4 animate-pulse">
             🎤
           </div>
-          <p className="text-muted-foreground">Validating invite...</p>
+          <p className="text-muted-foreground text-sm">Validating invite</p>
         </motion.div>
       </div>
     )
@@ -137,19 +137,19 @@ export default function InviteRegistrationForm() {
 
   if (error && !inviteData) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 p-4">
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
+          transition={{ duration: 0.32, ease: [0.16, 1, 0.3, 1] }}
           className="max-w-md w-full"
         >
-          <Card className="border-0 shadow-2xl bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl">
+          <Card className="border border-border bg-card shadow-lg">
             <CardHeader className="text-center pb-2">
-              <div className="w-16 h-16 mx-auto rounded-xl bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center text-white shadow-lg mb-4">
-                <AlertCircle className="h-8 w-8" />
+              <div className="w-14 h-14 mx-auto rounded-md bg-destructive/15 border border-destructive/40 flex items-center justify-center text-destructive mb-4">
+                <AlertCircle className="h-6 w-6" />
               </div>
-              <CardTitle className="text-xl">Invite Invalid</CardTitle>
+              <CardTitle className="font-serif-display text-3xl">Invite invalid</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4 text-center">
               <p className="text-muted-foreground">{error}</p>
@@ -168,19 +168,19 @@ export default function InviteRegistrationForm() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
+        transition={{ duration: 0.32, ease: [0.16, 1, 0.3, 1] }}
         className="max-w-md w-full"
       >
-        <Card className="border-0 shadow-2xl bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl">
+        <Card className="border border-border bg-card shadow-lg">
           <CardHeader className="text-center pb-2">
-            <div className="w-16 h-16 mx-auto rounded-xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center text-white shadow-lg mb-4">
-              <UserPlus className="h-8 w-8" />
+            <div className="w-14 h-14 mx-auto rounded-md bg-primary text-primary-foreground flex items-center justify-center mb-4 border border-primary">
+              <UserPlus className="h-6 w-6" />
             </div>
-            <CardTitle className="text-xl">Join {inviteData?.tenantName}</CardTitle>
+            <CardTitle className="font-serif-display text-3xl">Join {inviteData?.tenantName}</CardTitle>
             <div className="space-y-2 text-sm text-muted-foreground">
               <p>You've been invited by <strong>{inviteData?.inviterName}</strong></p>
               <div className="flex items-center justify-center gap-2 px-3 py-1.5 bg-primary/10 text-primary rounded-full text-xs">
@@ -261,7 +261,7 @@ export default function InviteRegistrationForm() {
                 <motion.div
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  className="flex items-center gap-2 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm"
+                  className="flex items-center gap-2 p-3 rounded-lg bg-destructive/10 border border-destructive/30 text-destructive text-sm"
                 >
                   <AlertCircle className="h-4 w-4 flex-shrink-0" />
                   {error}
@@ -275,7 +275,7 @@ export default function InviteRegistrationForm() {
               >
                 {loading ? (
                   <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2" />
+                    <div className="animate-spin rounded-full h-4 w-4 border border-white border-t-transparent mr-2" />
                     Creating Account...
                   </>
                 ) : (

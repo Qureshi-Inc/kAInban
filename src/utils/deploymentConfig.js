@@ -20,7 +20,7 @@ export const getBadgeConfig = () => {
   return {
     type: 'opensource',
     text: 'Open Source',
-    color: 'bg-green-100 text-green-800',
+    color: 'bg-success/15 text-success border border-success/30',
     icon: '🚀'
   }
 }

@@ -4,8 +4,25 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/x-icon" href="/favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#667eea" />
+    <meta name="theme-color" content="#FAF7F2" />
     <meta name="description" content="kAInban - AI-powered task management with meeting transcription and intelligent task extraction" />
+
+    <!--
+      Design System v3 — Workhorse Dark.
+      Inter Variable: hosted by rsms (CSS unicode-range, ~325KB total but
+      progressively loaded). cv01 + ss03 + ss01 OpenType features are
+      mandatory and applied globally in src/index.css.
+      Instrument Serif + JetBrains Mono: Google Fonts CDN.
+      See DESIGN.md → Typography for the canonical font policy.
+    -->
+    <link rel="preconnect" href="https://rsms.me" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
 
     <!-- PWA Manifest -->
     <link rel="manifest" href="/manifest.webmanifest" />
@@ -22,6 +39,39 @@
     <link rel="apple-touch-icon" sizes="512x512" href="/icon-512.png" />
 
     <title>kAInban - AI-Powered Task Management</title>
+
+    <!--
+      Theme bootstrap — runs synchronously before React mounts to avoid the
+      flash of unstyled content (FOUC) on dark/light switch.
+      Light (paper canvas) is the home theme; dark is the toggle. Reads
+      localStorage['kainban-theme'] for user preference and falls back to
+      light. Stored under the same key React reads/writes from.
+    -->
+    <script>
+      (function () {
+        try {
+          var stored = localStorage.getItem('kainban-theme');
+          var theme;
+          if (stored === 'light' || stored === 'dark') {
+            theme = stored;
+          } else {
+            theme = 'light';
+          }
+          if (theme === 'dark') {
+            document.documentElement.classList.add('dark');
+            document.documentElement.setAttribute('data-theme', 'dark');
+            document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0A0A0B');
+          } else {
+            document.documentElement.classList.remove('dark');
+            document.documentElement.setAttribute('data-theme', 'light');
+            document.querySelector('meta[name="theme-color"]').setAttribute('content', '#FAF7F2');
+          }
+        } catch (_e) {
+          document.documentElement.classList.remove('dark');
+          document.documentElement.setAttribute('data-theme', 'light');
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

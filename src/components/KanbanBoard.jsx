@@ -87,8 +87,8 @@ const TaskCard = React.memo(({
               key={assigneeName}
               className={`flex items-center gap-1 text-xs px-1.5 py-0.5 rounded border ${
                 isDbUser
-                  ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800'
-                  : 'bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-600'
+                  ? 'bg-info/10 text-info border-info/30'
+                  : 'bg-muted text-muted-foreground border-border'
               }`}
             >
               <User className="h-2.5 w-2.5" />
@@ -108,7 +108,7 @@ const TaskCard = React.memo(({
           )
         })}
         {assigneesList.length > 2 && (
-          <div className="flex items-center justify-center text-xs px-1.5 py-0.5 rounded border bg-gray-100 dark:bg-gray-600 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-500">
+          <div className="flex items-center justify-center text-xs px-1.5 py-0.5 rounded border bg-secondary text-muted-foreground border-border">
             +{assigneesList.length - 2}
           </div>
         )}
@@ -116,22 +116,25 @@ const TaskCard = React.memo(({
     )
   }
 
+  // Priority chip — soft semantic background, no gradients, no shadow glow.
+  // See DESIGN.md → Components → Badge / chip.
   const getPriorityColor = priority => {
     switch (priority) {
       case 'high':
-        return 'border-red-400 bg-gradient-to-br from-red-50 to-red-100 text-red-900 shadow-red-100'
+        return 'bg-destructive/12 text-destructive border border-destructive/30'
       case 'medium':
-        return 'border-amber-400 bg-gradient-to-br from-amber-50 to-amber-100 text-amber-900 shadow-amber-100'
+        return 'bg-warning/12 text-warning border border-warning/30'
       case 'low':
-        return 'border-emerald-400 bg-gradient-to-br from-emerald-50 to-emerald-100 text-emerald-900 shadow-emerald-100'
+        return 'bg-success/12 text-success border border-success/30'
       default:
-        return 'border-gray-300 bg-gradient-to-br from-gray-50 to-gray-100 text-gray-900 shadow-gray-100'
+        return 'bg-muted text-muted-foreground border border-border'
     }
   }
 
+  // Drag styles — modest elevation only, no scale/rotate/glow halo.
   const getDragStyles = () => {
     if (isDragging) {
-      return 'scale-105 rotate-3 shadow-2xl ring-2 ring-primary/50 ring-offset-2 ring-offset-white dark:ring-offset-gray-900 bg-gradient-to-br from-primary/5 to-primary/10 border-primary/60'
+      return 'dragging opacity-90'
     }
     return ''
   }
@@ -140,7 +143,7 @@ const TaskCard = React.memo(({
     <div
       role="button"
       tabIndex={0}
-      className={`group task-card interactive-element bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-xl p-3 sm:p-4 mb-3 shadow-lg hover:shadow-2xl cursor-pointer backdrop-blur-sm transition-all duration-200 hover:border-primary/40 hover:bg-gradient-to-br hover:from-gray-50/50 hover:to-white dark:hover:from-gray-700/50 dark:hover:to-gray-800 focus:ring-2 focus:ring-primary/50 focus:outline-none ${getDragStyles()}`}
+      className={`group task-card interactive-element cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background ${getDragStyles()}`}
       style={{
         transformOrigin: 'center center',
         contain: 'layout style paint'
@@ -223,13 +226,13 @@ const TaskCard = React.memo(({
       aria-label={`Open task: ${task.title}`}
     >
       <div className="flex justify-between items-start mb-3">
-        <h4 className="font-bold text-sm line-clamp-2 flex-1 pr-2 text-gray-900 dark:text-gray-100">
+        <h4 className="font-bold text-sm line-clamp-2 flex-1 pr-2 text-foreground">
           {task.title}
         </h4>
         <Button
           variant="ghost"
           size="icon"
-          className="h-7 w-7 opacity-0 group-hover:opacity-100 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 transition-all"
+          className="h-7 w-7 opacity-0 group-hover:opacity-100 hover:bg-destructive/10 hover:text-destructive dark:hover:bg-red-900/20 transition-all"
           onClick={e => {
             e.stopPropagation()
             onDelete(task.id)
@@ -248,15 +251,13 @@ const TaskCard = React.memo(({
       <div className="flex justify-between items-end gap-2">
         <div className="flex flex-col gap-2">
           <span
-            className={`text-xs px-3 py-1.5 rounded-full border-2 font-bold ${getPriorityColor(task.priority)} w-fit shadow-md`}
+            className={`text-[10px] px-2 py-0.5 rounded-sm font-semibold tracking-wider ${getPriorityColor(task.priority)} w-fit`}
           >
             {task.priority.toUpperCase()}
           </span>
           {task.dueDate && (
-            <span className="text-xs text-orange-600 dark:text-orange-400 font-semibold bg-orange-50 dark:bg-orange-900/20 px-2 py-1 rounded-md border border-orange-200 dark:border-orange-800">
-              📅{' '}
+            <span className="text-[10px] text-warning font-mono-tabular bg-warning/10 px-2 py-0.5 rounded-sm border border-warning/30">
               {(() => {
-                // Parse as local date to avoid timezone issues
                 const parts = task.dueDate.split('-')
                 if (parts.length === 3) {
                   const date = new Date(parts[0], parts[1] - 1, parts[2])
@@ -272,8 +273,11 @@ const TaskCard = React.memo(({
           )}
           {getAssigneesDisplay(task)}
         </div>
-        <span className="text-xs text-muted-foreground bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-md border border-gray-200 dark:border-gray-600">
-          {new Date(task.createdAt).toLocaleDateString()}
+        <span className="text-[10px] text-muted-foreground font-mono-tabular">
+          {new Date(task.createdAt).toLocaleDateString([], {
+            month: 'short',
+            day: 'numeric'
+          })}
         </span>
       </div>
     </div>
@@ -294,7 +298,7 @@ const TaskSource = ({ meetingId, onNavigateToMeeting }) => {
   }
 
   return (
-    <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-600">
+    <div className="mt-2 pt-2 border-t border-border">
       <button
         onClick={e => {
           e.stopPropagation()
@@ -367,54 +371,42 @@ const Column = ({
     }
   }
 
+  // Drop zone styles — drag-over handled by .kanban-column.drag-over in CSS.
+  // No per-status colored rings, no gradients, no scale transforms.
   const getDropZoneStyles = () => {
-    if (isDragOver) {
-      switch (status) {
-        case 'todo':
-          return 'ring-2 ring-slate-400/50 ring-offset-2 bg-gradient-to-b from-slate-50/80 to-slate-100/50 border-slate-400/60 transform scale-[1.02]'
-        case 'in-progress':
-          return 'ring-2 ring-blue-400/50 ring-offset-2 bg-gradient-to-b from-blue-50/80 to-blue-100/50 border-blue-400/60 transform scale-[1.02]'
-        case 'done':
-          return 'ring-2 ring-green-400/50 ring-offset-2 bg-gradient-to-b from-green-50/80 to-green-100/50 border-green-400/60 transform scale-[1.02]'
-        case 'blocked':
-          return 'ring-2 ring-red-400/50 ring-offset-2 bg-gradient-to-b from-red-50/80 to-red-100/50 border-red-400/60 transform scale-[1.02]'
-        default:
-          return 'ring-2 ring-primary/50 ring-offset-2 bg-gradient-to-b from-primary/5 to-primary/10 border-primary/60 transform scale-[1.02]'
-      }
-    }
-    return ''
+    return isDragOver ? 'drag-over' : ''
   }
 
+  // Column accent — a single 2px top border in the status semantic color.
+  // Replaces the per-column gradient backgrounds.
   const getColumnStyle = () => {
     switch (status) {
       case 'todo':
-        return 'border-t-4 border-t-slate-400 bg-gradient-to-b from-slate-50 to-white dark:from-slate-900 dark:to-gray-800'
+        return 'border-t-2 border-t-muted-foreground/40'
       case 'in-progress':
-        return 'border-t-4 border-t-blue-500 bg-gradient-to-b from-blue-50 to-white dark:from-blue-900/20 dark:to-gray-800'
+        return 'border-t-2 border-t-info'
       case 'done':
-        return 'border-t-4 border-t-green-500 bg-gradient-to-b from-green-50 to-white dark:from-green-900/20 dark:to-gray-800'
+        return 'border-t-2 border-t-success'
       case 'blocked':
-        return 'border-t-4 border-t-red-500 bg-gradient-to-b from-red-50 to-white dark:from-red-900/20 dark:to-gray-800'
+        return 'border-t-2 border-t-destructive'
       default:
-        return 'border-t-4 border-t-gray-400'
+        return 'border-t-2 border-t-border'
     }
   }
 
   return (
     <Card
-      className={`kanban-column w-full min-w-0 min-h-[500px] transition-all duration-300 hover:shadow-xl ${getColumnStyle()} ${getDropZoneStyles()} ${isDragOver ? 'drag-over' : ''}`}
+      className={`kanban-column w-full min-w-0 min-h-[500px] ${getColumnStyle()} ${getDropZoneStyles()}`}
       data-status={status}
     >
-      <CardHeader className="pb-4 sticky top-0 bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm z-10 border-b border-gray-200/50 dark:border-gray-700/50">
-        <CardTitle className="flex items-center justify-between text-base">
-          <span className="font-bold text-lg">{title}</span>
-          <motion.span
-            className="bg-gradient-to-r from-primary/20 to-primary/10 text-primary px-3 py-1.5 rounded-full text-sm font-bold shadow-sm ring-1 ring-primary/20"
-            whileHover={{ scale: 1.1, rotate: [0, -5, 5, 0] }}
-            transition={{ type: 'spring', stiffness: 400, damping: 10 }}
-          >
-            {count}
-          </motion.span>
+      <CardHeader className="pb-3 sticky top-0 bg-card z-10 border-b border-border">
+        <CardTitle className="flex items-center justify-between">
+          <span className="text-sm font-emphasis uppercase tracking-wider text-foreground">
+            {title}
+          </span>
+          <span className="text-xs font-mono-tabular text-muted-foreground">
+            {String(count).padStart(2, '0')}
+          </span>
         </CardTitle>
       </CardHeader>
       <CardContent
@@ -753,31 +745,31 @@ export default function KanbanBoard({ taskToOpen }) {
         return {
           title: '📋 To Do',
           tasks: todoTasks,
-          color: 'border-l-slate-400 bg-slate-50'
+          color: 'border-l-slate-400 bg-muted'
         }
       case 'in-progress':
         return {
           title: '⚡ In Progress',
           tasks: inProgressTasks,
-          color: 'border-l-blue-500 bg-blue-50'
+          color: 'border-l-blue-500 bg-info/10'
         }
       case 'blocked':
         return {
           title: '🚫 Blocked',
           tasks: blockedTasks,
-          color: 'border-l-red-500 bg-red-50'
+          color: 'border-l-red-500 bg-destructive/10'
         }
       case 'done':
         return {
           title: '✅ Done',
           tasks: doneTasks,
-          color: 'border-l-green-500 bg-green-50'
+          color: 'border-l-green-500 bg-success/10'
         }
       default:
         return {
           title: status,
           tasks: [],
-          color: 'border-l-gray-400 bg-gray-50'
+          color: 'border-l-gray-400 bg-muted'
         }
     }
   }
@@ -789,9 +781,9 @@ export default function KanbanBoard({ taskToOpen }) {
         const isExpanded = expandedSections[status]
 
         return (
-          <Card key={status} className={`border-l-4 ${color} dark:bg-gray-800`}>
+          <Card key={status} className={`border-l-4 ${color}`}>
             <CardHeader
-              className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              className="cursor-pointer hover:bg-secondary transition-colors"
               onClick={() => toggleSection(status)}
             >
               <CardTitle className="flex items-center justify-between">
@@ -802,7 +794,7 @@ export default function KanbanBoard({ taskToOpen }) {
                     <ChevronRight className="h-4 w-4" />
                   )}
                   <span>{title}</span>
-                  <span className="text-sm bg-gray-200 dark:bg-gray-700 px-2 py-1 rounded-full">
+                  <span className="text-sm bg-secondary px-2 py-1 rounded-full">
                     {statusTasks.length}
                   </span>
                 </div>
@@ -819,7 +811,7 @@ export default function KanbanBoard({ taskToOpen }) {
                 >
                   <CardContent className="pt-0">
                     {statusTasks.length === 0 ? (
-                      <p className="text-gray-500 italic py-4">
+                      <p className="text-muted-foreground italic py-4">
                         No tasks in this status
                       </p>
                     ) : (
@@ -831,7 +823,7 @@ export default function KanbanBoard({ taskToOpen }) {
                             animate={{ opacity: 1, x: 0 }}
                             role="button"
                             tabIndex={0}
-                            className="group flex items-center justify-between py-2 px-3 hover:bg-gray-50 dark:hover:bg-gray-600 rounded cursor-pointer transition-colors focus:ring-2 focus:ring-primary/50 focus:outline-none"
+                            className="group flex items-center justify-between py-2 px-3 hover:bg-gray-50 rounded cursor-pointer transition-colors focus:ring-2 focus:ring-primary/50 focus:outline-none"
                             onClick={() => handleTaskClick(task)}
                             onKeyDown={e => {
                               if (e.key === 'Enter' || e.key === ' ') {
@@ -841,7 +833,7 @@ export default function KanbanBoard({ taskToOpen }) {
                             }}
                             aria-label={`Open task: ${task.title}`}
                           >
-                            <span className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate flex-1">
+                            <span className="text-sm font-medium text-foreground truncate flex-1">
                               {task.title}
                             </span>
                             <Button
@@ -851,7 +843,7 @@ export default function KanbanBoard({ taskToOpen }) {
                                 e.stopPropagation()
                                 handleTaskDelete(task.id)
                               }}
-                              className="h-6 w-6 opacity-0 group-hover:opacity-100 hover:bg-red-50 text-red-500 flex-shrink-0 ml-2"
+                              className="h-6 w-6 opacity-0 group-hover:opacity-100 hover:bg-destructive/10 text-destructive flex-shrink-0 ml-2"
                             >
                               <Trash2 className="h-3 w-3" />
                             </Button>
@@ -876,22 +868,18 @@ export default function KanbanBoard({ taskToOpen }) {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, delay: 0.2 }}
       >
-        <Card className="border-2 shadow-2xl bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900">
-          <CardHeader className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border-b-2">
+        <Card className="border border-border bg-card">
+          <CardHeader className="border-b border-border bg-card">
             <div className="flex items-center justify-between">
               <CardTitle className="flex items-center gap-3">
-                <motion.div
-                  className="p-2 bg-gradient-to-br from-primary to-primary/80 rounded-lg shadow-lg"
-                  whileHover={{ scale: 1.1, rotate: 5 }}
-                  transition={{ type: 'spring', stiffness: 400, damping: 10 }}
-                >
-                  <CheckSquare className="h-6 w-6 text-white" />
-                </motion.div>
+                <div className="p-2 bg-primary/10 border border-primary/20 rounded-md">
+                  <CheckSquare className="h-5 w-5 text-primary" />
+                </div>
                 <div>
-                  <div className="text-2xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+                  <div className="text-lg font-emphasis tracking-tight text-foreground">
                     Task Board
                   </div>
-                  <div className="text-xs text-muted-foreground font-normal">
+                  <div className="text-xs text-muted-foreground font-mono-tabular">
                     {tasks.length} total tasks
                   </div>
                 </div>
@@ -899,20 +887,15 @@ export default function KanbanBoard({ taskToOpen }) {
 
               <div className="flex items-center gap-2">
                 {/* Add Task Button */}
-                <motion.div
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
+                <Button
+                  onClick={handleCreateTask}
+                  variant="default"
+                  size="sm"
+                  className="flex items-center gap-2"
                 >
-                  <Button
-                    onClick={handleCreateTask}
-                    variant="default"
-                    size="sm"
-                    className="flex items-center gap-2 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-md"
-                  >
-                    <Plus className="h-4 w-4" />
-                    <span className="hidden sm:inline">Add Task</span>
-                  </Button>
-                </motion.div>
+                  <Plus className="h-4 w-4" />
+                  <span className="hidden sm:inline">Add Task</span>
+                </Button>
 
                 {/* Menu Button */}
                 <div className="relative">
@@ -954,7 +937,7 @@ export default function KanbanBoard({ taskToOpen }) {
                           animate={{ opacity: 1, scale: 1, y: 0 }}
                           exit={{ opacity: 0, scale: 0.95, y: -10 }}
                           transition={{ duration: 0.1 }}
-                          className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border-2 border-gray-200 dark:border-gray-700 overflow-hidden z-50"
+                          className="absolute right-0 mt-2 w-48 bg-card rounded-lg shadow-lg border border-border overflow-hidden z-50"
                         >
                           {/* View Toggle */}
                           <button
@@ -964,7 +947,7 @@ export default function KanbanBoard({ taskToOpen }) {
                               )
                               setIsMenuOpen(false)
                             }}
-                            className="w-full px-4 py-3 text-left text-sm hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2 transition-colors border-b border-gray-200 dark:border-gray-700"
+                            className="w-full px-4 py-3 text-left text-sm hover:bg-secondary flex items-center gap-2 transition-colors border-b border-border"
                           >
                             {viewMode === 'kanban' ? (
                               <>
@@ -998,7 +981,7 @@ export default function KanbanBoard({ taskToOpen }) {
                                 setIsMenuOpen(false)
                                 handleClearAll()
                               }}
-                              className="w-full px-4 py-3 text-left text-sm hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 flex items-center gap-2 transition-colors"
+                              className="w-full px-4 py-3 text-left text-sm hover:bg-destructive/10 dark:hover:bg-red-900/20 text-destructive flex items-center gap-2 transition-colors"
                             >
                               <Trash2 className="h-4 w-4" />
                               Clear All Tasks

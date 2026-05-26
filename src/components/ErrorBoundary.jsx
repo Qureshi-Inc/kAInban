@@ -23,7 +23,7 @@ class ErrorBoundary extends React.Component {
       return (
         <div className="min-h-screen bg-background flex items-center justify-center p-4">
           <div className="max-w-2xl w-full bg-destructive/10 border border-destructive rounded-lg p-6">
-            <h2 className="text-xl font-bold text-destructive mb-4">Something went wrong</h2>
+            <h2 className="text-xl font-emphasis text-destructive mb-4">Something went wrong</h2>
             <p className="text-sm mb-4">The application encountered an error:</p>
             <div className="text-xs bg-black/20 p-3 rounded mb-4 font-mono overflow-auto max-h-96">
               <div className="mb-2 text-destructive font-bold">

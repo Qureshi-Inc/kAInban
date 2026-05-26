@@ -48,7 +48,7 @@ export default function LeftSidebar({ isOpen, onClose }) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40"
+            className="fixed inset-0 bg-black/55 z-40"
             onClick={onClose}
           />
 
@@ -58,14 +58,14 @@ export default function LeftSidebar({ isOpen, onClose }) {
             animate={{ x: 0 }}
             exit={{ x: -280 }}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className="fixed left-0 top-0 bottom-0 w-64 bg-card/95 backdrop-blur-lg border-r border-border/50 flex flex-col z-50"
+            className="fixed left-0 top-0 bottom-0 w-64 bg-card border-r border-border flex flex-col z-50"
           >
             {/* Header with logo */}
             <div className="p-4 border-b border-border/50">
               <div className="flex items-center gap-3">
                 <img src="/icon-192.png" alt="kAInban" className="w-8 h-8 object-contain" />
                 <div>
-                  <h1 className="text-lg font-bold bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent">
+                  <h1 className="text-lg font-emphasis tracking-tight text-foreground">
                     kAInban
                   </h1>
                 </div>

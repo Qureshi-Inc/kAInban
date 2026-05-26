@@ -55,7 +55,7 @@ function AuthenticatedApp() {
 
   useEffect(() => {
     // Check authentication and initialize in parallel
-    const initApp = async () => {
+    const initApp = async() => {
       try {
         // Check authentication first
         const authenticatedUser = await checkAuth()
@@ -132,70 +132,40 @@ function AuthenticatedApp() {
     // Show modern loading screen on first mount
     if (!authChecked) {
       return (
-        <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 flex items-center justify-center">
+        <div className="min-h-screen bg-background flex items-center justify-center">
           <div className="text-center p-8">
             <motion.div
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.5 }}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.32, ease: [0.16, 1, 0.3, 1] }}
               className="space-y-6"
             >
-              {/* Modern logo animation */}
-              <div className="relative">
-                <motion.div
-                  className="w-20 h-20 rounded-2xl bg-gradient-to-br from-primary via-primary/90 to-primary/80 flex items-center justify-center text-white text-3xl shadow-2xl mx-auto"
-                  animate={{
-                    rotate: [0, 360],
-                    scale: [1, 1.1, 1]
-                  }}
-                  transition={{
-                    duration: 2,
-                    repeat: Infinity,
-                    ease: 'easeInOut'
-                  }}
-                >
-                  🎤
-                </motion.div>
-
-                {/* Pulse rings */}
-                <motion.div
-                  className="absolute inset-0 w-20 h-20 rounded-2xl border-2 border-primary/30 mx-auto"
-                  animate={{
-                    scale: [1, 1.5, 1],
-                    opacity: [0.5, 0, 0.5]
-                  }}
-                  transition={{
-                    duration: 2,
-                    repeat: Infinity,
-                    ease: 'easeInOut'
-                  }}
-                />
+              {/* Logo — solid accent surface, no gradient/rotate animation */}
+              <div className="w-16 h-16 rounded-md bg-primary text-primary-foreground flex items-center justify-center text-2xl mx-auto border border-primary">
+                🎤
               </div>
 
               {/* Loading text */}
               <div className="space-y-2">
-                <h2 className="text-2xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+                <h2 className="text-2xl font-emphasis tracking-tight text-foreground">
                   kAInban
                 </h2>
                 <motion.p
-                  className="text-muted-foreground"
+                  className="text-muted-foreground text-sm"
                   animate={{ opacity: [0.5, 1, 0.5] }}
-                  transition={{ duration: 1.5, repeat: Infinity }}
+                  transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}
                 >
-                  Initializing your workspace...
+                  Initializing your workspace
                 </motion.p>
               </div>
 
-              {/* Loading bar */}
-              <div className="w-48 h-1 bg-muted rounded-full overflow-hidden mx-auto">
+              {/* Loading bar — single accent, no gradient sweep */}
+              <div className="w-48 h-px bg-border overflow-hidden mx-auto">
                 <motion.div
-                  className="h-full bg-gradient-to-r from-primary via-secondary to-primary"
+                  className="h-full bg-primary"
                   animate={{ x: [-192, 192] }}
-                  transition={{
-                    duration: 1.5,
-                    repeat: Infinity,
-                    ease: 'easeInOut'
-                  }}
+                  transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}
+                  style={{ width: '40%' }}
                 />
               </div>
             </motion.div>
@@ -234,38 +204,39 @@ function AuthenticatedApp() {
   // Show loading while initializing after login
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center p-8">
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.32, ease: [0.16, 1, 0.3, 1] }}
             className="space-y-6"
           >
-            {/* Skeleton loading for workspace */}
+            {/* Skeleton loading for workspace — flat surface ladder, no gradient */}
             <div className="space-y-4">
-              <div className="w-16 h-16 bg-gradient-to-br from-primary/20 to-primary/10 rounded-xl mx-auto animate-pulse" />
+              <div className="w-14 h-14 bg-muted rounded-md mx-auto animate-pulse" />
               <div className="space-y-2">
-                <div className="h-6 w-32 bg-muted animate-pulse rounded mx-auto" />
-                <div className="h-4 w-48 bg-muted/60 animate-pulse rounded mx-auto" />
+                <div className="h-5 w-32 bg-muted animate-pulse rounded mx-auto" />
+                <div className="h-3 w-48 bg-muted animate-pulse rounded mx-auto" />
               </div>
             </div>
 
             {/* Workspace skeleton */}
-            <div className="w-80 max-w-full space-y-3">
-              <div className="h-12 bg-muted animate-pulse rounded-lg" />
+            <div className="w-80 max-w-full space-y-2">
+              <div className="h-10 bg-muted animate-pulse rounded" />
               <div className="grid grid-cols-3 gap-2">
-                <div className="h-20 bg-muted/60 animate-pulse rounded" />
-                <div className="h-20 bg-muted/60 animate-pulse rounded" />
-                <div className="h-20 bg-muted/60 animate-pulse rounded" />
+                <div className="h-16 bg-muted animate-pulse rounded" />
+                <div className="h-16 bg-muted animate-pulse rounded" />
+                <div className="h-16 bg-muted animate-pulse rounded" />
               </div>
             </div>
 
             <motion.p
               className="text-sm text-muted-foreground"
               animate={{ opacity: [0.5, 1, 0.5] }}
-              transition={{ duration: 2, repeat: Infinity }}
+              transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
             >
-              Setting up your workspace...
+              Setting up your workspace
             </motion.p>
           </motion.div>
         </div>
@@ -274,15 +245,15 @@ function AuthenticatedApp() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
+    <div className="min-h-screen bg-background">
       {/* Left Sidebar - Overlay when open */}
       <LeftSidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
       {/* Main content area - full width */}
       <div className="flex flex-col min-h-screen">
-        {/* Header with hamburger menu and activity button */}
-        <div className="sticky top-0 z-40 backdrop-blur-xl bg-background/80 border-b border-border/50">
-          <div className="w-full px-6 py-4">
+        {/* Sticky header — solid surface, hairline rule */}
+        <div className="sticky top-0 z-40 bg-background border-b border-border">
+          <div className="w-full px-3 sm:px-6 py-3">
             <Header
               onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
               onShowActivity={() => setActivityPanelOpen(true)}
@@ -291,12 +262,12 @@ function AuthenticatedApp() {
         </div>
 
         {/* Content */}
-        <div className="flex-1 px-6 py-8">
+        <div className="flex-1 px-3 sm:px-6 py-6 sm:py-8">
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 4 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, ease: 'easeOut' }}
-            className="space-y-8 max-w-[1920px] mx-auto"
+            transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
+            className="space-y-6 sm:space-y-8 max-w-[1400px] mx-auto"
           >
             <Routes>
               <Route path="/" element={<MainView />} />
@@ -305,15 +276,13 @@ function AuthenticatedApp() {
           </motion.div>
         </div>
 
-        {/* Footer */}
-        <footer className="py-8 border-t border-border/50 bg-card/30 backdrop-blur-sm">
+        {/* Footer — newspaper colophon style */}
+        <footer className="py-6 border-t border-border bg-background">
           <div className="text-center px-6">
-            <p className="text-sm text-muted-foreground">
-              Built with <span className="text-red-500">♥</span> by{' '}
-              <span className="font-medium text-foreground">
-                InterestingSoup
-              </span>{' '}
-              <span className="text-xs opacity-70">2025</span>
+            <p className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider font-mono">
+              kAInban · built by{' '}
+              <span className="text-foreground">InterestingSoup</span>{' '}
+              · 2026
             </p>
           </div>
         </footer>

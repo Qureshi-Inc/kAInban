@@ -115,7 +115,7 @@ Type "DELETE" to confirm:`
     <div className="p-2 sm:p-6 max-w-6xl mx-auto">
       <div className="flex items-center gap-3 mb-4 sm:mb-6">
         <Users className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
-        <h2 className="text-lg sm:text-2xl font-bold">User Management</h2>
+        <h2 className="text-lg sm:text-2xl font-emphasis">User Management</h2>
       </div>
 
       {/* Mobile Card View (sm and below) */}
@@ -125,7 +125,7 @@ Type "DELETE" to confirm:`
             key={u.id}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 space-y-3"
+            className="bg-card rounded-lg shadow p-4 space-y-3"
           >
             <div className="flex items-start justify-between">
               <div className="flex items-center space-x-3">
@@ -143,10 +143,10 @@ Type "DELETE" to confirm:`
                   </div>
                 )}
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+                  <div className="text-sm font-medium text-foreground truncate">
                     {u.name || 'No name'}
                   </div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1 truncate">
+                  <div className="text-xs text-muted-foreground flex items-center gap-1 truncate">
                     <Mail className="h-3 w-3 flex-shrink-0" />
                     <span className="truncate">{u.email}</span>
                   </div>
@@ -157,7 +157,7 @@ Type "DELETE" to confirm:`
                   variant="ghost"
                   size="sm"
                   onClick={() => handleDeleteUser(u.id, u.name || u.email)}
-                  className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 p-2"
+                  className="text-destructive hover:text-destructive hover:bg-destructive/10 dark:hover:bg-red-900/20 p-2"
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>
@@ -166,26 +166,26 @@ Type "DELETE" to confirm:`
 
             <div className="grid grid-cols-2 gap-4 text-xs">
               <div>
-                <span className="font-medium text-gray-500 dark:text-gray-400">Auth Method</span>
+                <span className="font-medium text-muted-foreground">Auth Method</span>
                 <div className="flex items-center gap-1 mt-1">
                   {u.auth_provider === 'oidc' ? (
                     <>
                       <Key className="h-3 w-3 text-blue-500" />
-                      <span className="text-blue-600 dark:text-blue-400">
+                      <span className="text-info">
                         {oidcProviderLabel(u.oidc_issuer)}
                       </span>
                     </>
                   ) : (
                     <>
-                      <Mail className="h-3 w-3 text-gray-500" />
-                      <span className="text-gray-600 dark:text-gray-400">Email</span>
+                      <Mail className="h-3 w-3 text-muted-foreground" />
+                      <span className="text-muted-foreground">Email</span>
                     </>
                   )}
                 </div>
               </div>
 
               <div>
-                <span className="font-medium text-gray-500 dark:text-gray-400">Role</span>
+                <span className="font-medium text-muted-foreground">Role</span>
                 <div className="mt-1">
                   {u.role === 'admin' ? (
                     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">
@@ -193,7 +193,7 @@ Type "DELETE" to confirm:`
                       Admin
                     </span>
                   ) : (
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200">
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-muted text-foreground">
                       Member
                     </span>
                   )}
@@ -202,8 +202,8 @@ Type "DELETE" to confirm:`
             </div>
 
             <div>
-              <span className="font-medium text-gray-500 dark:text-gray-400 text-xs">Last Login</span>
-              <div className="flex items-center gap-1 mt-1 text-xs text-gray-500 dark:text-gray-400">
+              <span className="font-medium text-muted-foreground text-xs">Last Login</span>
+              <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
                 <Clock className="h-3 w-3" />
                 {formatDate(u.last_login)}
               </div>
@@ -212,10 +212,10 @@ Type "DELETE" to confirm:`
         ))}
 
         {users.length === 0 && (
-          <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-lg">
-            <Users className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-gray-100">No users</h3>
-            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+          <div className="text-center py-12 bg-card rounded-lg">
+            <Users className="mx-auto h-12 w-12 text-muted-foreground" />
+            <h3 className="mt-2 text-sm font-medium text-foreground">No users</h3>
+            <p className="mt-1 text-sm text-muted-foreground">
               No users found in the system.
             </p>
           </div>
@@ -223,35 +223,35 @@ Type "DELETE" to confirm:`
       </div>
 
       {/* Desktop Table View (sm and above) */}
-      <div className="hidden sm:block bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+      <div className="hidden sm:block bg-card rounded-lg shadow overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gray-50 dark:bg-gray-900">
+            <thead className="bg-muted">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   User
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   Auth Method
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   Role
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   Last Login
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   Actions
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+            <tbody className="bg-card divide-y divide-gray-200 dark:divide-gray-700">
               {users.map((u) => (
                 <motion.tr
                   key={u.id}
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                  className="hover:bg-secondary transition-colors"
                 >
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
@@ -269,10 +269,10 @@ Type "DELETE" to confirm:`
                         </div>
                       )}
                       <div>
-                        <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                        <div className="text-sm font-medium text-foreground">
                           {u.name || 'No name'}
                         </div>
-                        <div className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                        <div className="text-sm text-muted-foreground flex items-center gap-1">
                           <Mail className="h-3 w-3" />
                           {u.email}
                         </div>
@@ -284,14 +284,14 @@ Type "DELETE" to confirm:`
                       {u.auth_provider === 'oidc' ? (
                         <>
                           <Key className="h-4 w-4 text-blue-500" />
-                          <span className="text-sm font-medium text-blue-600 dark:text-blue-400">
+                          <span className="text-sm font-medium text-info">
                             {oidcProviderLabel(u.oidc_issuer)}
                           </span>
                         </>
                       ) : (
                         <>
-                          <Mail className="h-4 w-4 text-gray-500" />
-                          <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                          <Mail className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm font-medium text-muted-foreground">
                             Email/Password
                           </span>
                         </>
@@ -305,12 +305,12 @@ Type "DELETE" to confirm:`
                         Admin
                       </span>
                     ) : (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-muted text-foreground">
                         Member
                       </span>
                     )}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
                     <div className="flex items-center gap-1">
                       <Clock className="h-3 w-3" />
                       {formatDate(u.last_login)}
@@ -322,7 +322,7 @@ Type "DELETE" to confirm:`
                         variant="ghost"
                         size="sm"
                         onClick={() => handleDeleteUser(u.id, u.name || u.email)}
-                        className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10 dark:hover:bg-red-900/20"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -336,16 +336,16 @@ Type "DELETE" to confirm:`
 
         {users.length === 0 && (
           <div className="text-center py-12">
-            <Users className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-gray-100">No users</h3>
-            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+            <Users className="mx-auto h-12 w-12 text-muted-foreground" />
+            <h3 className="mt-2 text-sm font-medium text-foreground">No users</h3>
+            <p className="mt-1 text-sm text-muted-foreground">
               No users found in the system.
             </p>
           </div>
         )}
       </div>
 
-      <div className="mt-4 text-xs sm:text-sm text-gray-500 dark:text-gray-400 grid grid-cols-2 sm:flex sm:space-x-6 gap-2 sm:gap-0">
+      <div className="mt-4 text-xs sm:text-sm text-muted-foreground grid grid-cols-2 sm:flex sm:space-x-6 gap-2 sm:gap-0">
         <p>Total users: {users.length}</p>
         <p>Admins: {users.filter(u => u.role === 'admin').length}</p>
         <p>OIDC users: {users.filter(u => u.auth_provider === 'oidc').length}</p>

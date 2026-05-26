@@ -1,0 +1,2068 @@
+<!doctype html>
+<html lang="en" data-theme="paper">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>kAInban — Design System Preview (Newspaper-Light alternative)</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=JetBrains+Mono:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* =========================================================
+         kAInban Design System — NEWSPAPER-LIGHT EDITORIAL
+         The alternative direction. Light-by-default paper canvas,
+         serif headings, brick red masthead accent, editorial
+         flourish (drop caps, small caps, italic pull quotes,
+         hairline rules).
+         ========================================================= */
+      :root,
+      html[data-theme="paper"] {
+        --bg-base: #faf7f2;
+        --bg-raised: #ffffff;
+        --bg-elevated: #f4f1ea;
+        --bg-emphasis: #ebe7df;
+
+        --hairline-low: #d8d1c2;
+        --hairline-mid: #b5ac97;
+        --hairline-high: #87807a;
+        --rule: #15161a;
+
+        --text-primary: #15161a;
+        --text-secondary: #4a453e;
+        --text-muted: #87807a;
+        --text-inverse: #faf7f2;
+
+        --accent: #a8341f; /* brick red, masthead */
+        --accent-hover: #872812;
+        --accent-press: #6b1f0c;
+        --accent-soft: rgba(168, 52, 31, 0.08);
+        --accent-soft-strong: rgba(168, 52, 31, 0.14);
+        --accent-border: rgba(168, 52, 31, 0.32);
+
+        --success: #3f7a52;
+        --success-soft: rgba(63, 122, 82, 0.1);
+        --warning: #b88318;
+        --warning-soft: rgba(184, 131, 24, 0.1);
+        --danger: #a8341f;
+        --danger-soft: rgba(168, 52, 31, 0.08);
+        --info: #2f4f7a;
+        --info-soft: rgba(47, 79, 122, 0.08);
+
+        --font-serif: "Instrument Serif", "Iowan Old Style", Palatino, Georgia,
+          serif;
+        --font-sans: "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI",
+          Roboto, sans-serif;
+        --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Monaco,
+          Consolas, monospace;
+
+        --radius-xs: 2px;
+        --radius-sm: 3px;
+        --radius-md: 4px;
+        --radius-lg: 6px;
+        --radius-full: 9999px;
+
+        --space-2: 2px;
+        --space-4: 4px;
+        --space-8: 8px;
+        --space-12: 12px;
+        --space-16: 16px;
+        --space-24: 24px;
+        --space-32: 32px;
+        --space-48: 48px;
+        --space-64: 64px;
+
+        --ease: cubic-bezier(0.16, 1, 0.3, 1);
+        --dur-fast: 120ms;
+        --dur-base: 180ms;
+        --dur-slow: 320ms;
+      }
+
+      html[data-theme="ink"] {
+        --bg-base: #15140f;
+        --bg-raised: #1f1d17;
+        --bg-elevated: #28251d;
+        --bg-emphasis: #322e24;
+        --hairline-low: #3a362a;
+        --hairline-mid: #524d3f;
+        --hairline-high: #6b6655;
+        --rule: #f5f1e8;
+        --text-primary: #f5f1e8;
+        --text-secondary: #bab3a3;
+        --text-muted: #7a7466;
+        --text-inverse: #15140f;
+        --accent: #d8553a;
+        --accent-hover: #e26948;
+        --accent-press: #b8442a;
+        --accent-soft: rgba(216, 85, 58, 0.12);
+        --accent-soft-strong: rgba(216, 85, 58, 0.2);
+        --accent-border: rgba(216, 85, 58, 0.4);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+      html {
+        background: var(--bg-base);
+      }
+      body {
+        margin: 0;
+        font-family: var(--font-sans);
+        font-size: 14px;
+        line-height: 1.6;
+        color: var(--text-primary);
+        background: var(--bg-base);
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        text-rendering: optimizeLegibility;
+      }
+
+      a {
+        color: var(--accent);
+        text-decoration: none;
+        border-bottom: 1px solid var(--accent-border);
+        padding-bottom: 1px;
+        transition: border-color var(--dur-fast) var(--ease);
+      }
+      a:hover {
+        border-bottom-color: var(--accent);
+      }
+
+      /* ==========================================================
+         Typography utility classes
+         ========================================================== */
+      .t-display {
+        font-family: var(--font-serif);
+        font-weight: 400;
+        font-size: 84px;
+        line-height: 1;
+        letter-spacing: -0.02em;
+      }
+      .t-display-italic {
+        font-family: var(--font-serif);
+        font-style: italic;
+        font-weight: 400;
+      }
+      .t-heading-lg {
+        font-family: var(--font-serif);
+        font-weight: 400;
+        font-size: 42px;
+        line-height: 1.1;
+        letter-spacing: -0.01em;
+      }
+      .t-heading {
+        font-family: var(--font-serif);
+        font-weight: 400;
+        font-size: 28px;
+        line-height: 1.2;
+      }
+      .t-subheading {
+        font-family: var(--font-serif);
+        font-weight: 400;
+        font-size: 20px;
+        line-height: 1.3;
+      }
+      .t-body {
+        font-family: var(--font-sans);
+        font-size: 14px;
+        line-height: 1.6;
+        color: var(--text-primary);
+      }
+      .t-body-em {
+        font-weight: 500;
+      }
+      .t-ui {
+        font-family: var(--font-sans);
+        font-size: 13px;
+        font-weight: 500;
+        line-height: 1.4;
+      }
+      .t-smallcaps {
+        font-family: var(--font-sans);
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--text-secondary);
+      }
+      .t-mono {
+        font-family: var(--font-mono);
+        font-size: 12px;
+        font-variant-numeric: tabular-nums;
+        letter-spacing: -0.02em;
+      }
+
+      /* ==========================================================
+         Toolbar (theme + cross-link)
+         ========================================================== */
+      .toolbar {
+        position: fixed;
+        top: 16px;
+        right: 16px;
+        z-index: 50;
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        padding: 4px 6px 4px 12px;
+        background: var(--bg-raised);
+        border: 1px solid var(--hairline-mid);
+        border-radius: var(--radius-sm);
+        font-size: 12px;
+      }
+      .toolbar .toolbar-link {
+        font-family: var(--font-sans);
+        font-size: 11px;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        border-bottom: 0;
+        padding: 0;
+      }
+      .toolbar .toolbar-link:hover {
+        color: var(--accent);
+      }
+      .toolbar .toolbar-divider {
+        width: 1px;
+        height: 16px;
+        background: var(--hairline-low);
+      }
+      .toolbar button {
+        appearance: none;
+        background: transparent;
+        color: var(--text-secondary);
+        border: 0;
+        padding: 4px 10px;
+        border-radius: var(--radius-xs);
+        font: inherit;
+        font-family: var(--font-sans);
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        cursor: pointer;
+      }
+      .toolbar button[aria-pressed="true"] {
+        background: var(--rule);
+        color: var(--text-inverse);
+      }
+
+      /* ==========================================================
+         Page
+         ========================================================== */
+      .page {
+        max-width: 1180px;
+        margin: 0 auto;
+        padding: 48px 32px 96px;
+      }
+
+      /* Newspaper masthead */
+      .masthead {
+        border-top: 4px solid var(--rule);
+        border-bottom: 1px solid var(--rule);
+        padding: 16px 0 12px;
+        margin-bottom: 48px;
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 24px;
+        flex-wrap: wrap;
+      }
+      .masthead-title {
+        font-family: var(--font-serif);
+        font-weight: 400;
+        font-size: 56px;
+        line-height: 1;
+        letter-spacing: -0.02em;
+        margin: 0;
+      }
+      .masthead-meta {
+        font-family: var(--font-sans);
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--text-secondary);
+        text-align: right;
+      }
+      .masthead-meta div + div {
+        margin-top: 4px;
+      }
+
+      /* Hero */
+      .hero {
+        padding: 32px 0 56px;
+        border-bottom: 1px solid var(--hairline-low);
+        margin-bottom: 48px;
+      }
+      .kicker {
+        font-family: var(--font-sans);
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--accent);
+        margin-bottom: 16px;
+      }
+      .hero h1 {
+        font-family: var(--font-serif);
+        font-weight: 400;
+        font-size: 84px;
+        line-height: 1;
+        letter-spacing: -0.02em;
+        margin: 0 0 20px;
+        max-width: 16ch;
+      }
+      .hero h1 em {
+        font-style: italic;
+        color: var(--accent);
+      }
+      .hero .lede {
+        font-family: var(--font-sans);
+        font-size: 17px;
+        line-height: 1.55;
+        color: var(--text-secondary);
+        max-width: 60ch;
+        margin: 0;
+      }
+
+      section {
+        margin-bottom: 64px;
+      }
+      h2.section-title {
+        font-family: var(--font-serif);
+        font-weight: 400;
+        font-size: 32px;
+        line-height: 1.2;
+        margin: 0 0 6px;
+        color: var(--text-primary);
+      }
+      .section-meta {
+        font-family: var(--font-sans);
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+        padding-bottom: 8px;
+        border-bottom: 1px solid var(--rule);
+        margin-bottom: 24px;
+      }
+
+      /* Palette */
+      .palette-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+        gap: 0;
+        border-top: 1px solid var(--hairline-low);
+        border-left: 1px solid var(--hairline-low);
+      }
+      .swatch {
+        background: var(--bg-raised);
+        border-right: 1px solid var(--hairline-low);
+        border-bottom: 1px solid var(--hairline-low);
+        padding: 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .swatch .chip {
+        height: 56px;
+        border: 1px solid var(--hairline-low);
+      }
+      .swatch .name {
+        font-family: var(--font-serif);
+        font-size: 17px;
+        line-height: 1.2;
+        color: var(--text-primary);
+      }
+      .swatch .hex {
+        font-family: var(--font-mono);
+        font-size: 11px;
+        color: var(--text-muted);
+      }
+      .swatch .role {
+        font-family: var(--font-sans);
+        font-size: 11px;
+        color: var(--text-secondary);
+        letter-spacing: 0.04em;
+      }
+
+      /* Type specimen */
+      .specimen {
+        background: var(--bg-raised);
+        border: 1px solid var(--hairline-low);
+        padding: 32px;
+      }
+      .specimen + .specimen {
+        margin-top: 12px;
+      }
+      .specimen .row {
+        display: grid;
+        grid-template-columns: 160px 1fr;
+        gap: 24px;
+        padding: 18px 0;
+        border-top: 1px solid var(--hairline-low);
+        align-items: baseline;
+      }
+      .specimen .row:first-child {
+        border-top: 0;
+        padding-top: 0;
+      }
+      .specimen .row .label {
+        font-family: var(--font-sans);
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+      }
+
+      /* Buttons */
+      .btn {
+        appearance: none;
+        background: var(--bg-raised);
+        color: var(--text-primary);
+        border: 1px solid var(--hairline-mid);
+        padding: 8px 16px;
+        border-radius: var(--radius-sm);
+        font-family: var(--font-sans);
+        font-size: 13px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all var(--dur-fast) var(--ease);
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        letter-spacing: 0.01em;
+      }
+      .btn:hover {
+        border-color: var(--rule);
+      }
+      .btn-primary {
+        background: var(--accent);
+        color: var(--text-inverse);
+        border-color: var(--accent);
+      }
+      .btn-primary:hover {
+        background: var(--accent-hover);
+        border-color: var(--accent-hover);
+      }
+      .btn-ghost {
+        background: transparent;
+        border-color: transparent;
+        color: var(--text-secondary);
+      }
+      .btn-ghost:hover {
+        background: var(--bg-elevated);
+        color: var(--text-primary);
+      }
+      .btn-danger {
+        background: transparent;
+        color: var(--danger);
+        border-color: var(--hairline-mid);
+      }
+      .btn-sm {
+        padding: 4px 10px;
+        font-size: 12px;
+      }
+      .btn-row {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      /* Form */
+      .field {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .field label {
+        font-family: var(--font-sans);
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--text-secondary);
+      }
+      .field input,
+      .field textarea,
+      .field select {
+        background: var(--bg-raised);
+        border: 0;
+        border-bottom: 1px solid var(--hairline-mid);
+        border-radius: 0;
+        color: var(--text-primary);
+        font: inherit;
+        font-family: var(--font-sans);
+        font-size: 14px;
+        padding: 8px 0;
+        transition: border-color var(--dur-fast) var(--ease);
+      }
+      .field input:focus,
+      .field textarea:focus,
+      .field select:focus {
+        outline: 0;
+        border-bottom-color: var(--accent);
+        border-bottom-width: 2px;
+        padding-bottom: 7px;
+      }
+
+      /* Badges */
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 2px 8px;
+        border-radius: var(--radius-xs);
+        font-family: var(--font-sans);
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        border: 1px solid var(--hairline-mid);
+        background: transparent;
+        color: var(--text-secondary);
+      }
+      .badge-priority-high {
+        background: var(--accent-soft);
+        color: var(--accent);
+        border-color: var(--accent-border);
+      }
+      .badge-priority-med {
+        background: var(--warning-soft);
+        color: var(--warning);
+        border-color: transparent;
+      }
+      .badge-priority-low {
+        background: var(--success-soft);
+        color: var(--success);
+        border-color: transparent;
+      }
+      .badge-ai {
+        background: transparent;
+        color: var(--accent);
+        border: 1px solid var(--accent);
+        font-family: var(--font-serif);
+        font-style: italic;
+        font-weight: 400;
+        font-size: 12px;
+        text-transform: none;
+        letter-spacing: 0;
+        padding: 0 8px;
+      }
+      .badge-mono {
+        font-family: var(--font-mono);
+        text-transform: none;
+        letter-spacing: -0.02em;
+        font-weight: 500;
+      }
+
+      /* Dot */
+      .dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        flex-shrink: 0;
+      }
+
+      /* Alerts (newspaper-style: rule above, label, body) */
+      .alert-row {
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+        border-top: 1px solid var(--hairline-low);
+      }
+      .alert {
+        display: grid;
+        grid-template-columns: 120px 1fr;
+        gap: 16px;
+        padding: 14px 0;
+        border-bottom: 1px solid var(--hairline-low);
+        align-items: baseline;
+      }
+      .alert .alert-label {
+        font-family: var(--font-sans);
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        padding-top: 3px;
+      }
+      .alert.success .alert-label {
+        color: var(--success);
+      }
+      .alert.warning .alert-label {
+        color: var(--warning);
+      }
+      .alert.danger .alert-label {
+        color: var(--danger);
+      }
+      .alert.info .alert-label {
+        color: var(--info);
+      }
+      .alert.ai .alert-label {
+        color: var(--accent);
+        font-family: var(--font-serif);
+        font-style: italic;
+        font-weight: 400;
+        font-size: 14px;
+        text-transform: none;
+        letter-spacing: 0;
+      }
+      .alert .alert-title {
+        font-family: var(--font-serif);
+        font-size: 18px;
+        line-height: 1.3;
+        margin-bottom: 2px;
+      }
+      .alert .alert-body {
+        color: var(--text-secondary);
+        font-size: 13px;
+        line-height: 1.5;
+      }
+
+      /* ==========================================================
+         MOCKUPS
+         ========================================================== */
+      .mockup {
+        background: var(--bg-base);
+        border: 1px solid var(--hairline-mid);
+        overflow: hidden;
+      }
+      .mockup-chrome {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 14px;
+        border-bottom: 1px solid var(--hairline-low);
+        background: var(--bg-elevated);
+        font-family: var(--font-mono);
+        font-size: 11px;
+        color: var(--text-muted);
+      }
+      .mockup-chrome .light {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--hairline-mid);
+      }
+
+      /* App: kanban */
+      .app-shell {
+        display: grid;
+        grid-template-columns: 220px 1fr;
+        min-height: 600px;
+      }
+      .app-side {
+        background: var(--bg-elevated);
+        border-right: 1px solid var(--hairline-low);
+        padding: 24px 14px;
+      }
+      .brand {
+        display: flex;
+        align-items: baseline;
+        gap: 0;
+        padding: 0 6px 20px;
+        border-bottom: 1px solid var(--rule);
+        margin-bottom: 20px;
+      }
+      .brand .brand-title {
+        font-family: var(--font-serif);
+        font-weight: 400;
+        font-size: 26px;
+        line-height: 1;
+      }
+      .brand .brand-title em {
+        font-style: italic;
+        color: var(--accent);
+      }
+      .nav-section {
+        margin-top: 16px;
+      }
+      .nav-section .label {
+        font-family: var(--font-sans);
+        font-size: 10px;
+        font-weight: 700;
+        color: var(--text-muted);
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        padding: 0 8px 8px;
+      }
+      .nav-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        padding: 6px 8px;
+        border-radius: var(--radius-xs);
+        color: var(--text-secondary);
+        font-family: var(--font-sans);
+        font-size: 14px;
+        cursor: pointer;
+      }
+      .nav-item:hover {
+        color: var(--text-primary);
+        background: var(--bg-emphasis);
+      }
+      .nav-item.active {
+        color: var(--text-primary);
+        background: transparent;
+        font-weight: 500;
+      }
+      .nav-item.active::before {
+        content: "›";
+        position: absolute;
+        margin-left: -16px;
+        color: var(--accent);
+        font-family: var(--font-serif);
+        font-size: 18px;
+        line-height: 1;
+      }
+      .nav-item .count {
+        font-family: var(--font-mono);
+        font-size: 11px;
+        color: var(--text-muted);
+      }
+
+      .app-main {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+        background: var(--bg-base);
+      }
+      .app-header {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        padding: 16px 24px;
+        border-bottom: 1px solid var(--hairline-low);
+        gap: 16px;
+      }
+      .app-header .breadcrumbs {
+        font-family: var(--font-sans);
+        font-size: 13px;
+        color: var(--text-secondary);
+      }
+      .app-header .breadcrumbs strong {
+        color: var(--text-primary);
+        font-weight: 600;
+      }
+      .app-header .project-name {
+        font-family: var(--font-serif);
+        font-style: italic;
+        color: var(--text-primary);
+        font-weight: 400;
+        font-size: 17px;
+      }
+      .cmdk {
+        flex: 1;
+        max-width: 320px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: var(--bg-raised);
+        border: 1px solid var(--hairline-low);
+        border-radius: var(--radius-xs);
+        padding: 5px 10px;
+        font-family: var(--font-sans);
+        font-size: 12px;
+        color: var(--text-muted);
+        cursor: text;
+      }
+      .cmdk kbd {
+        font-family: var(--font-mono);
+        font-size: 10px;
+        background: transparent;
+        color: var(--text-secondary);
+        padding: 2px 4px;
+        border: 1px solid var(--hairline-mid);
+        margin-left: auto;
+      }
+
+      .kanban {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 0;
+        padding: 0;
+        flex: 1;
+        background: var(--bg-base);
+        overflow: hidden;
+      }
+      .kanban-col {
+        background: var(--bg-base);
+        border-right: 1px solid var(--hairline-low);
+        padding: 16px 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        min-width: 0;
+      }
+      .kanban-col:last-child {
+        border-right: 0;
+      }
+      .col-header {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        padding: 0 0 10px;
+        border-bottom: 1px solid var(--rule);
+        margin-bottom: 4px;
+      }
+      .col-header .name {
+        font-family: var(--font-serif);
+        font-size: 19px;
+        line-height: 1;
+        font-style: italic;
+      }
+      .col-header .count {
+        font-family: var(--font-mono);
+        font-size: 11px;
+        color: var(--text-muted);
+        font-variant-numeric: tabular-nums;
+      }
+
+      .task {
+        background: var(--bg-raised);
+        border: 1px solid var(--hairline-low);
+        border-radius: 0;
+        padding: 12px 14px;
+        cursor: grab;
+        transition: border-color var(--dur-fast) var(--ease);
+        position: relative;
+      }
+      .task:hover {
+        border-color: var(--hairline-mid);
+      }
+      .task-title {
+        font-family: var(--font-sans);
+        font-size: 14px;
+        line-height: 1.4;
+        font-weight: 500;
+        margin-bottom: 10px;
+        color: var(--text-primary);
+      }
+      .task-meta {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      .task-id {
+        font-family: var(--font-mono);
+        font-size: 10px;
+        color: var(--text-muted);
+        font-variant-numeric: tabular-nums;
+      }
+      .task-date {
+        font-family: var(--font-mono);
+        font-size: 10px;
+        color: var(--text-secondary);
+        font-variant-numeric: tabular-nums;
+      }
+      .task-assignee {
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        background: var(--bg-emphasis);
+        border: 1px solid var(--hairline-mid);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: var(--font-serif);
+        font-style: italic;
+        font-size: 11px;
+        color: var(--text-primary);
+      }
+
+      .task.ai-active {
+        border-color: var(--accent-border);
+        animation: ai-border-pulse 1.6s var(--ease) infinite;
+      }
+      @keyframes ai-border-pulse {
+        0%,
+        100% {
+          border-color: var(--accent-border);
+        }
+        50% {
+          border-color: var(--accent);
+        }
+      }
+
+      /* Dashboard */
+      .dashboard {
+        padding: 40px 56px;
+        background: var(--bg-base);
+      }
+      .dashboard .dash-header {
+        margin-bottom: 32px;
+        padding-bottom: 16px;
+        border-bottom: 4px solid var(--rule);
+      }
+      .dashboard .dash-header .kicker {
+        margin-bottom: 8px;
+      }
+      .dashboard .dash-header h1 {
+        font-family: var(--font-serif);
+        font-weight: 400;
+        font-size: 64px;
+        line-height: 1;
+        letter-spacing: -0.02em;
+        margin: 0 0 8px;
+      }
+      .dashboard .dash-header h1 em {
+        font-style: italic;
+      }
+      .dashboard .dash-header .sub {
+        font-family: var(--font-sans);
+        color: var(--text-secondary);
+        font-size: 14px;
+      }
+      .stat-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 0;
+        border-top: 1px solid var(--hairline-low);
+        border-bottom: 1px solid var(--hairline-low);
+        margin-bottom: 32px;
+      }
+      .stat {
+        padding: 20px 22px;
+        border-right: 1px solid var(--hairline-low);
+      }
+      .stat:last-child {
+        border-right: 0;
+      }
+      .stat .stat-label {
+        font-family: var(--font-sans);
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+        margin-bottom: 10px;
+      }
+      .stat .stat-value {
+        font-family: var(--font-serif);
+        font-weight: 400;
+        font-size: 42px;
+        line-height: 1;
+        letter-spacing: -0.02em;
+        font-variant-numeric: tabular-nums;
+        margin-bottom: 4px;
+      }
+      .stat .stat-delta {
+        font-family: var(--font-mono);
+        font-size: 11px;
+        color: var(--success);
+        font-variant-numeric: tabular-nums;
+      }
+      .stat .stat-delta.down {
+        color: var(--danger);
+      }
+
+      .ai-card {
+        background: var(--bg-raised);
+        border: 1px solid var(--hairline-low);
+        border-top: 4px solid var(--accent);
+        padding: 24px 28px 28px;
+      }
+      .ai-card .ai-kicker {
+        font-family: var(--font-sans);
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--accent);
+        margin-bottom: 12px;
+      }
+      .ai-card h3 {
+        font-family: var(--font-serif);
+        font-weight: 400;
+        font-size: 32px;
+        line-height: 1.15;
+        letter-spacing: -0.01em;
+        margin: 0 0 12px;
+        max-width: 32ch;
+      }
+      .ai-card .ai-body {
+        font-family: var(--font-sans);
+        color: var(--text-secondary);
+        font-size: 14px;
+        line-height: 1.55;
+        max-width: 62ch;
+        margin: 0 0 16px;
+      }
+
+      /* Meeting summary — the editorial moment */
+      .summary {
+        background: var(--bg-base);
+        padding: 56px 72px 64px;
+      }
+      .summary .doc-meta {
+        display: flex;
+        gap: 24px;
+        flex-wrap: wrap;
+        font-family: var(--font-sans);
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+        padding-bottom: 14px;
+        border-bottom: 1px solid var(--rule);
+        margin-bottom: 32px;
+      }
+      .summary h1 {
+        font-family: var(--font-serif);
+        font-weight: 400;
+        font-size: 64px;
+        line-height: 1;
+        letter-spacing: -0.02em;
+        margin: 0 0 16px;
+        max-width: 20ch;
+      }
+      .summary h1 em {
+        font-style: italic;
+      }
+      .summary-lede {
+        font-family: var(--font-sans);
+        font-size: 17px;
+        line-height: 1.6;
+        color: var(--text-primary);
+        max-width: 60ch;
+        margin: 0 0 32px;
+      }
+      .summary-lede::first-letter {
+        font-family: var(--font-serif);
+        font-style: italic;
+        font-weight: 400;
+        float: left;
+        font-size: 78px;
+        line-height: 0.85;
+        margin: 8px 12px 0 -2px;
+        color: var(--accent);
+      }
+      .summary h2 {
+        font-family: var(--font-sans);
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+        margin: 40px 0 12px;
+        padding-bottom: 6px;
+        border-bottom: 1px solid var(--hairline-mid);
+      }
+      .summary .action-list {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+      .summary .action-list li {
+        display: grid;
+        grid-template-columns: 24px 1fr auto;
+        gap: 16px;
+        padding: 14px 0;
+        border-bottom: 1px solid var(--hairline-low);
+        align-items: start;
+        font-family: var(--font-sans);
+        font-size: 15px;
+      }
+      .summary .action-list li:first-child {
+        border-top: 1px solid var(--hairline-low);
+      }
+      .summary .action-list .check {
+        width: 16px;
+        height: 16px;
+        border: 1.5px solid var(--rule);
+        margin-top: 4px;
+        flex-shrink: 0;
+      }
+      .summary .action-list .check.done {
+        background: var(--accent);
+        border-color: var(--accent);
+        position: relative;
+      }
+      .summary .action-list .check.done::after {
+        content: "";
+        position: absolute;
+        left: 3px;
+        top: 0px;
+        width: 5px;
+        height: 9px;
+        border: solid var(--text-inverse);
+        border-width: 0 1.5px 1.5px 0;
+        transform: rotate(45deg);
+      }
+      .summary .action-list .item-title {
+        font-weight: 500;
+      }
+      .summary .action-list .item-sub {
+        color: var(--text-secondary);
+        font-size: 13px;
+        margin-top: 2px;
+      }
+      .summary .action-list .owner {
+        font-family: var(--font-mono);
+        font-size: 10px;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        padding-top: 4px;
+        white-space: nowrap;
+      }
+
+      /* Pull quote — flush left, italic, no marks, Bringhurst-style */
+      .quote-block {
+        font-family: var(--font-serif);
+        font-style: italic;
+        font-weight: 400;
+        font-size: 32px;
+        line-height: 1.2;
+        color: var(--text-primary);
+        max-width: 22ch;
+        margin: 32px 0;
+        padding: 0;
+        border: 0;
+        position: relative;
+      }
+      .quote-cite {
+        font-family: var(--font-sans);
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        color: var(--text-muted);
+        margin-top: 12px;
+        font-style: normal;
+      }
+
+      .summary-grid {
+        display: grid;
+        grid-template-columns: 1fr 380px;
+        gap: 56px;
+        align-items: start;
+      }
+      .summary-aside {
+        padding-left: 32px;
+        border-left: 1px solid var(--hairline-low);
+      }
+
+      /* Auth */
+      .auth {
+        display: grid;
+        grid-template-columns: 1.2fr 1fr;
+        min-height: 540px;
+      }
+      .auth-marketing {
+        padding: 64px 56px;
+        background: var(--bg-base);
+        border-right: 1px solid var(--hairline-low);
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+      }
+      .auth-marketing .kicker {
+        margin-bottom: 16px;
+      }
+      .auth-marketing h2 {
+        font-family: var(--font-serif);
+        font-weight: 400;
+        font-size: 56px;
+        line-height: 1;
+        letter-spacing: -0.02em;
+        margin: 0 0 24px;
+        max-width: 14ch;
+      }
+      .auth-marketing h2 em {
+        font-style: italic;
+        color: var(--accent);
+      }
+      .auth-marketing p {
+        font-family: var(--font-sans);
+        color: var(--text-secondary);
+        font-size: 15px;
+        line-height: 1.55;
+        max-width: 38ch;
+        margin: 0;
+      }
+      .auth-foot {
+        font-family: var(--font-sans);
+        font-size: 10px;
+        font-weight: 700;
+        color: var(--text-muted);
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        padding-top: 40px;
+        border-top: 1px solid var(--hairline-low);
+        margin-top: 32px;
+      }
+      .auth-form {
+        padding: 56px 48px;
+        background: var(--bg-elevated);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 18px;
+        max-width: 360px;
+      }
+      .auth-form .form-title {
+        font-family: var(--font-serif);
+        font-size: 28px;
+        font-weight: 400;
+        line-height: 1.2;
+        margin-bottom: 4px;
+      }
+      .auth-form .form-sub {
+        font-family: var(--font-sans);
+        color: var(--text-secondary);
+        font-size: 13px;
+        margin-bottom: 8px;
+      }
+      .oidc-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        background: var(--bg-raised);
+        border: 1px solid var(--hairline-mid);
+        color: var(--text-primary);
+        font-family: var(--font-sans);
+        font-size: 14px;
+        font-weight: 500;
+        padding: 12px 14px;
+        border-radius: var(--radius-sm);
+        cursor: pointer;
+        transition: border-color var(--dur-fast) var(--ease);
+      }
+      .oidc-btn:hover {
+        border-color: var(--rule);
+      }
+      .auth-form .divider {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-family: var(--font-sans);
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        font-weight: 700;
+        color: var(--text-muted);
+      }
+      .auth-form .divider::before,
+      .auth-form .divider::after {
+        content: "";
+        flex: 1;
+        height: 1px;
+        background: var(--hairline-mid);
+      }
+
+      /* Decision log */
+      .decision-grid {
+        display: grid;
+        grid-template-columns: 1.6fr 2fr 1fr;
+        gap: 0;
+        background: var(--bg-base);
+        border: 1px solid var(--hairline-low);
+      }
+      .decision-grid > div {
+        padding: 14px 18px;
+        border-bottom: 1px solid var(--hairline-low);
+        font-family: var(--font-sans);
+        font-size: 13px;
+        line-height: 1.5;
+        color: var(--text-secondary);
+      }
+      .decision-grid .head {
+        background: var(--bg-elevated);
+        color: var(--text-primary);
+        font-family: var(--font-sans);
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        border-bottom: 1px solid var(--rule);
+      }
+      .decision-grid > div:nth-last-child(-n + 3) {
+        border-bottom: 0;
+      }
+      .decision-cell-title {
+        color: var(--text-primary) !important;
+        font-family: var(--font-serif) !important;
+        font-size: 17px !important;
+        line-height: 1.2 !important;
+      }
+
+      .grid-2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+      }
+      .card-pad {
+        background: var(--bg-raised);
+        border: 1px solid var(--hairline-low);
+        padding: 24px;
+      }
+      hr.div {
+        border: 0;
+        border-top: 1px solid var(--hairline-low);
+        margin: 24px 0;
+      }
+      .colophon {
+        margin-top: 96px;
+        padding-top: 24px;
+        border-top: 4px solid var(--rule);
+        font-family: var(--font-mono);
+        font-size: 11px;
+        letter-spacing: 0.02em;
+        color: var(--text-muted);
+      }
+
+      @media (max-width: 920px) {
+        .page {
+          padding: 32px 16px 64px;
+        }
+        .masthead-title {
+          font-size: 36px;
+        }
+        .hero h1 {
+          font-size: 48px;
+        }
+        .grid-2,
+        .stat-grid,
+        .auth,
+        .summary-grid {
+          grid-template-columns: 1fr;
+        }
+        .kanban {
+          grid-template-columns: 1fr 1fr;
+        }
+        .app-shell {
+          grid-template-columns: 1fr;
+        }
+        .app-side {
+          display: none;
+        }
+        .summary {
+          padding: 32px 20px;
+        }
+        .summary-aside {
+          padding-left: 0;
+          border-left: 0;
+          padding-top: 24px;
+          border-top: 1px solid var(--hairline-low);
+        }
+        .auth-marketing {
+          border-right: 0;
+          border-bottom: 1px solid var(--hairline-low);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="toolbar" role="group" aria-label="Theme and navigation">
+      <a class="toolbar-link" href="index.html">← Workhorse Dark</a>
+      <div class="toolbar-divider"></div>
+      <button type="button" data-theme-btn="paper" aria-pressed="true">
+        Paper
+      </button>
+      <button type="button" data-theme-btn="ink" aria-pressed="false">
+        Ink
+      </button>
+    </div>
+
+    <main class="page">
+      <header class="masthead">
+        <h1 class="masthead-title">kAInban</h1>
+        <div class="masthead-meta">
+          <div>Design system v3 · alternative</div>
+          <div>The Newspaper-Light Edition · 2026</div>
+        </div>
+      </header>
+
+      <section class="hero">
+        <div class="kicker">An editorial proposal — read alongside the Workhorse Dark direction</div>
+        <h1>The productivity tool that <em>reads</em> like a Sunday paper.</h1>
+        <p class="lede">
+          Light-by-default paper canvas. Serif headings. Brick-red masthead
+          accent. Drop caps on the AI's writing. Less terminal, more memoir.
+          Where Workhorse Dark says "serious software for serious work," this
+          says "considered software for considered work" — calm, optimistic,
+          and unafraid to look like a publication.
+        </p>
+      </section>
+
+      <!-- ====================== COLOR ====================== -->
+      <section>
+        <h2 class="section-title">Color</h2>
+        <p class="section-meta">Paper canvas · brick-red masthead accent · warm hairlines</p>
+
+        <div class="palette-grid">
+          <div class="swatch">
+            <div class="chip" style="background: var(--bg-base)"></div>
+            <div>
+              <div class="name">Paper</div>
+              <div class="hex">#FAF7F2</div>
+              <div class="role">Canvas</div>
+            </div>
+          </div>
+          <div class="swatch">
+            <div class="chip" style="background: var(--bg-raised)"></div>
+            <div>
+              <div class="name">Card</div>
+              <div class="hex">#FFFFFF</div>
+              <div class="role">Cards on paper</div>
+            </div>
+          </div>
+          <div class="swatch">
+            <div class="chip" style="background: var(--bg-elevated)"></div>
+            <div>
+              <div class="name">Cream</div>
+              <div class="hex">#F4F1EA</div>
+              <div class="role">Sidebar, hover</div>
+            </div>
+          </div>
+          <div class="swatch">
+            <div class="chip" style="background: var(--bg-emphasis)"></div>
+            <div>
+              <div class="name">Deep cream</div>
+              <div class="hex">#EBE7DF</div>
+              <div class="role">Active</div>
+            </div>
+          </div>
+          <div class="swatch">
+            <div class="chip" style="background: var(--accent); border-color: var(--accent);"></div>
+            <div>
+              <div class="name">Masthead red</div>
+              <div class="hex">#A8341F</div>
+              <div class="role">CTA, focus, AI active</div>
+            </div>
+          </div>
+          <div class="swatch">
+            <div class="chip" style="background: var(--accent-soft); border-color: var(--accent-border);"></div>
+            <div>
+              <div class="name">Red soft</div>
+              <div class="hex">rgba(168,52,31,.08)</div>
+              <div class="role">AI tint</div>
+            </div>
+          </div>
+          <div class="swatch">
+            <div class="chip" style="background: var(--rule)"></div>
+            <div>
+              <div class="name">Rule (ink)</div>
+              <div class="hex">#15161A</div>
+              <div class="role">Newspaper rules, text</div>
+            </div>
+          </div>
+          <div class="swatch">
+            <div class="chip" style="background: var(--success); border-color: transparent;"></div>
+            <div>
+              <div class="name">Sage</div>
+              <div class="hex">#3F7A52</div>
+              <div class="role">Done, low priority</div>
+            </div>
+          </div>
+          <div class="swatch">
+            <div class="chip" style="background: var(--warning); border-color: transparent;"></div>
+            <div>
+              <div class="name">Ochre</div>
+              <div class="hex">#B88318</div>
+              <div class="role">Warning, medium priority</div>
+            </div>
+          </div>
+        </div>
+
+        <hr class="div" />
+
+        <div class="alert-row">
+          <div class="alert ai">
+            <div class="alert-label">AI noted</div>
+            <div>
+              <div class="alert-title">Four action items extracted from Tuesday's call.</div>
+              <div class="alert-body">
+                The team committed to a Friday review. Tasks added to <em>Q2 launch</em>. Open the meeting to verify each commitment against its transcript span.
+              </div>
+            </div>
+          </div>
+          <div class="alert success">
+            <div class="alert-label">Ready</div>
+            <div>
+              <div class="alert-title">Meeting transcript ready.</div>
+              <div class="alert-body">kickoff_2026-05-26.m4a · 42 minutes · 7 speakers</div>
+            </div>
+          </div>
+          <div class="alert warning">
+            <div class="alert-label">Attention</div>
+            <div>
+              <div class="alert-title">Three tasks overdue in this project.</div>
+              <div class="alert-body">Two are blocked on dependencies. Open the board to triage.</div>
+            </div>
+          </div>
+          <div class="alert danger">
+            <div class="alert-label">Failed</div>
+            <div>
+              <div class="alert-title">Recording failed to upload.</div>
+              <div class="alert-body">Network dropped at 78%. We'll retry automatically — no audio lost.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ====================== TYPOGRAPHY ====================== -->
+      <section>
+        <h2 class="section-title">Typography</h2>
+        <p class="section-meta">
+          Instrument Serif for headings · DM Sans for body and UI · JetBrains Mono for data
+        </p>
+
+        <div class="specimen">
+          <div class="row">
+            <span class="label">Display 84 · Instrument</span>
+            <span class="t-display">A coworker who reads, listens, then writes.</span>
+          </div>
+          <div class="row">
+            <span class="label">Display italic 84</span>
+            <span class="t-display t-display-italic">A coworker who reads, listens, then writes.</span>
+          </div>
+          <div class="row">
+            <span class="label">Heading-LG 42 · Instrument</span>
+            <span class="t-heading-lg">Built for back-to-back operators.</span>
+          </div>
+          <div class="row">
+            <span class="label">Heading 28 · Instrument</span>
+            <span class="t-heading">Project — Q2 product launch</span>
+          </div>
+          <div class="row">
+            <span class="label">Subhead 20 · Instrument</span>
+            <span class="t-subheading">In this section</span>
+          </div>
+          <div class="row">
+            <span class="label">Body 14 · DM Sans 400</span>
+            <span class="t-body">Drop in a meeting recording and we extract action items, status, owners, and due dates. Every claim links back to the transcript span — so you can verify before you ship.</span>
+          </div>
+          <div class="row">
+            <span class="label">Body-Em 14 · DM Sans 500</span>
+            <span class="t-body t-body-em">Audio in, kanban out — verify, then trust.</span>
+          </div>
+          <div class="row">
+            <span class="label">UI 13 · DM Sans 500</span>
+            <span class="t-ui">In Review</span>
+          </div>
+          <div class="row">
+            <span class="label">Small caps 11 · DM Sans 600 · 0.14em</span>
+            <span class="t-smallcaps">Updated four minutes ago</span>
+          </div>
+          <div class="row">
+            <span class="label">Mono 12 · JetBrains Mono · tabular</span>
+            <span class="t-mono">TASK-4827 · 2026-05-28 · 14:32 · 02:14:08</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ====================== UI ATOMS ====================== -->
+      <section>
+        <h2 class="section-title">Buttons, fields, badges</h2>
+        <p class="section-meta">
+          Sans for action surfaces · serif italic for AI labels · destructive shares the masthead red
+        </p>
+
+        <div class="grid-2">
+          <div class="card-pad">
+            <div class="t-smallcaps" style="margin-bottom: 16px">Buttons</div>
+            <div class="btn-row">
+              <button class="btn btn-primary">
+                <span>Extract tasks</span>
+                <span class="t-mono" style="opacity: 0.85; font-size: 10px">⏎</span>
+              </button>
+              <button class="btn">Open transcript</button>
+              <button class="btn btn-ghost">Cancel</button>
+              <button class="btn btn-danger">Delete recording</button>
+            </div>
+            <div class="btn-row" style="margin-top: 12px">
+              <button class="btn btn-sm btn-primary">+ Task</button>
+              <button class="btn btn-sm">Move</button>
+              <button class="btn btn-sm btn-ghost">···</button>
+            </div>
+          </div>
+
+          <div class="card-pad">
+            <div class="t-smallcaps" style="margin-bottom: 16px">Form controls</div>
+            <div style="display: flex; flex-direction: column; gap: 18px">
+              <div class="field">
+                <label>Project name</label>
+                <input value="Q2 product launch" />
+              </div>
+              <div class="field">
+                <label>Default assignee</label>
+                <select><option>Amir Q.</option><option>Selin K.</option></select>
+              </div>
+              <div class="field">
+                <label>Meeting notes (optional)</label>
+                <textarea rows="2">Tuesday weekly sync, async ok</textarea>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <hr class="div" />
+
+        <div class="card-pad">
+          <div class="t-smallcaps" style="margin-bottom: 16px">Badges</div>
+          <div class="btn-row">
+            <span class="badge badge-priority-high"><span class="dot" style="background: var(--accent)"></span>HIGH</span>
+            <span class="badge badge-priority-med"><span class="dot" style="background: var(--warning)"></span>MED</span>
+            <span class="badge badge-priority-low"><span class="dot" style="background: var(--success)"></span>LOW</span>
+            <span class="badge"><span class="dot" style="background: var(--text-muted)"></span>BLOCKED</span>
+            <span class="badge badge-ai">AI extracted</span>
+            <span class="badge badge-mono">TASK-4827</span>
+            <span class="badge">Due 28 May</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ====================== MOCKUP: KANBAN ====================== -->
+      <section>
+        <h2 class="section-title">App view — Kanban</h2>
+        <p class="section-meta">
+          Sidebar with masthead wordmark · serif italic column heads · cards as paper slips
+        </p>
+
+        <div class="mockup">
+          <div class="mockup-chrome">
+            <span class="light"></span>
+            <span class="light"></span>
+            <span class="light"></span>
+            <span style="margin-left: 12px">kainban.app/p/q2-launch</span>
+          </div>
+          <div class="app-shell">
+            <aside class="app-side">
+              <div class="brand">
+                <span class="brand-title">k<em>AI</em>nban</span>
+              </div>
+              <div class="nav-section">
+                <div class="label">Workspace</div>
+                <div class="nav-item"><span>Inbox</span><span class="count">12</span></div>
+                <div class="nav-item"><span>My tasks</span><span class="count">07</span></div>
+                <div class="nav-item"><span>Recordings</span><span class="count">03</span></div>
+              </div>
+              <div class="nav-section">
+                <div class="label">Projects</div>
+                <div class="nav-item active"><span>Q2 product launch</span><span class="count">24</span></div>
+                <div class="nav-item"><span>Customer onboarding</span><span class="count">18</span></div>
+                <div class="nav-item"><span>Hiring · Eng</span><span class="count">09</span></div>
+                <div class="nav-item"><span>Roadmap H2</span><span class="count">31</span></div>
+              </div>
+            </aside>
+            <div class="app-main">
+              <div class="app-header">
+                <div class="breadcrumbs">Projects / <span class="project-name">Q2 product launch</span></div>
+                <div class="cmdk"><span>Search, jump, ask the AI…</span><kbd>⌘K</kbd></div>
+                <div class="btn-row">
+                  <button class="btn btn-sm btn-ghost">Filter</button>
+                  <button class="btn btn-sm btn-primary">+ Task</button>
+                </div>
+              </div>
+              <div class="kanban">
+                <div class="kanban-col">
+                  <div class="col-header">
+                    <div class="name">Todo</div>
+                    <span class="count">06</span>
+                  </div>
+                  <div class="task ai-active">
+                    <div class="task-title">Draft onboarding email v3 from Tuesday's call</div>
+                    <div class="task-meta">
+                      <span class="task-id">TASK-4827</span>
+                      <span class="task-date">28 May</span>
+                      <span class="badge badge-ai" style="margin-left: auto">AI</span>
+                      <span class="task-assignee">A</span>
+                    </div>
+                  </div>
+                  <div class="task">
+                    <div class="task-title">Reach out to 3 reference customers for case studies</div>
+                    <div class="task-meta">
+                      <span class="task-id">TASK-4828</span>
+                      <span class="badge badge-priority-high"><span class="dot" style="background: var(--accent)"></span>HIGH</span>
+                      <span class="task-assignee">S</span>
+                    </div>
+                  </div>
+                  <div class="task">
+                    <div class="task-title">Confirm pricing copy with legal</div>
+                    <div class="task-meta">
+                      <span class="task-id">TASK-4831</span>
+                      <span class="task-date">02 Jun</span>
+                      <span class="task-assignee">A</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="kanban-col">
+                  <div class="col-header">
+                    <div class="name">In progress</div>
+                    <span class="count">04</span>
+                  </div>
+                  <div class="task">
+                    <div class="task-title">Wire transcript verification into task detail modal</div>
+                    <div class="task-meta">
+                      <span class="task-id">TASK-4811</span>
+                      <span class="badge badge-priority-high"><span class="dot" style="background: var(--accent)"></span>HIGH</span>
+                      <span class="task-assignee">A</span>
+                    </div>
+                  </div>
+                  <div class="task">
+                    <div class="task-title">Update Azure OpenAI proxy for region failover</div>
+                    <div class="task-meta">
+                      <span class="task-id">TASK-4815</span>
+                      <span class="task-date">30 May</span>
+                      <span class="task-assignee">M</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="kanban-col">
+                  <div class="col-header">
+                    <div class="name">In review</div>
+                    <span class="count">03</span>
+                  </div>
+                  <div class="task">
+                    <div class="task-title">Multi-tenant cascade for AI settings</div>
+                    <div class="task-meta">
+                      <span class="task-id">TASK-4778</span>
+                      <span class="badge badge-priority-med"><span class="dot" style="background: var(--warning)"></span>MED</span>
+                      <span class="task-assignee">S</span>
+                    </div>
+                  </div>
+                  <div class="task">
+                    <div class="task-title">Mobile recording UI — long-press to pause</div>
+                    <div class="task-meta">
+                      <span class="task-id">TASK-4801</span>
+                      <span class="task-assignee">A</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="kanban-col">
+                  <div class="col-header">
+                    <div class="name">Done</div>
+                    <span class="count">11</span>
+                  </div>
+                  <div class="task" style="opacity: 0.6">
+                    <div class="task-title">Proxy AI provider access through backend</div>
+                    <div class="task-meta">
+                      <span class="task-id">TASK-4764</span>
+                      <span class="task-date">25 May</span>
+                      <span class="task-assignee">A</span>
+                    </div>
+                  </div>
+                  <div class="task" style="opacity: 0.6">
+                    <div class="task-title">Fix data integrity — soft-delete cascade</div>
+                    <div class="task-meta">
+                      <span class="task-id">TASK-4751</span>
+                      <span class="task-assignee">S</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ====================== MOCKUP: DASHBOARD ====================== -->
+      <section>
+        <h2 class="section-title">Analytics — front page</h2>
+        <p class="section-meta">Today's edition · numbers in serif · AI as the lead story</p>
+
+        <div class="mockup">
+          <div class="mockup-chrome">
+            <span class="light"></span>
+            <span class="light"></span>
+            <span class="light"></span>
+            <span style="margin-left: 12px">kainban.app/analytics</span>
+          </div>
+          <div class="dashboard">
+            <div class="dash-header">
+              <div class="kicker">The kAInban edition · 26 May 2026</div>
+              <h1>Tuesday, <em>twenty-sixth of May</em></h1>
+              <div class="sub">3 projects · 47 active tasks · 11 recordings transcribed</div>
+            </div>
+
+            <div class="stat-grid">
+              <div class="stat">
+                <div class="stat-label">Active tasks</div>
+                <div class="stat-value">47</div>
+                <div class="stat-delta">+8 wow</div>
+              </div>
+              <div class="stat">
+                <div class="stat-label">Done · this week</div>
+                <div class="stat-value">23</div>
+                <div class="stat-delta">+12 wow</div>
+              </div>
+              <div class="stat">
+                <div class="stat-label">Avg cycle time</div>
+                <div class="stat-value">2.4<span style="font-size: 16px; color: var(--text-muted); font-family: var(--font-sans);"> d</span></div>
+                <div class="stat-delta down">+0.3 wow</div>
+              </div>
+              <div class="stat">
+                <div class="stat-label">Audio min. → tasks</div>
+                <div class="stat-value">412</div>
+                <div class="stat-delta">+74 wow</div>
+              </div>
+            </div>
+
+            <div class="ai-card">
+              <div class="ai-kicker">From the editor · AI desk</div>
+              <h3>Three reference-customer outreaches are quietly blocking the launch announcement.</h3>
+              <div class="ai-body">
+                You committed to these on Tuesday's kickoff. They've been "Todo" for six days while in-progress work piled up around them. Shipping the launch post without case studies will read thinner than you wanted on the call.
+              </div>
+              <div class="btn-row">
+                <button class="btn btn-sm btn-primary">Open the three tasks</button>
+                <button class="btn btn-sm btn-ghost">Why these?</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ====================== MOCKUP: MEETING SUMMARY ====================== -->
+      <section>
+        <h2 class="section-title">Meeting summary</h2>
+        <p class="section-meta">
+          Where editorial earns its keep · drop cap, italic pull quote, hairline rules
+        </p>
+
+        <div class="mockup">
+          <div class="mockup-chrome">
+            <span class="light"></span>
+            <span class="light"></span>
+            <span class="light"></span>
+            <span style="margin-left: 12px">kainban.app/recordings/kickoff-q2</span>
+          </div>
+          <div class="summary">
+            <div class="doc-meta">
+              <span>26 May 2026 · 10:14</span>
+              <span>42 minutes</span>
+              <span>7 speakers</span>
+              <span>kickoff_2026-05-26.m4a</span>
+            </div>
+
+            <h1>Q2 launch kickoff — <em>the room actually agreed.</em></h1>
+
+            <div class="summary-grid">
+              <div>
+                <p class="summary-lede">
+                  Selin opened with the marketing calendar; Amir pushed back on the June 4 ship date; and after twelve minutes of debate the team landed on a Friday-the-seventh soft launch with reference customers, then a wider announcement two weeks later. The action items below are all owners' own commitments — verified against transcript spans.
+                </p>
+
+                <h2>Action items</h2>
+                <ul class="action-list">
+                  <li>
+                    <div class="check done"></div>
+                    <div>
+                      <div class="item-title">Lock the launch date (Friday 7 June, soft).</div>
+                      <div class="item-sub">Decided at 18:42 with no remaining objections.</div>
+                    </div>
+                    <div class="owner">AQ · Done</div>
+                  </li>
+                  <li>
+                    <div class="check"></div>
+                    <div>
+                      <div class="item-title">Reach out to 3 reference customers for case studies.</div>
+                      <div class="item-sub">Selin volunteered. Specifically: Aria, Klein, and the team at Stratus.</div>
+                    </div>
+                    <div class="owner">SK · 02 Jun</div>
+                  </li>
+                  <li>
+                    <div class="check"></div>
+                    <div>
+                      <div class="item-title">Confirm pricing copy with legal.</div>
+                      <div class="item-sub">The per-seat language and the early-stage discount terms.</div>
+                    </div>
+                    <div class="owner">AQ · 02 Jun</div>
+                  </li>
+                  <li>
+                    <div class="check"></div>
+                    <div>
+                      <div class="item-title">Draft onboarding email v3 reflecting the new flow.</div>
+                      <div class="item-sub">Reuse v2 structure; swap pricing module; add reference customer logos when SK delivers them.</div>
+                    </div>
+                    <div class="owner">AQ · 28 May</div>
+                  </li>
+                </ul>
+              </div>
+
+              <aside class="summary-aside">
+                <blockquote class="quote-block">
+                  If we don't have at least two reference customers on launch day, we're just blasting into the void. I'd rather slip a week.
+                  <div class="quote-cite">Selin K. · 14:32</div>
+                </blockquote>
+
+                <h2 style="margin-top: 0">Speakers</h2>
+                <div class="t-mono" style="line-height: 1.9; color: var(--text-secondary);">
+                  Amir Q. · 18 min<br />
+                  Selin K. · 14 min<br />
+                  Marcus V. · 6 min<br />
+                  3 others · 4 min
+                </div>
+              </aside>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ====================== MOCKUP: AUTH ====================== -->
+      <section>
+        <h2 class="section-title">Login</h2>
+        <p class="section-meta">Marketing-adjacent · serif moment + OIDC primary · paper canvas</p>
+
+        <div class="mockup">
+          <div class="mockup-chrome">
+            <span class="light"></span>
+            <span class="light"></span>
+            <span class="light"></span>
+            <span style="margin-left: 12px">kainban.app/login</span>
+          </div>
+          <div class="auth">
+            <div class="auth-marketing">
+              <div>
+                <div class="kicker">An invitation</div>
+                <h2>Audio in,<br /><em>kanban out.</em></h2>
+                <p>
+                  Drop a meeting recording. We extract action items, owners, and dates — every claim linked back to the transcript span. You verify, then trust.
+                </p>
+              </div>
+              <div class="auth-foot">Self-hosted · OIDC · AGPL v3</div>
+            </div>
+            <div class="auth-form">
+              <div>
+                <div class="form-title">Sign in</div>
+                <div class="form-sub">Use your organization's identity provider.</div>
+              </div>
+              <button class="oidc-btn">Continue with Zitadel</button>
+              <div class="divider">or</div>
+              <div class="field">
+                <label>Email</label>
+                <input type="email" placeholder="you@company.com" />
+              </div>
+              <button class="btn btn-primary" style="justify-content: center; padding: 12px 16px;">Continue</button>
+              <div style="font-family: var(--font-sans); font-size: 12px; color: var(--text-muted);">
+                No account? <a href="#">Request an invite</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ====================== DECISIONS ====================== -->
+      <section>
+        <h2 class="section-title">Decisions baked in</h2>
+        <p class="section-meta">What this direction costs and what it buys you</p>
+
+        <div class="decision-grid">
+          <div class="head">Decision</div>
+          <div class="head">Rationale</div>
+          <div class="head">Risk</div>
+
+          <div class="decision-cell-title">Light by default in a dark-by-default category</div>
+          <div>Every direct competitor (Linear, Height, Raycast, Cursor, Granola) defaults to dark mode. Going paper-light is an immediate "I'm different" signal that connects to the editorial / publication metaphor.</div>
+          <div>Indie hackers reflexively dark-mode every tool. They may bounce in the first 5 seconds. Mitigated by the ink-mode toggle and by making the choice feel intentional, not lazy.</div>
+
+          <div class="decision-cell-title">Instrument Serif on ALL headings (not just AI output)</div>
+          <div>Pushes the editorial commitment all the way. Serifs say "this is a thought, not a UI label." Granola's exact bet, just turned up. The mood is consistent across marketing, app, and summary.</div>
+          <div>Reads slower than sans-serif. Could feel "less productive" to scan-skim users. Body stays in DM Sans so reading speed is preserved where it matters.</div>
+
+          <div class="decision-cell-title">Brick red #A8341F as the accent</div>
+          <div>Masthead color. Saturated enough to be a CTA, warm enough to feel old-world. Pairs with paper and ink without going corporate-Salesforce.</div>
+          <div>More attention-grabbing than amber — danger of feeling "alarming" if used loosely. Same accent doubles as danger token to economize visual vocabulary.</div>
+
+          <div class="decision-cell-title">Drop cap + italic pull quote on meeting summaries</div>
+          <div>The AI's output literally reads like a magazine article. Strongest signal that "this is the AI's voice, not the UI's."</div>
+          <div>If overused, becomes precious. Strictly scoped to: meeting summary lede, AI recommendation card title, marketing hero.</div>
+
+          <div class="decision-cell-title">Newspaper rules (border-top: 4px ink) on major sections</div>
+          <div>Replaces shadowed cards as the elevation cue. Cheap, fast to render, instantly reads as "publication."</div>
+          <div>Looks "uncool" to anyone reading from a Glassmorphism 2.0 lens. That's the point.</div>
+
+          <div class="decision-cell-title">Bottom-border-only form inputs</div>
+          <div>Document-like, à la Stripe Atlas / Read.cv onboarding. Lighter visually than boxed inputs. Focus expands to a 2px accent underline.</div>
+          <div>Less obvious where to click. Compensated by oversized clickable areas and clear labels above each field.</div>
+        </div>
+      </section>
+
+      <!-- ====================== HOW IT DIFFERS ====================== -->
+      <section>
+        <h2 class="section-title">How this differs from Workhorse Dark</h2>
+        <p class="section-meta">Same product context, opposite voice</p>
+
+        <div class="decision-grid">
+          <div class="head">Dimension</div>
+          <div class="head">Workhorse Dark</div>
+          <div class="head">Newspaper-Light</div>
+
+          <div class="decision-cell-title">Home theme</div>
+          <div>Dark (#0A0A0B canvas)</div>
+          <div>Light paper (#FAF7F2)</div>
+
+          <div class="decision-cell-title">Heading font</div>
+          <div>Inter Variable 510 (cv01 + ss03) — engineered, compressed</div>
+          <div>Instrument Serif 400 — editorial, deliberate</div>
+
+          <div class="decision-cell-title">Body font</div>
+          <div>Inter Variable 400/510 — 13px, dense</div>
+          <div>DM Sans 400/500 — 14px, breathing</div>
+
+          <div class="decision-cell-title">Accent</div>
+          <div>Burnt amber #E59149 — warm but quiet</div>
+          <div>Brick red #A8341F — warm and saturated, masthead</div>
+
+          <div class="decision-cell-title">Elevation cue</div>
+          <div>Surface ladder (4 levels) + hairline borders</div>
+          <div>Single 1px hairline rules + the white card on paper</div>
+
+          <div class="decision-cell-title">AI signal</div>
+          <div>Subtle "AI" pill + hairline border pulse</div>
+          <div>Italic serif "AI" pill + same border pulse + drop cap on lede</div>
+
+          <div class="decision-cell-title">Mood it projects</div>
+          <div>Linear / Height / Raycast / Vercel territory — serious tool</div>
+          <div>Granola / Substack / Quanta territory — considered tool</div>
+
+          <div class="decision-cell-title">Best worst case</div>
+          <div>"Could be Height" (cool clone risk)</div>
+          <div>"Could be slow" (publication > productivity risk)</div>
+
+          <div class="decision-cell-title">Where it shines</div>
+          <div>Daily kanban work — fast scanning, dense info</div>
+          <div>Meeting summaries — actually feels like reading</div>
+
+          <div class="decision-cell-title">Where it strains</div>
+          <div>Marketing pages — could feel cold</div>
+          <div>Dense kanban under load — could feel slow</div>
+        </div>
+      </section>
+
+      <footer class="colophon">
+        kAInban · design system v3 · the Newspaper-Light alternative ·
+        previewed beside <a href="index.html">Workhorse Dark</a> ·
+        generated by /design-consultation
+      </footer>
+    </main>
+
+    <script>
+      const root = document.documentElement;
+      const btns = document.querySelectorAll("[data-theme-btn]");
+      btns.forEach((b) => {
+        b.addEventListener("click", () => {
+          const t = b.dataset.themeBtn;
+          root.dataset.theme = t;
+          btns.forEach((x) =>
+            x.setAttribute(
+              "aria-pressed",
+              x.dataset.themeBtn === t ? "true" : "false",
+            ),
+          );
+        });
+      });
+    </script>
+  </body>
+</html>
