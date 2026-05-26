@@ -537,15 +537,48 @@ try {
 }
 
 // Settings operations
-// User-specific AI provider settings. OIDC config moved to env vars during the
-// Zitadel cutover and is no longer stored per-user; the related columns were
-// dropped from this table by the boot-time migration above.
+// AI provider settings resolution order:
+//   1. The requesting user's own settings row (if they've customised anything).
+//   2. The tenant admin's settings row (so admin-set keys apply to the whole org).
+//   3. Built-in defaults with empty key — caller falls back to env vars.
+//
+// This means: when an admin saves an OpenAI key in the UI, every member of the
+// same tenant inherits it automatically. Members can still override by saving
+// their own settings.
 export const getSettings = userId => {
-  const stmt = db.prepare('SELECT * FROM settings WHERE user_id = ? LIMIT 1')
-  const settings = stmt.get(userId)
+  // 1. user's own row
+  let settings = db
+    .prepare('SELECT * FROM settings WHERE user_id = ? LIMIT 1')
+    .get(userId)
 
-  if (!settings) {
-    return {
+  const hasKey = s => s && (s.api_key || s.azure_endpoint)
+  if (hasKey(settings)) return settings
+
+  // 2. tenant admin's row — only if this user has a tenant and an admin exists.
+  //
+  // The JOIN coerces both sides numerically (CAST AS REAL): legacy
+  // settings.user_id rows were sometimes stored as '5.0' (float-stringified)
+  // due to the historical user_id TEXT vs users.id INTEGER drift, and a
+  // text-equality JOIN missed those. Comparing as REAL means '5.0' == 5.
+  const userRow = db
+    .prepare('SELECT tenant_id FROM users WHERE id = ?')
+    .get(userId)
+  if (userRow && userRow.tenant_id) {
+    const adminSettings = db
+      .prepare(
+        `SELECT s.* FROM settings s
+         JOIN users u ON CAST(s.user_id AS REAL) = u.id
+         WHERE u.tenant_id = ? AND u.role = 'admin'
+         ORDER BY s.updated_at DESC
+         LIMIT 1`
+      )
+      .get(userRow.tenant_id)
+    if (hasKey(adminSettings)) return adminSettings
+  }
+
+  // 3. defaults — caller (server.js /api/settings) layers env-var values on top
+  return (
+    settings || {
       user_id: userId,
       provider: 'azure',
       azure_endpoint: '',
@@ -557,9 +590,7 @@ export const getSettings = userId => {
       openai_whisper_model: 'whisper-1',
       openai_gpt_model: 'gpt-4o'
     }
-  }
-
-  return settings
+  )
 }
 
 export const saveSettings = (userId, settings) => {
