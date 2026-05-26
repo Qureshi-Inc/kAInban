@@ -57,7 +57,7 @@
 
 - **Live Recording**: Real-time audio capture with visual feedback
 - **File Upload Support**: MP3, MP4, M4A, WAV, WebM, OGG formats
-- **AI Transcription**: High-accuracy speech-to-text using Azure OpenAI Whisper
+- **AI Transcription**: High-accuracy speech-to-text via Azure OpenAI or OpenAI Whisper
 - **Smart Task Extraction**: Intelligent detection of tasks, statuses, and priorities
 - **Meeting Summaries**: Structured summaries with key decisions and action items
 - **Large File Handling**: Automatic chunking for files >25MB
@@ -236,7 +236,9 @@ tokens to invalid.
 
 - **Docker & Docker Compose** (recommended)
 - **Node.js 20+** (for development)
-- **Azure OpenAI** account with Whisper and GPT deployments
+- **An AI provider account** — one of:
+  - **Azure OpenAI** with Whisper + GPT deployments, _or_
+  - **OpenAI** (or any OpenAI-compatible endpoint: OpenRouter, LiteLLM, vLLM)
 - **Zitadel** instance (self-hosted or SaaS - required for hosted login;
   see `Zitadel Setup` below)
 
@@ -309,12 +311,32 @@ npm run dev
 Create a `.env` file with the following configuration:
 
 ```env
-# === Azure OpenAI Configuration (Required) ===
-VITE_AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com
-VITE_AZURE_OPENAI_API_KEY=your-api-key-here
-VITE_AZURE_OPENAI_API_VERSION=2024-02-01
-VITE_AZURE_OPENAI_WHISPER_DEPLOYMENT=whisper-1
-VITE_AZURE_OPENAI_GPT_DEPLOYMENT=gpt-4
+# === AI Provider (server-side; env wins over Settings UI) ===
+# Resolution precedence is env-first:
+#   1. process.env  (set here) — wins when non-empty
+#   2. DB settings  — per-user values saved via the Settings dialog
+#   3. defaults     — hard-coded fallbacks
+#
+# Set the key here and the Settings dialog renders the corresponding fields
+# read-only with an "env" badge. Clear the env var (or comment it out and
+# restart the api container) to manage from the UI again.
+#
+# AI_PROVIDER picks the active provider. "azure" (default) or "openai".
+# If only OPENAI_API_KEY is set, the platform assumes "openai".
+AI_PROVIDER=azure
+
+# --- Azure OpenAI (default) ---
+AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com
+AZURE_OPENAI_API_KEY=your-api-key-here
+AZURE_OPENAI_API_VERSION=2024-02-01
+AZURE_OPENAI_WHISPER_DEPLOYMENT=whisper
+AZURE_OPENAI_GPT_DEPLOYMENT=gpt-4o
+
+# --- OpenAI (or any OpenAI-compatible: OpenRouter, LiteLLM, vLLM) ---
+OPENAI_API_KEY=
+OPENAI_BASE_URL=https://api.openai.com/v1
+OPENAI_GPT_MODEL=gpt-4o
+OPENAI_WHISPER_MODEL=whisper-1
 
 # === Zitadel OIDC (Required for hosted login) ===
 # kAInban uses Zitadel as its identity provider via PKCE public-client OIDC.
@@ -346,25 +368,63 @@ API_URL=https://your-domain.com/api
 # Database file will be created at ./storage/app.db
 ```
 
-### Azure OpenAI Setup
+### AI Provider Setup
 
-1. **Create Azure OpenAI Resource**:
+kAInban supports **two providers** for transcription (Whisper) and task
+extraction / chat (GPT-family models): **Azure OpenAI** (default) or
+**OpenAI** (also accepts any OpenAI-compatible endpoint like OpenRouter,
+LiteLLM, vLLM, or a local llama.cpp server).
+
+You can configure either provider in **one of two places**:
+
+| Source | Scope | When to use |
+|---|---|---|
+| **`.env` (server-side)** | Platform-wide, takes precedence | Production / self-hosted: rotate keys without touching the UI |
+| **Settings → AI** (admin) | Per-tenant DB row | Quick setup, multi-tenant variation, or no env access |
+
+When both are set, **env wins**. The Settings dialog grays out env-managed
+fields with an `env` badge so admins aren't surprised by changes that have
+no effect. Remove the env var and restart the `api` container to give
+control back to the UI.
+
+#### Option A — Azure OpenAI
+
+1. **Create the resource**:
    - Go to [Azure Portal](https://portal.azure.com)
-   - Create a new Azure OpenAI resource
-   - Note the endpoint URL and API key
+   - Create a new Azure OpenAI resource and note the endpoint URL + API key.
 
-2. **Deploy Models**:
-   - Deploy **Whisper** model for transcription
-   - Deploy **GPT-4** or **GPT-4o** for task extraction
-   - Note the deployment names
+2. **Deploy the models**:
+   - Deploy a **Whisper** model for transcription.
+   - Deploy **GPT-4o** (or **GPT-4**) for task extraction.
+   - Note both deployment names.
 
-3. **Update Configuration**:
+3. **Set in `.env`** (recommended for prod):
    ```env
-   VITE_AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com
-   VITE_AZURE_OPENAI_API_KEY=your-api-key
-   VITE_AZURE_OPENAI_WHISPER_DEPLOYMENT=whisper-1
-   VITE_AZURE_OPENAI_GPT_DEPLOYMENT=gpt-4o
+   AI_PROVIDER=azure
+   AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com
+   AZURE_OPENAI_API_KEY=your-api-key
+   AZURE_OPENAI_WHISPER_DEPLOYMENT=whisper
+   AZURE_OPENAI_GPT_DEPLOYMENT=gpt-4o
    ```
+   Restart the `api` container: `docker compose restart api`.
+
+#### Option B — OpenAI (or compatible)
+
+1. **Get an API key** from [platform.openai.com](https://platform.openai.com)
+   (or your OpenAI-compatible provider).
+
+2. **Set in `.env`**:
+   ```env
+   AI_PROVIDER=openai
+   OPENAI_API_KEY=sk-...
+   OPENAI_BASE_URL=https://api.openai.com/v1   # or your compatible endpoint
+   OPENAI_GPT_MODEL=gpt-4o
+   OPENAI_WHISPER_MODEL=whisper-1
+   ```
+   Restart the `api` container: `docker compose restart api`.
+
+> **Tip:** If you only set `OPENAI_API_KEY` and leave `AI_PROVIDER` unset,
+> the platform auto-selects the OpenAI provider.
 
 ### Zitadel Setup
 
@@ -432,9 +492,12 @@ Users tab in Settings.
      exists yet, you'll be promoted to admin on first login.
 
 2. **Configure AI Settings** (Admin):
-   - Go to Settings → AI Settings
-   - Enter Azure OpenAI credentials
-   - Test connection to verify setup
+   - If you already set `AZURE_OPENAI_API_KEY` / `OPENAI_API_KEY` in
+     `.env` you're done — the platform uses those automatically and the
+     Settings dialog will show the corresponding fields as read-only
+     with an `env` badge.
+   - Otherwise: go to Settings → AI, pick the provider, enter credentials,
+     and click **Test Connection** to verify.
 
 3. **Create Your First Project**:
    - Click the project dropdown in header
