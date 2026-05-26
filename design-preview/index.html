@@ -1,0 +1,2059 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>kAInban — Design System Preview</title>
+    <link rel="preconnect" href="https://rsms.me/" />
+    <link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* =========================================================
+         kAInban Design System — Workhorse Dark + Warm Accent
+         Preview page. All tokens are tunable in :root.
+         ========================================================= */
+      :root {
+        /* Surface ladder */
+        --bg-base: #0a0a0b;
+        --bg-raised: #141517;
+        --bg-elevated: #1b1c1f;
+        --bg-emphasis: #232428;
+        --hairline-low: #26282b;
+        --hairline-mid: #34363a;
+        --hairline-high: #4a4d52;
+
+        /* Text */
+        --text-primary: #f5f4f1;
+        --text-secondary: #a4a29b;
+        --text-muted: #6b6963;
+        --text-inverse: #15161a;
+
+        /* Single warm accent */
+        --accent: #e59149;
+        --accent-hover: #f0a05c;
+        --accent-press: #c87a36;
+        --accent-soft: rgba(229, 145, 73, 0.1);
+        --accent-soft-strong: rgba(229, 145, 73, 0.18);
+        --accent-border: rgba(229, 145, 73, 0.4);
+
+        /* Semantic — kept quiet */
+        --success: #5a9f6b;
+        --success-soft: rgba(90, 159, 107, 0.12);
+        --warning: #d9a23a;
+        --warning-soft: rgba(217, 162, 58, 0.12);
+        --danger: #c56152;
+        --danger-soft: rgba(197, 97, 82, 0.12);
+        --info: #6b8db3;
+        --info-soft: rgba(107, 141, 179, 0.12);
+
+        /* Typography */
+        --font-sans: "Inter Variable", "Inter", -apple-system, BlinkMacSystemFont,
+          "Segoe UI", Roboto, sans-serif;
+        --font-serif: "Instrument Serif", "Iowan Old Style", "Palatino", Georgia,
+          serif;
+        --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Monaco,
+          Consolas, monospace;
+        --inter-features: "cv01", "ss03", "ss01";
+
+        /* Radius */
+        --radius-xs: 4px;
+        --radius-sm: 6px;
+        --radius-md: 8px;
+        --radius-lg: 12px;
+        --radius-full: 9999px;
+
+        /* Spacing (4px base) */
+        --space-2: 2px;
+        --space-4: 4px;
+        --space-8: 8px;
+        --space-12: 12px;
+        --space-16: 16px;
+        --space-24: 24px;
+        --space-32: 32px;
+        --space-48: 48px;
+        --space-64: 64px;
+
+        /* Motion */
+        --ease: cubic-bezier(0.16, 1, 0.3, 1);
+        --dur-fast: 120ms;
+        --dur-base: 180ms;
+        --dur-slow: 320ms;
+      }
+
+      html[data-theme="light"] {
+        --bg-base: #faf7f2;
+        --bg-raised: #ffffff;
+        --bg-elevated: #f4f1ea;
+        --bg-emphasis: #ebe7df;
+        --hairline-low: #e2ddd2;
+        --hairline-mid: #c8c2b3;
+        --hairline-high: #9a9485;
+        --text-primary: #15161a;
+        --text-secondary: #4d4a44;
+        --text-muted: #84807a;
+        --text-inverse: #f5f4f1;
+        --accent: #c66e1f;
+        --accent-hover: #b0601a;
+        --accent-press: #944e15;
+        --accent-soft: rgba(198, 110, 31, 0.1);
+        --accent-soft-strong: rgba(198, 110, 31, 0.18);
+        --accent-border: rgba(198, 110, 31, 0.35);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        background: var(--bg-base);
+      }
+
+      body {
+        margin: 0;
+        font-family: var(--font-sans);
+        font-feature-settings: var(--inter-features);
+        font-variation-settings: "wght" 400;
+        font-size: 13px;
+        line-height: 1.55;
+        color: var(--text-primary);
+        background: var(--bg-base);
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        text-rendering: optimizeLegibility;
+      }
+
+      /* Type scale */
+      .t-caption {
+        font-size: 11px;
+        line-height: 1.4;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+        font-variation-settings: "wght" 510;
+      }
+      .t-ui {
+        font-size: 12px;
+        line-height: 1.45;
+        font-variation-settings: "wght" 510;
+      }
+      .t-body {
+        font-size: 13px;
+        line-height: 1.55;
+      }
+      .t-body-em {
+        font-size: 13px;
+        line-height: 1.55;
+        font-variation-settings: "wght" 510;
+      }
+      .t-heading {
+        font-size: 20px;
+        line-height: 1.25;
+        letter-spacing: -0.22px;
+        font-variation-settings: "wght" 510;
+      }
+      .t-heading-lg {
+        font-size: 32px;
+        line-height: 1.15;
+        letter-spacing: -0.66px;
+        font-variation-settings: "wght" 510;
+      }
+      .t-display {
+        font-size: 48px;
+        line-height: 1.05;
+        letter-spacing: -1px;
+        font-variation-settings: "wght" 510;
+      }
+      .t-serif-display {
+        font-family: var(--font-serif);
+        font-size: 56px;
+        line-height: 1.05;
+        letter-spacing: -0.5px;
+        font-weight: 400;
+      }
+      .t-serif-heading {
+        font-family: var(--font-serif);
+        font-size: 32px;
+        line-height: 1.15;
+        font-weight: 400;
+      }
+      .t-mono {
+        font-family: var(--font-mono);
+        font-size: 12px;
+        font-variant-numeric: tabular-nums;
+        letter-spacing: -0.02em;
+      }
+
+      a {
+        color: var(--accent);
+        text-decoration: none;
+        text-underline-offset: 2px;
+      }
+      a:hover {
+        text-decoration: underline;
+      }
+
+      /* Layout shell */
+      .page {
+        max-width: 1180px;
+        margin: 0 auto;
+        padding: 48px 32px 96px;
+      }
+      .hero {
+        padding: 96px 0 48px;
+        border-bottom: 1px solid var(--hairline-low);
+        margin-bottom: 48px;
+      }
+      .eyebrow {
+        font-family: var(--font-mono);
+        font-size: 11px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--accent);
+        margin-bottom: 16px;
+      }
+      h1.page-title {
+        font-family: var(--font-serif);
+        font-weight: 400;
+        font-size: 72px;
+        line-height: 1;
+        letter-spacing: -1.2px;
+        margin: 0 0 16px;
+        max-width: 16ch;
+      }
+      h1.page-title em {
+        font-style: italic;
+        color: var(--accent);
+      }
+      .hero p.lede {
+        font-size: 17px;
+        line-height: 1.5;
+        color: var(--text-secondary);
+        max-width: 60ch;
+        margin: 0;
+      }
+
+      section {
+        margin-bottom: 64px;
+      }
+      h2.section-title {
+        font-size: 20px;
+        line-height: 1.25;
+        letter-spacing: -0.22px;
+        font-variation-settings: "wght" 510;
+        margin: 0 0 4px;
+        color: var(--text-primary);
+      }
+      .section-meta {
+        font-family: var(--font-mono);
+        font-size: 11px;
+        color: var(--text-muted);
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        margin-bottom: 24px;
+        border-bottom: 1px solid var(--hairline-low);
+        padding-bottom: 12px;
+      }
+
+      /* Theme toggle */
+      .toolbar {
+        position: fixed;
+        top: 16px;
+        right: 16px;
+        z-index: 50;
+        display: flex;
+        gap: 4px;
+        padding: 4px;
+        background: var(--bg-raised);
+        border: 1px solid var(--hairline-low);
+        border-radius: var(--radius-md);
+      }
+      .toolbar button {
+        appearance: none;
+        background: transparent;
+        color: var(--text-secondary);
+        border: 0;
+        padding: 6px 12px;
+        border-radius: var(--radius-sm);
+        font: inherit;
+        font-size: 12px;
+        font-variation-settings: "wght" 510;
+        cursor: pointer;
+        transition: color var(--dur-fast) var(--ease),
+          background var(--dur-fast) var(--ease);
+      }
+      .toolbar button[aria-pressed="true"] {
+        background: var(--bg-emphasis);
+        color: var(--text-primary);
+      }
+
+      /* Palette */
+      .palette-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+        gap: 8px;
+      }
+      .swatch {
+        background: var(--bg-raised);
+        border: 1px solid var(--hairline-low);
+        border-radius: var(--radius-md);
+        padding: 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .swatch .chip {
+        height: 56px;
+        border-radius: var(--radius-sm);
+        border: 1px solid var(--hairline-low);
+      }
+      .swatch .name {
+        font-size: 12px;
+        font-variation-settings: "wght" 510;
+        color: var(--text-primary);
+      }
+      .swatch .hex {
+        font-family: var(--font-mono);
+        font-size: 11px;
+        color: var(--text-muted);
+      }
+      .swatch .role {
+        font-size: 11px;
+        color: var(--text-secondary);
+      }
+
+      /* Type specimen */
+      .specimen {
+        background: var(--bg-raised);
+        border: 1px solid var(--hairline-low);
+        border-radius: var(--radius-md);
+        padding: 32px;
+      }
+      .specimen + .specimen {
+        margin-top: 12px;
+      }
+      .specimen .row {
+        display: grid;
+        grid-template-columns: 140px 1fr;
+        gap: 24px;
+        padding: 16px 0;
+        border-top: 1px solid var(--hairline-low);
+        align-items: baseline;
+      }
+      .specimen .row:first-child {
+        border-top: 0;
+        padding-top: 0;
+      }
+      .specimen .row .label {
+        font-family: var(--font-mono);
+        font-size: 11px;
+        color: var(--text-muted);
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+
+      /* Buttons */
+      .btn {
+        appearance: none;
+        background: var(--bg-emphasis);
+        color: var(--text-primary);
+        border: 1px solid var(--hairline-mid);
+        padding: 8px 14px;
+        border-radius: var(--radius-sm);
+        font: inherit;
+        font-size: 13px;
+        font-variation-settings: "wght" 510;
+        cursor: pointer;
+        transition: all var(--dur-fast) var(--ease);
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .btn:hover {
+        border-color: var(--hairline-high);
+      }
+      .btn-primary {
+        background: var(--accent);
+        color: var(--text-inverse);
+        border-color: var(--accent);
+      }
+      .btn-primary:hover {
+        background: var(--accent-hover);
+        border-color: var(--accent-hover);
+      }
+      .btn-ghost {
+        background: transparent;
+        border-color: transparent;
+        color: var(--text-secondary);
+      }
+      .btn-ghost:hover {
+        background: var(--bg-emphasis);
+        color: var(--text-primary);
+      }
+      .btn-danger {
+        background: transparent;
+        color: var(--danger);
+        border-color: var(--hairline-mid);
+      }
+      .btn-danger:hover {
+        background: var(--danger-soft);
+        border-color: var(--danger);
+      }
+      .btn-sm {
+        padding: 4px 10px;
+        font-size: 12px;
+      }
+      .btn-icon {
+        padding: 6px;
+        width: 28px;
+        height: 28px;
+        justify-content: center;
+      }
+
+      .btn-row {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      /* Form */
+      .field {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .field label {
+        font-size: 12px;
+        font-variation-settings: "wght" 510;
+        color: var(--text-secondary);
+      }
+      .field input,
+      .field textarea,
+      .field select {
+        background: var(--bg-base);
+        border: 1px solid var(--hairline-mid);
+        border-radius: var(--radius-sm);
+        color: var(--text-primary);
+        font: inherit;
+        font-size: 13px;
+        padding: 8px 10px;
+        transition: border-color var(--dur-fast) var(--ease),
+          box-shadow var(--dur-fast) var(--ease);
+      }
+      .field input:focus,
+      .field textarea:focus,
+      .field select:focus {
+        outline: 0;
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px var(--accent-soft);
+      }
+
+      /* Badges / chips */
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 2px 8px;
+        border-radius: var(--radius-full);
+        font-size: 11px;
+        font-variation-settings: "wght" 510;
+        letter-spacing: 0.02em;
+        border: 1px solid var(--hairline-mid);
+        background: var(--bg-emphasis);
+        color: var(--text-secondary);
+      }
+      .badge-priority-high {
+        background: var(--danger-soft);
+        color: var(--danger);
+        border-color: transparent;
+      }
+      .badge-priority-med {
+        background: var(--warning-soft);
+        color: var(--warning);
+        border-color: transparent;
+      }
+      .badge-priority-low {
+        background: var(--success-soft);
+        color: var(--success);
+        border-color: transparent;
+      }
+      .badge-ai {
+        background: var(--accent-soft);
+        color: var(--accent);
+        border: 1px solid var(--accent-border);
+      }
+      .badge-mono {
+        font-family: var(--font-mono);
+        text-transform: none;
+        letter-spacing: -0.02em;
+      }
+
+      /* Dot */
+      .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: var(--radius-full);
+      }
+
+      /* Alert variants */
+      .alert-row {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 8px;
+      }
+      .alert {
+        display: flex;
+        gap: 12px;
+        padding: 12px 14px;
+        border: 1px solid var(--hairline-low);
+        border-left-width: 2px;
+        border-radius: var(--radius-sm);
+        background: var(--bg-raised);
+      }
+      .alert .alert-title {
+        font-variation-settings: "wght" 510;
+        margin-bottom: 2px;
+      }
+      .alert .alert-body {
+        color: var(--text-secondary);
+        font-size: 12px;
+      }
+      .alert.success {
+        border-left-color: var(--success);
+      }
+      .alert.warning {
+        border-left-color: var(--warning);
+      }
+      .alert.danger {
+        border-left-color: var(--danger);
+      }
+      .alert.info {
+        border-left-color: var(--info);
+      }
+      .alert.ai {
+        border-left-color: var(--accent);
+        background: var(--accent-soft);
+        border-color: var(--accent-border);
+      }
+      .alert .icon {
+        width: 16px;
+        height: 16px;
+        flex-shrink: 0;
+        margin-top: 1px;
+      }
+
+      /* ==========================================================
+         MOCKUPS — show the system in real product context
+         ========================================================== */
+
+      .mockup {
+        background: var(--bg-base);
+        border: 1px solid var(--hairline-low);
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+      }
+      .mockup-chrome {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        border-bottom: 1px solid var(--hairline-low);
+        background: var(--bg-raised);
+        font-family: var(--font-mono);
+        font-size: 11px;
+        color: var(--text-muted);
+      }
+      .mockup-chrome .light {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--hairline-mid);
+      }
+
+      /* App layout: kanban */
+      .app-shell {
+        display: grid;
+        grid-template-columns: 220px 1fr;
+        min-height: 580px;
+      }
+      .app-side {
+        border-right: 1px solid var(--hairline-low);
+        padding: 16px 12px;
+        background: var(--bg-raised);
+      }
+      .app-side .brand {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 4px 6px 16px;
+        font-variation-settings: "wght" 510;
+        font-size: 14px;
+      }
+      .brand-mark {
+        width: 22px;
+        height: 22px;
+        border-radius: 5px;
+        background: var(--accent);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-inverse);
+        font-family: var(--font-serif);
+        font-style: italic;
+        font-size: 16px;
+        font-weight: 400;
+      }
+      .nav-section {
+        margin-top: 16px;
+      }
+      .nav-section .label {
+        font-family: var(--font-mono);
+        font-size: 10px;
+        color: var(--text-muted);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        padding: 0 8px 6px;
+      }
+      .nav-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        padding: 5px 8px;
+        border-radius: var(--radius-sm);
+        color: var(--text-secondary);
+        font-size: 13px;
+        cursor: pointer;
+        transition: background var(--dur-fast) var(--ease),
+          color var(--dur-fast) var(--ease);
+      }
+      .nav-item:hover {
+        background: var(--bg-elevated);
+        color: var(--text-primary);
+      }
+      .nav-item.active {
+        background: var(--bg-emphasis);
+        color: var(--text-primary);
+      }
+      .nav-item .count {
+        font-family: var(--font-mono);
+        font-size: 11px;
+        color: var(--text-muted);
+      }
+
+      .app-main {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+      }
+      .app-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 20px;
+        border-bottom: 1px solid var(--hairline-low);
+        gap: 16px;
+      }
+      .app-header .breadcrumbs {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+        color: var(--text-secondary);
+        min-width: 0;
+      }
+      .app-header .breadcrumbs strong {
+        color: var(--text-primary);
+        font-variation-settings: "wght" 510;
+      }
+      .app-header .cmdk {
+        flex: 1;
+        max-width: 380px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: var(--bg-raised);
+        border: 1px solid var(--hairline-low);
+        border-radius: var(--radius-sm);
+        padding: 5px 10px;
+        font-size: 12px;
+        color: var(--text-muted);
+        cursor: text;
+      }
+      .app-header .cmdk kbd {
+        font-family: var(--font-mono);
+        font-size: 10px;
+        background: var(--bg-emphasis);
+        color: var(--text-secondary);
+        padding: 2px 6px;
+        border-radius: 4px;
+        border: 1px solid var(--hairline-mid);
+        border-bottom-width: 2px;
+        margin-left: auto;
+      }
+
+      .kanban {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 12px;
+        padding: 20px;
+        flex: 1;
+        background: var(--bg-base);
+        overflow: hidden;
+      }
+      .kanban-col {
+        background: var(--bg-raised);
+        border: 1px solid var(--hairline-low);
+        border-radius: var(--radius-md);
+        padding: 10px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        min-width: 0;
+      }
+      .col-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 4px 4px 8px;
+        border-bottom: 1px solid var(--hairline-low);
+      }
+      .col-header .name {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 12px;
+        font-variation-settings: "wght" 510;
+      }
+      .col-header .count {
+        font-family: var(--font-mono);
+        font-size: 11px;
+        color: var(--text-muted);
+        font-variant-numeric: tabular-nums;
+      }
+
+      .task {
+        background: var(--bg-elevated);
+        border: 1px solid var(--hairline-low);
+        border-radius: var(--radius-sm);
+        padding: 10px 12px;
+        cursor: grab;
+        transition: border-color var(--dur-fast) var(--ease),
+          background var(--dur-fast) var(--ease);
+        position: relative;
+      }
+      .task:hover {
+        border-color: var(--hairline-mid);
+        background: var(--bg-emphasis);
+      }
+      .task-title {
+        font-size: 13px;
+        line-height: 1.4;
+        font-variation-settings: "wght" 510;
+        margin-bottom: 8px;
+        color: var(--text-primary);
+      }
+      .task-meta {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .task-id {
+        font-family: var(--font-mono);
+        font-size: 10px;
+        color: var(--text-muted);
+        font-variant-numeric: tabular-nums;
+      }
+      .task-date {
+        font-family: var(--font-mono);
+        font-size: 10px;
+        color: var(--text-secondary);
+        font-variant-numeric: tabular-nums;
+      }
+      .task-assignee {
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        background: var(--bg-emphasis);
+        border: 1px solid var(--hairline-mid);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 9px;
+        color: var(--text-secondary);
+        font-variation-settings: "wght" 510;
+      }
+
+      /* AI-active state — hairline border pulse, no glow halo */
+      .task.ai-active {
+        border-color: var(--accent-border);
+        animation: ai-border-pulse 1.6s var(--ease) infinite;
+      }
+      @keyframes ai-border-pulse {
+        0%,
+        100% {
+          border-color: var(--accent-border);
+        }
+        50% {
+          border-color: var(--accent);
+        }
+      }
+
+      /* Dashboard layout */
+      .dashboard {
+        padding: 32px 40px;
+        background: var(--bg-base);
+      }
+      .dashboard .dash-header {
+        margin-bottom: 32px;
+      }
+      .dashboard .dash-header .eyebrow {
+        margin-bottom: 6px;
+      }
+      .dashboard .dash-header h1 {
+        font-family: var(--font-serif);
+        font-weight: 400;
+        font-size: 44px;
+        line-height: 1.05;
+        letter-spacing: -0.8px;
+        margin: 0 0 4px;
+      }
+      .dashboard .dash-header .sub {
+        color: var(--text-secondary);
+        font-size: 14px;
+      }
+      .stat-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1px;
+        background: var(--hairline-low);
+        border: 1px solid var(--hairline-low);
+        border-radius: var(--radius-md);
+        overflow: hidden;
+        margin-bottom: 24px;
+      }
+      .stat {
+        background: var(--bg-raised);
+        padding: 16px 18px;
+      }
+      .stat .stat-label {
+        font-family: var(--font-mono);
+        font-size: 10px;
+        color: var(--text-muted);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        margin-bottom: 8px;
+      }
+      .stat .stat-value {
+        font-size: 28px;
+        line-height: 1;
+        font-variation-settings: "wght" 510;
+        letter-spacing: -0.6px;
+        font-variant-numeric: tabular-nums;
+        margin-bottom: 4px;
+      }
+      .stat .stat-delta {
+        font-family: var(--font-mono);
+        font-size: 11px;
+        color: var(--success);
+        font-variant-numeric: tabular-nums;
+      }
+      .stat .stat-delta.down {
+        color: var(--danger);
+      }
+
+      .ai-card {
+        border: 1px solid var(--accent-border);
+        background: var(--accent-soft);
+        border-radius: var(--radius-md);
+        padding: 20px 24px;
+        position: relative;
+      }
+      .ai-card .ai-eyebrow {
+        font-family: var(--font-mono);
+        font-size: 10px;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--accent);
+        margin-bottom: 12px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .ai-card h3 {
+        font-family: var(--font-serif);
+        font-weight: 400;
+        font-size: 24px;
+        line-height: 1.2;
+        margin: 0 0 10px;
+        max-width: 36ch;
+      }
+      .ai-card .ai-body {
+        color: var(--text-secondary);
+        font-size: 13px;
+        line-height: 1.55;
+        max-width: 60ch;
+        margin-bottom: 16px;
+      }
+      .ai-card .ai-pill {
+        display: inline-flex;
+        gap: 8px;
+      }
+
+      /* Meeting summary mockup */
+      .summary {
+        background: var(--bg-base);
+        padding: 40px 56px 48px;
+      }
+      .summary .doc-meta {
+        font-family: var(--font-mono);
+        font-size: 11px;
+        color: var(--text-muted);
+        letter-spacing: 0.04em;
+        margin-bottom: 16px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid var(--hairline-low);
+        display: flex;
+        gap: 16px;
+        flex-wrap: wrap;
+      }
+      .summary h1 {
+        font-family: var(--font-serif);
+        font-weight: 400;
+        font-size: 52px;
+        line-height: 1.05;
+        letter-spacing: -0.8px;
+        margin: 0 0 12px;
+        max-width: 20ch;
+      }
+      .summary .summary-lede {
+        color: var(--text-secondary);
+        font-size: 15px;
+        line-height: 1.55;
+        max-width: 65ch;
+        margin: 0 0 32px;
+      }
+      .summary h2 {
+        font-size: 14px;
+        font-variation-settings: "wght" 510;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+        margin: 32px 0 12px;
+        font-family: var(--font-sans);
+      }
+      .summary .action-list {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+      .summary .action-list li {
+        display: grid;
+        grid-template-columns: 24px 1fr auto;
+        gap: 14px;
+        padding: 12px 0;
+        border-top: 1px solid var(--hairline-low);
+        align-items: start;
+        font-size: 14px;
+      }
+      .summary .action-list li:last-child {
+        border-bottom: 1px solid var(--hairline-low);
+      }
+      .summary .action-list .check {
+        width: 18px;
+        height: 18px;
+        border-radius: 4px;
+        border: 1.5px solid var(--hairline-mid);
+        margin-top: 2px;
+        flex-shrink: 0;
+      }
+      .summary .action-list .check.done {
+        background: var(--accent);
+        border-color: var(--accent);
+        position: relative;
+      }
+      .summary .action-list .check.done::after {
+        content: "";
+        position: absolute;
+        left: 4px;
+        top: 1px;
+        width: 5px;
+        height: 9px;
+        border: solid var(--text-inverse);
+        border-width: 0 1.5px 1.5px 0;
+        transform: rotate(45deg);
+      }
+      .summary .action-list .owner {
+        font-family: var(--font-mono);
+        font-size: 11px;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        padding-top: 2px;
+      }
+
+      .quote-block {
+        font-family: var(--font-serif);
+        font-style: italic;
+        font-size: 20px;
+        line-height: 1.45;
+        color: var(--text-primary);
+        max-width: 55ch;
+        margin: 24px 0;
+        padding-left: 20px;
+        border-left: 2px solid var(--accent);
+      }
+      .quote-cite {
+        font-family: var(--font-mono);
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--text-muted);
+        margin-top: 8px;
+        font-style: normal;
+      }
+
+      /* Auth / login mockup */
+      .auth {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        min-height: 480px;
+      }
+      .auth-marketing {
+        padding: 56px 48px;
+        background: var(--bg-raised);
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        border-right: 1px solid var(--hairline-low);
+      }
+      .auth-marketing h2 {
+        font-family: var(--font-serif);
+        font-weight: 400;
+        font-size: 44px;
+        line-height: 1.05;
+        letter-spacing: -0.6px;
+        margin: 24px 0 16px;
+        max-width: 14ch;
+      }
+      .auth-marketing h2 em {
+        font-style: italic;
+        color: var(--accent);
+      }
+      .auth-marketing p {
+        color: var(--text-secondary);
+        font-size: 14px;
+        line-height: 1.5;
+        max-width: 38ch;
+        margin: 0;
+      }
+      .auth-marketing .auth-foot {
+        font-family: var(--font-mono);
+        font-size: 11px;
+        color: var(--text-muted);
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        margin-top: 32px;
+      }
+      .auth-form {
+        padding: 56px 48px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 18px;
+        max-width: 360px;
+      }
+      .auth-form .form-title {
+        font-size: 20px;
+        font-variation-settings: "wght" 510;
+        letter-spacing: -0.22px;
+        margin-bottom: 4px;
+      }
+      .auth-form .form-sub {
+        color: var(--text-secondary);
+        font-size: 13px;
+        margin-bottom: 8px;
+      }
+      .oidc-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        background: var(--bg-raised);
+        border: 1px solid var(--hairline-mid);
+        color: var(--text-primary);
+        font: inherit;
+        font-size: 13px;
+        font-variation-settings: "wght" 510;
+        padding: 10px 14px;
+        border-radius: var(--radius-sm);
+        cursor: pointer;
+        transition: border-color var(--dur-fast) var(--ease);
+      }
+      .oidc-btn:hover {
+        border-color: var(--hairline-high);
+      }
+      .auth-form .divider {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-family: var(--font-mono);
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--text-muted);
+      }
+      .auth-form .divider::before,
+      .auth-form .divider::after {
+        content: "";
+        flex: 1;
+        height: 1px;
+        background: var(--hairline-low);
+      }
+
+      /* Decision log */
+      .decision-grid {
+        display: grid;
+        grid-template-columns: 1.6fr 2fr 1fr;
+        gap: 0;
+        background: var(--bg-raised);
+        border: 1px solid var(--hairline-low);
+        border-radius: var(--radius-md);
+        overflow: hidden;
+      }
+      .decision-grid > div {
+        padding: 12px 16px;
+        border-bottom: 1px solid var(--hairline-low);
+        font-size: 12px;
+        line-height: 1.5;
+        color: var(--text-secondary);
+      }
+      .decision-grid .head {
+        background: var(--bg-elevated);
+        color: var(--text-primary);
+        font-variation-settings: "wght" 510;
+        font-family: var(--font-mono);
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+      .decision-grid > div:nth-last-child(-n + 3) {
+        border-bottom: 0;
+      }
+
+      /* Grid utilities */
+      .grid-2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+      }
+      .grid-3 {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+      }
+      .card-pad {
+        background: var(--bg-raised);
+        border: 1px solid var(--hairline-low);
+        border-radius: var(--radius-md);
+        padding: 20px;
+      }
+      hr.div {
+        border: 0;
+        border-top: 1px solid var(--hairline-low);
+        margin: 24px 0;
+      }
+      .footer {
+        margin-top: 80px;
+        padding-top: 24px;
+        border-top: 1px solid var(--hairline-low);
+        color: var(--text-muted);
+        font-family: var(--font-mono);
+        font-size: 11px;
+        letter-spacing: 0.04em;
+      }
+
+      @media (max-width: 920px) {
+        .page {
+          padding: 32px 16px 64px;
+        }
+        h1.page-title {
+          font-size: 48px;
+        }
+        .grid-2,
+        .grid-3,
+        .stat-grid,
+        .auth {
+          grid-template-columns: 1fr;
+        }
+        .stat-grid > .stat + .stat {
+          border-top: 1px solid var(--hairline-low);
+        }
+        .kanban {
+          grid-template-columns: 1fr 1fr;
+        }
+        .app-shell {
+          grid-template-columns: 1fr;
+        }
+        .app-side {
+          display: none;
+        }
+        .auth-marketing {
+          border-right: 0;
+          border-bottom: 1px solid var(--hairline-low);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="toolbar" role="group" aria-label="Theme toggle">
+      <button type="button" data-theme-btn="dark" aria-pressed="true">Dark</button>
+      <button type="button" data-theme-btn="light" aria-pressed="false">Light</button>
+    </div>
+
+    <main class="page">
+      <header class="hero">
+        <div class="eyebrow">kAInban · Design system v3 preview</div>
+        <h1 class="page-title">
+          Serious software for people who actually <em>ship</em>.
+        </h1>
+        <p class="lede">
+          Linear-class discipline. One warm accent in a category that converged
+          on cool. Dense type, hairline borders, monospace data, and a serif
+          reserved for the AI's own writing. Everything below uses the proposed
+          tokens — toggle dark and light to feel the warmth carry over.
+        </p>
+      </header>
+
+      <!-- ====================== COLOR ====================== -->
+      <section>
+        <h2 class="section-title">Color</h2>
+        <p class="section-meta">
+          Surface ladder + single warm accent · monochrome canvas, restraint by
+          default
+        </p>
+
+        <div class="palette-grid">
+          <div class="swatch">
+            <div class="chip" style="background: var(--bg-base)"></div>
+            <div>
+              <div class="name">Base canvas</div>
+              <div class="hex">#0A0A0B</div>
+              <div class="role">Page background</div>
+            </div>
+          </div>
+          <div class="swatch">
+            <div class="chip" style="background: var(--bg-raised)"></div>
+            <div>
+              <div class="name">Raised</div>
+              <div class="hex">#141517</div>
+              <div class="role">Cards, panels</div>
+            </div>
+          </div>
+          <div class="swatch">
+            <div class="chip" style="background: var(--bg-elevated)"></div>
+            <div>
+              <div class="name">Elevated</div>
+              <div class="hex">#1B1C1F</div>
+              <div class="role">Hover, popover</div>
+            </div>
+          </div>
+          <div class="swatch">
+            <div class="chip" style="background: var(--bg-emphasis)"></div>
+            <div>
+              <div class="name">Emphasis</div>
+              <div class="hex">#232428</div>
+              <div class="role">Active, drag-over</div>
+            </div>
+          </div>
+          <div class="swatch">
+            <div
+              class="chip"
+              style="background: var(--accent); border-color: var(--accent)"
+            ></div>
+            <div>
+              <div class="name">Accent — burnt amber</div>
+              <div class="hex">#E59149</div>
+              <div class="role">CTA, focus, AI active</div>
+            </div>
+          </div>
+          <div class="swatch">
+            <div
+              class="chip"
+              style="
+                background: var(--accent-soft);
+                border-color: var(--accent-border);
+              "
+            ></div>
+            <div>
+              <div class="name">Accent soft</div>
+              <div class="hex">rgba(229,145,73,.10)</div>
+              <div class="role">AI badge bg, tint</div>
+            </div>
+          </div>
+          <div class="swatch">
+            <div
+              class="chip"
+              style="background: var(--success); border-color: transparent"
+            ></div>
+            <div>
+              <div class="name">Success — sage</div>
+              <div class="hex">#5A9F6B</div>
+              <div class="role">Done, low priority</div>
+            </div>
+          </div>
+          <div class="swatch">
+            <div
+              class="chip"
+              style="background: var(--warning); border-color: transparent"
+            ></div>
+            <div>
+              <div class="name">Warning</div>
+              <div class="hex">#D9A23A</div>
+              <div class="role">Used sparingly</div>
+            </div>
+          </div>
+          <div class="swatch">
+            <div
+              class="chip"
+              style="background: var(--danger); border-color: transparent"
+            ></div>
+            <div>
+              <div class="name">Danger — warm</div>
+              <div class="hex">#C56152</div>
+              <div class="role">Destructive, high pri</div>
+            </div>
+          </div>
+        </div>
+
+        <hr class="div" />
+
+        <div class="alert-row">
+          <div class="alert ai">
+            <div>
+              <div class="alert-title">AI extracted 4 action items</div>
+              <div class="alert-body">
+                Looks like the team committed to a Friday review. I added the
+                tasks to <em>Q2 launch</em>. Open the meeting to verify.
+              </div>
+            </div>
+          </div>
+          <div class="alert success">
+            <div>
+              <div class="alert-title">Meeting transcript ready</div>
+              <div class="alert-body">
+                kickoff_2026-05-26.m4a · 42 minutes · 7 speakers
+              </div>
+            </div>
+          </div>
+          <div class="alert warning">
+            <div>
+              <div class="alert-title">3 tasks overdue in this project</div>
+              <div class="alert-body">
+                Two are blocked on dependencies. Open the board to triage.
+              </div>
+            </div>
+          </div>
+          <div class="alert danger">
+            <div>
+              <div class="alert-title">Recording failed to upload</div>
+              <div class="alert-body">
+                Network dropped at 78%. We'll retry automatically — no audio
+                lost.
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ====================== TYPOGRAPHY ====================== -->
+      <section>
+        <h2 class="section-title">Typography</h2>
+        <p class="section-meta">
+          Inter Variable 510 (cv01 + ss03) · Instrument Serif for AI output ·
+          JetBrains Mono for data
+        </p>
+
+        <div class="specimen">
+          <div class="row">
+            <span class="label">Display 48 · Inter 510</span>
+            <span class="t-display"
+              >Tasks appear like a coworker brought them.</span
+            >
+          </div>
+          <div class="row">
+            <span class="label">Heading-LG 32 · Inter 510</span>
+            <span class="t-heading-lg"
+              >Built for back-to-back operators.</span
+            >
+          </div>
+          <div class="row">
+            <span class="label">Heading 20 · Inter 510</span>
+            <span class="t-heading">Project — Q2 product launch</span>
+          </div>
+          <div class="row">
+            <span class="label">Body 13 · Inter 400</span>
+            <span class="t-body"
+              >Drop in a meeting recording and we extract action items,
+              status, owners, and due dates. Every claim links back to the
+              transcript span — so you can verify before you ship.</span
+            >
+          </div>
+          <div class="row">
+            <span class="label">Body-Em 13 · Inter 510</span>
+            <span class="t-body-em">Audio in, kanban out — verify, then trust.</span>
+          </div>
+          <div class="row">
+            <span class="label">UI 12 · Inter 510</span>
+            <span class="t-ui">In Review</span>
+          </div>
+          <div class="row">
+            <span class="label">Caption 11 · Inter 510 · upper</span>
+            <span class="t-caption">Updated 4 minutes ago</span>
+          </div>
+        </div>
+
+        <div class="specimen" style="margin-top: 16px">
+          <div class="row">
+            <span class="label">Serif display 56 · Instrument</span>
+            <span class="t-serif-display"
+              >This is what the AI writes.</span
+            >
+          </div>
+          <div class="row">
+            <span class="label">Serif heading 32 · Instrument</span>
+            <span class="t-serif-heading"
+              >Kickoff for Q2 product launch</span
+            >
+          </div>
+          <div class="row">
+            <span class="label">Mono 12 · JetBrains Mono · tabular</span>
+            <span class="t-mono"
+              >TASK-4827 · 2026-05-28 · 14:32 · 02:14:08</span
+            >
+          </div>
+        </div>
+      </section>
+
+      <!-- ====================== UI ATOMS ====================== -->
+      <section>
+        <h2 class="section-title">Buttons, fields, badges</h2>
+        <p class="section-meta">
+          Density first · accent reserved for primary intent · destructive is
+          warm-red, never bright
+        </p>
+
+        <div class="grid-2">
+          <div class="card-pad">
+            <div class="t-caption" style="margin-bottom: 12px">Buttons</div>
+            <div class="btn-row">
+              <button class="btn btn-primary">
+                <span>Extract tasks</span>
+                <span class="t-mono" style="opacity: 0.8; font-size: 10px"
+                  >⏎</span
+                >
+              </button>
+              <button class="btn">Open transcript</button>
+              <button class="btn btn-ghost">Cancel</button>
+              <button class="btn btn-danger">Delete recording</button>
+            </div>
+            <div class="btn-row" style="margin-top: 12px">
+              <button class="btn btn-sm btn-primary">+ Task</button>
+              <button class="btn btn-sm">Move</button>
+              <button class="btn btn-sm btn-ghost">···</button>
+            </div>
+          </div>
+
+          <div class="card-pad">
+            <div class="t-caption" style="margin-bottom: 12px">
+              Form controls
+            </div>
+            <div
+              style="display: flex; flex-direction: column; gap: 12px"
+            >
+              <div class="field">
+                <label>Project name</label>
+                <input value="Q2 product launch" />
+              </div>
+              <div class="field">
+                <label>Default assignee</label>
+                <select>
+                  <option>Amir Q.</option>
+                  <option>Selin K.</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>Meeting notes (optional)</label>
+                <textarea rows="2">Tuesday weekly sync, async ok</textarea>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <hr class="div" />
+
+        <div class="card-pad">
+          <div class="t-caption" style="margin-bottom: 12px">Badges</div>
+          <div class="btn-row">
+            <span class="badge badge-priority-high">
+              <span class="dot" style="background: var(--danger)"></span>HIGH
+            </span>
+            <span class="badge badge-priority-med">
+              <span class="dot" style="background: var(--warning)"></span>MED
+            </span>
+            <span class="badge badge-priority-low">
+              <span class="dot" style="background: var(--success)"></span>LOW
+            </span>
+            <span class="badge">
+              <span class="dot" style="background: var(--text-muted)"></span>BLOCKED
+            </span>
+            <span class="badge badge-ai">AI-extracted</span>
+            <span class="badge badge-mono">TASK-4827</span>
+            <span class="badge">Due 2026-05-28</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ====================== MOCKUP: KANBAN APP ====================== -->
+      <section>
+        <h2 class="section-title">App view — Kanban board</h2>
+        <p class="section-meta">
+          Sidebar, command palette, dense task cards, AI-active state via
+          border pulse (no glow halo)
+        </p>
+
+        <div class="mockup">
+          <div class="mockup-chrome">
+            <span class="light"></span>
+            <span class="light"></span>
+            <span class="light"></span>
+            <span style="margin-left: 12px"
+              >kainban.app/p/q2-launch</span
+            >
+          </div>
+          <div class="app-shell">
+            <aside class="app-side">
+              <div class="brand">
+                <span class="brand-mark">k</span>
+                <span>kAInban</span>
+              </div>
+              <div class="nav-section">
+                <div class="label">Workspace</div>
+                <div class="nav-item">
+                  <span>Inbox</span>
+                  <span class="count">12</span>
+                </div>
+                <div class="nav-item">
+                  <span>My tasks</span>
+                  <span class="count">7</span>
+                </div>
+                <div class="nav-item">
+                  <span>Recordings</span>
+                  <span class="count">3</span>
+                </div>
+              </div>
+              <div class="nav-section">
+                <div class="label">Projects</div>
+                <div class="nav-item active">
+                  <span>Q2 product launch</span>
+                  <span class="count">24</span>
+                </div>
+                <div class="nav-item">
+                  <span>Customer onboarding</span>
+                  <span class="count">18</span>
+                </div>
+                <div class="nav-item">
+                  <span>Hiring · Eng</span>
+                  <span class="count">9</span>
+                </div>
+                <div class="nav-item">
+                  <span>Roadmap H2</span>
+                  <span class="count">31</span>
+                </div>
+              </div>
+            </aside>
+            <div class="app-main">
+              <div class="app-header">
+                <div class="breadcrumbs">
+                  <span>Projects</span>
+                  <span style="color: var(--text-muted)">/</span>
+                  <strong>Q2 product launch</strong>
+                </div>
+                <div class="cmdk">
+                  <span>Search, jump, ask the AI…</span>
+                  <kbd>⌘K</kbd>
+                </div>
+                <div class="btn-row">
+                  <button class="btn btn-sm btn-ghost">Filter</button>
+                  <button class="btn btn-sm btn-primary">+ Task</button>
+                </div>
+              </div>
+              <div class="kanban">
+                <div class="kanban-col">
+                  <div class="col-header">
+                    <div class="name">
+                      <span class="dot" style="background: var(--text-muted)"></span>
+                      Todo
+                    </div>
+                    <span class="count">06</span>
+                  </div>
+                  <div class="task ai-active">
+                    <div class="task-title">
+                      Draft onboarding email v3 from Tuesday's call
+                    </div>
+                    <div class="task-meta">
+                      <span class="task-id">TASK-4827</span>
+                      <span class="task-date">May 28</span>
+                      <span
+                        class="badge badge-ai"
+                        style="margin-left: auto"
+                        >AI</span
+                      >
+                      <span class="task-assignee">AQ</span>
+                    </div>
+                  </div>
+                  <div class="task">
+                    <div class="task-title">
+                      Reach out to 3 reference customers for case studies
+                    </div>
+                    <div class="task-meta">
+                      <span class="task-id">TASK-4828</span>
+                      <span class="badge badge-priority-high">HIGH</span>
+                      <span class="task-assignee">SK</span>
+                    </div>
+                  </div>
+                  <div class="task">
+                    <div class="task-title">
+                      Confirm pricing copy with legal
+                    </div>
+                    <div class="task-meta">
+                      <span class="task-id">TASK-4831</span>
+                      <span class="task-date">Jun 02</span>
+                      <span class="task-assignee">AQ</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="kanban-col">
+                  <div class="col-header">
+                    <div class="name">
+                      <span class="dot" style="background: var(--info)"></span>In progress
+                    </div>
+                    <span class="count">04</span>
+                  </div>
+                  <div class="task">
+                    <div class="task-title">
+                      Wire transcript verification into task detail modal
+                    </div>
+                    <div class="task-meta">
+                      <span class="task-id">TASK-4811</span>
+                      <span class="badge badge-priority-high">HIGH</span>
+                      <span class="task-assignee">AQ</span>
+                    </div>
+                  </div>
+                  <div class="task">
+                    <div class="task-title">
+                      Update Azure OpenAI proxy for region failover
+                    </div>
+                    <div class="task-meta">
+                      <span class="task-id">TASK-4815</span>
+                      <span class="task-date">May 30</span>
+                      <span class="task-assignee">MV</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="kanban-col">
+                  <div class="col-header">
+                    <div class="name">
+                      <span class="dot" style="background: var(--warning)"></span>In review
+                    </div>
+                    <span class="count">03</span>
+                  </div>
+                  <div class="task">
+                    <div class="task-title">
+                      Multi-tenant cascade for AI settings
+                    </div>
+                    <div class="task-meta">
+                      <span class="task-id">TASK-4778</span>
+                      <span class="badge badge-priority-med">MED</span>
+                      <span class="task-assignee">SK</span>
+                    </div>
+                  </div>
+                  <div class="task">
+                    <div class="task-title">
+                      Mobile recording UI — long-press to pause
+                    </div>
+                    <div class="task-meta">
+                      <span class="task-id">TASK-4801</span>
+                      <span class="task-assignee">AQ</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="kanban-col">
+                  <div class="col-header">
+                    <div class="name">
+                      <span class="dot" style="background: var(--success)"></span>Done
+                    </div>
+                    <span class="count">11</span>
+                  </div>
+                  <div class="task" style="opacity: 0.65">
+                    <div class="task-title">
+                      Proxy AI provider access through backend
+                    </div>
+                    <div class="task-meta">
+                      <span class="task-id">TASK-4764</span>
+                      <span class="task-date">May 25</span>
+                      <span class="task-assignee">AQ</span>
+                    </div>
+                  </div>
+                  <div class="task" style="opacity: 0.65">
+                    <div class="task-title">
+                      Fix data integrity — soft-delete cascade
+                    </div>
+                    <div class="task-meta">
+                      <span class="task-id">TASK-4751</span>
+                      <span class="task-assignee">SK</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ====================== MOCKUP: DASHBOARD ====================== -->
+      <section>
+        <h2 class="section-title">Analytics — Dashboard</h2>
+        <p class="section-meta">
+          Dense numeric stats in mono · one editorial moment for the AI
+          recommendation
+        </p>
+
+        <div class="mockup">
+          <div class="mockup-chrome">
+            <span class="light"></span>
+            <span class="light"></span>
+            <span class="light"></span>
+            <span style="margin-left: 12px">kainban.app/analytics</span>
+          </div>
+          <div class="dashboard">
+            <div class="dash-header">
+              <div class="eyebrow">Analytics · last 14 days</div>
+              <h1>Tuesday, May 26</h1>
+              <div class="sub">
+                3 projects · 47 active tasks · 11 recordings transcribed
+              </div>
+            </div>
+
+            <div class="stat-grid">
+              <div class="stat">
+                <div class="stat-label">Active tasks</div>
+                <div class="stat-value">47</div>
+                <div class="stat-delta">+8 wow</div>
+              </div>
+              <div class="stat">
+                <div class="stat-label">Done · this week</div>
+                <div class="stat-value">23</div>
+                <div class="stat-delta">+12 wow</div>
+              </div>
+              <div class="stat">
+                <div class="stat-label">Avg cycle time</div>
+                <div class="stat-value">2.4<span style="font-size:14px;color:var(--text-muted);"> d</span></div>
+                <div class="stat-delta down">+0.3 wow</div>
+              </div>
+              <div class="stat">
+                <div class="stat-label">Audio minutes ↦ tasks</div>
+                <div class="stat-value">412</div>
+                <div class="stat-delta">+74 wow</div>
+              </div>
+            </div>
+
+            <div class="ai-card">
+              <div class="ai-eyebrow">
+                <span class="dot" style="background: var(--accent)"></span>
+                AI recommendation
+              </div>
+              <h3>
+                Three reference customer outreaches are blocking the launch
+                announcement.
+              </h3>
+              <div class="ai-body">
+                You committed to these on Tuesday's kickoff. They've been Todo
+                for 6 days while in-progress work piled up around them. Shipping
+                the launch post without case studies will read thinner than you
+                wanted on the call.
+              </div>
+              <div class="ai-pill">
+                <button class="btn btn-sm btn-primary">Open the 3 tasks</button>
+                <button class="btn btn-sm btn-ghost">Why these?</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ====================== MOCKUP: MEETING SUMMARY ====================== -->
+      <section>
+        <h2 class="section-title">Meeting summary — AI output</h2>
+        <p class="section-meta">
+          Where the serif lives · the AI's writing rendered as a thought, not a
+          widget
+        </p>
+
+        <div class="mockup">
+          <div class="mockup-chrome">
+            <span class="light"></span>
+            <span class="light"></span>
+            <span class="light"></span>
+            <span style="margin-left: 12px"
+              >kainban.app/recordings/kickoff-q2</span
+            >
+          </div>
+          <div class="summary">
+            <div class="doc-meta">
+              <span>2026-05-26 · 10:14</span>
+              <span>42 min</span>
+              <span>7 speakers</span>
+              <span>kickoff_2026-05-26.m4a</span>
+            </div>
+            <h1>Q2 launch kickoff — the room actually agreed.</h1>
+            <p class="summary-lede">
+              Selin opened with the marketing calendar, Amir pushed back on the
+              June 4 ship date, and after twelve minutes of debate the team
+              landed on a Friday-the-7th soft launch with reference customers,
+              then a wider announcement two weeks later. The action items below
+              are all owners' own commitments — verified from transcript spans.
+            </p>
+
+            <div class="quote-block">
+              "If we don't have at least two reference customers on launch day,
+              we're just blasting into the void. I'd rather slip a week."
+              <div class="quote-cite">Selin K. · 14:32</div>
+            </div>
+
+            <h2>Action items</h2>
+            <ul class="action-list">
+              <li>
+                <div class="check done"></div>
+                <div>
+                  <div style="font-variation-settings: 'wght' 510">
+                    Lock the launch date (Fri Jun 7, soft).
+                  </div>
+                  <div style="color: var(--text-secondary); font-size: 13px">
+                    Decided at 18:42 with no remaining objections.
+                  </div>
+                </div>
+                <div class="owner">AQ · DONE</div>
+              </li>
+              <li>
+                <div class="check"></div>
+                <div>
+                  <div style="font-variation-settings: 'wght' 510">
+                    Reach out to 3 reference customers for case studies.
+                  </div>
+                  <div style="color: var(--text-secondary); font-size: 13px">
+                    Selin volunteered. Specifically: Aria, Klein, and the team
+                    at Stratus.
+                  </div>
+                </div>
+                <div class="owner">SK · Jun 2</div>
+              </li>
+              <li>
+                <div class="check"></div>
+                <div>
+                  <div style="font-variation-settings: 'wght' 510">
+                    Confirm pricing copy with legal.
+                  </div>
+                  <div style="color: var(--text-secondary); font-size: 13px">
+                    Specifically the per-seat language and the early-stage
+                    discount terms.
+                  </div>
+                </div>
+                <div class="owner">AQ · Jun 2</div>
+              </li>
+              <li>
+                <div class="check"></div>
+                <div>
+                  <div style="font-variation-settings: 'wght' 510">
+                    Draft onboarding email v3 reflecting the new flow.
+                  </div>
+                  <div style="color: var(--text-secondary); font-size: 13px">
+                    Reuse v2 structure; swap pricing module; add reference
+                    customer logos when SK delivers them.
+                  </div>
+                </div>
+                <div class="owner">AQ · May 28</div>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- ====================== MOCKUP: AUTH ====================== -->
+      <section>
+        <h2 class="section-title">Login / onboarding</h2>
+        <p class="section-meta">
+          Marketing-adjacent surface · serif moment + OIDC primary
+        </p>
+
+        <div class="mockup">
+          <div class="mockup-chrome">
+            <span class="light"></span>
+            <span class="light"></span>
+            <span class="light"></span>
+            <span style="margin-left: 12px">kainban.app/login</span>
+          </div>
+          <div class="auth">
+            <div class="auth-marketing">
+              <div>
+                <span class="brand-mark">k</span>
+                <h2>
+                  Audio in,<br />
+                  <em>kanban out.</em>
+                </h2>
+                <p>
+                  Drop a meeting recording. We extract action items, owners,
+                  and dates — every claim linked back to the transcript span.
+                  You verify, then trust.
+                </p>
+              </div>
+              <div class="auth-foot">Self-hosted · OIDC · AGPL v3</div>
+            </div>
+            <div class="auth-form">
+              <div class="form-title">Sign in</div>
+              <div class="form-sub">
+                Use your organization's identity provider.
+              </div>
+              <button class="oidc-btn">Continue with Zitadel</button>
+              <div class="divider">or</div>
+              <div class="field">
+                <label>Email</label>
+                <input type="email" placeholder="you@company.com" />
+              </div>
+              <button class="btn btn-primary" style="justify-content: center">
+                Continue
+              </button>
+              <div style="font-size: 12px; color: var(--text-muted)">
+                No account?
+                <a href="#">Request an invite</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ====================== DECISION LOG ====================== -->
+      <section>
+        <h2 class="section-title">Decisions baked in</h2>
+        <p class="section-meta">
+          The non-obvious calls and why they're worth defending in code review
+        </p>
+
+        <div class="decision-grid">
+          <div class="head">Decision</div>
+          <div class="head">Rationale</div>
+          <div class="head">Risk</div>
+
+          <div style="color: var(--text-primary); font-variation-settings: 'wght' 510;">
+            Burnt amber accent (#E59149) instead of category-standard cyan
+          </div>
+          <div>
+            Every direct competitor is cool-toned (Height cyan, Linear lavender,
+            Granola green). Warm is absent and reads as deliberate taste.
+            Connects to the voice/audio metaphor.
+          </div>
+          <div>Might feel "sunset" if overused — that's why it's reserved to CTA + AI-active + focus only.</div>
+
+          <div style="color: var(--text-primary); font-variation-settings: 'wght' 510;">
+            No glow / halo / "AI shimmer" on any AI state
+          </div>
+          <div>
+            Industry default (cyan halo) reads as Vegas casino. Replaced with a
+            hairline-border pulse on the accent — quieter, faster to render, easier on the eyes.
+          </div>
+          <div>
+            Less immediately "look at me, I'm AI." Trades immediate signal for
+            durable taste.
+          </div>
+
+          <div style="color: var(--text-primary); font-variation-settings: 'wght' 510;">
+            Instrument Serif on meeting summaries + analytics primary heading
+          </div>
+          <div>
+            The AI's output reads as a thought, not a chart label. Serif is the
+            "writer's voice" cue. Strict scope (titles only) keeps the cost low.
+          </div>
+          <div>
+            Could read precious if it leaks into UI. Strictly title-only via a
+            single `--font-serif` token used in 4 places.
+          </div>
+
+          <div style="color: var(--text-primary); font-variation-settings: 'wght' 510;">
+            13px body (not 14, not 16) + 4px-base spacing
+          </div>
+          <div>
+            Indie-hacker tools live dense. Linear, Height, and Raycast all
+            cluster at 12-13px UI. Reads as "I respect your screen real estate."
+          </div>
+          <div>
+            Accessibility — we bump to 14px on `prefers-reduced-data` and the
+            user-controllable density toggle in settings.
+          </div>
+
+          <div style="color: var(--text-primary); font-variation-settings: 'wght' 510;">
+            Inter Variable at weight 510 with cv01 + ss03 globally
+          </div>
+          <div>
+            Linear's exact recipe. Single-story 'a' + geometric alternates +
+            mid-emphasis weight = engineered, not generic. Mandatory; never override.
+          </div>
+          <div>
+            Variable Inter is ~325KB self-hosted. Acceptable for first-party
+            app; we preconnect to rsms.me on marketing.
+          </div>
+
+          <div style="color: var(--text-primary); font-variation-settings: 'wght' 510;">
+            Drop glassmorphism, neumorphism, gradients, magnetic hover, ripple
+          </div>
+          <div>
+            Existing DESIGN_SYSTEM.md is AI-slop manifesto. Real shipped CSS
+            already drifted away from it. Make that drift official: hairline +
+            elevation ladder + restrained motion.
+          </div>
+          <div>
+            Looks "less designed" to anyone reading from a 2020 Dribbble lens.
+            That's the point.
+          </div>
+        </div>
+      </section>
+
+      <footer class="footer">
+        kAInban design system v3 · preview generated by /design-consultation ·
+        Tokens defined in :root above — toggle dark/light to verify warm bias
+        carries
+      </footer>
+    </main>
+
+    <script>
+      const root = document.documentElement;
+      const btns = document.querySelectorAll("[data-theme-btn]");
+      btns.forEach((b) => {
+        b.addEventListener("click", () => {
+          const t = b.dataset.themeBtn;
+          root.dataset.theme = t;
+          btns.forEach((x) =>
+            x.setAttribute(
+              "aria-pressed",
+              x.dataset.themeBtn === t ? "true" : "false",
+            ),
+          );
+        });
+      });
+    </script>
+  </body>
+</html>
