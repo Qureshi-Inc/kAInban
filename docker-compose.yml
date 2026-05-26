@@ -1,13 +1,15 @@
 version: '3.8'
 
 services:
-  # Backend API service
+  # Backend API service. Host port 3001 is taken by the Homepage container
+  # on opti3; bind to 3007 instead. Container-internal port is still 3001 so
+  # the frontend's nginx proxy_pass to http://api:3001 is unchanged.
   api:
     build:
       context: .
       dockerfile: Dockerfile.api
     ports:
-      - "3001:3001"
+      - "3007:3001"
     environment:
       - NODE_ENV=${NODE_ENV:-production}
       - STORAGE_DIR=/app/storage
@@ -17,11 +19,20 @@ services:
       # value (change-this-secret-in-production) ever sign cookies in prod.
       - SESSION_SECRET=${SESSION_SECRET}
       - CSRF_SECRET=${CSRF_SECRET}
+      # Azure OpenAI (one of the two providers)
       - AZURE_OPENAI_ENDPOINT=${AZURE_OPENAI_ENDPOINT:-https://moiz-mb596h34-eastus2.openai.azure.com/}
       - AZURE_OPENAI_API_KEY=${AZURE_OPENAI_API_KEY}
       - AZURE_OPENAI_API_VERSION=${AZURE_OPENAI_API_VERSION:-2024-02-01}
       - AZURE_OPENAI_WHISPER_DEPLOYMENT=${AZURE_OPENAI_WHISPER_DEPLOYMENT:-whisper}
       - AZURE_OPENAI_GPT_DEPLOYMENT=${AZURE_OPENAI_GPT_DEPLOYMENT:-gpt-4o}
+      # OpenAI (the other provider). Set OPENAI_API_KEY in .env to enable.
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - OPENAI_BASE_URL=${OPENAI_BASE_URL:-https://api.openai.com/v1}
+      - OPENAI_GPT_MODEL=${OPENAI_GPT_MODEL:-gpt-4o}
+      - OPENAI_WHISPER_MODEL=${OPENAI_WHISPER_MODEL:-whisper-1}
+      # AI_PROVIDER picks which one is the default when nothing is saved per-user.
+      # Acceptable: "azure" (default) or "openai".
+      - AI_PROVIDER=${AI_PROVIDER:-azure}
       - ALLOW_REGISTRATION=${ALLOW_REGISTRATION:-true}
       - MULTITENANCY_ENABLED=${MULTITENANCY_ENABLED:-false}
       - APP_URL=${APP_URL}
@@ -71,11 +82,21 @@ services:
     depends_on:
       - api
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8064/health"]
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1:8064/health"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
+    # Homepage auto-discovery labels (per workspace AGENTS.md rule). Homepage
+    # at http://192.168.5.54:3001 picks these up via the docker socket within
+    # ~5 seconds; no Homepage restart needed.
+    labels:
+      - homepage.group=SaaS Apps
+      - homepage.name=kAInban
+      - homepage.description=AI task management with meeting transcription
+      - homepage.icon=mdi-view-kanban
+      - homepage.href=https://app.kainban.com
+      - homepage.siteMonitor=https://app.kainban.com/health
 
   # Development services
   api-dev:
