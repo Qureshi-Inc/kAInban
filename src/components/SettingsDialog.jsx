@@ -28,7 +28,12 @@ export default function SettingsDialog() {
     whisperDeployment: 'whisper-1',
     gptDeployment: 'gpt-4',
     openaiWhisperModel: 'whisper-1',
-    openaiGptModel: 'gpt-4o'
+    openaiGptModel: 'gpt-4o',
+    // Map of which AI fields are overridden by a server-side environment
+    // variable. The server resolves config env-first (process.env wins over
+    // saved DB settings), and reports which keys came from env so we can
+    // mark them read-only here. Empty object = nothing env-managed.
+    envManaged: {}
   })
 
   const [oidcConfig, setOidcConfig] = useState(null)
@@ -59,7 +64,8 @@ export default function SettingsDialog() {
         whisperDeployment: settings.whisperDeployment || 'whisper-1',
         gptDeployment: settings.gptDeployment || 'gpt-4',
         openaiWhisperModel: settings.openaiWhisperModel || 'whisper-1',
-        openaiGptModel: settings.openaiGptModel || 'gpt-4o'
+        openaiGptModel: settings.openaiGptModel || 'gpt-4o',
+        envManaged: settings.envManaged || {}
       })
       setUserFormData({
         name: user?.name || '',
@@ -536,14 +542,40 @@ export default function SettingsDialog() {
           {isAdmin && (
             <TabsContent value="ai" className="space-y-4 px-1">
               <div className="space-y-4">
+                {/* Banner shown when any AI field is overridden by an env var
+                    on the server. Env wins over the saved DB value at runtime,
+                    so editing locked fields here would have no effect — they're
+                    rendered read-only below. Removing the env var on the server
+                    restores the saved DB value as the active config. */}
+                {Object.values(aiFormData.envManaged || {}).some(Boolean) && (
+                  <div className="rounded-md border border-info/40 bg-info/5 px-3 py-2 text-xs text-foreground">
+                    <span className="font-medium text-info">
+                      Some fields are managed by environment variables
+                    </span>
+                    <span className="text-muted-foreground">
+                      {' '}— values set in <code>.env</code> on the server take
+                      precedence over anything saved here. Locked fields below
+                      are read-only until the env override is removed.
+                    </span>
+                  </div>
+                )}
+
                 {/* Provider selector */}
                 <div className="space-y-2">
-                  <div className="text-sm font-medium">AI Provider *</div>
+                  <div className="text-sm font-medium flex items-center gap-2">
+                    AI Provider *
+                    {aiFormData.envManaged?.provider && (
+                      <span className="text-[10px] font-mono uppercase tracking-wider text-info">
+                        env
+                      </span>
+                    )}
+                  </div>
                   <div className="grid grid-cols-2 gap-2">
                     <button
                       type="button"
                       onClick={() => handleAiInputChange('provider', 'azure')}
-                      className={`flex flex-col items-start gap-1 rounded-md border p-3 text-left transition ${
+                      disabled={!!aiFormData.envManaged?.provider}
+                      className={`flex flex-col items-start gap-1 rounded-md border p-3 text-left transition disabled:opacity-50 disabled:cursor-not-allowed ${
                         aiFormData.provider !== 'openai'
                           ? 'border-primary bg-primary/5 ring-1 ring-primary'
                           : 'border-border hover:bg-muted/50'
@@ -557,7 +589,8 @@ export default function SettingsDialog() {
                     <button
                       type="button"
                       onClick={() => handleAiInputChange('provider', 'openai')}
-                      className={`flex flex-col items-start gap-1 rounded-md border p-3 text-left transition ${
+                      disabled={!!aiFormData.envManaged?.provider}
+                      className={`flex flex-col items-start gap-1 rounded-md border p-3 text-left transition disabled:opacity-50 disabled:cursor-not-allowed ${
                         aiFormData.provider === 'openai'
                           ? 'border-primary bg-primary/5 ring-1 ring-primary'
                           : 'border-border hover:bg-muted/50'
@@ -574,32 +607,53 @@ export default function SettingsDialog() {
                 {aiFormData.provider === 'openai' ? (
                   <>
                     <div className="space-y-2">
-                      <div className="text-sm font-medium">
+                      <div className="text-sm font-medium flex items-center gap-2">
                         OpenAI API Key {aiFormData.keyConfigured ? '' : '*'}
+                        {aiFormData.envManaged?.apiKey && (
+                          <span className="text-[10px] font-mono uppercase tracking-wider text-info">
+                            env
+                          </span>
+                        )}
                       </div>
                       <Input
                         type="password"
                         placeholder={
-                          aiFormData.keyConfigured
-                            ? 'Leave blank to keep existing key'
-                            : 'sk-...'
+                          aiFormData.envManaged?.apiKey
+                            ? 'Set by OPENAI_API_KEY in .env'
+                            : aiFormData.keyConfigured
+                              ? 'Leave blank to keep existing key'
+                              : 'sk-...'
                         }
                         value={aiFormData.apiKey}
                         onChange={e =>
                           handleAiInputChange('apiKey', e.target.value)
                         }
-                        className="w-full"
+                        disabled={!!aiFormData.envManaged?.apiKey}
+                        className="w-full disabled:opacity-60 disabled:cursor-not-allowed"
                       />
-                      {aiFormData.keyConfigured && (
+                      {aiFormData.envManaged?.apiKey ? (
+                        <p className="text-xs text-info">
+                          Managed by <code>OPENAI_API_KEY</code> environment
+                          variable. Remove it from <code>.env</code> to manage
+                          here.
+                        </p>
+                      ) : aiFormData.keyConfigured ? (
                         <p className="text-xs text-muted-foreground">
                           A key is already configured on the server. Enter a new
                           key only to rotate it.
                         </p>
-                      )}
+                      ) : null}
                     </div>
 
                     <div className="space-y-2">
-                      <div className="text-sm font-medium">OpenAI Base URL</div>
+                      <div className="text-sm font-medium flex items-center gap-2">
+                        OpenAI Base URL
+                        {aiFormData.envManaged?.openaiBaseUrl && (
+                          <span className="text-[10px] font-mono uppercase tracking-wider text-info">
+                            env
+                          </span>
+                        )}
+                      </div>
                       <Input
                         type="url"
                         placeholder="https://api.openai.com/v1"
@@ -607,17 +661,34 @@ export default function SettingsDialog() {
                         onChange={e =>
                           handleAiInputChange('openaiBaseUrl', e.target.value)
                         }
-                        className="w-full text-sm"
+                        disabled={!!aiFormData.envManaged?.openaiBaseUrl}
+                        className="w-full text-sm disabled:opacity-60 disabled:cursor-not-allowed"
                       />
                       <p className="text-xs text-muted-foreground">
-                        Override only for self-hosted or OpenAI-compatible APIs
-                        (e.g. OpenRouter, LiteLLM).
+                        {aiFormData.envManaged?.openaiBaseUrl ? (
+                          <>
+                            Managed by <code>OPENAI_BASE_URL</code> environment
+                            variable.
+                          </>
+                        ) : (
+                          <>
+                            Override only for self-hosted or OpenAI-compatible
+                            APIs (e.g. OpenRouter, LiteLLM).
+                          </>
+                        )}
                       </p>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <div className="text-sm font-medium">Whisper Model</div>
+                        <div className="text-sm font-medium flex items-center gap-2">
+                          Whisper Model
+                          {aiFormData.envManaged?.openaiWhisperModel && (
+                            <span className="text-[10px] font-mono uppercase tracking-wider text-info">
+                              env
+                            </span>
+                          )}
+                        </div>
                         <Input
                           placeholder="whisper-1"
                           value={aiFormData.openaiWhisperModel}
@@ -627,12 +698,20 @@ export default function SettingsDialog() {
                               e.target.value
                             )
                           }
-                          className="w-full"
+                          disabled={!!aiFormData.envManaged?.openaiWhisperModel}
+                          className="w-full disabled:opacity-60 disabled:cursor-not-allowed"
                         />
                       </div>
 
                       <div className="space-y-2">
-                        <div className="text-sm font-medium">GPT Model</div>
+                        <div className="text-sm font-medium flex items-center gap-2">
+                          GPT Model
+                          {aiFormData.envManaged?.openaiGptModel && (
+                            <span className="text-[10px] font-mono uppercase tracking-wider text-info">
+                              env
+                            </span>
+                          )}
+                        </div>
                         <Input
                           placeholder="gpt-4o"
                           value={aiFormData.openaiGptModel}
@@ -642,7 +721,8 @@ export default function SettingsDialog() {
                               e.target.value
                             )
                           }
-                          className="w-full"
+                          disabled={!!aiFormData.envManaged?.openaiGptModel}
+                          className="w-full disabled:opacity-60 disabled:cursor-not-allowed"
                         />
                       </div>
                     </div>
@@ -650,8 +730,13 @@ export default function SettingsDialog() {
                 ) : (
                   <>
                     <div className="space-y-2">
-                      <div className="text-sm font-medium">
+                      <div className="text-sm font-medium flex items-center gap-2">
                         Azure OpenAI Endpoint *
+                        {aiFormData.envManaged?.azureEndpoint && (
+                          <span className="text-[10px] font-mono uppercase tracking-wider text-info">
+                            env
+                          </span>
+                        )}
                       </div>
                       <Input
                         type="url"
@@ -660,50 +745,84 @@ export default function SettingsDialog() {
                         onChange={e =>
                           handleAiInputChange('azureEndpoint', e.target.value)
                         }
-                        className="w-full text-sm"
+                        disabled={!!aiFormData.envManaged?.azureEndpoint}
+                        className="w-full text-sm disabled:opacity-60 disabled:cursor-not-allowed"
                       />
+                      {aiFormData.envManaged?.azureEndpoint && (
+                        <p className="text-xs text-info">
+                          Managed by <code>AZURE_OPENAI_ENDPOINT</code> in
+                          <code> .env</code>.
+                        </p>
+                      )}
                     </div>
 
                     <div className="space-y-2">
-                      <div className="text-sm font-medium">
+                      <div className="text-sm font-medium flex items-center gap-2">
                         API Key {aiFormData.keyConfigured ? '' : '*'}
+                        {aiFormData.envManaged?.apiKey && (
+                          <span className="text-[10px] font-mono uppercase tracking-wider text-info">
+                            env
+                          </span>
+                        )}
                       </div>
                       <Input
                         type="password"
                         placeholder={
-                          aiFormData.keyConfigured
-                            ? 'Leave blank to keep existing key'
-                            : 'Your Azure OpenAI API Key'
+                          aiFormData.envManaged?.apiKey
+                            ? 'Set by AZURE_OPENAI_API_KEY in .env'
+                            : aiFormData.keyConfigured
+                              ? 'Leave blank to keep existing key'
+                              : 'Your Azure OpenAI API Key'
                         }
                         value={aiFormData.apiKey}
                         onChange={e =>
                           handleAiInputChange('apiKey', e.target.value)
                         }
-                        className="w-full"
+                        disabled={!!aiFormData.envManaged?.apiKey}
+                        className="w-full disabled:opacity-60 disabled:cursor-not-allowed"
                       />
-                      {aiFormData.keyConfigured && (
+                      {aiFormData.envManaged?.apiKey ? (
+                        <p className="text-xs text-info">
+                          Managed by <code>AZURE_OPENAI_API_KEY</code> in
+                          <code> .env</code>. Remove it from the env to manage
+                          here.
+                        </p>
+                      ) : aiFormData.keyConfigured ? (
                         <p className="text-xs text-muted-foreground">
                           A key is already configured on the server. Enter a new
                           key only to rotate it.
                         </p>
-                      )}
+                      ) : null}
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <div className="text-sm font-medium">API Version</div>
+                        <div className="text-sm font-medium flex items-center gap-2">
+                          API Version
+                          {aiFormData.envManaged?.apiVersion && (
+                            <span className="text-[10px] font-mono uppercase tracking-wider text-info">
+                              env
+                            </span>
+                          )}
+                        </div>
                         <Input
                           value={aiFormData.apiVersion}
                           onChange={e =>
                             handleAiInputChange('apiVersion', e.target.value)
                           }
-                          className="w-full"
+                          disabled={!!aiFormData.envManaged?.apiVersion}
+                          className="w-full disabled:opacity-60 disabled:cursor-not-allowed"
                         />
                       </div>
 
                       <div className="space-y-2">
-                        <div className="text-sm font-medium">
+                        <div className="text-sm font-medium flex items-center gap-2">
                           Whisper Deployment
+                          {aiFormData.envManaged?.whisperDeployment && (
+                            <span className="text-[10px] font-mono uppercase tracking-wider text-info">
+                              env
+                            </span>
+                          )}
                         </div>
                         <Input
                           value={aiFormData.whisperDeployment}
@@ -713,19 +832,28 @@ export default function SettingsDialog() {
                               e.target.value
                             )
                           }
-                          className="w-full"
+                          disabled={!!aiFormData.envManaged?.whisperDeployment}
+                          className="w-full disabled:opacity-60 disabled:cursor-not-allowed"
                         />
                       </div>
                     </div>
 
                     <div className="space-y-2">
-                      <div className="text-sm font-medium">GPT Deployment</div>
+                      <div className="text-sm font-medium flex items-center gap-2">
+                        GPT Deployment
+                        {aiFormData.envManaged?.gptDeployment && (
+                          <span className="text-[10px] font-mono uppercase tracking-wider text-info">
+                            env
+                          </span>
+                        )}
+                      </div>
                       <Input
                         value={aiFormData.gptDeployment}
                         onChange={e =>
                           handleAiInputChange('gptDeployment', e.target.value)
                         }
-                        className="w-full"
+                        disabled={!!aiFormData.envManaged?.gptDeployment}
+                        className="w-full disabled:opacity-60 disabled:cursor-not-allowed"
                       />
                     </div>
                   </>
