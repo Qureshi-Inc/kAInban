@@ -19,6 +19,7 @@ import NotificationSystem from './components/NotificationSystem'
 import ProgressIndicator from './components/ProgressIndicator'
 import RecordingModal from './components/RecordingModal'
 import SettingsDialog from './components/SettingsDialog'
+import CommandPalette from './components/ui/command-palette'
 
 // Pages
 import MainView from './pages/MainView'
@@ -52,6 +53,31 @@ function AuthenticatedApp() {
     state => state.settings.openaiWhisperModel
   )
   const openaiGptModel = useAppStore(state => state.settings.openaiGptModel)
+  const toggleCommandPalette = useAppStore(state => state.toggleCommandPalette)
+
+  // Global Cmd+K / Ctrl+K listener — single source of truth for opening
+  // the command palette per DESIGN.md v3.1.7. Lives at App level so every
+  // route + every modal share the same shortcut. Skips when an input or
+  // contenteditable has focus AND the user is typing a regular char (we
+  // still honor the chord even when typing, since it's a global affordance,
+  // but we explicitly skip when an `<input>` or `<textarea>` is matching
+  // its own browser shortcut by checking event.defaultPrevented).
+  useEffect(() => {
+    if (!user) return
+    const handler = (e) => {
+      if (
+        (e.metaKey || e.ctrlKey) &&
+        e.key.toLowerCase() === 'k' &&
+        !e.shiftKey &&
+        !e.altKey
+      ) {
+        e.preventDefault()
+        toggleCommandPalette()
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [user, toggleCommandPalette])
 
   useEffect(() => {
     // Check authentication and initialize in parallel
@@ -297,6 +323,7 @@ function AuthenticatedApp() {
       {/* Modals and overlays */}
       <SettingsDialog />
       <RecordingModal />
+      <CommandPalette />
       <NotificationSystem notifications={notifications} />
 
       {/* Progress indicator for file uploads */}

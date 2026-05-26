@@ -73,6 +73,11 @@ const useAppStore = create((set, get) => ({
   // UI State
   isSettingsOpen: false,
   isRecordingModalOpen: false,
+  // Command palette (Cmd+K) — DESIGN.md v3.1.7. Global flag so the
+  // CommandPalette primitive can render once at the App root and any
+  // surface can request it open (currently: global keyboard listener +
+  // the future TopBar palette-trigger button).
+  isCommandPaletteOpen: false,
   notifications: [],
 
   // Progress tracking for file upload/processing
@@ -860,6 +865,10 @@ const useAppStore = create((set, get) => ({
 
   // UI Actions
   setSettingsOpen: open => set({ isSettingsOpen: open }),
+
+  setCommandPaletteOpen: open => set({ isCommandPaletteOpen: open }),
+  toggleCommandPalette: () =>
+    set(state => ({ isCommandPaletteOpen: !state.isCommandPaletteOpen })),
 
   addNotification: notification => {
     const id = generateId()
