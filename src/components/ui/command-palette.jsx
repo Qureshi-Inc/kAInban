@@ -104,10 +104,10 @@ function useActions({ close, navigate, theme, setTheme }) {
   )
 
   /*
-   * Switch view persists per workspace as documented in DESIGN.md v3.1.5.
-   * Slice 1 just writes the preference; the ViewSwitcher UI that reads it
-   * lands in Slice 4. Until then this is a no-op visually but the storage
-   * key is correct so we don't have to migrate later.
+   * Switch view persists per workspace as documented in DESIGN.md v3.1.5
+   * and Slice 4 wires the actual canvas swap. We write the same key the
+   * useViewMode hook reads AND fire a CustomEvent so any mounted
+   * ViewSwitcher updates instantly without a reload.
    */
   const setViewMode = useCallback(
     (mode) => {
@@ -115,15 +115,15 @@ function useActions({ close, navigate, theme, setTheme }) {
       try {
         localStorage.setItem(`kainban:viewMode:${workspaceId}`, mode)
       } catch (_e) {
-        // localStorage unavailable — ignore, the ViewSwitcher will fall
-        // back to its in-memory default.
+        // localStorage unavailable — same-tab dispatch still works below.
       }
-      addNotification({
-        type: 'info',
-        message: `View preference saved: ${mode === 'kanban' ? 'Kanban' : 'Tasks'}. Renders in next session (Slice 4 ships the live switcher).`
-      })
+      window.dispatchEvent(
+        new CustomEvent('kainban:viewmode', {
+          detail: { workspaceId, mode }
+        })
+      )
     },
-    [currentProject?.id, addNotification]
+    [currentProject?.id]
   )
 
   /*
