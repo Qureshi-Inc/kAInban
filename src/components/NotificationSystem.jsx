@@ -19,15 +19,21 @@ const NotificationItem = ({ notification }) => {
     }
   }
 
-  const getColors = type => {
+  // v3 alert pattern: solid surface (bg-card) + colored left-border strip
+  // for the accent. The previous design used bg-{success,destructive,info}/10
+  // which is a 10% tint — fine on a blank canvas, but unreadable on mobile
+  // where the notification overlaps the header (the project title bleeds
+  // through the near-transparent card). DESIGN.md calls for left-border
+  // accent strips, not full-color fills.
+  const getAccentClasses = type => {
     switch (type) {
       case 'success':
-        return 'bg-success/10 border-success/30 text-success'
+        return 'border-l-success [&_[data-notification-icon]]:text-success'
       case 'error':
-        return 'bg-destructive/10 border-destructive/30 text-destructive'
+        return 'border-l-destructive [&_[data-notification-icon]]:text-destructive'
       case 'info':
       default:
-        return 'bg-info/10 border-info/30 text-info'
+        return 'border-l-info [&_[data-notification-icon]]:text-info'
     }
   }
 
@@ -37,12 +43,15 @@ const NotificationItem = ({ notification }) => {
       initial={{ opacity: 0, x: 300, scale: 0.3 }}
       animate={{ opacity: 1, x: 0, scale: 1 }}
       exit={{ opacity: 0, x: 300, scale: 0.5, transition: { duration: 0.2 } }}
-      className={`flex items-start gap-3 p-4 rounded-lg border shadow-lg max-w-sm ${getColors(notification.type)}`}
+      role="alert"
+      className={`flex items-start gap-3 p-4 rounded-md border border-l-4 shadow-lg w-full sm:w-auto sm:max-w-sm bg-card text-card-foreground ${getAccentClasses(notification.type)}`}
     >
-      <div className="flex-shrink-0 mt-0.5">{getIcon(notification.type)}</div>
+      <div data-notification-icon className="flex-shrink-0 mt-0.5">
+        {getIcon(notification.type)}
+      </div>
 
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium leading-tight">
+        <p className="text-sm font-medium leading-tight text-foreground">
           {notification.message}
         </p>
       </div>
@@ -64,11 +73,19 @@ export default function NotificationSystem({ notifications }) {
     return null
   }
 
+  // Mobile: push the stack below the header (which wraps at < 640px and can
+  // be roughly two rows of h-9 buttons + gap-2 ≈ ~88px). On sm+, keep the
+  // standard top-4 offset where the header is a single row and the
+  // notification corner is empty.
   return (
-    <div className="fixed top-4 right-4 z-[99999999] space-y-2">
+    <div
+      className="fixed top-20 sm:top-4 right-2 sm:right-4 left-2 sm:left-auto z-[99999999] flex flex-col items-end gap-2 pointer-events-none"
+    >
       <AnimatePresence>
         {notifications.map(notification => (
-          <NotificationItem key={notification.id} notification={notification} />
+          <div key={notification.id} className="pointer-events-auto w-full sm:w-auto">
+            <NotificationItem notification={notification} />
+          </div>
         ))}
       </AnimatePresence>
     </div>
