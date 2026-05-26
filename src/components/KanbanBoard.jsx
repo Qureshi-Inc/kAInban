@@ -659,13 +659,21 @@ export default function KanbanBoard({ taskToOpen }) {
     }
   }
 
-  const handleTaskDelete = taskId => {
+  const handleTaskDelete = async taskId => {
     const task = tasks.find(t => t.id === taskId)
-    if (task && confirm(`Delete task "${task.title}"?`)) {
-      deleteTask(taskId)
+    if (!task || !confirm(`Delete task "${task.title}"?`)) {
+      return
+    }
+    try {
+      await deleteTask(taskId)
       addNotification({
         type: 'success',
         message: 'Task deleted successfully'
+      })
+    } catch (error) {
+      addNotification({
+        type: 'error',
+        message: `Failed to delete task: ${error.message || 'server error'}`
       })
     }
   }

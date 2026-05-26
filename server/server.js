@@ -1312,6 +1312,44 @@ app.delete(
   }
 )
 
+// Delete a single task. This is the direct counterpart to DELETE
+// /api/projects/:id: the frontend used to rely on the next debounced
+// POST /api/projects to diff out a removed task, but that 100ms debounce
+// could be canceled by a tab close or any subsequent action and the task
+// would silently come back on reload. This route persists the delete
+// synchronously, with an ownership check on the parent project.
+app.delete(
+  '/api/tasks/:id',
+  localAuth.requireAuth,
+  attachTenantContext,
+  (req, res) => {
+    try {
+      const taskId = req.params.id
+      const ownerUserId = db.getTaskOwnerUserId(taskId)
+
+      if (ownerUserId == null) {
+        return res.status(404).json({ error: 'Task not found' })
+      }
+      if (String(ownerUserId) !== String(req.session.user.id)) {
+        return res.status(403).json({ error: 'Access denied' })
+      }
+
+      const result = db.deleteTask(taskId)
+      if (!result || result.changes === 0) {
+        // Task row vanished between the ownership lookup and the delete
+        // (concurrent request). Treat as already-deleted from the client's
+        // perspective rather than an error.
+        return res.json({ success: true, alreadyDeleted: true })
+      }
+
+      res.json({ success: true })
+    } catch (error) {
+      console.error('[Tasks] Delete error:', error)
+      res.status(500).json({ error: 'Failed to delete task' })
+    }
+  }
+)
+
 // Delete all projects for current user
 app.delete(
   '/api/projects',

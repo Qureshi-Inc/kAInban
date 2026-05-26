@@ -383,6 +383,36 @@ class ApiService {
     }
   }
 
+  /*
+   * Delete a single task by ID. Mirrors deleteProject — direct DELETE
+   * call rather than waiting on the project-save diff to pick up the
+   * removal. Previously the only delete path was via the debounced
+   * saveProject (100ms setTimeout) which could be canceled by other
+   * actions or fail silently, leaving the task in the database. The
+   * caller is expected to await this and only mutate local state when
+   * it returns true.
+   */
+  async deleteTask(taskId) {
+    try {
+      const response = await this.secureFetch(
+        `${API_URL}/tasks/${taskId}`,
+        {
+          method: 'DELETE'
+        }
+      )
+      if (!response.ok) {
+        const errorText = await response.text()
+        throw new Error(
+          `Failed to delete task: ${response.status} - ${errorText}`
+        )
+      }
+      return true
+    } catch (error) {
+      console.error('[API] Delete task error:', error)
+      return false
+    }
+  }
+
   async deleteAllProjects() {
     try {
       const response = await this.secureFetch(`${API_URL}/projects`, {

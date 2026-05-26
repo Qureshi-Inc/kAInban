@@ -479,18 +479,27 @@ export default function TaskDetailModal({ task, isOpen, onClose }) {
     }, 100)
   }
 
-  const handleDelete = () => {
+  const handleDelete = async() => {
     if (!task) {
       return
     }
 
-    if (confirm('Are you sure you want to delete this task?')) {
-      deleteTask(task.id)
+    if (!confirm('Are you sure you want to delete this task?')) {
+      return
+    }
+
+    try {
+      await deleteTask(task.id)
       addNotification({
         type: 'success',
         message: 'Task deleted'
       })
       onClose()
+    } catch (error) {
+      addNotification({
+        type: 'error',
+        message: `Failed to delete task: ${error.message || 'server error'}`
+      })
     }
   }
 
