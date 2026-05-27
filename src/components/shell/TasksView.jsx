@@ -107,8 +107,16 @@ function GroupHeader({ group, count, collapsed, onToggle, onAdd }) {
   )
 }
 
-export default function TasksView() {
-  const tasks = useAppStore(state => state.tasks)
+/*
+ * Accepts an optional `tasks` prop so the same view can render either
+ * the current project's tasks (default) or a filtered cross-project
+ * slice (e.g. the Sidebar's Inbox / Today destinations feed a flat list
+ * of tasks pulled from store.projects[*].tasks). When `tasks` is passed,
+ * the view doesn't subscribe to state.tasks at all.
+ */
+export default function TasksView({ tasks: tasksProp, emptyMessage } = {}) {
+  const storeTasks = useAppStore(state => state.tasks)
+  const tasks = tasksProp != null ? tasksProp : storeTasks
   const currentProject = useAppStore(state => state.currentProject)
   const currentTaskId = useAppStore(state => state.currentTaskId)
   const openTaskInspector = useAppStore(state => state.openTaskInspector)
@@ -196,7 +204,9 @@ export default function TasksView() {
     return () => window.removeEventListener('keydown', onKey)
   }, [currentTaskId, visibleIds, focusedId, openTaskInspector])
 
-  if (!currentProject) {
+  // When invoked without an explicit tasks prop AND no project is
+  // selected, there's nothing to render — the dashboard owns that slot.
+  if (tasksProp == null && !currentProject) {
     return null
   }
 
@@ -204,7 +214,8 @@ export default function TasksView() {
     return (
       <div className="border border-border rounded-md bg-card p-12 text-center">
         <div className="text-[12px] text-muted-foreground">
-          No tasks yet. Record a meeting, paste text, or add one manually.
+          {emptyMessage ||
+            'No tasks yet. Record a meeting, paste text, or add one manually.'}
         </div>
       </div>
     )

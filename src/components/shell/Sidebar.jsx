@@ -30,7 +30,7 @@ import {
   Settings
 } from 'lucide-react'
 import React from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { getShortId } from '../../lib/utils'
 import useAppStore from '../../stores/useAppStore'
 
@@ -96,18 +96,31 @@ function NavEyebrow({ label, onAdd }) {
 
 export default function Sidebar({ onCloseMobile }) {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const projects = useAppStore(state => state.projects)
   const currentProject = useAppStore(state => state.currentProject)
+  const meetings = useAppStore(state => state.meetings)
   const loadProject = useAppStore(state => state.loadProject)
   const clearCurrentProject = useAppStore(state => state.clearCurrentProject)
+  const selectMeeting = useAppStore(state => state.selectMeeting)
   const setSettingsOpen = useAppStore(state => state.setSettingsOpen)
+  const setActivityPanelOpen = useAppStore(state => state.setActivityPanelOpen)
+  const createProject = useAppStore(state => state.createProject)
   const addNotification = useAppStore(state => state.addNotification)
   const user = useAppStore(state => state.user)
 
+  // Read the current view's filter mode so the Inbox/Today/Dashboard
+  // items can highlight themselves when active.
+  const activeFilter = searchParams.get('filter') || null
+
+  const tenantParam = () => {
+    const params = new URLSearchParams(window.location.search)
+    return params.get('tenant')
+  }
+
   const goToDashboard = () => {
     clearCurrentProject()
-    const params = new URLSearchParams(window.location.search)
-    const tenant = params.get('tenant')
+    const tenant = tenantParam()
     navigate(tenant ? `/?tenant=${tenant}` : '/')
     onCloseMobile?.()
   }
@@ -116,16 +129,112 @@ export default function Sidebar({ onCloseMobile }) {
     loadProject(projectId)
     const params = new URLSearchParams(window.location.search)
     params.set('project', getShortId(projectId))
+    params.delete('filter')
     navigate(`/?${params.toString()}`)
     onCloseMobile?.()
   }
 
-  const comingSoon = label => () => {
-    addNotification({
-      type: 'info',
-      message: `${label} view arrives in Slice 4 with the Tasks view + filters.`
-    })
+  /*
+   * Filter views — Inbox and Today route to a cross-project TasksView
+   * rendered by MainView. Both clear `project` from the URL since they
+   * span all projects. MainView reads ?filter=<name> and applies the
+   * matching predicate over store.projects[*].tasks.
+   */
+  const goToFilter = name => () => {
+    clearCurrentProject()
+    const tenant = tenantParam()
+    const params = new URLSearchParams()
+    if (tenant) params.set('tenant', tenant)
+    params.set('filter', name)
+    navigate(`/?${params.toString()}`)
     onCloseMobile?.()
+  }
+
+  const openActivity = () => {
+    setActivityPanelOpen(true)
+    onCloseMobile?.()
+  }
+
+  /*
+   * Recent meetings — jump to the most recently created meeting. Slice 4
+   * lacks a dedicated "Meetings" route, so we navigate to the meeting's
+   * parent project + select the meeting. The existing MainView wiring
+   * surfaces it via the SummaryPanel / TranscriptPanel.
+   */
+  const goToRecentMeeting = () => {
+    const pool = []
+    for (const p of projects || []) {
+      if (!p.meetings) continue
+      for (const m of p.meetings) {
+        pool.push({ ...m, _projectId: p.id })
+      }
+    }
+    for (const m of meetings || []) {
+      // Avoid duplicates if `meetings` already came from currentProject.
+      if (!pool.find(x => x.id === m.id)) {
+        pool.push({ ...m, _projectId: currentProject?.id })
+      }
+    }
+    if (pool.length === 0) {
+      addNotification({
+        type: 'info',
+        message: 'No meetings yet. Record one to see it here.'
+      })
+      onCloseMobile?.()
+      return
+    }
+    pool.sort((a, b) => {
+      const ta = a.created_at ? new Date(a.created_at).getTime() : 0
+      const tb = b.created_at ? new Date(b.created_at).getTime() : 0
+      return tb - ta
+    })
+    const m = pool[0]
+    if (!m._projectId) {
+      addNotification({
+        type: 'info',
+        message: 'Most recent meeting has no project link.'
+      })
+      onCloseMobile?.()
+      return
+    }
+    loadProject(m._projectId)
+    selectMeeting(m.id)
+    const params = new URLSearchParams()
+    const tenant = tenantParam()
+    if (tenant) params.set('tenant', tenant)
+    params.set('project', getShortId(m._projectId))
+    params.set('meeting', getShortId(m.id))
+    navigate(`/?${params.toString()}`)
+    onCloseMobile?.()
+  }
+
+  /*
+   * Add new project — use a prompt() for now. A dedicated "Create
+   * project" dialog used to live in the orphaned Header.jsx; that
+   * dialog ports into a shared primitive in a polish PR. The prompt
+   * here is honest about being temporary and gets users unblocked.
+   */
+  const handleAddProject = async () => {
+    const name = window.prompt('Project name?')
+    if (!name || !name.trim()) {
+      onCloseMobile?.()
+      return
+    }
+    try {
+      const project = await createProject(name.trim())
+      if (project?.id) {
+        goToProject(project.id)
+      }
+      addNotification({
+        type: 'success',
+        message: `Project "${name.trim()}" created`
+      })
+    } catch (e) {
+      addNotification({
+        type: 'error',
+        message: `Failed to create project: ${e.message || 'server error'}`
+      })
+    }
   }
 
   // Workspace label: use the user's email domain as a stand-in until we
@@ -181,39 +290,29 @@ export default function Sidebar({ onCloseMobile }) {
         <NavItem
           icon={Inbox}
           label="Inbox"
-          onClick={comingSoon('Inbox')}
+          active={!currentProject && activeFilter === 'inbox'}
+          onClick={goToFilter('inbox')}
         />
         <NavItem
           icon={Clock}
           label="Today"
-          onClick={comingSoon('Today')}
+          active={!currentProject && activeFilter === 'today'}
+          onClick={goToFilter('today')}
         />
         <NavItem
           icon={Activity}
           label="Activity"
-          onClick={comingSoon('Activity')}
+          onClick={openActivity}
         />
       </div>
 
       {/* Projects */}
       <div className="px-1.5 py-2 border-t border-border space-y-0.5">
-        <NavEyebrow
-          label="Projects"
-          onAdd={() => {
-            // Project create lives in the existing Header dropdown; for
-            // now nudge users to use it. The dedicated "create workspace
-            // entity" command lands in Slice 3 with the topbar wiring.
-            addNotification({
-              type: 'info',
-              message:
-                'Project create lives in the project selector for now. Coming to the sidebar in Slice 3.'
-            })
-          }}
-        />
+        <NavEyebrow label="Projects" onAdd={handleAddProject} />
         <NavItem
           icon={Folder}
           label="Dashboard overview"
-          active={!currentProject}
+          active={!currentProject && !activeFilter}
           onClick={goToDashboard}
         />
         {projects.map(p => (
@@ -239,12 +338,7 @@ export default function Sidebar({ onCloseMobile }) {
         <NavItem
           icon={Calendar}
           label="Recent"
-          onClick={comingSoon('Recent meetings')}
-        />
-        <NavItem
-          icon={Clock}
-          label="Upcoming"
-          onClick={comingSoon('Upcoming meetings')}
+          onClick={goToRecentMeeting}
         />
       </div>
 

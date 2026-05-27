@@ -73,6 +73,10 @@ const useAppStore = create((set, get) => ({
   // UI State
   isSettingsOpen: false,
   isRecordingModalOpen: false,
+  // Activity panel (right-side slide-out from the existing ActivityPanel
+  // component). Lifted into the store so the Sidebar's "Activity" nav
+  // item can open it without prop-drilling through AppShell.
+  isActivityPanelOpen: false,
   // Command palette (Cmd+K) — DESIGN.md v3.1.7. Global flag so the
   // CommandPalette primitive can render once at the App root and any
   // surface can request it open (currently: global keyboard listener +
@@ -872,6 +876,7 @@ const useAppStore = create((set, get) => ({
 
   // UI Actions
   setSettingsOpen: open => set({ isSettingsOpen: open }),
+  setActivityPanelOpen: open => set({ isActivityPanelOpen: open }),
 
   setCommandPaletteOpen: open => set({ isCommandPaletteOpen: open }),
   toggleCommandPalette: () =>

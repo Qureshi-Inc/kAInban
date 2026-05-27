@@ -29,9 +29,10 @@ import useAppStore from './stores/useAppStore'
 // Inner App component that handles authenticated routes
 function AuthenticatedApp() {
   const [loading, setLoading] = React.useState(true)
-  const [activityPanelOpen, setActivityPanelOpen] = React.useState(false)
   const user = useAppStore(state => state.user)
   const currentTaskId = useAppStore(state => state.currentTaskId)
+  const activityPanelOpen = useAppStore(state => state.isActivityPanelOpen)
+  const setActivityPanelOpen = useAppStore(state => state.setActivityPanelOpen)
   const authChecked = useAppStore(state => state.authChecked)
   const checkAuth = useAppStore(state => state.checkAuth)
   const setUser = useAppStore(state => state.setUser)

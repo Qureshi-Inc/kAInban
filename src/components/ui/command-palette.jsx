@@ -58,6 +58,10 @@ function Kbd({ children }) {
  * cmdk wraps every item in a focus-trapping list; we just style our group
  * containers + items. Active state comes via [data-selected="true"] from
  * cmdk. Non-active items remain neutral so the palette feels calm at rest.
+ *
+ * The group heading uses cmdk's native `heading` prop (not a stray sibling
+ * div) so cmdk's filter logic can keep its child tree intact. Style via
+ * the [cmdk-group-heading] data attribute selector cmdk renders.
  */
 const itemClass =
   'group flex items-center gap-2.5 px-2.5 py-1.5 rounded-sm cursor-pointer text-[13px] text-foreground select-none ' +
@@ -66,8 +70,11 @@ const itemClass =
 const itemIconClass =
   'h-3.5 w-3.5 flex-shrink-0 text-muted-foreground group-data-[selected=true]:text-foreground'
 
-const groupLabelClass =
-  'px-2.5 pt-1.5 pb-1 text-[10px] font-mono uppercase tracking-[0.06em] text-muted-foreground'
+const groupClass =
+  '[&_[cmdk-group-heading]]:px-2.5 [&_[cmdk-group-heading]]:pt-1.5 [&_[cmdk-group-heading]]:pb-1 ' +
+  '[&_[cmdk-group-heading]]:text-[10px] [&_[cmdk-group-heading]]:font-mono ' +
+  '[&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-[0.06em] ' +
+  '[&_[cmdk-group-heading]]:text-muted-foreground'
 
 /*
  * Build the canonical action set per DESIGN.md v3.1.7. Actions are
@@ -445,7 +452,7 @@ export default function CommandPalette() {
                 autoFocus
                 value={search}
                 onValueChange={setSearch}
-                placeholder="Type a command or search\u2026"
+                placeholder="Type a command or search…"
                 className="flex-1 bg-transparent border-0 outline-none text-[14px] text-foreground placeholder:text-muted-foreground"
               />
               <kbd className="font-mono text-[10px] leading-none px-[6px] py-[2px] rounded-sm bg-background text-secondary-foreground border border-border">
@@ -459,14 +466,28 @@ export default function CommandPalette() {
               </Command.Empty>
 
               {grouped.map(({ group, items }) => (
-                <Command.Group key={group} heading={null} className="py-1">
-                  <div className={groupLabelClass}>{group}</div>
+                <Command.Group
+                  key={group}
+                  heading={group}
+                  className={'py-1 ' + groupClass}
+                >
                   {items.map(action => {
                     const Icon = action.icon
+                    // cmdk rejects null/undefined values and uses the
+                    // string for fuzzy matching. Make sure every field is
+                    // a defined string before we concatenate.
+                    const safeLabel = String(action.label || action.id || '')
+                    const safeKeywords = Array.isArray(action.keywords)
+                      ? action.keywords.filter(k => typeof k === 'string').join(' ')
+                      : ''
+                    const value =
+                      `${group} ${safeLabel} ${safeKeywords}`.trim() ||
+                      action.id ||
+                      'item'
                     return (
                       <Command.Item
                         key={action.id}
-                        value={`${action.group} ${action.label} ${(action.keywords || []).join(' ')}`}
+                        value={value}
                         onSelect={() => handleSelect(action)}
                         disabled={action.disabled}
                         className={
@@ -475,15 +496,17 @@ export default function CommandPalette() {
                           (action.disabled ? ' opacity-50 cursor-not-allowed' : '')
                         }
                       >
-                        <Icon
-                          className={
-                            itemIconClass +
-                            (action.ai ? ' text-primary group-data-[selected=true]:text-primary' : '')
-                          }
-                          aria-hidden="true"
-                        />
-                        <span className="flex-1 truncate">{action.label}</span>
-                        {action.shortcut && (
+                        {Icon && (
+                          <Icon
+                            className={
+                              itemIconClass +
+                              (action.ai ? ' text-primary group-data-[selected=true]:text-primary' : '')
+                            }
+                            aria-hidden="true"
+                          />
+                        )}
+                        <span className="flex-1 truncate">{safeLabel}</span>
+                        {Array.isArray(action.shortcut) && action.shortcut.length > 0 && (
                           <span className="flex gap-1 flex-shrink-0">
                             {action.shortcut.map((key, i) => (
                               <Kbd key={i}>{key}</Kbd>
