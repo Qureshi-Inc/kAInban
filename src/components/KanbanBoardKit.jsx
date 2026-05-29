@@ -239,7 +239,7 @@ export default function KanbanBoardKit({ taskToOpen }) {
 
   // Load users for assignee display
   useEffect(() => {
-    const loadUsers = async() => {
+    const loadUsers = async () => {
       try {
         const usersData = await apiService.getUsers()
         setUsers(usersData || [])
@@ -253,7 +253,7 @@ export default function KanbanBoardKit({ taskToOpen }) {
 
   // Check for recent merges to determine button visibility
   useEffect(() => {
-    const checkRecentMerges = async() => {
+    const checkRecentMerges = async () => {
       if (!currentProject?.id) {
         setHasRecentMerges(false)
         return
@@ -270,7 +270,16 @@ export default function KanbanBoardKit({ taskToOpen }) {
     checkRecentMerges()
   }, [currentProject?.id, tasks])
 
-  // Handle opening specific task from URL
+  // URL is the source of truth for which task is open. This effect runs in
+  // both directions:
+  //   - taskToOpen has a value -> open the inspector for that task
+  //   - taskToOpen transitions from value -> null (browser back / forward
+  //     past a `?task=` entry) -> close the inspector
+  //
+  // The previous-value ref is required so that "create new task" (which
+  // sets `selectedTask`/`isModalOpen` directly without touching the URL)
+  // does not get force-closed by this effect on every render.
+  const prevTaskToOpenRef = useRef(taskToOpen)
   useEffect(() => {
     if (taskToOpen && tasks.length > 0) {
       const task = tasks.find(t => t.id === taskToOpen)
@@ -278,7 +287,13 @@ export default function KanbanBoardKit({ taskToOpen }) {
         setSelectedTask(task)
         setIsModalOpen(true)
       }
+    } else if (prevTaskToOpenRef.current && !taskToOpen) {
+      // URL had a task, now it does not - back/forward removed it.
+      // Close the inspector to match.
+      setIsModalOpen(false)
+      setSelectedTask(null)
     }
+    prevTaskToOpenRef.current = taskToOpen
   }, [taskToOpen, tasks])
 
   // Scroll bounce animation when kanban comes into view on mobile
@@ -390,7 +405,7 @@ export default function KanbanBoardKit({ taskToOpen }) {
     { id: 'blocked', title: '🚫 Blocked', tasks: getTasksByStatus('blocked') }
   ]
 
-  const handleTaskMove = async(taskId, newStatus) => {
+  const handleTaskMove = async (taskId, newStatus) => {
     const task = tasks.find(t => t.id === taskId)
     if (!task) {
       return

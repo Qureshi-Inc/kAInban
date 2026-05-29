@@ -26,7 +26,9 @@ export function isOIDCEnabled() {
 }
 
 async function getIssuer() {
-  if (_issuerPromise) {return _issuerPromise}
+  if (_issuerPromise) {
+    return _issuerPromise
+  }
   const { issuer } = readConfigFromEnv()
   if (!issuer) {
     throw new Error('ZITADEL_ISSUER is not configured')
@@ -40,8 +42,10 @@ async function getIssuer() {
 }
 
 async function getClient() {
-  if (_clientPromise) {return _clientPromise}
-  _clientPromise = (async() => {
+  if (_clientPromise) {
+    return _clientPromise
+  }
+  _clientPromise = (async () => {
     const issuer = await getIssuer()
     const { clientId, callbackUrl } = readConfigFromEnv()
     const client = new issuer.Client({
@@ -62,20 +66,38 @@ async function getClient() {
   return _clientPromise
 }
 
-export async function getAuthorizationUrl() {
+// Generate a Zitadel authorization URL.
+//
+// `intent` is an optional caller-supplied hint for which Zitadel hosted
+// screen the user should land on:
+//   - 'register' -> add `prompt=create` so first-time visitors from the
+//     marketing site's "Get started" CTA see the registration screen
+//     directly instead of the login screen.
+//   - anything else (or unset) -> standard login screen.
+//
+// `prompt=create` is the Zitadel convention; the OIDC `prompt` parameter
+// itself is standard, the value is the IdP-specific extension. If we ever
+// swap to a non-Zitadel IdP, this is the single line to revisit.
+export async function getAuthorizationUrl({ intent } = {}) {
   const client = await getClient()
   const codeVerifier = generators.codeVerifier()
   const codeChallenge = generators.codeChallenge(codeVerifier)
   const state = generators.state()
   const nonce = generators.nonce()
 
-  const authUrl = client.authorizationUrl({
+  const authParams = {
     scope: 'openid email profile offline_access',
     code_challenge: codeChallenge,
     code_challenge_method: 'S256',
     state,
     nonce
-  })
+  }
+
+  if (intent === 'register') {
+    authParams.prompt = 'create'
+  }
+
+  const authUrl = client.authorizationUrl(authParams)
 
   return { authUrl, codeVerifier, state, nonce }
 }
@@ -117,7 +139,9 @@ export async function refreshTokenSet(refreshToken) {
 }
 
 export async function revokeRefreshToken(refreshToken) {
-  if (!refreshToken) {return}
+  if (!refreshToken) {
+    return
+  }
   try {
     const client = await getClient()
     await client.revoke(refreshToken, 'refresh_token')
@@ -191,7 +215,9 @@ function parseBootstrapAdminEmails() {
 // ZITADEL_BOOTSTRAP_ADMIN_EMAILS. Once an admin exists, the env var is inert.
 function determineRoleForNewUser(email) {
   const adminCount = db.getActiveAdminCount()
-  if (adminCount > 0) {return 'member'}
+  if (adminCount > 0) {
+    return 'member'
+  }
   const bootstrapEmails = parseBootstrapAdminEmails()
   if (email && bootstrapEmails.includes(email.toLowerCase())) {
     console.log(
@@ -241,7 +267,11 @@ export function findOrCreateOIDCUser(userinfo, issuer) {
     }
     if (Object.keys(updates).length > 0) {
       user = db.updateUser(user.id, updates)
-      console.log('[OIDC] Refreshed user fields:', user.email, Object.keys(updates))
+      console.log(
+        '[OIDC] Refreshed user fields:',
+        user.email,
+        Object.keys(updates)
+      )
     }
     db.updateUserLogin(user.id)
     return user
@@ -275,8 +305,10 @@ export function findOrCreateOIDCUser(userinfo, issuer) {
         console.warn(
           '[OIDC] Refusing email-link across tenants:',
           existing.email,
-          'existing tenant=', existing.tenant_id,
-          'resolved tenant=', tenant.id
+          'existing tenant=',
+          existing.tenant_id,
+          'resolved tenant=',
+          tenant.id
         )
       } else {
         const reason =

@@ -12,7 +12,7 @@ import {
   User,
   Sparkles
 } from 'lucide-react'
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { getShortId } from '../lib/utils'
 import apiService from '../services/apiService'
@@ -30,259 +30,255 @@ import './KanbanBoard.css'
 // default shallow compare on props is fine here - parents pass primitives
 // (task object, callbacks, users array) and as long as those references are
 // stable across renders, the card stays mounted as-is.
-const TaskCard = React.memo(({
-  task,
-  onDelete,
-  onClick,
-  onNavigateToMeeting,
-  users = []
-}) => {
-  const [isDragging, setIsDragging] = React.useState(false)
-  const [isTouchDevice, setIsTouchDevice] = React.useState(false)
-  const [touchStart, setTouchStart] = React.useState({ x: 0, y: 0, time: 0 })
-  const [isScrolling, setIsScrolling] = React.useState(false)
+const TaskCard = React.memo(
+  ({ task, onDelete, onClick, onNavigateToMeeting, users = [] }) => {
+    const [isDragging, setIsDragging] = React.useState(false)
+    const [isTouchDevice, setIsTouchDevice] = React.useState(false)
+    const [touchStart, setTouchStart] = React.useState({ x: 0, y: 0, time: 0 })
+    const [isScrolling, setIsScrolling] = React.useState(false)
 
-  React.useEffect(() => {
-    // Detect if this is a touch device
-    setIsTouchDevice('ontouchstart' in window)
-  }, [])
+    React.useEffect(() => {
+      // Detect if this is a touch device
+      setIsTouchDevice('ontouchstart' in window)
+    }, [])
 
-  // Check if assignee is a database user
-  const isAssigneeDbUser = assigneeName => {
-    if (!assigneeName || !users.length) {
-      return false
-    }
-    return users.some(
-      user =>
-        user.name.toLowerCase() === assigneeName.toLowerCase() ||
-        user.email.toLowerCase() === assigneeName.toLowerCase()
-    )
-  }
-
-  const getAssigneesDisplay = task => {
-    // Handle both new assignees array and legacy assignee string
-    let assigneesList = []
-    if (task.assignees && Array.isArray(task.assignees)) {
-      assigneesList = task.assignees
-    } else if (task.assignee) {
-      assigneesList = [task.assignee]
+    // Check if assignee is a database user
+    const isAssigneeDbUser = assigneeName => {
+      if (!assigneeName || !users.length) {
+        return false
+      }
+      return users.some(
+        user =>
+          user.name.toLowerCase() === assigneeName.toLowerCase() ||
+          user.email.toLowerCase() === assigneeName.toLowerCase()
+      )
     }
 
-    if (assigneesList.length === 0) {
-      return null
+    const getAssigneesDisplay = task => {
+      // Handle both new assignees array and legacy assignee string
+      let assigneesList = []
+      if (task.assignees && Array.isArray(task.assignees)) {
+        assigneesList = task.assignees
+      } else if (task.assignee) {
+        assigneesList = [task.assignee]
+      }
+
+      if (assigneesList.length === 0) {
+        return null
+      }
+
+      return (
+        <div className="flex flex-wrap gap-1">
+          {assigneesList.slice(0, 2).map((assigneeName, index) => {
+            const isDbUser = isAssigneeDbUser(assigneeName)
+            const user = users.find(
+              u =>
+                u.name.toLowerCase() === assigneeName.toLowerCase() ||
+                u.email.toLowerCase() === assigneeName.toLowerCase()
+            )
+
+            return (
+              <div
+                key={assigneeName}
+                className={`flex items-center gap-1 text-xs px-1.5 py-0.5 rounded border ${
+                  isDbUser
+                    ? 'bg-info/10 text-info border-info/30'
+                    : 'bg-muted text-muted-foreground border-border'
+                }`}
+              >
+                <User className="h-2.5 w-2.5" />
+                <span
+                  className="truncate max-w-16"
+                  title={user ? `${user.name} (${user.email})` : assigneeName}
+                >
+                  {isDbUser && user ? user.name : assigneeName}
+                </span>
+                {isDbUser && (
+                  <div
+                    className="w-1 h-1 bg-green-500 rounded-full"
+                    title="Database User"
+                  />
+                )}
+              </div>
+            )
+          })}
+          {assigneesList.length > 2 && (
+            <div className="flex items-center justify-center text-xs px-1.5 py-0.5 rounded border bg-secondary text-muted-foreground border-border">
+              +{assigneesList.length - 2}
+            </div>
+          )}
+        </div>
+      )
+    }
+
+    // Priority chip — soft semantic background, no gradients, no shadow glow.
+    // See DESIGN.md → Components → Badge / chip.
+    const getPriorityColor = priority => {
+      switch (priority) {
+        case 'high':
+          return 'bg-destructive/12 text-destructive border border-destructive/30'
+        case 'medium':
+          return 'bg-warning/12 text-warning border border-warning/30'
+        case 'low':
+          return 'bg-success/12 text-success border border-success/30'
+        default:
+          return 'bg-muted text-muted-foreground border border-border'
+      }
+    }
+
+    // Drag styles — modest elevation only, no scale/rotate/glow halo.
+    const getDragStyles = () => {
+      if (isDragging) {
+        return 'dragging opacity-90'
+      }
+      return ''
     }
 
     return (
-      <div className="flex flex-wrap gap-1">
-        {assigneesList.slice(0, 2).map((assigneeName, index) => {
-          const isDbUser = isAssigneeDbUser(assigneeName)
-          const user = users.find(
-            u =>
-              u.name.toLowerCase() === assigneeName.toLowerCase() ||
-              u.email.toLowerCase() === assigneeName.toLowerCase()
-          )
-
-          return (
-            <div
-              key={assigneeName}
-              className={`flex items-center gap-1 text-xs px-1.5 py-0.5 rounded border ${
-                isDbUser
-                  ? 'bg-info/10 text-info border-info/30'
-                  : 'bg-muted text-muted-foreground border-border'
-              }`}
-            >
-              <User className="h-2.5 w-2.5" />
-              <span
-                className="truncate max-w-16"
-                title={user ? `${user.name} (${user.email})` : assigneeName}
-              >
-                {isDbUser && user ? user.name : assigneeName}
-              </span>
-              {isDbUser && (
-                <div
-                  className="w-1 h-1 bg-green-500 rounded-full"
-                  title="Database User"
-                />
-              )}
-            </div>
-          )
-        })}
-        {assigneesList.length > 2 && (
-          <div className="flex items-center justify-center text-xs px-1.5 py-0.5 rounded border bg-secondary text-muted-foreground border-border">
-            +{assigneesList.length - 2}
-          </div>
-        )}
-      </div>
-    )
-  }
-
-  // Priority chip — soft semantic background, no gradients, no shadow glow.
-  // See DESIGN.md → Components → Badge / chip.
-  const getPriorityColor = priority => {
-    switch (priority) {
-      case 'high':
-        return 'bg-destructive/12 text-destructive border border-destructive/30'
-      case 'medium':
-        return 'bg-warning/12 text-warning border border-warning/30'
-      case 'low':
-        return 'bg-success/12 text-success border border-success/30'
-      default:
-        return 'bg-muted text-muted-foreground border border-border'
-    }
-  }
-
-  // Drag styles — modest elevation only, no scale/rotate/glow halo.
-  const getDragStyles = () => {
-    if (isDragging) {
-      return 'dragging opacity-90'
-    }
-    return ''
-  }
-
-  return (
-    <div
-      role="button"
-      tabIndex={0}
-      className={`group task-card interactive-element cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background ${getDragStyles()}`}
-      style={{
-        transformOrigin: 'center center',
-        contain: 'layout style paint'
-      }}
-      data-task-id={task.id}
-      draggable={!isTouchDevice}
-      onDragStart={e => {
-        if (isTouchDevice) {
-          e.preventDefault()
-          return
-        }
-        e.dataTransfer.setData('text/plain', task.id)
-        e.dataTransfer.effectAllowed = 'move'
-        setIsDragging(true)
-      }}
-      onDragEnd={() => {
-        setIsDragging(false)
-      }}
-      onClick={e => {
-        e.preventDefault()
-        e.stopPropagation()
-        if (!isDragging) {
-          // Add small delay to prevent double-taps and ensure smooth interaction
-          setTimeout(() => {
-            onClick(task)
-          }, 50)
-        }
-      }}
-      onTouchStart={e => {
-        // Record touch start position and time for scroll detection
-        if (e.touches.length === 1) {
-          setIsDragging(false)
-          setIsScrolling(false)
-          const touch = e.touches[0]
-          setTouchStart({
-            x: touch.clientX,
-            y: touch.clientY,
-            time: Date.now()
-          })
-        }
-      }}
-      onTouchMove={e => {
-        // Detect if this is a scroll gesture
-        if (e.touches.length === 1 && touchStart.time > 0) {
-          const touch = e.touches[0]
-          const deltaX = Math.abs(touch.clientX - touchStart.x)
-          const deltaY = Math.abs(touch.clientY - touchStart.y)
-
-          // If finger moved more than 10px, consider it scrolling
-          if (deltaX > 10 || deltaY > 10) {
-            setIsScrolling(true)
-          }
-        }
-      }}
-      onTouchEnd={e => {
-        // Only handle touch end if not scrolling and was a quick tap
-        if (!isScrolling && touchStart.time > 0) {
-          const touchDuration = Date.now() - touchStart.time
-
-          // Only trigger onClick for quick taps (less than 300ms) that didn't move much
-          if (touchDuration < 300 && e.touches.length === 0) {
+      <div
+        role="button"
+        tabIndex={0}
+        className={`group task-card interactive-element cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background ${getDragStyles()}`}
+        style={{
+          transformOrigin: 'center center',
+          contain: 'layout style paint'
+        }}
+        data-task-id={task.id}
+        draggable={!isTouchDevice}
+        onDragStart={e => {
+          if (isTouchDevice) {
             e.preventDefault()
-            e.stopPropagation()
+            return
+          }
+          e.dataTransfer.setData('text/plain', task.id)
+          e.dataTransfer.effectAllowed = 'move'
+          setIsDragging(true)
+        }}
+        onDragEnd={() => {
+          setIsDragging(false)
+        }}
+        onClick={e => {
+          e.preventDefault()
+          e.stopPropagation()
+          if (!isDragging) {
+            // Add small delay to prevent double-taps and ensure smooth interaction
             setTimeout(() => {
               onClick(task)
             }, 50)
           }
-        }
+        }}
+        onTouchStart={e => {
+          // Record touch start position and time for scroll detection
+          if (e.touches.length === 1) {
+            setIsDragging(false)
+            setIsScrolling(false)
+            const touch = e.touches[0]
+            setTouchStart({
+              x: touch.clientX,
+              y: touch.clientY,
+              time: Date.now()
+            })
+          }
+        }}
+        onTouchMove={e => {
+          // Detect if this is a scroll gesture
+          if (e.touches.length === 1 && touchStart.time > 0) {
+            const touch = e.touches[0]
+            const deltaX = Math.abs(touch.clientX - touchStart.x)
+            const deltaY = Math.abs(touch.clientY - touchStart.y)
 
-        // Reset touch tracking
-        setTouchStart({ x: 0, y: 0, time: 0 })
-        setIsScrolling(false)
-      }}
-      onKeyDown={e => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault()
-          onClick(task)
-        }
-      }}
-      aria-label={`Open task: ${task.title}`}
-    >
-      <div className="flex justify-between items-start mb-3">
-        <h4 className="font-bold text-sm line-clamp-2 flex-1 pr-2 text-foreground">
-          {task.title}
-        </h4>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-7 w-7 opacity-0 group-hover:opacity-100 hover:bg-destructive/10 hover:text-destructive dark:hover:bg-red-900/20 transition-all"
-          onClick={e => {
-            e.stopPropagation()
-            onDelete(task.id)
-          }}
-        >
-          <Trash2 className="h-4 w-4" />
-        </Button>
-      </div>
+            // If finger moved more than 10px, consider it scrolling
+            if (deltaX > 10 || deltaY > 10) {
+              setIsScrolling(true)
+            }
+          }
+        }}
+        onTouchEnd={e => {
+          // Only handle touch end if not scrolling and was a quick tap
+          if (!isScrolling && touchStart.time > 0) {
+            const touchDuration = Date.now() - touchStart.time
 
-      {task.description && (
-        <p className="text-xs text-muted-foreground mb-3 line-clamp-3 leading-relaxed">
-          {task.description}
-        </p>
-      )}
+            // Only trigger onClick for quick taps (less than 300ms) that didn't move much
+            if (touchDuration < 300 && e.touches.length === 0) {
+              e.preventDefault()
+              e.stopPropagation()
+              setTimeout(() => {
+                onClick(task)
+              }, 50)
+            }
+          }
 
-      <div className="flex justify-between items-end gap-2">
-        <div className="flex flex-col gap-2">
-          <span
-            className={`text-[10px] px-2 py-0.5 rounded-sm font-semibold tracking-wider ${getPriorityColor(task.priority)} w-fit`}
+          // Reset touch tracking
+          setTouchStart({ x: 0, y: 0, time: 0 })
+          setIsScrolling(false)
+        }}
+        onKeyDown={e => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            onClick(task)
+          }
+        }}
+        aria-label={`Open task: ${task.title}`}
+      >
+        <div className="flex justify-between items-start mb-3">
+          <h4 className="font-bold text-sm line-clamp-2 flex-1 pr-2 text-foreground">
+            {task.title}
+          </h4>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 opacity-0 group-hover:opacity-100 hover:bg-destructive/10 hover:text-destructive dark:hover:bg-red-900/20 transition-all"
+            onClick={e => {
+              e.stopPropagation()
+              onDelete(task.id)
+            }}
           >
-            {task.priority.toUpperCase()}
-          </span>
-          {task.dueDate && (
-            <span className="text-[10px] text-warning font-mono-tabular bg-warning/10 px-2 py-0.5 rounded-sm border border-warning/30">
-              {(() => {
-                const parts = task.dueDate.split('-')
-                if (parts.length === 3) {
-                  const date = new Date(parts[0], parts[1] - 1, parts[2])
-                  return date.toLocaleDateString([], {
-                    month: 'short',
-                    day: 'numeric',
-                    year: 'numeric'
-                  })
-                }
-                return new Date(task.dueDate).toLocaleDateString()
-              })()}
-            </span>
-          )}
-          {getAssigneesDisplay(task)}
+            <Trash2 className="h-4 w-4" />
+          </Button>
         </div>
-        <span className="text-[10px] text-muted-foreground font-mono-tabular">
-          {new Date(task.createdAt).toLocaleDateString([], {
-            month: 'short',
-            day: 'numeric'
-          })}
-        </span>
+
+        {task.description && (
+          <p className="text-xs text-muted-foreground mb-3 line-clamp-3 leading-relaxed">
+            {task.description}
+          </p>
+        )}
+
+        <div className="flex justify-between items-end gap-2">
+          <div className="flex flex-col gap-2">
+            <span
+              className={`text-[10px] px-2 py-0.5 rounded-sm font-semibold tracking-wider ${getPriorityColor(task.priority)} w-fit`}
+            >
+              {task.priority.toUpperCase()}
+            </span>
+            {task.dueDate && (
+              <span className="text-[10px] text-warning font-mono-tabular bg-warning/10 px-2 py-0.5 rounded-sm border border-warning/30">
+                {(() => {
+                  const parts = task.dueDate.split('-')
+                  if (parts.length === 3) {
+                    const date = new Date(parts[0], parts[1] - 1, parts[2])
+                    return date.toLocaleDateString([], {
+                      month: 'short',
+                      day: 'numeric',
+                      year: 'numeric'
+                    })
+                  }
+                  return new Date(task.dueDate).toLocaleDateString()
+                })()}
+              </span>
+            )}
+            {getAssigneesDisplay(task)}
+          </div>
+          <span className="text-[10px] text-muted-foreground font-mono-tabular">
+            {new Date(task.createdAt).toLocaleDateString([], {
+              month: 'short',
+              day: 'numeric'
+            })}
+          </span>
+        </div>
       </div>
-    </div>
-  )
-})
+    )
+  }
+)
 TaskCard.displayName = 'TaskCard'
 
 const TaskSource = ({ meetingId, onNavigateToMeeting }) => {
@@ -496,7 +492,7 @@ export default function KanbanBoard({ taskToOpen }) {
 
   // Load users for assignee display
   useEffect(() => {
-    const loadUsers = async() => {
+    const loadUsers = async () => {
       try {
         const usersData = await apiService.getUsers()
         setUsers(usersData || [])
@@ -510,7 +506,7 @@ export default function KanbanBoard({ taskToOpen }) {
 
   // Check for recent merges to determine button visibility
   useEffect(() => {
-    const checkRecentMerges = async() => {
+    const checkRecentMerges = async () => {
       if (!currentProject?.id) {
         setHasRecentMerges(false)
         return
@@ -527,8 +523,17 @@ export default function KanbanBoard({ taskToOpen }) {
     checkRecentMerges()
   }, [currentProject?.id, tasks]) // Re-check when project or tasks change
 
-  // Handle opening specific task from URL
-  React.useEffect(() => {
+  // URL is the source of truth for which task is open. This effect runs in
+  // both directions:
+  //   - taskToOpen has a value -> open the modal for that task
+  //   - taskToOpen transitions from value -> null (browser back / forward
+  //     past a `?task=` entry) -> close the modal
+  //
+  // The previous-value ref is required so that "create new task" (which
+  // sets `selectedTask`/`isModalOpen` directly without touching the URL)
+  // does not get force-closed by this effect on every render.
+  const prevTaskToOpenRef = useRef(taskToOpen)
+  useEffect(() => {
     if (taskToOpen && tasks.length > 0) {
       // Find task by exact ID match (taskToOpen is now full ID)
       const task = tasks.find(t => t.id === taskToOpen)
@@ -536,7 +541,13 @@ export default function KanbanBoard({ taskToOpen }) {
         setSelectedTask(task)
         setIsModalOpen(true)
       }
+    } else if (prevTaskToOpenRef.current && !taskToOpen) {
+      // URL had a task, now it does not - back/forward removed it.
+      // Close the modal to match.
+      setIsModalOpen(false)
+      setSelectedTask(null)
     }
+    prevTaskToOpenRef.current = taskToOpen
   }, [taskToOpen, tasks])
 
   // CSS for drag-and-drop visual feedback now lives in KanbanBoard.css
@@ -602,7 +613,7 @@ export default function KanbanBoard({ taskToOpen }) {
     })
   }
 
-  const handleTaskMove = async(taskId, newStatus) => {
+  const handleTaskMove = async (taskId, newStatus) => {
     const task = tasks.find(t => t.id === taskId)
     if (!task) {
       return

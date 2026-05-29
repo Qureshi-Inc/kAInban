@@ -746,14 +746,21 @@ app.get('/api/auth/oidc/status', (req, res) => {
 
 // 302-redirect directly to Zitadel hosted login. Frontend is a plain
 // <a href="/api/auth/oidc/login"> - no fetch/JSON intermediary.
+//
+// `?intent=register` is the only accepted query param. It maps to a
+// Zitadel-specific `prompt=create` which lands first-time visitors on the
+// hosted registration screen instead of the login screen. The marketing
+// site's "Get started" CTA uses this; "Sign in" uses the bare endpoint.
 app.get('/api/auth/oidc/login', authLimiter, async (req, res) => {
   try {
     if (!oidcAuth.isOIDCEnabled()) {
       return res.status(400).json({ error: 'OIDC is not enabled' })
     }
 
+    const intent = req.query.intent === 'register' ? 'register' : undefined
+
     const { authUrl, codeVerifier, state, nonce } =
-      await oidcAuth.getAuthorizationUrl()
+      await oidcAuth.getAuthorizationUrl({ intent })
 
     req.session.oidcCodeVerifier = codeVerifier
     req.session.oidcState = state
@@ -1327,7 +1334,7 @@ app.delete(
       const taskId = req.params.id
       const ownerUserId = db.getTaskOwnerUserId(taskId)
 
-      if (ownerUserId == null) {
+      if (ownerUserId === null || ownerUserId === undefined) {
         return res.status(404).json({ error: 'Task not found' })
       }
       if (String(ownerUserId) !== String(req.session.user.id)) {

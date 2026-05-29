@@ -1,816 +1,700 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="kAInban - AI-powered task management with meeting transcription and intelligent task extraction">
-  <meta name="keywords" content="AI, task management, kanban, transcription, productivity">
-  <title>kAInban - AI-Powered Task Management</title>
-  <link rel="icon" type="image/png" href="favicon.png">
-
-  <!-- Tailwind CSS CDN -->
-  <script src="https://cdn.tailwindcss.com"></script>
-
-  <!-- Custom styles -->
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
-
-    body {
-      font-family: 'Inter', sans-serif;
-    }
-
-    .gradient-bg {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    }
-
-    .gradient-text {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-
-    .feature-card {
-      transition: transform 0.3s ease, box-shadow 0.3s ease;
-    }
-
-    .feature-card:hover {
-      transform: translateY(-8px);
-      box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-    }
-
-    .pricing-card {
-      transition: transform 0.3s ease, box-shadow 0.3s ease;
-    }
-
-    .pricing-card:hover {
-      transform: scale(1.05);
-      box-shadow: 0 20px 60px rgba(0,0,0,0.15);
-    }
-
-    .pricing-card.featured {
-      border: 3px solid #667eea;
-      transform: scale(1.05);
-    }
-
-    /* Signup form styles */
-    .signup-message {
-      padding: 20px;
-      border-radius: 10px;
-      margin: 20px 0;
-      font-size: 16px;
-      line-height: 1.6;
-    }
-
-    .signup-message.success {
-      background: rgba(16, 185, 129, 0.1);
-      border: 1px solid rgba(16, 185, 129, 0.3);
-      color: #065f46;
-    }
-
-    .signup-message.error {
-      background: rgba(239, 68, 68, 0.1);
-      border: 1px solid rgba(239, 68, 68, 0.3);
-      color: #991b1b;
-    }
-
-    .signup-success h4 {
-      margin: 0 0 15px 0;
-      color: #065f46;
-      font-size: 20px;
-    }
-
-    .signup-success p {
-      margin: 10px 0;
-    }
-
-    .backup-instructions {
-      font-size: 14px;
-      margin-top: 20px;
-      opacity: 0.8;
-    }
-
-    .btn-link {
-      display: inline-block;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      padding: 10px 20px;
-      text-decoration: none;
-      border-radius: 6px;
-      font-weight: 500;
-      margin-top: 10px;
-      transition: transform 0.2s ease;
-    }
-
-    .btn-link:hover {
-      transform: translateY(-2px);
-      color: white;
-    }
-
-    .manual-signup h4 {
-      color: #4338ca;
-      margin: 0 0 15px 0;
-      font-size: 20px;
-    }
-
-    .manual-signup ol {
-      margin: 15px 0;
-      padding-left: 25px;
-    }
-
-    .manual-signup li {
-      margin: 8px 0;
-      line-height: 1.5;
-    }
-
-    .signup-message.success {
-      background-color: #dcfce7;
-      border: 1px solid #16a34a;
-      color: #15803d;
-    }
-
-    .signup-message.error {
-      background-color: #fef2f2;
-      border: 1px solid #dc2626;
-      color: #dc2626;
-    }
-
-    .field-error {
-      color: #dc2626;
-      font-size: 0.875rem;
-      margin-top: 0.25rem;
-    }
-
-    .form-field.error input {
-      border-color: #dc2626;
-    }
-
-    .manual-signup {
-      text-align: left;
-    }
-
-    .manual-signup ol {
-      margin: 1rem 0;
-      padding-left: 1.5rem;
-    }
-
-    .manual-signup li {
-      margin: 0.5rem 0;
-    }
-
-    .btn-primary {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      padding: 0.75rem 1.5rem;
-      border: none;
-      border-radius: 0.5rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: opacity 0.3s ease;
-      margin-top: 1rem;
-    }
-
-    .btn-primary:hover {
-      opacity: 0.9;
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="kAInban turns meeting recordings into a kanban of action items, owners, and dates. Each task links back to its transcript span.">
+<meta name="keywords" content="AI task management, kanban, meeting transcription, action items">
+<meta name="theme-color" content="#FAF7F2">
+<title>kAInban / Conversations become work.</title>
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="stylesheet" href="https://rsms.me/inter/inter.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg-base: #FAF7F2;
+  --bg-raised: #FFFFFF;
+  --bg-elevated: #F4F1EA;
+  --bg-emphasis: #EBE7DF;
+  --hairline-low: #E2DDD2;
+  --hairline-mid: #C8C2B3;
+  --hairline-high: #A89F8C;
+  --accent: #C66E1F;
+  --accent-hover: #D87D2D;
+  --accent-press: #A85B0F;
+  --accent-soft: rgba(198,110,31,0.10);
+  --accent-soft-strong: rgba(198,110,31,0.18);
+  --accent-border: rgba(198,110,31,0.40);
+  --text-primary: #15161A;
+  --text-secondary: #4D4A44;
+  --text-muted: #84807A;
+  --text-inverse: #FAF7F2;
+  --success: #4F8B5C;
+  --success-soft: rgba(79,139,92,0.12);
+  --warning: #B88828;
+  --danger: #B05446;
+  --info: #5A7A9C;
+  --info-soft: rgba(90,122,156,0.12);
+  --shadow-card: 0 1px 2px rgba(21,22,26,0.04);
+  --font-sans: 'Inter Variable', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-serif: 'Instrument Serif', 'Iowan Old Style', Palatino, Georgia, serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Monaco, Consolas, monospace;
+  --space-2: 2px; --space-4: 4px; --space-8: 8px; --space-12: 12px;
+  --space-16: 16px; --space-24: 24px; --space-32: 32px; --space-48: 48px; --space-64: 64px;
+  --radius-xs: 4px; --radius-sm: 6px; --radius-md: 8px; --radius-lg: 12px; --radius-full: 9999px;
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --dur-fast: 120ms; --dur-base: 180ms; --dur-slow: 320ms;
+  --topbar-h: 56px;
+  --max-w: 1200px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg-base: #0A0A0B;
+    --bg-raised: #141517;
+    --bg-elevated: #1B1C1F;
+    --bg-emphasis: #232428;
+    --hairline-low: #26282B;
+    --hairline-mid: #34363A;
+    --hairline-high: #4A4D52;
+    --accent: #E59149;
+    --accent-hover: #F0A05C;
+    --accent-press: #C87A36;
+    --accent-soft: rgba(229,145,73,0.10);
+    --accent-soft-strong: rgba(229,145,73,0.18);
+    --accent-border: rgba(229,145,73,0.40);
+    --text-primary: #F5F4F1;
+    --text-secondary: #A4A29B;
+    --text-muted: #6B6963;
+    --text-inverse: #15161A;
+    --success: #5A9F6B;
+    --success-soft: rgba(90,159,107,0.12);
+    --warning: #D9A23A;
+    --danger: #C56152;
+    --info: #6B8DB3;
+    --info-soft: rgba(107,141,179,0.12);
+    --shadow-card: 0 1px 2px rgba(0,0,0,0.4);
+  }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  background: var(--bg-base);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-feature-settings: 'cv01', 'ss03', 'ss01';
+  font-variation-settings: 'wght' 400;
+  font-size: 13px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+a { color: inherit; text-decoration: none; }
+button { font-family: inherit; cursor: pointer; }
+.mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+.serif { font-family: var(--font-serif); font-weight: 400; }
+.eyebrow { font-size: 11px; font-weight: 510; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); }
+.t-display { font-family: var(--font-serif); font-weight: 400; font-size: clamp(40px, 6vw, 64px); line-height: 1.05; letter-spacing: -1px; color: var(--text-primary); }
+.t-display em { font-style: italic; color: var(--accent); }
+.t-heading-lg { font-family: var(--font-sans); font-weight: 510; font-size: clamp(24px, 3vw, 32px); line-height: 1.15; letter-spacing: -0.66px; color: var(--text-primary); }
+.t-heading { font-family: var(--font-sans); font-weight: 510; font-size: 20px; line-height: 1.25; letter-spacing: -0.22px; }
+.t-body { font-size: 13px; line-height: 1.55; color: var(--text-secondary); }
+.t-body-emph { font-size: 13px; font-weight: 510; line-height: 1.55; color: var(--text-primary); }
+.t-ui { font-size: 12px; font-weight: 510; line-height: 1.45; }
+.t-caption { font-size: 11px; font-weight: 510; line-height: 1.4; letter-spacing: 0.04em; text-transform: uppercase; }
+.container { max-width: var(--max-w); margin: 0 auto; padding: 0 24px; }
+@media (max-width: 640px) { .container { padding: 0 16px; } }
+.btn { display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 510; line-height: 1.4; border: 1px solid transparent; transition: background-color var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease); white-space: nowrap; }
+.btn-primary { background: var(--accent); color: var(--text-inverse); }
+.btn-primary:hover { background: var(--accent-hover); }
+.btn-primary:active { background: var(--accent-press); }
+.btn-secondary { background: var(--bg-raised); color: var(--text-primary); border-color: var(--hairline-mid); }
+.btn-secondary:hover { border-color: var(--hairline-high); background: var(--bg-elevated); }
+.btn-ghost { background: transparent; color: var(--text-primary); }
+.btn-ghost:hover { background: var(--bg-emphasis); }
+.btn-lg { padding: 10px 18px; font-size: 13px; }
+.btn:focus-visible { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.kbd { display: inline-flex; align-items: center; justify-content: center; min-width: 18px; height: 18px; padding: 0 5px; border: 1px solid var(--hairline-mid); border-radius: var(--radius-xs); background: var(--bg-base); color: var(--text-muted); font-family: var(--font-mono); font-size: 10px; font-weight: 500; }
+.chip { display: inline-flex; align-items: center; gap: 6px; padding: 2px 8px; border-radius: var(--radius-full); font-size: 11px; font-weight: 510; }
+.chip-ai { background: var(--accent-soft); border: 1px solid var(--accent-border); color: var(--accent); }
+.chip-success { background: var(--success-soft); color: var(--success); }
+.chip-info { background: var(--info-soft); color: var(--info); }
+.divider { border-top: 1px solid var(--hairline-low); }
+::selection { background: var(--accent-soft-strong); color: var(--text-primary); }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; } }
+</style>
 </head>
-<body class="bg-gray-50">
-
-  <!-- Navigation -->
-  <nav class="bg-white shadow-sm fixed w-full top-0 z-50">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="flex justify-between items-center h-16">
-        <div class="flex items-center">
-          <span class="text-2xl font-bold gradient-text">kAInban</span>
-        </div>
-        <div class="hidden md:flex items-center space-x-8">
-          <a href="#features" class="text-gray-700 hover:text-purple-600 transition">Features</a>
-          <a href="#pricing" class="text-gray-700 hover:text-purple-600 transition">Pricing</a>
-          <a href="#faq" class="text-gray-700 hover:text-purple-600 transition">FAQ</a>
-          <a href="https://app.kainban.com" class="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition font-medium">
-            Launch App
-          </a>
-        </div>
-        <div class="md:hidden">
-          <button id="mobile-menu-button" class="text-gray-700 hover:text-purple-600">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
-            </svg>
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Mobile menu -->
-    <div id="mobile-menu" class="hidden md:hidden bg-white border-t">
-      <div class="px-4 py-4 space-y-3">
-        <a href="#features" class="block text-gray-700 hover:text-purple-600 transition">Features</a>
-        <a href="#pricing" class="block text-gray-700 hover:text-purple-600 transition">Pricing</a>
-        <a href="#faq" class="block text-gray-700 hover:text-purple-600 transition">FAQ</a>
-        <a href="https://app.kainban.com" class="block bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition font-medium text-center">
-          Launch App
-        </a>
-      </div>
-    </div>
-  </nav>
-
-  <!-- Hero Section -->
-  <section class="pt-24 pb-20 gradient-bg text-white">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="text-center">
-        <h1 class="text-5xl md:text-6xl font-extrabold mb-6 leading-tight">
-          AI-Powered Task Management<br/>
-          <span class="text-purple-200">That Actually Works</span>
-        </h1>
-        <p class="text-xl md:text-2xl mb-10 text-purple-100 max-w-3xl mx-auto">
-          Transform meetings into action items automatically. Record, transcribe, and let AI extract tasks for you.
-        </p>
-        <!-- Hero Signup Form -->
-        <div class="max-w-md mx-auto bg-white bg-opacity-10 backdrop-blur rounded-2xl p-8 border border-white border-opacity-20 shadow-2xl">
-          <form id="hero-signup-form" class="space-y-4">
-            <input type="hidden" name="plan" value="free">
-
-            <div>
-              <input
-                type="email"
-                name="email"
-                placeholder="Enter your email"
-                required
-                class="w-full px-4 py-3 rounded-lg bg-white bg-opacity-20 backdrop-blur border border-white border-opacity-30 text-white placeholder-purple-100 focus:outline-none focus:ring-2 focus:ring-white focus:bg-opacity-30 transition"
-              >
-            </div>
-
-            <button
-              type="submit"
-              class="w-full bg-white text-purple-600 px-6 py-3 rounded-lg font-semibold text-lg hover:bg-gray-100 transition shadow-lg flex items-center justify-center"
-            >
-              <span class="loading-spinner hidden mr-2">
-                <svg class="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
-                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-              </span>
-              Get Started Free
-            </button>
-          </form>
-        </div>
-
-        <div class="mt-6 flex flex-col sm:flex-row gap-4 justify-center items-center">
-          <a href="#features" class="bg-purple-500 bg-opacity-20 backdrop-blur text-white px-6 py-3 rounded-lg font-semibold hover:bg-opacity-30 transition border-2 border-white border-opacity-30">
-            See Features
-          </a>
-          <a href="https://app.kainban.com" class="text-purple-100 hover:text-white transition underline">
-            Already have an account? Sign in
-          </a>
-        </div>
-
-        <p class="mt-6 text-purple-100 text-sm">
-          ✓ No credit card required  ✓ Setup in 2 minutes  ✓ Secure with passkey authentication
-        </p>
-      </div>
-    </div>
-  </section>
-
-  <!-- Features Section -->
-  <section id="features" class="py-20 bg-white">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="text-center mb-16">
-        <h2 class="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
-          Powerful Features for <span class="gradient-text">Modern Teams</span>
-        </h2>
-        <p class="text-xl text-gray-600 max-w-2xl mx-auto">
-          Everything you need to turn conversations into completed tasks
-        </p>
-      </div>
-
-      <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-        <!-- Feature 1 -->
-        <div class="feature-card bg-white p-8 rounded-xl shadow-lg border border-gray-100">
-          <div class="w-14 h-14 bg-purple-100 rounded-lg flex items-center justify-center mb-6">
-            <svg class="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path>
-            </svg>
-          </div>
-          <h3 class="text-xl font-bold text-gray-900 mb-3">Meeting Transcription</h3>
-          <p class="text-gray-600">
-            Record meetings and get instant, accurate transcriptions powered by Azure OpenAI Whisper.
-          </p>
-        </div>
-
-        <!-- Feature 2 -->
-        <div class="feature-card bg-white p-8 rounded-xl shadow-lg border border-gray-100">
-          <div class="w-14 h-14 bg-purple-100 rounded-lg flex items-center justify-center mb-6">
-            <svg class="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
-            </svg>
-          </div>
-          <h3 class="text-xl font-bold text-gray-900 mb-3">AI Task Extraction</h3>
-          <p class="text-gray-600">
-            GPT-4 automatically identifies action items, deadlines, and assigns them to team members.
-          </p>
-        </div>
-
-        <!-- Feature 3 -->
-        <div class="feature-card bg-white p-8 rounded-xl shadow-lg border border-gray-100">
-          <div class="w-14 h-14 bg-purple-100 rounded-lg flex items-center justify-center mb-6">
-            <svg class="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 0a2 2 0 012 2v2a2 2 0 01-2 2m-8 0H7"></path>
-            </svg>
-          </div>
-          <h3 class="text-xl font-bold text-gray-900 mb-3">Kanban Board</h3>
-          <p class="text-gray-600">
-            Visual drag-and-drop interface to manage tasks through your workflow stages.
-          </p>
-        </div>
-
-        <!-- Feature 4 -->
-        <div class="feature-card bg-white p-8 rounded-xl shadow-lg border border-gray-100">
-          <div class="w-14 h-14 bg-purple-100 rounded-lg flex items-center justify-center mb-6">
-            <svg class="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
-            </svg>
-          </div>
-          <h3 class="text-xl font-bold text-gray-900 mb-3">Secure Authentication</h3>
-          <p class="text-gray-600">
-            PocketID integration with passkey support for passwordless, secure access.
-          </p>
-        </div>
-
-        <!-- Feature 5 -->
-        <div class="feature-card bg-white p-8 rounded-xl shadow-lg border border-gray-100">
-          <div class="w-14 h-14 bg-purple-100 rounded-lg flex items-center justify-center mb-6">
-            <svg class="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"></path>
-            </svg>
-          </div>
-          <h3 class="text-xl font-bold text-gray-900 mb-3">Analytics Dashboard</h3>
-          <p class="text-gray-600">
-            Track productivity, completion rates, and team performance with visual insights.
-          </p>
-        </div>
-
-        <!-- Feature 6 -->
-        <div class="feature-card bg-white p-8 rounded-xl shadow-lg border border-gray-100">
-          <div class="w-14 h-14 bg-purple-100 rounded-lg flex items-center justify-center mb-6">
-            <svg class="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path>
-            </svg>
-          </div>
-          <h3 class="text-xl font-bold text-gray-900 mb-3">Project Management</h3>
-          <p class="text-gray-600">
-            Organize tasks into projects with dedicated workspaces and team collaboration.
-          </p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Pricing Section -->
-  <section id="pricing" class="py-20 bg-gray-50">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="text-center mb-16">
-        <h2 class="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
-          Simple, <span class="gradient-text">Transparent Pricing</span>
-        </h2>
-        <p class="text-xl text-gray-600 max-w-2xl mx-auto">
-          Start free, upgrade when you need more power
-        </p>
-      </div>
-
-      <div class="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-        <!-- Free Tier -->
-        <div class="pricing-card bg-white rounded-2xl shadow-xl p-8 border border-gray-200">
-          <div class="mb-6">
-            <h3 class="text-2xl font-bold text-gray-900 mb-2">Free</h3>
-            <div class="flex items-baseline mb-4">
-              <span class="text-5xl font-extrabold text-gray-900">$0</span>
-              <span class="text-gray-500 ml-2">/month</span>
-            </div>
-            <p class="text-gray-600">Perfect for individuals and small teams</p>
-          </div>
-
-          <ul class="space-y-4 mb-8">
-            <li class="flex items-start">
-              <svg class="w-5 h-5 text-green-500 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"></path>
-              </svg>
-              <span class="text-gray-700">Up to 3 projects</span>
-            </li>
-            <li class="flex items-start">
-              <svg class="w-5 h-5 text-green-500 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"></path>
-              </svg>
-              <span class="text-gray-700">Unlimited tasks</span>
-            </li>
-            <li class="flex items-start">
-              <svg class="w-5 h-5 text-green-500 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"></path>
-              </svg>
-              <span class="text-gray-700">5 MB file uploads</span>
-            </li>
-            <li class="flex items-start">
-              <svg class="w-5 h-5 text-green-500 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"></path>
-              </svg>
-              <span class="text-gray-700">Basic AI transcription</span>
-            </li>
-            <li class="flex items-start">
-              <svg class="w-5 h-5 text-green-500 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"></path>
-              </svg>
-              <span class="text-gray-700">Kanban board</span>
-            </li>
-            <li class="flex items-start">
-              <svg class="w-5 h-5 text-green-500 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"></path>
-              </svg>
-              <span class="text-gray-700">Mobile app access</span>
-            </li>
-          </ul>
-
-          <a href="https://app.kainban.com" class="block w-full bg-gray-100 text-gray-900 text-center px-6 py-3 rounded-lg font-semibold hover:bg-gray-200 transition">
-            Get Started
-          </a>
-        </div>
-
-        <!-- Pro Tier (Featured) -->
-        <div class="pricing-card featured bg-white rounded-2xl shadow-2xl p-8 relative transform scale-105">
-          <div class="absolute top-0 right-0 bg-purple-600 text-white px-4 py-1 rounded-bl-lg rounded-tr-2xl text-sm font-semibold">
-            POPULAR
-          </div>
-
-          <div class="mb-6">
-            <h3 class="text-2xl font-bold text-gray-900 mb-2">Pro</h3>
-            <div class="flex items-baseline mb-4">
-              <span class="text-5xl font-extrabold gradient-text">$19</span>
-              <span class="text-gray-500 ml-2">/month</span>
-            </div>
-            <p class="text-gray-600">For growing teams and power users</p>
-          </div>
-
-          <ul class="space-y-4 mb-8">
-            <li class="flex items-start">
-              <svg class="w-5 h-5 text-purple-600 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"></path>
-              </svg>
-              <span class="text-gray-700"><strong>Unlimited projects</strong></span>
-            </li>
-            <li class="flex items-start">
-              <svg class="w-5 h-5 text-purple-600 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"></path>
-              </svg>
-              <span class="text-gray-700"><strong>50 MB file uploads</strong></span>
-            </li>
-            <li class="flex items-start">
-              <svg class="w-5 h-5 text-purple-600 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"></path>
-              </svg>
-              <span class="text-gray-700">Priority AI processing</span>
-            </li>
-            <li class="flex items-start">
-              <svg class="w-5 h-5 text-purple-600 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"></path>
-              </svg>
-              <span class="text-gray-700">Advanced analytics</span>
-            </li>
-            <li class="flex items-start">
-              <svg class="w-5 h-5 text-purple-600 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"></path>
-              </svg>
-              <span class="text-gray-700">Team collaboration</span>
-            </li>
-            <li class="flex items-start">
-              <svg class="w-5 h-5 text-purple-600 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"></path>
-              </svg>
-              <span class="text-gray-700">Priority support</span>
-            </li>
-          </ul>
-
-          <a href="https://app.kainban.com" class="block w-full gradient-bg text-white text-center px-6 py-3 rounded-lg font-semibold hover:opacity-90 transition">
-            Start Pro Trial
-          </a>
-        </div>
-
-        <!-- Enterprise Tier -->
-        <div class="pricing-card bg-white rounded-2xl shadow-xl p-8 border border-gray-200">
-          <div class="mb-6">
-            <h3 class="text-2xl font-bold text-gray-900 mb-2">Enterprise</h3>
-            <div class="flex items-baseline mb-4">
-              <span class="text-5xl font-extrabold text-gray-900">$49</span>
-              <span class="text-gray-500 ml-2">/month</span>
-            </div>
-            <p class="text-gray-600">For large organizations</p>
-          </div>
-
-          <ul class="space-y-4 mb-8">
-            <li class="flex items-start">
-              <svg class="w-5 h-5 text-green-500 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"></path>
-              </svg>
-              <span class="text-gray-700"><strong>Everything in Pro</strong></span>
-            </li>
-            <li class="flex items-start">
-              <svg class="w-5 h-5 text-green-500 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"></path>
-              </svg>
-              <span class="text-gray-700"><strong>200 MB file uploads</strong></span>
-            </li>
-            <li class="flex items-start">
-              <svg class="w-5 h-5 text-green-500 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"></path>
-              </svg>
-              <span class="text-gray-700">Dedicated account manager</span>
-            </li>
-            <li class="flex items-start">
-              <svg class="w-5 h-5 text-green-500 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"></path>
-              </svg>
-              <span class="text-gray-700">Custom integrations</span>
-            </li>
-            <li class="flex items-start">
-              <svg class="w-5 h-5 text-green-500 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"></path>
-              </svg>
-              <span class="text-gray-700">SLA guarantee</span>
-            </li>
-            <li class="flex items-start">
-              <svg class="w-5 h-5 text-green-500 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"></path>
-              </svg>
-              <span class="text-gray-700">On-premise deployment option</span>
-            </li>
-          </ul>
-
-          <a href="mailto:support@kainban.com?subject=Enterprise Inquiry" class="block w-full bg-gray-100 text-gray-900 text-center px-6 py-3 rounded-lg font-semibold hover:bg-gray-200 transition">
-            Contact Sales
-          </a>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- How to Sign Up Section -->
-  <section class="py-20 bg-white">
-    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="text-center mb-12">
-        <h2 class="text-4xl font-bold text-gray-900 mb-4">
-          Getting Started is <span class="gradient-text">Simple</span>
-        </h2>
-        <p class="text-xl text-gray-600">
-          Set up your account with PocketID in under 2 minutes
-        </p>
-      </div>
-
-      <div class="bg-purple-50 rounded-2xl p-8 md:p-12 border-2 border-purple-100">
-        <div class="space-y-8">
-          <!-- Step 1 -->
-          <div class="flex items-start">
-            <div class="flex-shrink-0">
-              <div class="w-12 h-12 bg-purple-600 text-white rounded-full flex items-center justify-center font-bold text-lg">
-                1
-              </div>
-            </div>
-            <div class="ml-6">
-              <h3 class="text-xl font-bold text-gray-900 mb-2">Enter Your Email Above</h3>
-              <p class="text-gray-700 mb-3">
-                Click "Get Started Free" above and enter your email address. We'll send you setup instructions with a direct link to create your secure PocketID account.
-              </p>
-              <div class="bg-white rounded-lg p-4 border border-purple-200">
-                <p class="text-sm text-gray-600 mb-2"><strong>What's PocketID?</strong></p>
-                <p class="text-sm text-gray-600">
-                  PocketID is your secure, passwordless authentication provider that enables biometric authentication (Face ID, Touch ID, Windows Hello) for seamless, secure access.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <!-- Step 2 -->
-          <div class="flex items-start">
-            <div class="flex-shrink-0">
-              <div class="w-12 h-12 bg-purple-600 text-white rounded-full flex items-center justify-center font-bold text-lg">
-                2
-              </div>
-            </div>
-            <div class="ml-6">
-              <h3 class="text-xl font-bold text-gray-900 mb-2">Complete Email Setup</h3>
-              <p class="text-gray-700 mb-3">
-                Check your email and click <strong>"Complete Your Setup"</strong> to create your PocketID account. Then add a passkey in your PocketID security settings for biometric authentication.
-              </p>
-              <div class="bg-white rounded-lg p-4 border border-purple-200">
-                <p class="text-sm text-gray-600 mb-2"><strong>Important:</strong> Add a Passkey</p>
-                <p class="text-sm text-gray-600">
-                  After creating your PocketID account, go to <strong>Settings → Security → Add Passkey</strong> for secure, passwordless login with Face ID, Touch ID, or Windows Hello.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <!-- Step 3 -->
-          <div class="flex items-start">
-            <div class="flex-shrink-0">
-              <div class="w-12 h-12 bg-purple-600 text-white rounded-full flex items-center justify-center font-bold text-lg">
-                3
-              </div>
-            </div>
-            <div class="ml-6">
-              <h3 class="text-xl font-bold text-gray-900 mb-2">Launch kAInban & Start Managing Tasks</h3>
-              <p class="text-gray-700">
-                Click <strong>"Launch kAInban"</strong> from your email or visit the app directly. Sign in with PocketID using your new passkey, then start recording meetings and let AI extract your tasks automatically!
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div class="mt-10 text-center">
-          <a href="https://app.kainban.com" class="inline-block gradient-bg text-white px-8 py-4 rounded-lg font-semibold text-lg hover:opacity-90 transition shadow-lg">
-            Launch kAInban Now →
-          </a>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- FAQ Section -->
-  <section id="faq" class="py-20 bg-gray-50">
-    <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="text-center mb-12">
-        <h2 class="text-4xl font-bold text-gray-900 mb-4">
-          Frequently Asked <span class="gradient-text">Questions</span>
-        </h2>
-      </div>
-
-      <div class="space-y-6">
-        <details class="bg-white rounded-lg shadow-md p-6 cursor-pointer">
-          <summary class="font-semibold text-lg text-gray-900">What is PocketID and why do I need it?</summary>
-          <p class="mt-4 text-gray-600">
-            PocketID is a secure, open-source identity provider that enables passwordless authentication using passkeys (biometric authentication like Face ID or Touch ID). It's more secure than traditional passwords and provides a seamless login experience.
-          </p>
-        </details>
-
-        <details class="bg-white rounded-lg shadow-md p-6 cursor-pointer">
-          <summary class="font-semibold text-lg text-gray-900">Can I use kAInban without a PocketID account?</summary>
-          <p class="mt-4 text-gray-600">
-            Yes! While we recommend PocketID for enhanced security, you can also create an account using email and password directly on kAInban.
-          </p>
-        </details>
-
-        <details class="bg-white rounded-lg shadow-md p-6 cursor-pointer">
-          <summary class="font-semibold text-lg text-gray-900">How accurate is the AI transcription?</summary>
-          <p class="mt-4 text-gray-600">
-            We use Azure OpenAI's Whisper model, which provides industry-leading accuracy (95%+) for transcriptions in multiple languages and accents.
-          </p>
-        </details>
-
-        <details class="bg-white rounded-lg shadow-md p-6 cursor-pointer">
-          <summary class="font-semibold text-lg text-gray-900">Is my data secure?</summary>
-          <p class="mt-4 text-gray-600">
-            Absolutely. All data is encrypted at rest and in transit. We use industry-standard security practices and never share your data with third parties. Your recordings and transcriptions are stored securely and only accessible by you and your team.
-          </p>
-        </details>
-
-        <details class="bg-white rounded-lg shadow-md p-6 cursor-pointer">
-          <summary class="font-semibold text-lg text-gray-900">Can I upgrade or downgrade my plan anytime?</summary>
-          <p class="mt-4 text-gray-600">
-            Yes! You can change your plan at any time. Upgrades take effect immediately, and downgrades will apply at the start of your next billing cycle.
-          </p>
-        </details>
-
-        <details class="bg-white rounded-lg shadow-md p-6 cursor-pointer">
-          <summary class="font-semibold text-lg text-gray-900">Do you offer refunds?</summary>
-          <p class="mt-4 text-gray-600">
-            We offer a 14-day money-back guarantee for all paid plans. If you're not satisfied, contact us for a full refund.
-          </p>
-        </details>
-      </div>
-    </div>
-  </section>
-
-  <!-- CTA Section -->
-  <section class="py-20 gradient-bg text-white">
-    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-      <h2 class="text-4xl md:text-5xl font-bold mb-6">
-        Ready to Transform Your Workflow?
-      </h2>
-      <p class="text-xl mb-10 text-purple-100">
-        Join thousands of teams already using kAInban to stay organized and productive
-      </p>
-      <a href="https://app.kainban.com" class="inline-block bg-white text-purple-600 px-10 py-4 rounded-lg font-bold text-lg hover:bg-gray-100 transition shadow-2xl">
-        Start Free Today
+<body>
+<style>
+.topbar { position: sticky; top: 0; z-index: 50; height: var(--topbar-h); background: var(--bg-base); border-bottom: 1px solid var(--hairline-low); }
+.topbar-inner { display: flex; align-items: center; justify-content: space-between; height: 100%; }
+.brand { display: flex; align-items: center; gap: 8px; font-weight: 510; font-size: 14px; letter-spacing: -0.2px; }
+.brand-mark { width: 22px; height: 22px; border-radius: var(--radius-xs); background: var(--accent); display: grid; place-items: center; color: var(--text-inverse); font-family: var(--font-mono); font-size: 12px; font-weight: 500; }
+.brand-version { color: var(--text-muted); font-family: var(--font-mono); font-size: 10px; padding: 2px 6px; border: 1px solid var(--hairline-low); border-radius: var(--radius-xs); margin-left: 6px; font-weight: 400; letter-spacing: 0; }
+.nav-links { display: flex; align-items: center; gap: 4px; }
+.nav-link { padding: 6px 10px; color: var(--text-secondary); font-size: 12px; font-weight: 510; border-radius: var(--radius-sm); transition: background-color var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease); }
+.nav-link:hover { color: var(--text-primary); background: var(--bg-elevated); }
+.nav-right { display: flex; align-items: center; gap: 8px; }
+.palette-trigger { display: flex; align-items: center; gap: 8px; padding: 6px 10px; min-width: 220px; background: var(--bg-raised); border: 1px solid var(--hairline-low); border-radius: var(--radius-sm); color: var(--text-muted); font-size: 12px; transition: border-color var(--dur-fast) var(--ease); }
+.palette-trigger:hover { border-color: var(--hairline-mid); }
+.palette-trigger .placeholder { flex: 1; text-align: left; }
+@media (max-width: 768px) { .nav-links { display: none; } .palette-trigger { display: none; } }
+.menu-btn { display: none; background: transparent; border: 1px solid var(--hairline-low); border-radius: var(--radius-sm); padding: 6px 8px; color: var(--text-primary); }
+@media (max-width: 768px) { .menu-btn { display: inline-flex; } }
+.mobile-menu { display: none; padding: 8px 16px 16px; border-bottom: 1px solid var(--hairline-low); background: var(--bg-base); }
+.mobile-menu.open { display: block; }
+.mobile-menu a { display: block; padding: 10px 0; color: var(--text-secondary); font-size: 13px; border-bottom: 1px solid var(--hairline-low); }
+.mobile-menu a:last-child { border-bottom: none; }
+.hero { padding: 96px 0 80px; position: relative; overflow: hidden; }
+@media (max-width: 640px) { .hero { padding: 64px 0 56px; } }
+.hero-grid { display: grid; grid-template-columns: 1.4fr 1fr; gap: 64px; align-items: start; }
+@media (max-width: 1024px) { .hero-grid { grid-template-columns: 1fr; gap: 40px; } }
+.hero-eyebrow { display: inline-flex; align-items: center; gap: 8px; padding: 4px 10px; border: 1px solid var(--hairline-low); border-radius: var(--radius-full); margin-bottom: 24px; background: var(--bg-raised); }
+.hero-eyebrow .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+.hero-eyebrow span { font-family: var(--font-mono); font-size: 11px; color: var(--text-secondary); letter-spacing: 0; text-transform: none; font-weight: 400; }
+.hero h1 { margin: 0 0 20px; }
+.hero-sub { font-size: 16px; line-height: 1.55; color: var(--text-secondary); max-width: 56ch; margin: 0 0 32px; }
+.hero-cta { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+.hero-cta .btn-lg { padding: 12px 20px; font-size: 14px; }
+.hero-secondary { color: var(--text-muted); font-size: 12px; margin: 8px 0 24px; }
+.hero-secondary a { color: var(--text-secondary); border-bottom: 1px solid var(--hairline-mid); }
+.hero-secondary a:hover { color: var(--accent); border-color: var(--accent); }
+.hero-benefits { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 8px; }
+.hero-benefits li { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-secondary); list-style: none; }
+.hero-benefits svg { color: var(--success); flex-shrink: 0; }
+.hero-benefits ul { display: flex; gap: 16px; flex-wrap: wrap; padding: 0; margin: 0; list-style: none; }
+.hero-aside { background: var(--bg-raised); border: 1px solid var(--hairline-low); border-radius: var(--radius-md); padding: 16px; font-family: var(--font-mono); font-size: 12px; line-height: 1.6; box-shadow: var(--shadow-card); }
+.hero-aside-header { display: flex; align-items: center; justify-content: space-between; padding-bottom: 12px; margin-bottom: 12px; border-bottom: 1px solid var(--hairline-low); color: var(--text-muted); font-size: 11px; }
+.hero-aside-row { display: flex; align-items: flex-start; gap: 10px; padding: 4px 0; }
+.hero-aside-row .meta { color: var(--text-muted); flex-shrink: 0; min-width: 64px; }
+.hero-aside-row .body { color: var(--text-secondary); }
+.hero-aside-row .id { color: var(--accent); }
+.hero-aside-row .arrow { color: var(--text-muted); margin: 0 4px; }
+.hero-aside-row.task { padding: 8px 10px; margin: 4px 0; background: var(--bg-elevated); border: 1px solid var(--hairline-low); border-radius: var(--radius-sm); display: grid; grid-template-columns: auto auto 1fr auto; gap: 8px; align-items: center; }
+.status-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.status-dot.todo { background: transparent; border: 1px solid var(--hairline-high); }
+.status-dot.progress { background: var(--info); }
+.status-dot.done { background: var(--success); }
+.hero-aside-row.task .id { color: var(--text-muted); font-size: 10px; }
+.hero-aside-row.task .title { color: var(--text-primary); font-family: var(--font-sans); font-size: 12px; font-weight: 510; }
+.hero-aside-row.task .due { color: var(--text-muted); font-size: 10px; }
+@keyframes pulse-border { 0%, 100% { border-color: var(--accent-border); } 50% { border-color: var(--accent); } }
+.hero-aside-row.task.ai-active { animation: pulse-border 1.6s var(--ease) infinite; }
+</style>
+<header class="topbar">
+  <div class="container topbar-inner">
+    <div style="display:flex;align-items:center;gap:8px;">
+      <a href="#" class="brand">
+        <span class="brand-mark">k</span>
+        <span>kAInban</span>
+        <span class="brand-version">v1.1.1</span>
       </a>
-      <p class="mt-6 text-purple-100 text-sm">
-        No credit card required • 14-day money-back guarantee
-      </p>
     </div>
-  </section>
-
-  <!-- Footer -->
-  <footer class="bg-gray-900 text-gray-300 py-12">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="grid md:grid-cols-4 gap-8">
-        <div>
-          <h3 class="text-white font-bold text-xl mb-4">kAInban</h3>
-          <p class="text-sm">
-            AI-powered task management for modern teams
-          </p>
+    <nav class="nav-links">
+      <a href="#features" class="nav-link">Features</a>
+      <a href="#pricing" class="nav-link">Pricing</a>
+      <a href="#getting-started" class="nav-link">Getting started</a>
+      <a href="#faq" class="nav-link">FAQ</a>
+      <a href="https://github.com/Qureshi-Inc/kAInban" class="nav-link">GitHub</a>
+    </nav>
+    <div class="nav-right">
+      <a href="https://app.kainban.com/api/auth/oidc/login" class="btn btn-ghost" style="font-size:12px;">Sign in</a>
+      <a href="https://app.kainban.com/api/auth/oidc/login?intent=register" class="btn btn-primary">Get started</a>
+      <button class="menu-btn" id="menu-btn" aria-label="Menu">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+  <div id="mobile-menu" class="mobile-menu">
+    <a href="#features">Features</a>
+    <a href="#pricing">Pricing</a>
+    <a href="#getting-started">Getting started</a>
+    <a href="#faq">FAQ</a>
+    <a href="https://github.com/Qureshi-Inc/kAInban">GitHub</a>
+    <a href="https://app.kainban.com/api/auth/oidc/login">Sign in</a>
+    <a href="https://app.kainban.com/api/auth/oidc/login?intent=register">Get started</a>
+  </div>
+</header>
+<section class="hero">
+  <div class="container hero-grid">
+    <div>
+      <div class="hero-eyebrow">
+        <span class="dot"></span>
+        <span>v1.1.1 / dropping meeting recordings into a kanban</span>
+      </div>
+      <h1 class="t-display">Conversations<br>become <em>work.</em></h1>
+      <p class="hero-sub">Drop a meeting recording. kAInban returns a kanban of action items, owners, and due dates. Every task links back to the exact transcript span, so you can verify before you trust.</p>
+      <div class="hero-cta">
+        <a href="https://app.kainban.com/api/auth/oidc/login?intent=register" class="btn btn-primary btn-lg">
+          <span>Get started</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </a>
+        <a href="https://app.kainban.com/api/auth/oidc/login" class="btn btn-secondary btn-lg">Sign in</a>
+      </div>
+      <p class="hero-secondary">Auth runs through Zitadel SSO. Email + password, or passkey via Face ID, Touch ID, Windows Hello. <a href="https://github.com/Qureshi-Inc/kAInban#self-host">Self-host</a> if you'd rather own the auth stack.</p>
+      <ul class="hero-benefits">
+        <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> No credit card</li>
+        <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Self-hostable</li>
+        <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> AGPL-3.0 open source</li>
+        <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Passkey auth</li>
+      </ul>
+    </div>
+    <aside class="hero-aside" aria-label="Example extraction">
+      <div class="hero-aside-header">
+        <span>standup-2026-05-26.m4a</span>
+        <span>14:32 / 22:08</span>
+      </div>
+      <div class="hero-aside-row"><span class="meta">12:04</span><span class="body">"Tariq, can you ship the ACH webhook idempotency this week?"</span></div>
+      <div class="hero-aside-row"><span class="meta">13:51</span><span class="body">"And we should also add the Slack alert for failed payouts."</span></div>
+      <div style="display:flex;align-items:center;gap:8px;margin:14px 0 10px;color:var(--text-muted);font-size:11px;">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L9.5 9.5 2 12l7.5 2.5L12 22l2.5-7.5L22 12l-7.5-2.5L12 2z"/></svg>
+        <span style="color:var(--accent);">2 tasks extracted</span>
+      </div>
+      <div class="hero-aside-row task ai-active">
+        <span class="status-dot todo"></span>
+        <span class="id">PAY-12</span>
+        <span class="title">Add ACH webhook idempotency (24h key TTL)</span>
+        <span class="due">Fri</span>
+      </div>
+      <div class="hero-aside-row task">
+        <span class="status-dot todo"></span>
+        <span class="id">PAY-13</span>
+        <span class="title">Slack alert for failed payouts</span>
+        <span class="due">Mon</span>
+      </div>
+    </aside>
+  </div>
+</section>
+<style>
+.section { padding: 80px 0; border-top: 1px solid var(--hairline-low); }
+@media (max-width: 640px) { .section { padding: 56px 0; } }
+.section-head { margin-bottom: 48px; max-width: 640px; }
+.section-head .eyebrow { display: block; margin-bottom: 12px; color: var(--text-muted); }
+.section-head h2 { margin: 0 0 12px; }
+.section-head p { color: var(--text-secondary); font-size: 15px; line-height: 1.6; margin: 0; max-width: 56ch; }
+.features-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--hairline-low); border: 1px solid var(--hairline-low); border-radius: var(--radius-md); overflow: hidden; }
+@media (max-width: 1024px) { .features-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 640px) { .features-grid { grid-template-columns: 1fr; } }
+.feature { padding: 24px; background: var(--bg-base); transition: background-color var(--dur-base) var(--ease); }
+.feature:hover { background: var(--bg-raised); }
+.feature-icon { width: 28px; height: 28px; display: grid; place-items: center; color: var(--accent); margin-bottom: 16px; }
+.feature h3 { margin: 0 0 6px; font-size: 14px; font-weight: 510; color: var(--text-primary); }
+.feature p { margin: 0; font-size: 12px; line-height: 1.6; color: var(--text-secondary); }
+.feature .num { font-family: var(--font-mono); font-size: 10px; color: var(--text-muted); margin-bottom: 8px; }
+.proof { background: var(--bg-raised); border-top: 1px solid var(--hairline-low); border-bottom: 1px solid var(--hairline-low); padding: 48px 0; }
+.proof-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 32px; }
+@media (max-width: 768px) { .proof-row { grid-template-columns: repeat(2, 1fr); gap: 24px; } }
+.proof-item .value { font-family: var(--font-serif); font-size: 36px; line-height: 1; color: var(--text-primary); }
+.proof-item .value .accent { color: var(--accent); }
+.proof-item .label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; margin-top: 8px; font-weight: 510; }
+.workflow { display: grid; grid-template-columns: 1fr 1.4fr; gap: 64px; align-items: start; }
+@media (max-width: 1024px) { .workflow { grid-template-columns: 1fr; gap: 32px; } }
+.workflow-steps { display: flex; flex-direction: column; gap: 4px; }
+.workflow-step { display: grid; grid-template-columns: 32px 1fr; gap: 16px; padding: 16px 0; border-bottom: 1px solid var(--hairline-low); }
+.workflow-step:last-child { border-bottom: none; }
+.workflow-step-num { width: 24px; height: 24px; display: grid; place-items: center; border: 1px solid var(--hairline-mid); border-radius: var(--radius-full); font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); }
+.workflow-step.active .workflow-step-num { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
+.workflow-step h4 { margin: 0 0 4px; font-size: 14px; font-weight: 510; color: var(--text-primary); }
+.workflow-step p { margin: 0; font-size: 12px; line-height: 1.55; color: var(--text-secondary); }
+.workflow-vis { background: var(--bg-raised); border: 1px solid var(--hairline-low); border-radius: var(--radius-md); padding: 16px; font-family: var(--font-mono); font-size: 12px; min-height: 380px; }
+.workflow-vis-header { display: flex; align-items: center; justify-content: space-between; padding-bottom: 12px; margin-bottom: 12px; border-bottom: 1px solid var(--hairline-low); color: var(--text-muted); font-size: 11px; }
+.kanban-cols { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.kanban-col { display: flex; flex-direction: column; gap: 6px; }
+.kanban-col-head { display: flex; align-items: center; justify-content: space-between; padding: 4px 6px; font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 510; }
+.kanban-col-head .count { color: var(--text-muted); font-family: var(--font-mono); font-size: 10px; }
+.kanban-card { padding: 8px 10px; background: var(--bg-elevated); border: 1px solid var(--hairline-low); border-radius: var(--radius-sm); display: flex; flex-direction: column; gap: 4px; }
+.kanban-card .id { color: var(--text-muted); font-size: 10px; font-family: var(--font-mono); }
+.kanban-card .title { color: var(--text-primary); font-family: var(--font-sans); font-size: 12px; font-weight: 510; line-height: 1.35; }
+.kanban-card .meta { display: flex; align-items: center; gap: 6px; margin-top: 4px; }
+.kanban-card.ai { border-color: var(--accent-border); }
+.priority-high { color: var(--danger); }
+.priority-med { color: var(--warning); }
+.priority-low { color: var(--success); }
+</style>
+<section id="features" class="section">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow">Capabilities</span>
+      <h2 class="t-heading-lg">A workspace OS, not a chatbot.</h2>
+      <p>kAInban is built for the operator who runs back-to-back meetings and needs the work to be already extracted, owned, and dated by the time the call ends.</p>
+    </div>
+    <div class="features-grid">
+      <div class="feature">
+        <div class="num">01</div>
+        <div class="feature-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg>
         </div>
-
-        <div>
-          <h4 class="text-white font-semibold mb-4">Product</h4>
-          <ul class="space-y-2 text-sm">
-            <li><a href="#features" class="hover:text-white transition">Features</a></li>
-            <li><a href="#pricing" class="hover:text-white transition">Pricing</a></li>
-            <li><a href="https://app.kainban.com" class="hover:text-white transition">Login</a></li>
-          </ul>
+        <h3>Meeting transcription</h3>
+        <p>Record or upload, get accurate transcripts via Whisper. Each task carries the timestamp it came from.</p>
+      </div>
+      <div class="feature">
+        <div class="num">02</div>
+        <div class="feature-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L9.5 9.5 2 12l7.5 2.5L12 22l2.5-7.5L22 12l-7.5-2.5L12 2z"/></svg>
         </div>
-
-        <div>
-          <h4 class="text-white font-semibold mb-4">Resources</h4>
-          <ul class="space-y-2 text-sm">
-            <li><a href="#faq" class="hover:text-white transition">FAQ</a></li>
-            <li><a href="https://github.com/Qureshi-Inc/kAInban" class="hover:text-white transition">GitHub</a></li>
-            <li><a href="https://github.com/Qureshi-Inc/kAInban/blob/main/LICENSE" class="hover:text-white transition">License (AGPL-3.0)</a></li>
-          </ul>
+        <h3>AI task extraction</h3>
+        <p>GPT finds owners, deadlines, blockers, and dependencies. Output is verifiable - cite the source span.</p>
+      </div>
+      <div class="feature">
+        <div class="num">03</div>
+        <div class="feature-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
         </div>
-
-        <div>
-          <h4 class="text-white font-semibold mb-4">Company</h4>
-          <ul class="space-y-2 text-sm">
-            <li><a href="mailto:support@kainban.com" class="hover:text-white transition">Contact</a></li>
-            <li><a href="#" class="hover:text-white transition">Privacy Policy</a></li>
-            <li><a href="#" class="hover:text-white transition">Terms of Service</a></li>
-          </ul>
+        <h3>Kanban + Tasks views</h3>
+        <p>Spatial board for triage, dense list for power. Same data, two presentations, one keystroke to switch.</p>
+      </div>
+      <div class="feature">
+        <div class="num">04</div>
+        <div class="feature-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6v6H9z"/></svg>
+        </div>
+        <h3>Cmd-K palette</h3>
+        <p>Keyboard-first navigation. Search tasks, run AI actions, switch views without lifting your hands.</p>
+      </div>
+      <div class="feature">
+        <div class="num">05</div>
+        <div class="feature-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L4 6v6c0 5 3.5 9.4 8 10 4.5-.6 8-5 8-10V6l-8-4z"/></svg>
+        </div>
+        <h3>Passkey auth</h3>
+        <p>Zitadel OIDC with passkeys. Face ID, Touch ID, Windows Hello. No password resets, no phishing.</p>
+      </div>
+      <div class="feature">
+        <div class="num">06</div>
+        <div class="feature-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h18v6H3z"/><path d="M3 15h18v6H3z"/><path d="M9 9v6"/><path d="M15 9v6"/></svg>
+        </div>
+        <h3>Multi-tenant</h3>
+        <p>Workspaces map to Zitadel orgs. Bring your team, keep their data isolated, share what matters.</p>
+      </div>
+      <div class="feature">
+        <div class="num">07</div>
+        <div class="feature-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 17 9 11 13 15 21 7"/><polyline points="14 7 21 7 21 14"/></svg>
+        </div>
+        <h3>Analytics</h3>
+        <p>Daily AI recommendations: what's overdue, what's a quick win, where you're stuck. Refreshed at midnight.</p>
+      </div>
+      <div class="feature">
+        <div class="num">08</div>
+        <div class="feature-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+        </div>
+        <h3>Self-hostable</h3>
+        <p>Docker compose, AGPL-3.0, your data on your hardware. Or run it managed at app.kainban.com.</p>
+      </div>
+    </div>
+  </div>
+</section>
+<section class="proof">
+  <div class="container proof-row">
+    <div class="proof-item"><div class="value"><span class="accent">95%</span></div><div class="label">Whisper accuracy</div></div>
+    <div class="proof-item"><div class="value">~12s</div><div class="label">Avg extraction time</div></div>
+    <div class="proof-item"><div class="value">3 panes</div><div class="label">Sidebar / canvas / inspector</div></div>
+    <div class="proof-item"><div class="value">AGPL</div><div class="label">Open source license</div></div>
+  </div>
+</section>
+<section id="how-it-works" class="section">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow">How it works</span>
+      <h2 class="t-heading-lg">From recording to triaged kanban in under a minute.</h2>
+      <p>Four steps. No training the model on your team's slang. No "set up your workspace" wizard. Just drop and go.</p>
+    </div>
+    <div class="workflow">
+      <div class="workflow-steps">
+        <div class="workflow-step active">
+          <div class="workflow-step-num">1</div>
+          <div><h4>Record or upload</h4><p>Browser recorder, Mac/iOS app, or paste an .m4a / .mp3 / .wav. Drag-drop or hit Cmd-Shift-R.</p></div>
+        </div>
+        <div class="workflow-step">
+          <div class="workflow-step-num">2</div>
+          <div><h4>AI transcribes and extracts</h4><p>Whisper transcribes, GPT identifies tasks, owners, due dates, and blockers. Each task cites its transcript span.</p></div>
+        </div>
+        <div class="workflow-step">
+          <div class="workflow-step-num">3</div>
+          <div><h4>Triage in the inspector</h4><p>Tasks land in Inbox. Open the inspector, fix anything the AI got wrong, then push to a project. Source span is one click away.</p></div>
+        </div>
+        <div class="workflow-step">
+          <div class="workflow-step-num">4</div>
+          <div><h4>Work the board (or list)</h4><p>Switch between Kanban for triage and Tasks list for power use. Filter by owner, group by project. Cmd-K everywhere.</p></div>
         </div>
       </div>
-
-      <div class="border-t border-gray-800 mt-12 pt-8 text-center text-sm">
-        <p>&copy; 2025 kAInban by InterestingSoup. Open source under AGPL-3.0 License.</p>
+      <div class="workflow-vis">
+        <div class="workflow-vis-header"><span>PAY / overview</span><span>8 tasks</span></div>
+        <div class="kanban-cols">
+          <div class="kanban-col">
+            <div class="kanban-col-head"><span>Inbox</span><span class="count">3</span></div>
+            <div class="kanban-card ai"><span class="id">PAY-12</span><span class="title">ACH webhook idempotency</span><div class="meta"><span class="chip chip-ai">AI</span><span class="priority-high" style="font-size:10px;font-family:var(--font-mono);">HIGH</span></div></div>
+            <div class="kanban-card ai"><span class="id">PAY-13</span><span class="title">Slack alert for failed payouts</span><div class="meta"><span class="chip chip-ai">AI</span><span class="priority-med" style="font-size:10px;font-family:var(--font-mono);">MED</span></div></div>
+            <div class="kanban-card"><span class="id">PAY-14</span><span class="title">Audit Stripe webhook secrets</span></div>
+          </div>
+          <div class="kanban-col">
+            <div class="kanban-col-head"><span>In progress</span><span class="count">2</span></div>
+            <div class="kanban-card"><span class="id">PAY-09</span><span class="title">Migrate to v2024-04 API</span><div class="meta"><span class="priority-high" style="font-size:10px;font-family:var(--font-mono);">HIGH</span></div></div>
+            <div class="kanban-card"><span class="id">PAY-10</span><span class="title">Add 3DS challenge flow</span></div>
+          </div>
+          <div class="kanban-col">
+            <div class="kanban-col-head"><span>Done</span><span class="count">3</span></div>
+            <div class="kanban-card" style="opacity:0.55;"><span class="id">PAY-06</span><span class="title">Refactor refund handler</span></div>
+            <div class="kanban-card" style="opacity:0.55;"><span class="id">PAY-07</span><span class="title">Audit dispute responses</span></div>
+            <div class="kanban-card" style="opacity:0.55;"><span class="id">PAY-08</span><span class="title">Stripe Tax integration</span></div>
+          </div>
+        </div>
       </div>
     </div>
-  </footer>
-
-  <!-- Include signup functionality -->
-  <script src="signup.js"></script>
-
-  <script>
-    // Mobile menu toggle
-    document.getElementById('mobile-menu-button').addEventListener('click', function() {
-      const mobileMenu = document.getElementById('mobile-menu');
-      mobileMenu.classList.toggle('hidden');
-    });
-
-    // Smooth scrolling for anchor links
-    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-      anchor.addEventListener('click', function (e) {
+  </div>
+</section>
+<style>
+.pricing-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+@media (max-width: 1024px) { .pricing-grid { grid-template-columns: 1fr; gap: 12px; } }
+.price-card { background: var(--bg-raised); border: 1px solid var(--hairline-low); border-radius: var(--radius-md); padding: 24px; display: flex; flex-direction: column; gap: 16px; box-shadow: var(--shadow-card); }
+.price-card.featured { border-color: var(--accent); position: relative; }
+.price-card.featured::before { content: "Recommended"; position: absolute; top: -1px; right: 16px; transform: translateY(-50%); padding: 2px 8px; background: var(--accent); color: var(--text-inverse); font-size: 10px; font-weight: 510; border-radius: var(--radius-xs); letter-spacing: 0.04em; text-transform: uppercase; }
+.price-name { font-size: 13px; font-weight: 510; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.06em; }
+.price-amount { display: flex; align-items: baseline; gap: 4px; }
+.price-amount .num { font-family: var(--font-mono); font-size: 36px; font-weight: 500; color: var(--text-primary); letter-spacing: -1px; }
+.price-amount .per { color: var(--text-muted); font-size: 12px; }
+.price-desc { color: var(--text-secondary); font-size: 12px; line-height: 1.55; min-height: 32px; }
+.price-features { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; flex: 1; }
+.price-features li { display: flex; align-items: flex-start; gap: 8px; font-size: 12px; color: var(--text-secondary); line-height: 1.55; }
+.price-features li svg { color: var(--success); flex-shrink: 0; margin-top: 3px; }
+.price-features li strong { color: var(--text-primary); font-weight: 510; }
+.price-features li.muted { color: var(--text-muted); }
+.price-features li.muted svg { color: var(--text-muted); }
+.price-cta { padding-top: 8px; border-top: 1px solid var(--hairline-low); }
+.faq-grid { display: grid; gap: 1px; background: var(--hairline-low); border: 1px solid var(--hairline-low); border-radius: var(--radius-md); overflow: hidden; }
+.faq-item { background: var(--bg-base); padding: 0; }
+.faq-item summary { padding: 18px 20px; cursor: pointer; list-style: none; display: flex; align-items: center; justify-content: space-between; gap: 16px; font-size: 14px; font-weight: 510; color: var(--text-primary); transition: background-color var(--dur-fast) var(--ease); }
+.faq-item summary::-webkit-details-marker { display: none; }
+.faq-item summary:hover { background: var(--bg-elevated); }
+.faq-item[open] summary { background: var(--bg-elevated); border-bottom: 1px solid var(--hairline-low); }
+.faq-item summary .icon { color: var(--text-muted); transition: transform var(--dur-base) var(--ease); flex-shrink: 0; }
+.faq-item[open] summary .icon { transform: rotate(45deg); color: var(--accent); }
+.faq-item .answer { padding: 16px 20px 20px; color: var(--text-secondary); font-size: 13px; line-height: 1.6; max-width: 72ch; }
+.cta-final { padding: 96px 0; text-align: center; border-top: 1px solid var(--hairline-low); }
+.cta-final h2 { margin: 0 0 16px; font-family: var(--font-serif); font-size: clamp(36px, 5vw, 48px); line-height: 1.1; letter-spacing: -0.5px; }
+.cta-final h2 em { color: var(--accent); }
+.cta-final p { margin: 0 auto 32px; color: var(--text-secondary); font-size: 15px; max-width: 56ch; }
+.cta-final .btn { padding: 12px 22px; font-size: 14px; }
+.footer { padding: 48px 0 32px; border-top: 1px solid var(--hairline-low); background: var(--bg-elevated); }
+.footer-grid { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 48px; }
+@media (max-width: 768px) { .footer-grid { grid-template-columns: 1fr 1fr; gap: 32px; } }
+.footer-brand { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; font-weight: 510; }
+.footer-tag { color: var(--text-muted); font-size: 12px; line-height: 1.6; max-width: 36ch; }
+.footer-col h4 { margin: 0 0 16px; font-size: 11px; font-weight: 510; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; }
+.footer-col ul { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; }
+.footer-col a { color: var(--text-secondary); font-size: 12px; transition: color var(--dur-fast) var(--ease); }
+.footer-col a:hover { color: var(--accent); }
+.footer-bottom { display: flex; align-items: center; justify-content: space-between; padding-top: 24px; margin-top: 32px; border-top: 1px solid var(--hairline-low); color: var(--text-muted); font-size: 11px; }
+.footer-bottom .links { display: flex; gap: 16px; }
+@media (max-width: 640px) { .footer-bottom { flex-direction: column; gap: 12px; align-items: flex-start; } }
+</style>
+<section id="pricing" class="section">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow">Pricing</span>
+      <h2 class="t-heading-lg">Honest pricing. No "contact us" tier.</h2>
+      <p>Start free, upgrade when meeting volume justifies it. Self-host the OSS edition forever, or use the managed instance to skip ops.</p>
+    </div>
+    <div class="pricing-grid">
+      <div class="price-card">
+        <div>
+          <div class="price-name">Free</div>
+          <div class="price-amount"><span class="num">$0</span><span class="per">/ month</span></div>
+        </div>
+        <p class="price-desc">Solo operators. Your machine, your data, your call.</p>
+        <ul class="price-features">
+          <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Up to <strong>3 projects</strong></li>
+          <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Unlimited tasks</li>
+          <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> 5 MB upload limit</li>
+          <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Whisper transcription</li>
+          <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Kanban + Tasks views</li>
+          <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Cmd-K palette</li>
+        </ul>
+        <div class="price-cta"><a href="https://app.kainban.com/api/auth/oidc/login?intent=register" class="btn btn-secondary" style="width:100%;justify-content:center;">Get started</a></div>
+      </div>
+      <div class="price-card featured">
+        <div>
+          <div class="price-name" style="color:var(--accent);">Pro</div>
+          <div class="price-amount"><span class="num">$19</span><span class="per">/ month</span></div>
+        </div>
+        <p class="price-desc">Operators running 3+ meetings a day with a real backlog.</p>
+        <ul class="price-features">
+          <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> <strong>Unlimited projects</strong></li>
+          <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> <strong>50 MB</strong> upload limit</li>
+          <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Priority AI processing</li>
+          <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Daily AI recommendations</li>
+          <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Workspace collaboration</li>
+          <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Email + chat support</li>
+        </ul>
+        <div class="price-cta"><a href="https://app.kainban.com/api/auth/oidc/login?intent=register" class="btn btn-primary" style="width:100%;justify-content:center;">Start Pro trial</a></div>
+      </div>
+      <div class="price-card">
+        <div>
+          <div class="price-name">Team</div>
+          <div class="price-amount"><span class="num">$49</span><span class="per">/ month</span></div>
+        </div>
+        <p class="price-desc">Teams that need SSO, dedicated infra, or on-prem.</p>
+        <ul class="price-features">
+          <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> <strong>Everything in Pro</strong></li>
+          <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> <strong>200 MB</strong> upload limit</li>
+          <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Zitadel SSO + SCIM</li>
+          <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Custom integrations</li>
+          <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> SLA + audit logs</li>
+          <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> On-prem deployment</li>
+        </ul>
+        <div class="price-cta"><a href="mailto:support@kainban.com?subject=kAInban Team plan" class="btn btn-secondary" style="width:100%;justify-content:center;">Contact us</a></div>
+      </div>
+    </div>
+  </div>
+</section>
+<section id="getting-started" class="section">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow">Getting started</span>
+      <h2 class="t-heading-lg">Two minutes from signup to first extracted task.</h2>
+      <p>Auth runs through Zitadel SSO so we never see your password. Pick email + password or a passkey. Either works in under 30 seconds.</p>
+    </div>
+    <div class="features-grid" style="grid-template-columns: repeat(3, 1fr);">
+      <div class="feature">
+        <div class="num">Step 01</div>
+        <h3>Click Get started</h3>
+        <p>You land on Zitadel's hosted register screen. Email + password, or "Add passkey" with Face ID, Touch ID, or Windows Hello. No magic links, no email confirmation gauntlet.</p>
+      </div>
+      <div class="feature">
+        <div class="num">Step 02</div>
+        <h3>Drop a meeting recording</h3>
+        <p>Inside the app, hit Cmd-Shift-R to record in-browser, or upload an .m4a / .mp3 / .wav. The first file does not need any setup or project to be created.</p>
+      </div>
+      <div class="feature">
+        <div class="num">Step 03</div>
+        <h3>Triage your kanban</h3>
+        <p>Tasks land in Inbox in ~12 seconds. Open the inspector to verify each AI extraction against the source transcript span. Push the keepers into a project, ditch the rest.</p>
+      </div>
+    </div>
+    <div style="text-align:center; margin-top: 40px;">
+      <a href="https://app.kainban.com/api/auth/oidc/login?intent=register" class="btn btn-primary btn-lg">
+        <span>Sign in or register at app.kainban.com</span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+      </a>
+    </div>
+  </div>
+</section>
+<section id="faq" class="section">
+  <div class="container" style="max-width: 820px;">
+    <div class="section-head">
+      <span class="eyebrow">FAQ</span>
+      <h2 class="t-heading-lg">Questions worth answering directly.</h2>
+    </div>
+    <div class="faq-grid">
+      <details class="faq-item">
+        <summary>How does signup work? I do not see a signup form.<span class="icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span></summary>
+        <div class="answer">Auth runs through Zitadel, an open-source identity provider. Click Get started, you land on Zitadel's hosted page, register with email + password or a passkey, and you are back in kAInban in under 30 seconds. We never see or store your password.</div>
+      </details>
+      <details class="faq-item">
+        <summary>How accurate is the transcription?<span class="icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span></summary>
+        <div class="answer">We use Azure OpenAI Whisper. Real-world accuracy is ~95% on clean audio, lower on noisy or accented speech. Every transcript is editable, and tasks cite their span so you can verify before you trust.</div>
+      </details>
+      <details class="faq-item">
+        <summary>Can I self-host?<span class="icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span></summary>
+        <div class="answer">Yes. The full source is AGPL-3.0 on GitHub. Docker compose in the repo handles the API, frontend, and Zitadel. You bring your own OpenAI / Azure key. Managed instance at app.kainban.com is for people who would rather not run ops.</div>
+      </details>
+      <details class="faq-item">
+        <summary>What happens to my recordings?<span class="icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span></summary>
+        <div class="answer">Recordings stay in your workspace storage (your filesystem if self-hosted, encrypted at rest if managed). They are sent to Whisper for transcription only; the OpenAI API does not retain them per their data policy. Transcripts and tasks live in your DB.</div>
+      </details>
+      <details class="faq-item">
+        <summary>Why kanban + tasks instead of just kanban?<span class="icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span></summary>
+        <div class="answer">Kanban is great for triage and standups. Past 30 items, the wall of cards becomes noise. The Tasks list view is keyboard-first and dense, designed for getting through 50+ items. Same data, switch with one keystroke.</div>
+      </details>
+      <details class="faq-item">
+        <summary>Does it work on mobile?<span class="icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span></summary>
+        <div class="answer">Yes. The web app is a PWA, the inspector becomes a full-screen drawer below 960px, and the in-browser recorder uses MediaRecorder so you can capture meetings on iOS/Android without an extra app.</div>
+      </details>
+      <details class="faq-item">
+        <summary>Can I cancel any time?<span class="icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span></summary>
+        <div class="answer">Yes. Pro and Team are month-to-month. Downgrade or cancel from settings, no email gauntlet. Self-host doesn't require any account.</div>
+      </details>
+    </div>
+  </div>
+</section>
+<section class="cta-final">
+  <div class="container">
+    <h2>Stop taking notes.<br>Start <em>shipping the work.</em></h2>
+    <p>The next meeting you record will end with a triaged kanban instead of a blank page.</p>
+    <a href="https://app.kainban.com/api/auth/oidc/login?intent=register" class="btn btn-primary btn-lg">
+      <span>Get started</span>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+    </a>
+    <p style="font-size:11px;color:var(--text-muted);margin-top:24px;">No credit card. Self-host or use managed.</p>
+  </div>
+</section>
+<footer class="footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <div class="footer-brand">
+          <span class="brand-mark">k</span>
+          <span>kAInban</span>
+        </div>
+        <p class="footer-tag">Drop a meeting recording, get a kanban of action items. Open source. Indie operator-grade.</p>
+      </div>
+      <div class="footer-col">
+        <h4>Product</h4>
+        <ul>
+          <li><a href="#features">Features</a></li>
+          <li><a href="#pricing">Pricing</a></li>
+          <li><a href="#faq">FAQ</a></li>
+          <li><a href="https://app.kainban.com/api/auth/oidc/login">Sign in</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Open source</h4>
+        <ul>
+          <li><a href="https://github.com/Qureshi-Inc/kAInban">GitHub</a></li>
+          <li><a href="https://github.com/Qureshi-Inc/kAInban/blob/main/LICENSE">AGPL-3.0 License</a></li>
+          <li><a href="https://github.com/Qureshi-Inc/kAInban/blob/main/DOCKER_DEPLOYMENT.md">Self-host docs</a></li>
+          <li><a href="https://github.com/Qureshi-Inc/kAInban/issues">Issues</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Company</h4>
+        <ul>
+          <li><a href="mailto:support@kainban.com">Contact</a></li>
+          <li><a href="#privacy">Privacy</a></li>
+          <li><a href="#terms">Terms</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>(c) 2026 kAInban by InterestingSoup. AGPL-3.0.</span>
+      <div class="links">
+        <span class="mono">v1.1.1</span>
+        <a href="https://app.kainban.com">app.kainban.com</a>
+      </div>
+    </div>
+  </div>
+</footer>
+<script>
+(function(){
+  var menuBtn = document.getElementById('menu-btn');
+  var menu = document.getElementById('mobile-menu');
+  if (menuBtn && menu) {
+    menuBtn.addEventListener('click', function(){ menu.classList.toggle('open'); });
+  }
+  document.querySelectorAll('a[href^="#"]').forEach(function(a){
+    a.addEventListener('click', function(e){
+      var target = document.querySelector(this.getAttribute('href'));
+      if (target) {
         e.preventDefault();
-        const target = document.querySelector(this.getAttribute('href'));
-        if (target) {
-          target.scrollIntoView({
-            behavior: 'smooth',
-            block: 'start'
-          });
-          // Close mobile menu if open
-          document.getElementById('mobile-menu').classList.add('hidden');
-        }
-      });
-    });
-
-    // Update pricing buttons to set plan selection
-    document.querySelectorAll('a[href*="notes.rodeomasjid.org"]').forEach(button => {
-      // Check if it's in pricing section
-      const pricingCard = button.closest('.pricing-card');
-      if (pricingCard) {
-        const planName = pricingCard.querySelector('h3').textContent.toLowerCase();
-        button.setAttribute('data-plan', planName);
-
-        // Convert to button that triggers signup form
-        if (planName !== 'enterprise') {
-          button.addEventListener('click', function(e) {
-            e.preventDefault();
-
-            // Scroll to signup form
-            document.getElementById('hero-signup-form').scrollIntoView({
-              behavior: 'smooth'
-            });
-
-            // Set plan in form
-            const planInput = document.querySelector('#hero-signup-form input[name="plan"]');
-            if (planInput) {
-              planInput.value = planName;
-            }
-
-            // Focus on email input
-            setTimeout(() => {
-              const emailInput = document.querySelector('#hero-signup-form input[name="email"]');
-              if (emailInput) {
-                emailInput.focus();
-              }
-            }, 500);
-          });
-        }
+        target.scrollIntoView({behavior: 'smooth', block: 'start'});
+        if (menu) menu.classList.remove('open');
       }
     });
-  </script>
+  });
+})();
+</script>
 </body>
 </html>
