@@ -110,31 +110,43 @@ export default function MainView() {
 
   // v3.1.4 — `?task=<id>` URL handoff. KanbanBoardKit has its own copy
   // for the legacy modal path, but in list mode the kanban isn't mounted
-  // so route it here too. The store action no-ops if currentTaskId is
-  // already set (and the inspector's own mount effect handles refresh).
+  // so route it here too.
   //
   // Bidirectional: when the URL drops `?task=` (browser back / forward,
   // or any caller that navigates without going through closeTaskInspector)
   // and the store still has a task open, close the inspector so the UI
-  // matches the URL. Without this, pressing back leaves the inspector
-  // visually stuck even though the address bar reverted.
+  // matches the URL.
+  //
+  // Critical: this effect must only fire on URL transitions, NOT on
+  // store transitions. If `currentTaskId` were in the deps, opening a
+  // task would race — the store updates synchronously while React Router
+  // is still mid-popstate, so the effect would see (taskId=null,
+  // currentTaskId=Y) and immediately call closeTaskInspector, snapping
+  // the URL back. Reading the store imperatively via getState() inside
+  // the effect avoids that. We also track the previous URL value so we
+  // only fire `close` when the URL actually transitioned from
+  // value -> null (not on every render where taskId happens to be null).
   const tasks = useAppStore(state => state.tasks)
   const openTaskInspector = useAppStore(state => state.openTaskInspector)
   const closeTaskInspector = useAppStore(state => state.closeTaskInspector)
-  const currentTaskId = useAppStore(state => state.currentTaskId)
+  const prevTaskIdRef = React.useRef(taskId)
   useEffect(() => {
+    const prevTaskId = prevTaskIdRef.current
+    prevTaskIdRef.current = taskId
+    const storeTaskId = useAppStore.getState().currentTaskId
+
     if (taskId) {
-      if (currentTaskId === taskId || tasks.length === 0) {
+      if (tasks.length === 0 || storeTaskId === taskId) {
         return
       }
       const found = tasks.find(t => t.id === taskId)
       if (found) {
         openTaskInspector(found.id)
       }
-    } else if (currentTaskId) {
+    } else if (prevTaskId && !taskId && storeTaskId) {
       closeTaskInspector()
     }
-  }, [taskId, tasks, currentTaskId, openTaskInspector, closeTaskInspector])
+  }, [taskId, tasks, openTaskInspector, closeTaskInspector])
 
   // Project loading is now handled by the store's initialize() function with URL context
   // This effect is only needed for URL synchronization after project is already loaded
