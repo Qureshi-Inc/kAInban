@@ -25,9 +25,11 @@
  *   │ Field grid                      │
  *   │ AI summary                      │
  *   │ AI quick actions row            │
- *   │ Subtasks (+ per-subtask AI)     │
+ *   │ Subtasks (each row has its own │
+ *   │   AI-templates popover)         │
  *   │ Description                     │
- *   │ AI templates row → content panel│
+ *   │ AI content panel (inline result │
+ *   │   from any subtask's template)  │
  *   │ Comments + @mentions            │
  *   ├─────────────────────────────────┤
  *   │  Comment       Mark Done        │  footer
@@ -223,14 +225,52 @@ function renderCommentBody(text) {
 
 // ---------- subtask row ----------
 
-function SubtaskRow({ subtask, onToggle, onRemove, onPromote, onGenerate }) {
-  const ai = detectSubtaskAi(subtask.text)
+function SubtaskRow({
+  subtask,
+  onToggle,
+  onRemove,
+  onPromote,
+  onGenerate,
+  loadingTemplate
+}) {
+  const detected = detectSubtaskAi(subtask.text)
+  const [menuOpen, setMenuOpen] = useState(false)
+  const menuRef = useRef(null)
+
+  // Close the templates popover on outside click / Escape.
+  useEffect(() => {
+    if (!menuOpen) {
+      return undefined
+    }
+    const onDoc = e => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
+        setMenuOpen(false)
+      }
+    }
+    const onKey = e => {
+      if (e.key === 'Escape') {
+        setMenuOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', onDoc)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('mousedown', onDoc)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [menuOpen])
+
+  const runOption = templateId => {
+    setMenuOpen(false)
+    onGenerate(templateId, subtask.text)
+  }
+
   return (
-    <div className="group flex items-center gap-2 px-1 py-1 rounded-sm hover:bg-muted">
+    <div className="group flex items-start gap-2 px-1 py-1 rounded-sm hover:bg-muted">
       <button
         type="button"
         onClick={onToggle}
-        className="flex-shrink-0 text-muted-foreground hover:text-foreground"
+        className="flex-shrink-0 mt-0.5 text-muted-foreground hover:text-foreground"
         aria-label={subtask.completed ? 'Mark incomplete' : 'Mark complete'}
       >
         {subtask.completed ? (
@@ -240,7 +280,7 @@ function SubtaskRow({ subtask, onToggle, onRemove, onPromote, onGenerate }) {
         )}
       </button>
       <span
-        className={`flex-1 text-[12px] truncate ${
+        className={`flex-1 text-[12px] break-words leading-relaxed ${
           subtask.completed
             ? 'text-muted-foreground line-through'
             : 'text-foreground'
@@ -248,21 +288,64 @@ function SubtaskRow({ subtask, onToggle, onRemove, onPromote, onGenerate }) {
       >
         {subtask.text}
       </span>
-      {ai && (
+      {/* Per-subtask AI templates popover. Always-visible sparkle so
+          users on touch devices can find it; opens an inline menu of
+          all 5 templates scoped to THIS subtask's text. The smart-
+          detected one (if any) is tagged "Suggested" so users know
+          which is the obvious pick without hiding the rest. */}
+      <div className="relative flex-shrink-0 mt-0.5" ref={menuRef}>
         <button
           type="button"
-          onClick={() => onGenerate(ai.template, subtask.text)}
-          className="opacity-0 group-hover:opacity-100 transition-opacity inline-flex items-center gap-1 text-[10px] text-primary px-1.5 py-0.5 rounded-sm hover:bg-primary/10"
-          title={ai.label}
+          onClick={() => setMenuOpen(o => !o)}
+          className={`inline-flex items-center text-muted-foreground hover:text-primary p-0.5 rounded-sm ${
+            menuOpen ? 'text-primary bg-primary/10' : ''
+          }`}
+          title="AI templates for this subtask"
+          aria-haspopup="menu"
+          aria-expanded={menuOpen}
         >
-          <Sparkles className="h-2.5 w-2.5" />
-          {ai.label}
+          <Sparkles className="h-3.5 w-3.5" />
         </button>
-      )}
+        {menuOpen && (
+          <div
+            className="absolute right-0 top-6 z-30 w-48 bg-popover border border-border rounded-md shadow-lg py-1"
+            role="menu"
+          >
+            <div className="px-3 py-1 text-[10px] uppercase tracking-[0.06em] text-muted-foreground font-emphasis border-b border-border">
+              For this subtask
+            </div>
+            {TEMPLATES.map(t => {
+              const Icon = t.icon
+              const isSuggested = detected?.template === t.id
+              const isLoading = loadingTemplate === t.id
+              return (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => runOption(t.id)}
+                  disabled={isLoading}
+                  className="w-full flex items-center justify-between gap-2 px-3 py-1.5 text-[12px] text-foreground hover:bg-muted disabled:opacity-50"
+                  role="menuitem"
+                >
+                  <span className="flex items-center gap-2">
+                    <Icon className="h-3.5 w-3.5 text-primary" />
+                    {isLoading ? 'Generating…' : t.label}
+                  </span>
+                  {isSuggested && !isLoading && (
+                    <span className="text-[9px] uppercase tracking-[0.06em] text-primary font-emphasis">
+                      Suggested
+                    </span>
+                  )}
+                </button>
+              )
+            })}
+          </div>
+        )}
+      </div>
       <button
         type="button"
         onClick={onPromote}
-        className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-foreground"
+        className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-foreground mt-0.5"
         title="Promote to task"
       >
         <ArrowUpRight className="h-3 w-3" />
@@ -270,7 +353,7 @@ function SubtaskRow({ subtask, onToggle, onRemove, onPromote, onGenerate }) {
       <button
         type="button"
         onClick={onRemove}
-        className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
+        className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive mt-0.5"
         aria-label="Remove subtask"
       >
         <X className="h-3 w-3" />
@@ -1534,6 +1617,7 @@ export default function TaskInspector() {
                     onRemove={() => removeSubtask(i)}
                     onPromote={() => promoteSubtask(s)}
                     onGenerate={(template, text) => runTemplate(template, text)}
+                    loadingTemplate={loadingAiAction}
                   />
                 ))}
               </div>
@@ -1578,30 +1662,13 @@ export default function TaskInspector() {
               />
             </div>
 
-            {/* AI templates */}
-            <div>
-              <div className="text-[10px] uppercase tracking-[0.06em] text-muted-foreground font-emphasis mb-1.5">
-                AI templates
-              </div>
-              <div className="flex flex-wrap gap-1.5">
-                {TEMPLATES.map(t => {
-                  const Icon = t.icon
-                  return (
-                    <Button
-                      key={t.id}
-                      variant="outline"
-                      size="sm"
-                      onClick={() => runTemplate(t.id, task.title)}
-                      disabled={loadingAiAction === t.id}
-                      className="h-7 px-2 text-[11px] gap-1"
-                    >
-                      <Icon className="h-3 w-3 text-primary" />
-                      {loadingAiAction === t.id ? '…' : t.label}
-                    </Button>
-                  )
-                })}
-              </div>
-            </div>
+            {/* AI templates row removed: templates now live as a
+                per-subtask popover (sparkle button on each subtask
+                row). Generating against the task title was the wrong
+                scope — if a task has multiple subtasks each needing
+                different templates, it's ambiguous what the global
+                button should do. The popover scopes generation to
+                the subtask's own text. */}
 
             {/* AI content panel (inline result) */}
             {aiContent && (
