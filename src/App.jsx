@@ -12,13 +12,14 @@ import {
 import ActivityPanel from './components/ActivityPanel'
 import AuthPage from './components/AuthPage'
 import DebugPanel from './components/DebugPanel'
-import Header from './components/Header'
 import InviteRegistrationForm from './components/InviteRegistrationForm'
-import LeftSidebar from './components/LeftSidebar'
 import NotificationSystem from './components/NotificationSystem'
 import ProgressIndicator from './components/ProgressIndicator'
 import RecordingModal from './components/RecordingModal'
 import SettingsDialog from './components/SettingsDialog'
+import AppShell from './components/shell/AppShell'
+import TaskInspector from './components/shell/TaskInspector'
+import CommandPalette from './components/ui/command-palette'
 
 // Pages
 import MainView from './pages/MainView'
@@ -28,9 +29,10 @@ import useAppStore from './stores/useAppStore'
 // Inner App component that handles authenticated routes
 function AuthenticatedApp() {
   const [loading, setLoading] = React.useState(true)
-  const [activityPanelOpen, setActivityPanelOpen] = React.useState(false)
-  const [sidebarOpen, setSidebarOpen] = React.useState(false)
   const user = useAppStore(state => state.user)
+  const currentTaskId = useAppStore(state => state.currentTaskId)
+  const activityPanelOpen = useAppStore(state => state.isActivityPanelOpen)
+  const setActivityPanelOpen = useAppStore(state => state.setActivityPanelOpen)
   const authChecked = useAppStore(state => state.authChecked)
   const checkAuth = useAppStore(state => state.checkAuth)
   const setUser = useAppStore(state => state.setUser)
@@ -52,10 +54,37 @@ function AuthenticatedApp() {
     state => state.settings.openaiWhisperModel
   )
   const openaiGptModel = useAppStore(state => state.settings.openaiGptModel)
+  const toggleCommandPalette = useAppStore(state => state.toggleCommandPalette)
+
+  // Global Cmd+K / Ctrl+K listener — single source of truth for opening
+  // the command palette per DESIGN.md v3.1.7. Lives at App level so every
+  // route + every modal share the same shortcut. Skips when an input or
+  // contenteditable has focus AND the user is typing a regular char (we
+  // still honor the chord even when typing, since it's a global affordance,
+  // but we explicitly skip when an `<input>` or `<textarea>` is matching
+  // its own browser shortcut by checking event.defaultPrevented).
+  useEffect(() => {
+    if (!user) {
+      return
+    }
+    const handler = e => {
+      if (
+        (e.metaKey || e.ctrlKey) &&
+        e.key.toLowerCase() === 'k' &&
+        !e.shiftKey &&
+        !e.altKey
+      ) {
+        e.preventDefault()
+        toggleCommandPalette()
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [user, toggleCommandPalette])
 
   useEffect(() => {
     // Check authentication and initialize in parallel
-    const initApp = async() => {
+    const initApp = async () => {
       try {
         // Check authentication first
         const authenticatedUser = await checkAuth()
@@ -153,7 +182,11 @@ function AuthenticatedApp() {
                 <motion.p
                   className="text-muted-foreground text-sm"
                   animate={{ opacity: [0.5, 1, 0.5] }}
-                  transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}
+                  transition={{
+                    duration: 1.6,
+                    repeat: Infinity,
+                    ease: 'easeInOut'
+                  }}
                 >
                   Initializing your workspace
                 </motion.p>
@@ -164,7 +197,11 @@ function AuthenticatedApp() {
                 <motion.div
                   className="h-full bg-primary"
                   animate={{ x: [-192, 192] }}
-                  transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}
+                  transition={{
+                    duration: 1.6,
+                    repeat: Infinity,
+                    ease: 'easeInOut'
+                  }}
                   style={{ width: '40%' }}
                 />
               </div>
@@ -234,7 +271,11 @@ function AuthenticatedApp() {
             <motion.p
               className="text-sm text-muted-foreground"
               animate={{ opacity: [0.5, 1, 0.5] }}
-              transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
+              transition={{
+                duration: 1.8,
+                repeat: Infinity,
+                ease: 'easeInOut'
+              }}
             >
               Setting up your workspace
             </motion.p>
@@ -245,58 +286,53 @@ function AuthenticatedApp() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Left Sidebar - Overlay when open */}
-      <LeftSidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+    <>
+      {/* v3.1 app shell — sidebar + topbar + canvas + inspector slot.
+          Inspector slot is filled by TaskInspector whenever a task is
+          selected (currentTaskId in the store). On mobile the inspector
+          renders as a full-screen drawer; on desktop it sits in the
+          right column. */}
+      <AppShell
+        onShowActivity={() => setActivityPanelOpen(true)}
+        inspector={currentTaskId ? <TaskInspector /> : null}
+      >
+        <motion.div
+          initial={{ opacity: 0, y: 4 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
+          className="space-y-6 sm:space-y-8 max-w-[1400px] mx-auto px-3 sm:px-6 py-6 sm:py-8"
+        >
+          <Routes>
+            <Route path="/" element={<MainView />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </motion.div>
 
-      {/* Main content area - full width */}
-      <div className="flex flex-col min-h-screen">
-        {/* Sticky header — solid surface, hairline rule */}
-        <div className="sticky top-0 z-40 bg-background border-b border-border">
-          <div className="w-full px-3 sm:px-6 py-3">
-            <Header
-              onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
-              onShowActivity={() => setActivityPanelOpen(true)}
-            />
-          </div>
-        </div>
-
-        {/* Content */}
-        <div className="flex-1 px-3 sm:px-6 py-6 sm:py-8">
-          <motion.div
-            initial={{ opacity: 0, y: 4 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
-            className="space-y-6 sm:space-y-8 max-w-[1400px] mx-auto"
-          >
-            <Routes>
-              <Route path="/" element={<MainView />} />
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-          </motion.div>
-        </div>
-
-        {/* Footer — newspaper colophon style */}
+        {/* Newspaper colophon — keeps the v3 footer signature in the
+            scrollable canvas (not the fixed shell chrome). */}
         <footer className="py-6 border-t border-border bg-background">
           <div className="text-center px-6">
             <p className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider font-mono">
               kAInban · built by{' '}
-              <span className="text-foreground">InterestingSoup</span>{' '}
-              · 2026
+              <span className="text-foreground">InterestingSoup</span> · 2026
             </p>
           </div>
         </footer>
-      </div>
+      </AppShell>
 
-      {/* Activity Panel */}
+      {/* Activity Panel — slides in from the right; replaced by Inspector
+          in Slice 3 for task-specific activity. Keeps the existing
+          workspace-wide activity feed for now. */}
       <ActivityPanel
         isOpen={activityPanelOpen}
         onClose={() => setActivityPanelOpen(false)}
       />
 
-      {/* Modals and overlays */}
+      {/* Modals and overlays — render outside the shell so they portal
+          above the sidebar/inspector chrome. */}
       <SettingsDialog />
       <RecordingModal />
+      <CommandPalette />
       <NotificationSystem notifications={notifications} />
 
       {/* Progress indicator for file uploads */}
@@ -309,7 +345,7 @@ function AuthenticatedApp() {
 
       {/* Debug panel for mobile development */}
       {import.meta.env.DEV && <DebugPanel />}
-    </div>
+    </>
   )
 }
 

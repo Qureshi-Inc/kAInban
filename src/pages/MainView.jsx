@@ -5,7 +5,10 @@ import AnalyticsDashboard from '../components/AnalyticsDashboard'
 import AudioControls from '../components/AudioControls'
 import KanbanBoardKit from '../components/KanbanBoardKit'
 import MeetingFilesPanel from '../components/MeetingFilesPanel'
+import TasksView from '../components/shell/TasksView'
+import ViewSwitcher from '../components/shell/ViewSwitcher'
 import SummaryPanel from '../components/SummaryPanel'
+import useViewMode from '../hooks/useViewMode'
 import { getShortId } from '../lib/utils'
 import useAppStore from '../stores/useAppStore'
 
@@ -16,12 +19,56 @@ export default function MainView() {
   const projectId = searchParams.get('project')
   const meetingId = searchParams.get('meeting')
   const taskId = searchParams.get('task')
+  const filter = searchParams.get('filter')
 
-  const currentProject = useAppStore((state) => state.currentProject)
-  const clearCurrentProject = useAppStore((state) => state.clearCurrentProject)
-  const selectMeeting = useAppStore((state) => state.selectMeeting)
-  const selectedMeetingId = useAppStore((state) => state.selectedMeetingId)
-  const meetings = useAppStore((state) => state.meetings)
+  const currentProject = useAppStore(state => state.currentProject)
+  const clearCurrentProject = useAppStore(state => state.clearCurrentProject)
+  const selectMeeting = useAppStore(state => state.selectMeeting)
+  const selectedMeetingId = useAppStore(state => state.selectedMeetingId)
+  const meetings = useAppStore(state => state.meetings)
+  const projects = useAppStore(state => state.projects)
+  // v3.1.5 view switcher state — persists per workspace, defaults to
+  // `list` for new users. The ViewSwitcher itself lives in the breadcrumb
+  // bar below; this hook reads the same key the command palette writes.
+  const [viewMode] = useViewMode()
+
+  // Cross-project task pool for filter views (Inbox / Today). Pulled from
+  // the projects array since each project's tasks are populated by
+  // initialize(). We hydrate a `_projectName` on each task so the
+  // filtered list can show which project it came from later (Slice 5).
+  const allTasks = React.useMemo(() => {
+    if (!projects || projects.length === 0) {
+      return []
+    }
+    const out = []
+    for (const p of projects) {
+      if (!p.tasks || p.tasks.length === 0) {
+        continue
+      }
+      for (const t of p.tasks) {
+        out.push({ ...t, _projectId: p.id, _projectName: p.name })
+      }
+    }
+    return out
+  }, [projects])
+
+  const todayYmd = React.useMemo(() => {
+    const d = new Date()
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  }, [])
+
+  const filteredTasks = React.useMemo(() => {
+    if (filter === 'inbox') {
+      // "Inbox" = AI-extracted tasks (meetingId set) that aren't done.
+      // The AI's loading dock per DESIGN.md v3.1.2 / 3.1.9.
+      return allTasks.filter(t => t.meetingId && t.status !== 'done')
+    }
+    if (filter === 'today') {
+      // Tasks due today across all projects, excluding done.
+      return allTasks.filter(t => t.dueDate === todayYmd && t.status !== 'done')
+    }
+    return null
+  }, [filter, allTasks, todayYmd])
 
   // Sync URL to reflect state changes (State -> URL, not URL -> State)
   // Only sync when project ID or meeting ID actually changes, not just object references
@@ -47,12 +94,36 @@ export default function MainView() {
     const currentSearch = window.location.search
 
     if (currentSearch !== newSearch) {
-      console.log('[MainView] URL sync - updating URL from', currentSearch, 'to', newSearch, 'for project', currentProject.name)
+      console.log(
+        '[MainView] URL sync - updating URL from',
+        currentSearch,
+        'to',
+        newSearch,
+        'for project',
+        currentProject.name
+      )
       navigate(newSearch, { replace: true })
     } else {
       console.log('[MainView] URL already matches project state')
     }
   }, [currentProject?.id, selectedMeetingId, navigate])
+
+  // v3.1.4 — `?task=<id>` URL handoff. KanbanBoardKit has its own copy
+  // for the legacy modal path, but in list mode the kanban isn't mounted
+  // so route it here too. The store action no-ops if currentTaskId is
+  // already set (and the inspector's own mount effect handles refresh).
+  const tasks = useAppStore(state => state.tasks)
+  const openTaskInspector = useAppStore(state => state.openTaskInspector)
+  const currentTaskId = useAppStore(state => state.currentTaskId)
+  useEffect(() => {
+    if (!taskId || currentTaskId === taskId || tasks.length === 0) {
+      return
+    }
+    const found = tasks.find(t => t.id === taskId)
+    if (found) {
+      openTaskInspector(found.id)
+    }
+  }, [taskId, tasks, currentTaskId, openTaskInspector])
 
   // Project loading is now handled by the store's initialize() function with URL context
   // This effect is only needed for URL synchronization after project is already loaded
@@ -62,7 +133,7 @@ export default function MainView() {
   useEffect(() => {
     if (meetingId && meetings.length > 0) {
       // Find meeting by short ID (match beginning of full ID)
-      const meeting = meetings.find((m) => m.id.startsWith(meetingId))
+      const meeting = meetings.find(m => m.id.startsWith(meetingId))
 
       if (meeting) {
         selectMeeting(meeting.id)
@@ -75,6 +146,46 @@ export default function MainView() {
     }
     // Don't clear selection when meetingId is empty - state drives selection
   }, [meetingId, meetings, selectMeeting, navigate, searchParams])
+
+  // Filter views — Inbox / Today — when the sidebar nav routed here.
+  // Renders a cross-project TasksView with the filter applied. Same
+  // TaskRow primitive, same inspector wiring on click.
+  if (!projectId && filter && filteredTasks) {
+    const meta =
+      filter === 'inbox'
+        ? {
+            title: 'Inbox',
+            sub: 'AI-extracted tasks across all projects',
+            empty: 'No AI-extracted tasks waiting. Quiet inbox.'
+          }
+        : filter === 'today'
+          ? {
+              title: 'Today',
+              sub: 'Due today across all projects',
+              empty: 'Nothing due today. Take a break.'
+            }
+          : null
+    if (meta) {
+      return (
+        <div className="space-y-6">
+          <motion.div
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
+            className="flex items-center gap-3 text-xs text-muted-foreground uppercase tracking-wider font-emphasis"
+          >
+            <span className="text-foreground">{meta.title}</span>
+            <span className="h-px w-6 bg-border" aria-hidden />
+            <span>{meta.sub}</span>
+            <span className="font-mono text-[10px] tabular-nums normal-case tracking-normal">
+              {filteredTasks.length}
+            </span>
+          </motion.div>
+          <TasksView tasks={filteredTasks} emptyMessage={meta.empty} />
+        </div>
+      )
+    }
+  }
 
   // Show dashboard if no project selected
   if (!projectId || !currentProject) {
@@ -114,7 +225,8 @@ export default function MainView() {
         transition={{ delay: 0.1 }}
         className="space-y-4"
       >
-        {/* v3 breadcrumb — uppercase mono kicker, hairline divider, mono task count */}
+        {/* v3 breadcrumb — uppercase mono kicker, hairline divider, mono
+            task count. v3.1 view bar (ViewSwitcher) sits on the right. */}
         <div className="flex items-center gap-3 text-xs uppercase tracking-wider font-emphasis flex-wrap">
           <button
             type="button"
@@ -135,6 +247,10 @@ export default function MainView() {
           </span>
           <span className="font-mono text-[10px] text-muted-foreground tabular-nums normal-case tracking-normal">
             {currentProject.tasks?.length || 0} tasks
+          </span>
+          <span className="flex-1" />
+          <span className="normal-case tracking-normal">
+            <ViewSwitcher />
           </span>
         </div>
       </motion.div>
@@ -165,7 +281,16 @@ export default function MainView() {
           </div>
         </div>
 
-        <KanbanBoardKit taskToOpen={taskId} />
+        {/* Tasks vs Kanban — v3.1.5. Same dataset, two presentations.
+            KanbanBoardKit also still handles the task=<id> URL handoff
+            for inspector reopen (works in both modes via the store).
+            Mounting only the active view keeps the keyboard handlers
+            from fighting each other. */}
+        {viewMode === 'list' ? (
+          <TasksView />
+        ) : (
+          <KanbanBoardKit taskToOpen={taskId} />
+        )}
       </motion.div>
     </div>
   )

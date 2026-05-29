@@ -17,7 +17,8 @@ import apiService from '../services/apiService'
 import openaiService from '../services/openaiService'
 import useAppStore from '../stores/useAppStore'
 import SimpleListView from './SimpleListView'
-import TaskDetailModal from './TaskDetailModal'
+// TaskDetailModal removed in Slice 5 — TaskInspector owns all task
+// reading/editing including create-new.
 import TaskGroupingModal from './TaskGroupingModal'
 import { Button } from './ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
@@ -225,8 +226,8 @@ export default function KanbanBoardKit({ taskToOpen }) {
     addAiDiscoveredLinks,
     currentProject
   } = useAppStore()
-  const [selectedTask, setSelectedTask] = useState(null)
-  const [isModalOpen, setIsModalOpen] = useState(false)
+  // Slice 5: task selection lives in the store; TaskInspector renders
+  // in the AppShell slot.
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [viewMode, setViewMode] = useState('kanban')
   const [users, setUsers] = useState([])
@@ -270,28 +271,25 @@ export default function KanbanBoardKit({ taskToOpen }) {
     checkRecentMerges()
   }, [currentProject?.id, tasks])
 
-  // URL is the source of truth for which task is open. This effect runs in
-  // both directions:
-  //   - taskToOpen has a value -> open the inspector for that task
+  // URL is the source of truth for which task is open. This effect runs
+  // in both directions:
+  //   - taskToOpen has a value -> route to the inspector (v3.1.4).
   //   - taskToOpen transitions from value -> null (browser back / forward
-  //     past a `?task=` entry) -> close the inspector
+  //     past a `?task=` entry) -> close the inspector to match.
   //
-  // The previous-value ref is required so that "create new task" (which
-  // sets `selectedTask`/`isModalOpen` directly without touching the URL)
-  // does not get force-closed by this effect on every render.
+  // The previous-value ref prevents firing the close branch on the very
+  // first render when no task was ever open.
   const prevTaskToOpenRef = useRef(taskToOpen)
   useEffect(() => {
     if (taskToOpen && tasks.length > 0) {
       const task = tasks.find(t => t.id === taskToOpen)
       if (task) {
-        setSelectedTask(task)
-        setIsModalOpen(true)
+        const { openTaskInspector } = useAppStore.getState()
+        openTaskInspector(task.id)
       }
     } else if (prevTaskToOpenRef.current && !taskToOpen) {
-      // URL had a task, now it does not - back/forward removed it.
-      // Close the inspector to match.
-      setIsModalOpen(false)
-      setSelectedTask(null)
+      const { closeTaskInspector } = useAppStore.getState()
+      closeTaskInspector()
     }
     prevTaskToOpenRef.current = taskToOpen
   }, [taskToOpen, tasks])
@@ -567,25 +565,16 @@ export default function KanbanBoardKit({ taskToOpen }) {
     }
   }
 
+  // v3.1.4 — clicking a task opens the right-side inspector. The modal
+  // path stays only for new-task creation (multi-step wizard surface
+  // per the inspector-vs-modal rules).
   const handleTaskClick = task => {
-    setSelectedTask(task)
-    setIsModalOpen(true)
-
-    const newParams = new URLSearchParams(searchParams)
-    newParams.set('task', task.id)
-    navigate(`?${newParams.toString()}`, { replace: false })
+    const { openTaskInspector } = useAppStore.getState()
+    openTaskInspector(task.id)
   }
 
-  const handleModalClose = () => {
-    setIsModalOpen(false)
-    setSelectedTask(null)
-
-    if (searchParams.get('task')) {
-      const newParams = new URLSearchParams(searchParams)
-      newParams.delete('task')
-      navigate(`?${newParams.toString()}`, { replace: true })
-    }
-  }
+  // handleModalClose removed in Slice 5 — TaskInspector closes via
+  // closeTaskInspector in the store and owns its own URL sync.
 
   const handleNavigateToMeeting = meetingId => {
     const { selectMeeting } = useAppStore.getState()
@@ -599,14 +588,19 @@ export default function KanbanBoardKit({ taskToOpen }) {
   }
 
   const handleCreateTask = () => {
-    const newTask = {
+    // v3.1.4 — create the task in the store and route to the inspector.
+    // No more TaskDetailModal for creation; the inspector auto-focuses
+    // the empty title.
+    const { createTask, openTaskInspector } = useAppStore.getState()
+    const created = createTask({
       title: '',
       description: '',
       status: 'todo',
       priority: 'medium'
+    })
+    if (created?.id) {
+      openTaskInspector(created.id)
     }
-    setSelectedTask(newTask)
-    setIsModalOpen(true)
   }
 
   return (
@@ -821,13 +815,6 @@ export default function KanbanBoardKit({ taskToOpen }) {
           </CardContent>
         </Card>
       </motion.div>
-
-      {/* Task Detail Modal */}
-      <TaskDetailModal
-        task={selectedTask}
-        isOpen={isModalOpen}
-        onClose={handleModalClose}
-      />
 
       {/* Task Grouping Modal */}
       <TaskGroupingModal
