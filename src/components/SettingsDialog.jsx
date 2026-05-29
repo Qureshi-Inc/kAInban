@@ -1,4 +1,4 @@
-import { Settings, User, Bot, KeyRound, Users } from 'lucide-react'
+import { Settings, User, KeyRound, Users } from 'lucide-react'
 import React, { useState, useEffect } from 'react'
 import apiService from '../services/apiService'
 import useAppStore from '../stores/useAppStore'
@@ -11,30 +11,10 @@ import UserManagement from './UserManagement'
 export default function SettingsDialog() {
   const isSettingsOpen = useAppStore(state => state.isSettingsOpen)
   const setSettingsOpen = useAppStore(state => state.setSettingsOpen)
-  const settings = useAppStore(state => state.settings)
-  const updateSettings = useAppStore(state => state.updateSettings)
   const addNotification = useAppStore(state => state.addNotification)
   const user = useAppStore(state => state.user)
   const setUser = useAppStore(state => state.setUser)
   const deleteAllProjects = useAppStore(state => state.deleteAllProjects)
-
-  const [aiFormData, setAiFormData] = useState({
-    provider: 'azure',
-    azureEndpoint: '',
-    openaiBaseUrl: 'https://api.openai.com/v1',
-    apiKey: '',
-    keyConfigured: false,
-    apiVersion: '2024-02-01',
-    whisperDeployment: 'whisper-1',
-    gptDeployment: 'gpt-4',
-    openaiWhisperModel: 'whisper-1',
-    openaiGptModel: 'gpt-4o',
-    // Map of which AI fields are overridden by a server-side environment
-    // variable. The server resolves config env-first (process.env wins over
-    // saved DB settings), and reports which keys came from env so we can
-    // mark them read-only here. Empty object = nothing env-managed.
-    envManaged: {}
-  })
 
   const [oidcConfig, setOidcConfig] = useState(null)
 
@@ -46,27 +26,12 @@ export default function SettingsDialog() {
     confirmPassword: ''
   })
 
-  const [testingConnection, setTestingConnection] = useState(false)
   const [savingProfile, setSavingProfile] = useState(false)
   const [tenantInfo, setTenantInfo] = useState(null)
 
   // Sync form data when dialog opens
   useEffect(() => {
     if (isSettingsOpen) {
-      setAiFormData({
-        provider: settings.provider === 'openai' ? 'openai' : 'azure',
-        azureEndpoint: settings.azureEndpoint || '',
-        openaiBaseUrl: settings.openaiBaseUrl || 'https://api.openai.com/v1',
-        // Never pre-fill secret fields from server responses.
-        apiKey: '',
-        keyConfigured: Boolean(settings.keyConfigured),
-        apiVersion: settings.apiVersion || '2024-02-01',
-        whisperDeployment: settings.whisperDeployment || 'whisper-1',
-        gptDeployment: settings.gptDeployment || 'gpt-4',
-        openaiWhisperModel: settings.openaiWhisperModel || 'whisper-1',
-        openaiGptModel: settings.openaiGptModel || 'gpt-4o',
-        envManaged: settings.envManaged || {}
-      })
       setUserFormData({
         name: user?.name || '',
         email: user?.email || '',
@@ -80,7 +45,7 @@ export default function SettingsDialog() {
       // Fetch OIDC config (env-driven, read-only) for the Authentication tab
       fetchOidcConfig()
     }
-  }, [isSettingsOpen, settings, user])
+  }, [isSettingsOpen, user])
 
   const fetchTenantInfo = async () => {
     try {
@@ -100,110 +65,6 @@ export default function SettingsDialog() {
       console.error('[Settings] Failed to fetch OIDC config:', error)
       setOidcConfig(null)
     }
-  }
-
-  const handleTestConnection = async () => {
-    setTestingConnection(true)
-
-    const isOpenAI = aiFormData.provider === 'openai'
-    const hasProvidedKey = Boolean(
-      aiFormData.apiKey && aiFormData.apiKey.trim()
-    )
-    const hasUsableKey = hasProvidedKey || aiFormData.keyConfigured
-
-    if (isOpenAI) {
-      if (!hasUsableKey) {
-        addNotification({
-          type: 'error',
-          message: 'Enter an API key, or keep an already configured key'
-        })
-        setTestingConnection(false)
-        return
-      }
-    } else if (!aiFormData.azureEndpoint || !hasUsableKey) {
-      addNotification({
-        type: 'error',
-        message: 'Please provide endpoint and API key (or keep existing key)'
-      })
-      setTestingConnection(false)
-      return
-    }
-
-    try {
-      await apiService.testAIConnection({
-        ...aiFormData,
-        apiKey: hasProvidedKey ? aiFormData.apiKey.trim() : undefined
-      })
-      addNotification({
-        type: 'success',
-        message: 'API connection successful! ✓'
-      })
-    } catch (error) {
-      addNotification({
-        type: 'error',
-        message: `Connection failed: ${error.message}`
-      })
-    } finally {
-      setTestingConnection(false)
-    }
-  }
-
-  const handleSaveAiSettings = () => {
-    const isOpenAI = aiFormData.provider === 'openai'
-    const hasProvidedKey = Boolean(
-      aiFormData.apiKey && aiFormData.apiKey.trim()
-    )
-    const hasUsableKey = hasProvidedKey || aiFormData.keyConfigured
-
-    if (isOpenAI) {
-      if (!hasUsableKey) {
-        addNotification({
-          type: 'error',
-          message: 'OpenAI API key is required (new or existing)'
-        })
-        return
-      }
-      if (aiFormData.openaiBaseUrl) {
-        try {
-          new URL(aiFormData.openaiBaseUrl)
-        } catch (error) {
-          addNotification({
-            type: 'error',
-            message: 'Please enter a valid OpenAI base URL'
-          })
-          return
-        }
-      }
-    } else {
-      if (!aiFormData.azureEndpoint || !hasUsableKey) {
-        addNotification({
-          type: 'error',
-          message: 'Please provide all required fields'
-        })
-        return
-      }
-      try {
-        new URL(aiFormData.azureEndpoint)
-      } catch (error) {
-        addNotification({
-          type: 'error',
-          message: 'Please enter a valid Azure OpenAI endpoint URL'
-        })
-        return
-      }
-    }
-
-    updateSettings({
-      ...aiFormData,
-      apiKey: hasProvidedKey ? aiFormData.apiKey.trim() : '',
-      keyConfigured: hasUsableKey
-    })
-    setSettingsOpen(false)
-
-    addNotification({
-      type: 'success',
-      message: 'AI settings saved successfully!'
-    })
   }
 
   const handleSaveProfile = async () => {
@@ -287,10 +148,6 @@ export default function SettingsDialog() {
     }
   }
 
-  const handleAiInputChange = (field, value) => {
-    setAiFormData(prev => ({ ...prev, [field]: value }))
-  }
-
   const handleUserInputChange = (field, value) => {
     setUserFormData(prev => ({ ...prev, [field]: value }))
   }
@@ -308,8 +165,12 @@ export default function SettingsDialog() {
         </DialogHeader>
 
         <Tabs defaultValue="general" className="w-full">
+          {/* AI Settings tab removed: AI provider config (keys, endpoint,
+              models) is now managed server-side via env vars after the
+              security refactor. The /api/settings DB override still
+              exists for emergencies but doesn't need a UI surface. */}
           <TabsList
-            className={`grid w-full gap-1 ${isAdmin ? 'grid-cols-2 lg:grid-cols-4' : 'grid-cols-1'} ${isAdmin ? 'p-1 h-auto min-h-[2.5rem]' : 'h-10'}`}
+            className={`grid w-full gap-1 ${isAdmin ? 'grid-cols-3' : 'grid-cols-1'} ${isAdmin ? 'p-1 h-auto min-h-[2.5rem]' : 'h-10'}`}
           >
             <TabsTrigger
               value="general"
@@ -321,14 +182,6 @@ export default function SettingsDialog() {
             </TabsTrigger>
             {isAdmin && (
               <>
-                <TabsTrigger
-                  value="ai"
-                  className="flex-1 text-xs sm:text-sm px-1 sm:px-3 py-2 min-h-[2rem] sm:min-h-[2.5rem]"
-                >
-                  <Bot className="h-3 w-3 sm:h-4 sm:w-4 mr-0.5 sm:mr-2 flex-shrink-0" />
-                  <span className="hidden lg:inline">AI Settings</span>
-                  <span className="lg:hidden text-xs">AI</span>
-                </TabsTrigger>
                 <TabsTrigger
                   value="auth"
                   className="flex-1 text-xs sm:text-sm px-1 sm:px-3 py-2 min-h-[2rem] sm:min-h-[2.5rem]"
@@ -361,33 +214,23 @@ export default function SettingsDialog() {
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
                     <div>
-                      <span className="font-medium text-info">
-                        Name:
-                      </span>
-                      <span className="ml-2 text-info">
-                        {tenantInfo.name}
-                      </span>
+                      <span className="font-medium text-info">Name:</span>
+                      <span className="ml-2 text-info">{tenantInfo.name}</span>
                     </div>
                     <div>
-                      <span className="font-medium text-info">
-                        Access URL:
-                      </span>
+                      <span className="font-medium text-info">Access URL:</span>
                       <span className="ml-2 text-info">
                         ?tenant={tenantInfo.subdomain}
                       </span>
                     </div>
                     <div>
-                      <span className="font-medium text-info">
-                        Plan:
-                      </span>
+                      <span className="font-medium text-info">Plan:</span>
                       <span className="ml-2 text-info capitalize">
                         {tenantInfo.plan}
                       </span>
                     </div>
                     <div>
-                      <span className="font-medium text-info">
-                        Users:
-                      </span>
+                      <span className="font-medium text-info">Users:</span>
                       <span className="ml-2 text-info">
                         {tenantInfo.stats?.users || 0} / {tenantInfo.maxUsers}
                       </span>
@@ -403,9 +246,7 @@ export default function SettingsDialog() {
                           </span>
                         </div>
                         <div>
-                          <span className="font-medium text-info">
-                            Tasks:
-                          </span>
+                          <span className="font-medium text-info">Tasks:</span>
                           <span className="ml-2 text-info">
                             {tenantInfo.stats.tasks}
                           </span>
@@ -537,363 +378,6 @@ export default function SettingsDialog() {
               </Button>
             </div>
           </TabsContent>
-
-          {/* AI Settings Tab (Admin Only) */}
-          {isAdmin && (
-            <TabsContent value="ai" className="space-y-4 px-1">
-              <div className="space-y-4">
-                {/* Banner shown when any AI field is overridden by an env var
-                    on the server. Env wins over the saved DB value at runtime,
-                    so editing locked fields here would have no effect — they're
-                    rendered read-only below. Removing the env var on the server
-                    restores the saved DB value as the active config. */}
-                {Object.values(aiFormData.envManaged || {}).some(Boolean) && (
-                  <div className="rounded-md border border-info/40 bg-info/5 px-3 py-2 text-xs text-foreground">
-                    <span className="font-medium text-info">
-                      Some fields are managed by environment variables
-                    </span>
-                    <span className="text-muted-foreground">
-                      {' '}— values set in <code>.env</code> on the server take
-                      precedence over anything saved here. Locked fields below
-                      are read-only until the env override is removed.
-                    </span>
-                  </div>
-                )}
-
-                {/* Provider selector */}
-                <div className="space-y-2">
-                  <div className="text-sm font-medium flex items-center gap-2">
-                    AI Provider *
-                    {aiFormData.envManaged?.provider && (
-                      <span className="text-[10px] font-mono uppercase tracking-wider text-info">
-                        env
-                      </span>
-                    )}
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => handleAiInputChange('provider', 'azure')}
-                      disabled={!!aiFormData.envManaged?.provider}
-                      className={`flex flex-col items-start gap-1 rounded-md border p-3 text-left transition disabled:opacity-50 disabled:cursor-not-allowed ${
-                        aiFormData.provider !== 'openai'
-                          ? 'border-primary bg-primary/5 ring-1 ring-primary'
-                          : 'border-border hover:bg-muted/50'
-                      }`}
-                    >
-                      <span className="text-sm font-medium">Azure OpenAI</span>
-                      <span className="text-xs text-muted-foreground">
-                        Endpoint + deployments + API key
-                      </span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleAiInputChange('provider', 'openai')}
-                      disabled={!!aiFormData.envManaged?.provider}
-                      className={`flex flex-col items-start gap-1 rounded-md border p-3 text-left transition disabled:opacity-50 disabled:cursor-not-allowed ${
-                        aiFormData.provider === 'openai'
-                          ? 'border-primary bg-primary/5 ring-1 ring-primary'
-                          : 'border-border hover:bg-muted/50'
-                      }`}
-                    >
-                      <span className="text-sm font-medium">OpenAI</span>
-                      <span className="text-xs text-muted-foreground">
-                        api.openai.com / compatible
-                      </span>
-                    </button>
-                  </div>
-                </div>
-
-                {aiFormData.provider === 'openai' ? (
-                  <>
-                    <div className="space-y-2">
-                      <div className="text-sm font-medium flex items-center gap-2">
-                        OpenAI API Key {aiFormData.keyConfigured ? '' : '*'}
-                        {aiFormData.envManaged?.apiKey && (
-                          <span className="text-[10px] font-mono uppercase tracking-wider text-info">
-                            env
-                          </span>
-                        )}
-                      </div>
-                      <Input
-                        type="password"
-                        placeholder={
-                          aiFormData.envManaged?.apiKey
-                            ? 'Set by OPENAI_API_KEY in .env'
-                            : aiFormData.keyConfigured
-                              ? 'Leave blank to keep existing key'
-                              : 'sk-...'
-                        }
-                        value={aiFormData.apiKey}
-                        onChange={e =>
-                          handleAiInputChange('apiKey', e.target.value)
-                        }
-                        disabled={!!aiFormData.envManaged?.apiKey}
-                        className="w-full disabled:opacity-60 disabled:cursor-not-allowed"
-                      />
-                      {aiFormData.envManaged?.apiKey ? (
-                        <p className="text-xs text-info">
-                          Managed by <code>OPENAI_API_KEY</code> environment
-                          variable. Remove it from <code>.env</code> to manage
-                          here.
-                        </p>
-                      ) : aiFormData.keyConfigured ? (
-                        <p className="text-xs text-muted-foreground">
-                          A key is already configured on the server. Enter a new
-                          key only to rotate it.
-                        </p>
-                      ) : null}
-                    </div>
-
-                    <div className="space-y-2">
-                      <div className="text-sm font-medium flex items-center gap-2">
-                        OpenAI Base URL
-                        {aiFormData.envManaged?.openaiBaseUrl && (
-                          <span className="text-[10px] font-mono uppercase tracking-wider text-info">
-                            env
-                          </span>
-                        )}
-                      </div>
-                      <Input
-                        type="url"
-                        placeholder="https://api.openai.com/v1"
-                        value={aiFormData.openaiBaseUrl}
-                        onChange={e =>
-                          handleAiInputChange('openaiBaseUrl', e.target.value)
-                        }
-                        disabled={!!aiFormData.envManaged?.openaiBaseUrl}
-                        className="w-full text-sm disabled:opacity-60 disabled:cursor-not-allowed"
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        {aiFormData.envManaged?.openaiBaseUrl ? (
-                          <>
-                            Managed by <code>OPENAI_BASE_URL</code> environment
-                            variable.
-                          </>
-                        ) : (
-                          <>
-                            Override only for self-hosted or OpenAI-compatible
-                            APIs (e.g. OpenRouter, LiteLLM).
-                          </>
-                        )}
-                      </p>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <div className="text-sm font-medium flex items-center gap-2">
-                          Whisper Model
-                          {aiFormData.envManaged?.openaiWhisperModel && (
-                            <span className="text-[10px] font-mono uppercase tracking-wider text-info">
-                              env
-                            </span>
-                          )}
-                        </div>
-                        <Input
-                          placeholder="whisper-1"
-                          value={aiFormData.openaiWhisperModel}
-                          onChange={e =>
-                            handleAiInputChange(
-                              'openaiWhisperModel',
-                              e.target.value
-                            )
-                          }
-                          disabled={!!aiFormData.envManaged?.openaiWhisperModel}
-                          className="w-full disabled:opacity-60 disabled:cursor-not-allowed"
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <div className="text-sm font-medium flex items-center gap-2">
-                          GPT Model
-                          {aiFormData.envManaged?.openaiGptModel && (
-                            <span className="text-[10px] font-mono uppercase tracking-wider text-info">
-                              env
-                            </span>
-                          )}
-                        </div>
-                        <Input
-                          placeholder="gpt-4o"
-                          value={aiFormData.openaiGptModel}
-                          onChange={e =>
-                            handleAiInputChange(
-                              'openaiGptModel',
-                              e.target.value
-                            )
-                          }
-                          disabled={!!aiFormData.envManaged?.openaiGptModel}
-                          className="w-full disabled:opacity-60 disabled:cursor-not-allowed"
-                        />
-                      </div>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <div className="space-y-2">
-                      <div className="text-sm font-medium flex items-center gap-2">
-                        Azure OpenAI Endpoint *
-                        {aiFormData.envManaged?.azureEndpoint && (
-                          <span className="text-[10px] font-mono uppercase tracking-wider text-info">
-                            env
-                          </span>
-                        )}
-                      </div>
-                      <Input
-                        type="url"
-                        placeholder="https://your-resource.openai.azure.com"
-                        value={aiFormData.azureEndpoint}
-                        onChange={e =>
-                          handleAiInputChange('azureEndpoint', e.target.value)
-                        }
-                        disabled={!!aiFormData.envManaged?.azureEndpoint}
-                        className="w-full text-sm disabled:opacity-60 disabled:cursor-not-allowed"
-                      />
-                      {aiFormData.envManaged?.azureEndpoint && (
-                        <p className="text-xs text-info">
-                          Managed by <code>AZURE_OPENAI_ENDPOINT</code> in
-                          <code> .env</code>.
-                        </p>
-                      )}
-                    </div>
-
-                    <div className="space-y-2">
-                      <div className="text-sm font-medium flex items-center gap-2">
-                        API Key {aiFormData.keyConfigured ? '' : '*'}
-                        {aiFormData.envManaged?.apiKey && (
-                          <span className="text-[10px] font-mono uppercase tracking-wider text-info">
-                            env
-                          </span>
-                        )}
-                      </div>
-                      <Input
-                        type="password"
-                        placeholder={
-                          aiFormData.envManaged?.apiKey
-                            ? 'Set by AZURE_OPENAI_API_KEY in .env'
-                            : aiFormData.keyConfigured
-                              ? 'Leave blank to keep existing key'
-                              : 'Your Azure OpenAI API Key'
-                        }
-                        value={aiFormData.apiKey}
-                        onChange={e =>
-                          handleAiInputChange('apiKey', e.target.value)
-                        }
-                        disabled={!!aiFormData.envManaged?.apiKey}
-                        className="w-full disabled:opacity-60 disabled:cursor-not-allowed"
-                      />
-                      {aiFormData.envManaged?.apiKey ? (
-                        <p className="text-xs text-info">
-                          Managed by <code>AZURE_OPENAI_API_KEY</code> in
-                          <code> .env</code>. Remove it from the env to manage
-                          here.
-                        </p>
-                      ) : aiFormData.keyConfigured ? (
-                        <p className="text-xs text-muted-foreground">
-                          A key is already configured on the server. Enter a new
-                          key only to rotate it.
-                        </p>
-                      ) : null}
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <div className="text-sm font-medium flex items-center gap-2">
-                          API Version
-                          {aiFormData.envManaged?.apiVersion && (
-                            <span className="text-[10px] font-mono uppercase tracking-wider text-info">
-                              env
-                            </span>
-                          )}
-                        </div>
-                        <Input
-                          value={aiFormData.apiVersion}
-                          onChange={e =>
-                            handleAiInputChange('apiVersion', e.target.value)
-                          }
-                          disabled={!!aiFormData.envManaged?.apiVersion}
-                          className="w-full disabled:opacity-60 disabled:cursor-not-allowed"
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <div className="text-sm font-medium flex items-center gap-2">
-                          Whisper Deployment
-                          {aiFormData.envManaged?.whisperDeployment && (
-                            <span className="text-[10px] font-mono uppercase tracking-wider text-info">
-                              env
-                            </span>
-                          )}
-                        </div>
-                        <Input
-                          value={aiFormData.whisperDeployment}
-                          onChange={e =>
-                            handleAiInputChange(
-                              'whisperDeployment',
-                              e.target.value
-                            )
-                          }
-                          disabled={!!aiFormData.envManaged?.whisperDeployment}
-                          className="w-full disabled:opacity-60 disabled:cursor-not-allowed"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <div className="text-sm font-medium flex items-center gap-2">
-                        GPT Deployment
-                        {aiFormData.envManaged?.gptDeployment && (
-                          <span className="text-[10px] font-mono uppercase tracking-wider text-info">
-                            env
-                          </span>
-                        )}
-                      </div>
-                      <Input
-                        value={aiFormData.gptDeployment}
-                        onChange={e =>
-                          handleAiInputChange('gptDeployment', e.target.value)
-                        }
-                        disabled={!!aiFormData.envManaged?.gptDeployment}
-                        className="w-full disabled:opacity-60 disabled:cursor-not-allowed"
-                      />
-                    </div>
-                  </>
-                )}
-              </div>
-
-              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 pt-6">
-                <Button
-                  variant="secondary"
-                  onClick={handleTestConnection}
-                  disabled={testingConnection}
-                  className="w-full sm:w-auto"
-                >
-                  {testingConnection ? 'Testing...' : 'Test Connection'}
-                </Button>
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <Button
-                    variant="outline"
-                    onClick={() => setSettingsOpen(false)}
-                    className="w-full sm:w-auto"
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    onClick={handleSaveAiSettings}
-                    className="w-full sm:w-auto"
-                  >
-                    Save AI Settings
-                  </Button>
-                </div>
-              </div>
-
-              <div className="text-xs text-muted-foreground mt-4">
-                * Required fields unless an API key is already configured. Use
-                &quot;Test Connection&quot; to verify your{' '}
-                {aiFormData.provider === 'openai' ? 'OpenAI' : 'Azure OpenAI'}{' '}
-                setup.
-              </div>
-            </TabsContent>
-          )}
 
           {/* Authentication Tab (Admin Only) */}
           {isAdmin && (

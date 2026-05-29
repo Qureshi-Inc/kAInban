@@ -27,12 +27,235 @@ import {
   Calendar,
   Plus,
   ChevronDown,
-  Settings
+  Settings,
+  Command,
+  BookOpen,
+  LogOut
 } from 'lucide-react'
-import React from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { getShortId } from '../../lib/utils'
 import useAppStore from '../../stores/useAppStore'
+
+/*
+ * UserMenu — v3.1.2 sidebar footer popover.
+ *
+ * Replaces the previous "click avatar to open Settings" shortcut. SaaS-
+ * standard menu: Profile header, Settings, Cmd-K, Docs, Sign out.
+ * Strict v3.1 Workhorse Dark restraint: hairline border, no shadows
+ * beyond the popover's elevation, all 11-12px text, mono for the email
+ * and the role badge. Five actions max — Linear-grade discipline.
+ *
+ * Opens above the trigger because the trigger is at the bottom of the
+ * sidebar; on mobile the sidebar is itself a drawer, so the popover
+ * sits above the user card without clipping.
+ */
+function UserMenu({ user, onOpenSettings, onTogglePalette, onCloseMobile }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef(null)
+  const logout = useAppStore(state => state.logout)
+
+  useEffect(() => {
+    if (!open) {
+      return undefined
+    }
+    const onDoc = e => {
+      if (ref.current && !ref.current.contains(e.target)) {
+        setOpen(false)
+      }
+    }
+    const onKey = e => {
+      if (e.key === 'Escape') {
+        setOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', onDoc)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('mousedown', onDoc)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [open])
+
+  const close = () => setOpen(false)
+
+  const handleSettings = () => {
+    close()
+    onCloseMobile?.()
+    onOpenSettings()
+  }
+
+  const handlePalette = () => {
+    close()
+    onCloseMobile?.()
+    onTogglePalette()
+  }
+
+  const handleDocs = () => {
+    close()
+    window.open(
+      'https://github.com/Qureshi-Inc/kAInban#readme',
+      '_blank',
+      'noopener,noreferrer'
+    )
+  }
+
+  const handleLogout = async () => {
+    close()
+    onCloseMobile?.()
+    try {
+      await logout()
+    } catch (_e) {
+      // logout() handles its own notifications; nothing to do here.
+    }
+  }
+
+  const initial = (user.name || user.email || '?').charAt(0).toUpperCase()
+  const role = user.role || 'member'
+  // Mac vs everything else for the kbd hint. Honest, not a guess.
+  const isMac =
+    typeof navigator !== 'undefined' &&
+    /Mac|iPhone|iPad/.test(navigator.platform)
+  const cmdSym = isMac ? '⌘' : 'Ctrl'
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        className={
+          'w-full flex items-center gap-2 px-2 py-1.5 rounded-sm transition-colors text-left ' +
+          (open ? 'bg-muted' : 'hover:bg-muted')
+        }
+        aria-haspopup="menu"
+        aria-expanded={open}
+      >
+        <span
+          className="w-[22px] h-[22px] flex items-center justify-center rounded-full text-primary-foreground text-[10px] font-emphasis flex-shrink-0"
+          style={{
+            background:
+              'linear-gradient(180deg, hsl(var(--primary)) 0%, hsl(var(--primary) / 0.7) 100%)'
+          }}
+          aria-hidden="true"
+        >
+          {initial}
+        </span>
+        <span className="flex flex-col min-w-0 leading-tight flex-1">
+          <span className="text-[12px] font-emphasis text-foreground truncate">
+            {user.name || user.email}
+          </span>
+          {user.email && user.name && (
+            <span className="text-[10px] font-mono text-muted-foreground truncate">
+              {user.email}
+            </span>
+          )}
+        </span>
+        <ChevronDown
+          className={
+            'h-3 w-3 text-muted-foreground flex-shrink-0 transition-transform ' +
+            (open ? 'rotate-180' : '')
+          }
+          aria-hidden="true"
+        />
+      </button>
+
+      {open && (
+        <div
+          className="absolute bottom-full left-0 right-0 mb-1.5 z-30 bg-popover border border-border rounded-md shadow-lg overflow-hidden"
+          role="menu"
+        >
+          {/* Profile header — name (Inter 510), email (mono), role chip */}
+          <div className="px-3 py-2.5 border-b border-border">
+            <div className="flex items-center gap-2.5">
+              <span
+                className="w-8 h-8 flex items-center justify-center rounded-full text-primary-foreground text-[12px] font-emphasis flex-shrink-0"
+                style={{
+                  background:
+                    'linear-gradient(180deg, hsl(var(--primary)) 0%, hsl(var(--primary) / 0.7) 100%)'
+                }}
+                aria-hidden="true"
+              >
+                {initial}
+              </span>
+              <div className="flex flex-col min-w-0 leading-tight flex-1">
+                <span className="text-[12px] font-emphasis text-foreground truncate">
+                  {user.name || user.email}
+                </span>
+                {user.email && (
+                  <span className="text-[10px] font-mono text-muted-foreground truncate">
+                    {user.email}
+                  </span>
+                )}
+              </div>
+            </div>
+            <div className="mt-2">
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded-sm border border-border bg-muted text-[9px] uppercase tracking-[0.06em] font-emphasis text-muted-foreground">
+                {role}
+              </span>
+            </div>
+          </div>
+
+          {/* Action group */}
+          <div className="py-1">
+            <button
+              type="button"
+              onClick={handleSettings}
+              className="w-full flex items-center gap-2.5 px-3 py-1.5 text-[12px] text-foreground hover:bg-muted text-left"
+              role="menuitem"
+            >
+              <Settings
+                className="h-3.5 w-3.5 text-muted-foreground"
+                aria-hidden="true"
+              />
+              <span className="flex-1">Settings</span>
+            </button>
+            <button
+              type="button"
+              onClick={handlePalette}
+              className="w-full flex items-center gap-2.5 px-3 py-1.5 text-[12px] text-foreground hover:bg-muted text-left"
+              role="menuitem"
+            >
+              <Command
+                className="h-3.5 w-3.5 text-muted-foreground"
+                aria-hidden="true"
+              />
+              <span className="flex-1">Command palette</span>
+              <span className="font-mono text-[10px] text-muted-foreground">
+                {cmdSym} K
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={handleDocs}
+              className="w-full flex items-center gap-2.5 px-3 py-1.5 text-[12px] text-foreground hover:bg-muted text-left"
+              role="menuitem"
+            >
+              <BookOpen
+                className="h-3.5 w-3.5 text-muted-foreground"
+                aria-hidden="true"
+              />
+              <span className="flex-1">Documentation</span>
+            </button>
+          </div>
+
+          {/* Sign out group — separated by hairline so it reads as the
+              destructive bottom action, not just another menu item. */}
+          <div className="py-1 border-t border-border">
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="w-full flex items-center gap-2.5 px-3 py-1.5 text-[12px] text-destructive hover:bg-destructive/10 text-left"
+              role="menuitem"
+            >
+              <LogOut className="h-3.5 w-3.5" aria-hidden="true" />
+              <span className="flex-1">Sign out</span>
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
 
 function NavItem({
   icon: Icon,
@@ -114,6 +337,7 @@ export default function Sidebar({ onCloseMobile }) {
   const clearCurrentProject = useAppStore(state => state.clearCurrentProject)
   const selectMeeting = useAppStore(state => state.selectMeeting)
   const setSettingsOpen = useAppStore(state => state.setSettingsOpen)
+  const toggleCommandPalette = useAppStore(state => state.toggleCommandPalette)
   const setActivityPanelOpen = useAppStore(state => state.setActivityPanelOpen)
   const createProject = useAppStore(state => state.createProject)
   const addNotification = useAppStore(state => state.addNotification)
@@ -354,43 +578,19 @@ export default function Sidebar({ onCloseMobile }) {
         <NavItem icon={Calendar} label="Recent" onClick={goToRecentMeeting} />
       </div>
 
-      {/* Footer: user card + settings */}
-      <div className="mt-auto px-1.5 py-2 border-t border-border space-y-0.5">
-        <NavItem
-          icon={Settings}
-          label="Settings"
-          onClick={() => {
-            setSettingsOpen(true)
-            onCloseMobile?.()
-          }}
-        />
+      {/* Footer: user menu popover. The standalone "Settings" nav item
+          was redundant once the user menu surfaced it; everything that
+          used to live in the sidebar footer (settings, sign out) now
+          lives inside the user popover, which is where SaaS users look
+          for it. */}
+      <div className="mt-auto px-1.5 py-2 border-t border-border">
         {user && (
-          <button
-            type="button"
-            onClick={() => setSettingsOpen(true)}
-            className="w-full flex items-center gap-2 px-2 py-1.5 rounded-sm hover:bg-muted transition-colors text-left"
-          >
-            <span
-              className="w-[22px] h-[22px] flex items-center justify-center rounded-full text-primary-foreground text-[10px] font-emphasis flex-shrink-0"
-              style={{
-                background:
-                  'linear-gradient(180deg, hsl(var(--primary)) 0%, hsl(var(--primary) / 0.7) 100%)'
-              }}
-              aria-hidden="true"
-            >
-              {(user.name || user.email || '?').charAt(0).toUpperCase()}
-            </span>
-            <span className="flex flex-col min-w-0 leading-tight">
-              <span className="text-[12px] font-emphasis text-foreground truncate">
-                {user.name || user.email}
-              </span>
-              {user.email && user.name && (
-                <span className="text-[10px] font-mono text-muted-foreground truncate">
-                  {user.email}
-                </span>
-              )}
-            </span>
-          </button>
+          <UserMenu
+            user={user}
+            onOpenSettings={() => setSettingsOpen(true)}
+            onTogglePalette={toggleCommandPalette}
+            onCloseMobile={onCloseMobile}
+          />
         )}
       </div>
     </aside>

@@ -233,37 +233,14 @@ function SubtaskRow({
   onGenerate,
   loadingTemplate
 }) {
+  // Auto-detect a relevant template from the subtask text. If nothing
+  // matches (e.g. "Submit TPSA"), we render no AI button at all —
+  // restraint per DESIGN.md v3.1 ("the accent appears at most ~3 times
+  // per visible viewport — overuse kills the signal"). Only actionable
+  // subtasks get an AI affordance, and they get it directly: one click,
+  // one template, no popover.
   const detected = detectSubtaskAi(subtask.text)
-  const [menuOpen, setMenuOpen] = useState(false)
-  const menuRef = useRef(null)
-
-  // Close the templates popover on outside click / Escape.
-  useEffect(() => {
-    if (!menuOpen) {
-      return undefined
-    }
-    const onDoc = e => {
-      if (menuRef.current && !menuRef.current.contains(e.target)) {
-        setMenuOpen(false)
-      }
-    }
-    const onKey = e => {
-      if (e.key === 'Escape') {
-        setMenuOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', onDoc)
-    document.addEventListener('keydown', onKey)
-    return () => {
-      document.removeEventListener('mousedown', onDoc)
-      document.removeEventListener('keydown', onKey)
-    }
-  }, [menuOpen])
-
-  const runOption = templateId => {
-    setMenuOpen(false)
-    onGenerate(templateId, subtask.text)
-  }
+  const isLoading = detected && loadingTemplate === detected.template
 
   return (
     <div className="group flex items-start gap-2 px-1 py-1 rounded-sm hover:bg-muted">
@@ -288,60 +265,18 @@ function SubtaskRow({
       >
         {subtask.text}
       </span>
-      {/* Per-subtask AI templates popover. Always-visible sparkle so
-          users on touch devices can find it; opens an inline menu of
-          all 5 templates scoped to THIS subtask's text. The smart-
-          detected one (if any) is tagged "Suggested" so users know
-          which is the obvious pick without hiding the rest. */}
-      <div className="relative flex-shrink-0 mt-0.5" ref={menuRef}>
+      {detected && !subtask.completed && (
         <button
           type="button"
-          onClick={() => setMenuOpen(o => !o)}
-          className={`inline-flex items-center text-muted-foreground hover:text-primary p-0.5 rounded-sm ${
-            menuOpen ? 'text-primary bg-primary/10' : ''
-          }`}
-          title="AI templates for this subtask"
-          aria-haspopup="menu"
-          aria-expanded={menuOpen}
+          onClick={() => onGenerate(detected.template, subtask.text)}
+          disabled={isLoading}
+          className="flex-shrink-0 mt-0.5 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-sm border border-primary/40 bg-primary/5 text-primary text-[10px] font-emphasis hover:bg-primary/10 disabled:opacity-50"
+          title={detected.label}
         >
-          <Sparkles className="h-3.5 w-3.5" />
+          <Sparkles className="h-2.5 w-2.5" />
+          {isLoading ? 'Generating…' : detected.label}
         </button>
-        {menuOpen && (
-          <div
-            className="absolute right-0 top-6 z-30 w-48 bg-popover border border-border rounded-md shadow-lg py-1"
-            role="menu"
-          >
-            <div className="px-3 py-1 text-[10px] uppercase tracking-[0.06em] text-muted-foreground font-emphasis border-b border-border">
-              For this subtask
-            </div>
-            {TEMPLATES.map(t => {
-              const Icon = t.icon
-              const isSuggested = detected?.template === t.id
-              const isLoading = loadingTemplate === t.id
-              return (
-                <button
-                  key={t.id}
-                  type="button"
-                  onClick={() => runOption(t.id)}
-                  disabled={isLoading}
-                  className="w-full flex items-center justify-between gap-2 px-3 py-1.5 text-[12px] text-foreground hover:bg-muted disabled:opacity-50"
-                  role="menuitem"
-                >
-                  <span className="flex items-center gap-2">
-                    <Icon className="h-3.5 w-3.5 text-primary" />
-                    {isLoading ? 'Generating…' : t.label}
-                  </span>
-                  {isSuggested && !isLoading && (
-                    <span className="text-[9px] uppercase tracking-[0.06em] text-primary font-emphasis">
-                      Suggested
-                    </span>
-                  )}
-                </button>
-              )
-            })}
-          </div>
-        )}
-      </div>
+      )}
       <button
         type="button"
         onClick={onPromote}
