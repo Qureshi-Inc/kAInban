@@ -888,6 +888,18 @@ const useAppStore = create((set, get) => ({
    * full task id (not the short id) — the URL stores the full id today.
    * Closing clears the URL param so a refresh after Esc doesn't reopen
    * the inspector you just dismissed.
+   *
+   * Note on the synthetic popstate dispatch: raw history.pushState /
+   * replaceState do NOT notify React Router. React Router's history
+   * listener only fires on real popstate (back/forward), so without the
+   * synthetic dispatch:
+   *   - useSearchParams() stays stale after open
+   *   - the URL→store sync useEffect in MainView/KanbanBoardKit never
+   *     fires when the browser back button later drops `?task=`
+   *   - the inspector visually "won't close on back"
+   * Dispatching popstate makes React Router re-read window.location and
+   * keeps every URL-driven hook in sync. Idempotent: no-ops if the URL
+   * already matches.
    */
   openTaskInspector: taskId => {
     if (!taskId) {
@@ -896,8 +908,11 @@ const useAppStore = create((set, get) => ({
     set({ currentTaskId: taskId })
     try {
       const params = new URLSearchParams(window.location.search)
-      params.set('task', taskId)
-      window.history.pushState({}, '', `?${params.toString()}`)
+      if (params.get('task') !== taskId) {
+        params.set('task', taskId)
+        window.history.pushState({}, '', `?${params.toString()}`)
+        window.dispatchEvent(new PopStateEvent('popstate'))
+      }
     } catch (_e) {
       // window unavailable (SSR / tests) — silent.
     }
@@ -914,6 +929,7 @@ const useAppStore = create((set, get) => ({
           '',
           qs ? `?${qs}` : window.location.pathname
         )
+        window.dispatchEvent(new PopStateEvent('popstate'))
       }
     } catch (_e) {
       // window unavailable — silent.

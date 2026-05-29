@@ -112,18 +112,29 @@ export default function MainView() {
   // for the legacy modal path, but in list mode the kanban isn't mounted
   // so route it here too. The store action no-ops if currentTaskId is
   // already set (and the inspector's own mount effect handles refresh).
+  //
+  // Bidirectional: when the URL drops `?task=` (browser back / forward,
+  // or any caller that navigates without going through closeTaskInspector)
+  // and the store still has a task open, close the inspector so the UI
+  // matches the URL. Without this, pressing back leaves the inspector
+  // visually stuck even though the address bar reverted.
   const tasks = useAppStore(state => state.tasks)
   const openTaskInspector = useAppStore(state => state.openTaskInspector)
+  const closeTaskInspector = useAppStore(state => state.closeTaskInspector)
   const currentTaskId = useAppStore(state => state.currentTaskId)
   useEffect(() => {
-    if (!taskId || currentTaskId === taskId || tasks.length === 0) {
-      return
+    if (taskId) {
+      if (currentTaskId === taskId || tasks.length === 0) {
+        return
+      }
+      const found = tasks.find(t => t.id === taskId)
+      if (found) {
+        openTaskInspector(found.id)
+      }
+    } else if (currentTaskId) {
+      closeTaskInspector()
     }
-    const found = tasks.find(t => t.id === taskId)
-    if (found) {
-      openTaskInspector(found.id)
-    }
-  }, [taskId, tasks, currentTaskId, openTaskInspector])
+  }, [taskId, tasks, currentTaskId, openTaskInspector, closeTaskInspector])
 
   // Project loading is now handled by the store's initialize() function with URL context
   // This effect is only needed for URL synchronization after project is already loaded

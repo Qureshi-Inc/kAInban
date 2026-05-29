@@ -6,7 +6,6 @@ import {
   Plus,
   MoreVertical,
   List,
-  LayoutGrid,
   User,
   Sparkles
 } from 'lucide-react'
@@ -678,29 +677,10 @@ export default function KanbanBoardKit({ taskToOpen }) {
                           transition={{ duration: 0.1 }}
                           className="absolute right-0 mt-2 w-48 bg-card rounded-lg shadow-lg border border-border overflow-hidden z-50"
                         >
-                          {/* View Toggle */}
-                          <button
-                            onClick={() => {
-                              setViewMode(
-                                viewMode === 'kanban' ? 'list' : 'kanban'
-                              )
-                              setIsMenuOpen(false)
-                            }}
-                            className="w-full px-4 py-3 text-left text-sm hover:bg-secondary flex items-center gap-2 transition-colors border-b border-border"
-                          >
-                            {viewMode === 'kanban' ? (
-                              <>
-                                <List className="h-4 w-4" />
-                                Switch to List View
-                              </>
-                            ) : (
-                              <>
-                                <LayoutGrid className="h-4 w-4" />
-                                Switch to Kanban View
-                              </>
-                            )}
-                          </button>
-
+                          {/* View Toggle removed in v3.1.5 — the
+                              top-level <ViewSwitcher /> in the breadcrumb
+                              bar (MainView) is now the single canonical
+                              way to switch between Kanban and Tasks list. */}
                           {(tasks.length > 1 || hasRecentMerges) && (
                             <button
                               onClick={() => {
