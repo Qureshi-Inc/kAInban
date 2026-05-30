@@ -304,9 +304,13 @@ class ApiService {
   }
 
   // Projects
-  async getAllProjects() {
+  async getAllProjects(opts = {}) {
     try {
-      const response = await fetch(`${API_URL}/projects`, {
+      // `includeTasks: true` triggers the bulk variant — projects + their
+      // tasks in one HTTP call (server runs 2 SQL queries instead of 1+N).
+      // Used by the v3.1 init path so login doesn't fan out per-project.
+      const qs = opts.includeTasks ? '?include=tasks' : ''
+      const response = await fetch(`${API_URL}/projects${qs}`, {
         credentials: 'include'
       })
       if (!response.ok) {
@@ -394,12 +398,9 @@ class ApiService {
    */
   async deleteTask(taskId) {
     try {
-      const response = await this.secureFetch(
-        `${API_URL}/tasks/${taskId}`,
-        {
-          method: 'DELETE'
-        }
-      )
+      const response = await this.secureFetch(`${API_URL}/tasks/${taskId}`, {
+        method: 'DELETE'
+      })
       if (!response.ok) {
         const errorText = await response.text()
         throw new Error(

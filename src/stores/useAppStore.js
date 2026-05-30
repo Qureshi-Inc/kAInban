@@ -151,30 +151,16 @@ const useAppStore = create((set, get) => ({
         set({ settingsLoaded: true })
       }
 
-      // Load projects
-      const projects = await apiService.getAllProjects()
-
-      // For each project, if it doesn't have tasks populated, try to load them
-      const projectsWithTasks = await Promise.all(
-        projects.map(async project => {
-          // If the project already has tasks, use it as-is
-          if (project.tasks && project.tasks.length > 0) {
-            return project
-          }
-          // Otherwise, try to load the full project data including tasks
-          try {
-            const fullProject = await apiService.getProject(project.id)
-            return fullProject || project
-          } catch (error) {
-            console.error(
-              '[Store] Error loading project details for',
-              project.id,
-              error
-            )
-            return project
-          }
-        })
-      )
+      // Load projects + their tasks in one round trip. The bulk
+      // endpoint runs 2 SQL queries server-side regardless of project
+      // count, replacing the previous 1 + N HTTP fan-out (one extra
+      // GET /api/projects/:id per project) that turned login into a
+      // multi-second wait once the workspace had more than a handful
+      // of projects. Inbox / Today filters need every project's tasks
+      // hydrated up front, so we can't skip this — but we can batch it.
+      const projectsWithTasks = await apiService.getAllProjects({
+        includeTasks: true
+      })
 
       set({ projects: projectsWithTasks })
 

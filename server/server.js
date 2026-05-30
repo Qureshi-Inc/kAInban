@@ -1206,6 +1206,13 @@ app.delete('/api/users/:id', localAuth.requireAuth, (req, res) => {
 })
 
 // Project endpoints
+//
+// `?include=tasks` is the v3.1 init optimization. Without it, a frontend
+// that needs every project's tasks (Inbox / Today filters) has to fan
+// out N additional GET /api/projects/:id calls. With it, this single
+// route returns projects + their tasks in two SQL queries server-side.
+// Meetings stay lazy — only the kanban detail view needs them, and that
+// path still hits GET /api/projects/:id.
 app.get(
   '/api/projects',
   localAuth.requireAuth,
@@ -1213,6 +1220,23 @@ app.get(
   (req, res) => {
     try {
       const userId = req.session.user.id
+      const include = String(req.query.include || '')
+        .split(',')
+        .map(s => s.trim())
+        .filter(Boolean)
+      const wantTasks = include.includes('tasks')
+
+      if (wantTasks) {
+        const projects = db.getAllProjectsWithTasks(userId).map(p => ({
+          id: p.id,
+          name: p.name,
+          createdAt: p.created_at,
+          lastModified: p.updated_at,
+          tasks: p.tasks || []
+        }))
+        return res.json(projects)
+      }
+
       const projects = db.getAllProjects(userId).map(p => ({
         id: p.id,
         name: p.name,

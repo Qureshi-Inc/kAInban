@@ -358,7 +358,9 @@ try {
 
     // Add tenant_id to projects table
     const projectsColumns = db.prepare('PRAGMA table_info(projects)').all()
-    const projectsHasTenantId = projectsColumns.some(col => col.name === 'tenant_id')
+    const projectsHasTenantId = projectsColumns.some(
+      col => col.name === 'tenant_id'
+    )
     if (!projectsHasTenantId) {
       db.exec('ALTER TABLE projects ADD COLUMN tenant_id TEXT DEFAULT NULL')
       console.log('[Database] Added tenant_id to projects table')
@@ -373,14 +375,18 @@ try {
 
     // Add tenant_id to meetings table
     const meetingsColumns = db.prepare('PRAGMA table_info(meetings)').all()
-    const meetingsHasTenantId = meetingsColumns.some(col => col.name === 'tenant_id')
+    const meetingsHasTenantId = meetingsColumns.some(
+      col => col.name === 'tenant_id'
+    )
     if (!meetingsHasTenantId) {
       db.exec('ALTER TABLE meetings ADD COLUMN tenant_id TEXT DEFAULT NULL')
       console.log('[Database] Added tenant_id to meetings table')
     }
 
     // Add tenant_id to settings table
-    const settingsHasTenantId = settingsColumns.some(col => col.name === 'tenant_id')
+    const settingsHasTenantId = settingsColumns.some(
+      col => col.name === 'tenant_id'
+    )
     if (!settingsHasTenantId) {
       db.exec('ALTER TABLE settings ADD COLUMN tenant_id TEXT DEFAULT NULL')
       console.log('[Database] Added tenant_id to settings table')
@@ -547,12 +553,14 @@ try {
 // their own settings.
 export const getSettings = userId => {
   // 1. user's own row
-  let settings = db
+  const settings = db
     .prepare('SELECT * FROM settings WHERE user_id = ? LIMIT 1')
     .get(userId)
 
   const hasKey = s => s && (s.api_key || s.azure_endpoint)
-  if (hasKey(settings)) return settings
+  if (hasKey(settings)) {
+    return settings
+  }
 
   // 2. tenant admin's row — only if this user has a tenant and an admin exists.
   //
@@ -573,7 +581,9 @@ export const getSettings = userId => {
          LIMIT 1`
       )
       .get(userRow.tenant_id)
-    if (hasKey(adminSettings)) return adminSettings
+    if (hasKey(adminSettings)) {
+      return adminSettings
+    }
   }
 
   // 3. defaults — caller (server.js /api/settings) layers env-var values on top
@@ -654,6 +664,72 @@ export const getAllProjects = userId => {
     'SELECT * FROM projects WHERE user_id = ? ORDER BY updated_at DESC'
   )
   return stmt.all(userIdStr)
+}
+
+// Bulk variant: list projects AND attach each project's tasks in one
+// trip. Two SQL queries total (projects + tasks-WHERE-IN), regardless
+// of project count. Powers the v3.1 init path, which previously fanned
+// out 1 + N HTTP requests on every login (one per project) to populate
+// Inbox/Today cross-project filters. Meetings are intentionally NOT
+// included — they're only needed by the kanban detail view, which
+// hits getProject(id) on demand.
+export const getAllProjectsWithTasks = userId => {
+  const userIdStr = String(userId)
+  const projects = db
+    .prepare(
+      'SELECT * FROM projects WHERE user_id = ? ORDER BY updated_at DESC'
+    )
+    .all(userIdStr)
+
+  if (projects.length === 0) {
+    return projects
+  }
+
+  // SQLite parameter limit is 999 per query (default). Project counts
+  // realistically stay well under that, but chunk to be safe.
+  const ids = projects.map(p => p.id)
+  const tasksByProject = new Map(ids.map(id => [id, []]))
+  const CHUNK = 500
+  for (let i = 0; i < ids.length; i += CHUNK) {
+    const chunk = ids.slice(i, i + CHUNK)
+    const placeholders = chunk.map(() => '?').join(',')
+    const tasks = db
+      .prepare(
+        `SELECT * FROM tasks WHERE project_id IN (${placeholders}) ORDER BY project_id, created_at ASC`
+      )
+      .all(...chunk)
+    for (const task of tasks) {
+      const bucket = tasksByProject.get(task.project_id)
+      if (bucket) {
+        bucket.push({
+          id: task.id,
+          title: task.title,
+          description: task.description || '',
+          status: task.status || 'todo',
+          priority: task.priority || 'medium',
+          dueDate: task.due_date || null,
+          assignee: task.assignee || null,
+          subtasks: task.subtasks ? JSON.parse(task.subtasks) : [],
+          comments: task.comments ? JSON.parse(task.comments) : [],
+          linkedTasks: task.linked_tasks ? JSON.parse(task.linked_tasks) : [],
+          aiCreatedLinks: task.ai_created_links
+            ? JSON.parse(task.ai_created_links)
+            : [],
+          aiDiscoveredLinks: task.ai_discovered_links
+            ? JSON.parse(task.ai_discovered_links)
+            : [],
+          rejectedAiLinks: task.rejected_ai_links
+            ? JSON.parse(task.rejected_ai_links)
+            : [],
+          createdAt: task.created_at,
+          projectId: task.project_id,
+          meetingId: task.meeting_id || null
+        })
+      }
+    }
+  }
+
+  return projects.map(p => ({ ...p, tasks: tasksByProject.get(p.id) || [] }))
 }
 
 export const getProject = projectId => {
@@ -741,11 +817,13 @@ export const saveProject = (userId, project) => {
   // returns a function; call it to execute. Throws inside roll back.
   const tx = db.transaction(() => {
     if (exists) {
-      db.prepare(`
+      db.prepare(
+        `
         UPDATE projects
         SET name = ?, transcript = ?, summary = ?, updated_at = CURRENT_TIMESTAMP
         WHERE id = ? AND user_id = ?
-      `).run(
+      `
+      ).run(
         project.name,
         project.transcript || '',
         project.summary || '',
@@ -753,10 +831,12 @@ export const saveProject = (userId, project) => {
         userIdStr
       )
     } else {
-      db.prepare(`
+      db.prepare(
+        `
         INSERT INTO projects (id, user_id, name, transcript, summary)
         VALUES (?, ?, ?, ?, ?)
-      `).run(
+      `
+      ).run(
         project.id,
         userIdStr,
         project.name,
@@ -776,7 +856,6 @@ export const saveProject = (userId, project) => {
 function saveProjectTasksImpl(userIdStr, project, existingTasks) {
   // Save tasks if provided with change tracking
   if (project.tasks && Array.isArray(project.tasks)) {
-
     // Create maps for easy lookup
     const existingTasksMap = new Map(existingTasks.map(t => [t.id, t]))
     const newTasksMap = new Map(project.tasks.map(t => [t.id, t]))
@@ -806,9 +885,11 @@ function saveProjectTasksImpl(userIdStr, project, existingTasks) {
           task.priority || 'medium',
           task.dueDate || null,
           // Handle both assignees array and legacy assignee field
-          (task.assignees && Array.isArray(task.assignees) && task.assignees.length > 0)
+          task.assignees &&
+            Array.isArray(task.assignees) &&
+            task.assignees.length > 0
             ? task.assignees.join(', ')
-            : (task.assignee || null),
+            : task.assignee || null,
           JSON.stringify(task.subtasks || []),
           JSON.stringify(task.comments || []),
           JSON.stringify(task.linkedTasks || []),
@@ -829,9 +910,11 @@ function saveProjectTasksImpl(userIdStr, project, existingTasks) {
           task.priority || 'medium',
           task.dueDate || null,
           // Handle both assignees array and legacy assignee field
-          (task.assignees && Array.isArray(task.assignees) && task.assignees.length > 0)
+          task.assignees &&
+            Array.isArray(task.assignees) &&
+            task.assignees.length > 0
             ? task.assignees.join(', ')
-            : (task.assignee || null),
+            : task.assignee || null,
           JSON.stringify(task.subtasks || []),
           JSON.stringify(task.comments || []),
           JSON.stringify(task.linkedTasks || []),
@@ -972,7 +1055,9 @@ function saveProjectTasksImpl(userIdStr, project, existingTasks) {
 
         // Check for subtask changes (completion status changes)
         const existingSubtasks = existingTask.subtasks
-          ? (typeof existingTask.subtasks === 'string' ? JSON.parse(existingTask.subtasks) : existingTask.subtasks)
+          ? typeof existingTask.subtasks === 'string'
+            ? JSON.parse(existingTask.subtasks)
+            : existingTask.subtasks
           : []
         const newSubtasks = task.subtasks || []
 
@@ -1240,9 +1325,9 @@ export const saveTask = task => {
     task.priority || 'medium',
     task.dueDate || null,
     // Handle both assignees array and legacy assignee field
-    (task.assignees && Array.isArray(task.assignees) && task.assignees.length > 0)
+    task.assignees && Array.isArray(task.assignees) && task.assignees.length > 0
       ? task.assignees.join(', ')
-      : (task.assignee || null),
+      : task.assignee || null,
     JSON.stringify(task.subtasks || []),
     JSON.stringify(task.comments || []),
     JSON.stringify(task.linkedTasks || []),
@@ -1578,7 +1663,9 @@ export const getOrCreateDefaultTenant = () => {
 
 // Look up a tenant by Zitadel org id. Used when TENANT_STRATEGY=zitadel_org.
 export const getTenantByZitadelOrgId = orgId => {
-  if (!orgId) {return null}
+  if (!orgId) {
+    return null
+  }
   const row = db
     .prepare(
       'SELECT * FROM tenants WHERE zitadel_org_id = ? AND active = 1 LIMIT 1'
@@ -1598,11 +1685,16 @@ export const getTenantByZitadelOrgId = orgId => {
 // only, capped at 32 chars. On collision (UNIQUE constraint on subdomain)
 // appends a 6-char hash of the org id so retries always succeed.
 function buildTenantSubdomain(orgName, orgId) {
-  const baseRaw = (orgName || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
+  const baseRaw = (orgName || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
   const base = baseRaw.slice(0, 32) || 'org'
   const exists = name =>
     db.prepare('SELECT 1 FROM tenants WHERE subdomain = ? LIMIT 1').get(name)
-  if (!exists(base)) {return base}
+  if (!exists(base)) {
+    return base
+  }
   // Collision: append a stable suffix derived from orgId
   const suffix = crypto
     .createHash('sha256')
@@ -1610,7 +1702,9 @@ function buildTenantSubdomain(orgName, orgId) {
     .digest('hex')
     .slice(0, 6)
   const withSuffix = `${base}-${suffix}`.slice(0, 39)
-  if (!exists(withSuffix)) {return withSuffix}
+  if (!exists(withSuffix)) {
+    return withSuffix
+  }
   // Last-resort: append a UUID fragment
   return `${base}-${crypto.randomUUID().slice(0, 8)}`
 }
@@ -1622,7 +1716,9 @@ export const getOrCreateTenantForZitadelOrg = (orgId, orgName) => {
     throw new Error('orgId is required for getOrCreateTenantForZitadelOrg')
   }
   const existing = getTenantByZitadelOrgId(orgId)
-  if (existing) {return existing}
+  if (existing) {
+    return existing
+  }
 
   const id = crypto.randomUUID()
   const subdomain = buildTenantSubdomain(orgName, orgId)
@@ -1633,7 +1729,15 @@ export const getOrCreateTenantForZitadelOrg = (orgId, orgName) => {
   db.prepare(
     `INSERT INTO tenants (id, name, subdomain, plan, max_users, settings, zitadel_org_id, created_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))`
-  ).run(id, orgName || 'Untitled Org', subdomain, 'starter', 1000, settings, orgId)
+  ).run(
+    id,
+    orgName || 'Untitled Org',
+    subdomain,
+    'starter',
+    1000,
+    settings,
+    orgId
+  )
 
   console.log(
     '[Database] Auto-created tenant for Zitadel org:',
@@ -2098,7 +2202,7 @@ export const cleanupExpiredUndoData = () => {
 /**
  * Create a new invite token
  */
-export const createInviteToken = (tokenData) => {
+export const createInviteToken = tokenData => {
   const stmt = db.prepare(`
     INSERT INTO invite_tokens (id, token, tenant_id, inviter_id, invitee_email, role, expires_at)
     VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -2120,7 +2224,7 @@ export const createInviteToken = (tokenData) => {
 /**
  * Get invite token by token string
  */
-export const getInviteTokenByToken = (token) => {
+export const getInviteTokenByToken = token => {
   const stmt = db.prepare(`
     SELECT it.*, t.name as tenant_name, t.subdomain, u.name as inviter_name, u.email as inviter_email
     FROM invite_tokens it
@@ -2149,7 +2253,7 @@ export const markInviteTokenUsed = (token, userId) => {
 /**
  * Get invite tokens for a tenant (for admin management)
  */
-export const getInviteTokensForTenant = (tenantId) => {
+export const getInviteTokensForTenant = tenantId => {
   const stmt = db.prepare(`
     SELECT it.*, u.name as inviter_name, u.email as inviter_email,
            used_user.name as used_by_name, used_user.email as used_by_email
