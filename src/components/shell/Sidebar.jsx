@@ -317,7 +317,7 @@ function NavEyebrow({ label, onAdd }) {
         <button
           type="button"
           onClick={onAdd}
-          className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded-sm text-muted-foreground hover:text-foreground hover:bg-muted"
+          className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity p-0.5 rounded-sm text-muted-foreground hover:text-foreground hover:bg-muted"
           aria-label={`Add ${label.toLowerCase()}`}
         >
           <Plus className="h-3 w-3" aria-hidden="true" />

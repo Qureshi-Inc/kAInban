@@ -152,6 +152,8 @@ export default function TaskRow({ task, focused = false, onFocus }) {
   const currentTaskId = useAppStore(state => state.currentTaskId)
   const openTaskInspector = useAppStore(state => state.openTaskInspector)
   const updateTask = useAppStore(state => state.updateTask)
+  const loadProject = useAppStore(state => state.loadProject)
+  const currentProjectId = useAppStore(state => state.currentProject?.id)
 
   const selected = currentTaskId === task.id
   const isAi =
@@ -165,7 +167,25 @@ export default function TaskRow({ task, focused = false, onFocus }) {
     updateTask(task.id, { status: next })
   }
 
-  const open = () => openTaskInspector(task.id)
+  // Cross-project open path. When TaskRow renders a task from Inbox /
+  // Today / any cross-project filter, MainView attaches `_projectId`
+  // upstream. If that project isn't the one currently loaded, we have
+  // to load it first — otherwise the inspector reads state.tasks
+  // (current project only), can't find the task, and shows "Task not
+  // found". updateTask / deleteTask / comments all gate on the same
+  // state.tasks lookup, so without the load they'd silently fail too.
+  const open = async () => {
+    if (task._projectId && task._projectId !== currentProjectId) {
+      try {
+        await loadProject(task._projectId)
+      } catch (e) {
+        // loadProject already logs; fall through and let the inspector
+        // render the not-found state rather than swallowing the click.
+        console.warn('[TaskRow] cross-project load failed:', e?.message)
+      }
+    }
+    openTaskInspector(task.id)
+  }
 
   const assigneeName =
     (task.assignees && task.assignees[0]) || task.assignee || null
